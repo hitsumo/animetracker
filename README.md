@@ -1,5 +1,6 @@
 
 
+
 ![apple-touch-icon](https://github.com/user-attachments/assets/6ec42336-7231-4175-95be-01085b0d4e28)
 
 
@@ -12,6 +13,9 @@ Ardından veritabanı ve websitesi için gerekli dosyaları oluşturacaktır.
 Kurulum bittikten sonra tarayıcınızdan http://localhost/anime_tracker/  adresine gitmeniz yeterli olacak.
 
 <a href="http://sicakcikolata.com/download/anime_tracker/AnimeTracker-v0.1.zip">Windows exe</a>
+
+<a href="http://sicakcikolata.com/download/anime_tracker/animetrackercodes.zip">Kaynak kod</a>
+
 
 
 www.sicakcikolata.com
