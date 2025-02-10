@@ -1,0 +1,709 @@
+/**
+  [Anime Tracker/Anime izleme takip listesi.
+    https://www.sicakcikolata.com]
+  Copyright (C) 2025 [Okan Sümer]
+ 
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License version 2 as
+ published by the Free Software Foundation.
+ 
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License
+ along with this program; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ MA 02110-1301, USA.
+ */
+
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 60px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    width: 70%;
+    min-width: 320px;
+}
+
+/* Anime başlık stili */
+.anime-title-container {
+    text-align: center;
+    margin: 20px 0 40px 0;
+}
+
+.anime-title {
+    font-size: 28px;
+    color: #333;
+    font-weight: 600;
+    font-family: 'Poppins', sans-serif;
+}
+
+/* Anime resim container ve resim stilleri */
+.anime-header {
+    display: flex;
+    justify-content: center;
+    margin: 0 0 40px 0;
+}
+
+.anime-cover {
+    width: 780px;
+    height: 580px;
+    object-fit: contein;
+    background-color: #f8f9fa;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease;
+}
+
+.anime-cover:hover {
+    transform: scale(1.02);
+}
+
+/* Anime detayları container ve içerik stilleri */
+.anime-details-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.anime-details {
+    background-color: #ffff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
+}
+
+.detail-row {
+    display: flex;
+    margin-bottom: 20px;
+    align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    min-width: 150px;
+    font-weight: 600;
+    color: #495057;
+    font-size: 1.1em;
+}
+
+.detail-value {
+    flex: 1;
+    color: #212529;
+    font-size: 1.1em;
+    line-height: 1.6;
+}
+
+/* Form ve buton stilleri */
+.form-group {
+    margin-bottom: 25px;
+    text-align: left;
+    display: flex;
+    align-items: flex-start;
+}
+
+.form-group label {
+    width: 200px;
+    padding-right: 20px;
+    text-align: right;
+    margin-top: 8px;
+    color: #333;
+    font-weight: 500;
+}
+
+.form-group .input-area {
+    flex: 1;
+}
+
+/* Tür etiketleri için stil */
+.genre-tag {
+    background-color: #f8f9fa;
+    padding: 6px 15px;
+    border-radius: 20px;
+    font-size: 0.95em;
+    color: #495057;
+    margin: 3px;
+    display: inline-block;
+    border: 1px solid #e9ecef;
+}
+
+/* İzleme durumu rozeti için stil */
+.status-badge {
+    display: inline-block;
+    padding: 6px 15px;
+    border-radius: 20px;
+    font-weight: 500;
+    font-size: 0.95em;
+}
+
+.status-badge.izlendi {
+    background-color: #28a745;
+    color: white;
+}
+
+.status-badge.izleniyor {
+    background-color: #007bff;
+    color: white;
+}
+
+.status-badge.izlenme-planlandı {
+    background-color: #6c757d;
+    color: white;
+}
+
+/* Yayın bilgileri bölümü için stil */
+.broadcast-info {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 2px solid #f8f9fa;
+}
+
+/* Dış bağlantılar bölümü için stil */
+.external-links {
+    margin-top: 30px;
+    padding: 25px;
+    background-color: #f8f9fa;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.external-links h3 {
+    margin-bottom: 20px;
+    color: #495057;
+    font-size: 1.2em;
+}
+
+.site-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    margin: 0 10px;
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.anidb-link {
+    background-color: #2196f3;
+    color: white;
+}
+
+.mal-link {
+    background-color: #2e51a2;
+    color: white;
+}
+
+.site-link:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+/* Buton grubu stilleri */
+.button-group {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.edit-button,
+.back-button {
+    padding: 10px 25px;
+    border-radius: 6px;
+    text-decoration: none;
+    color: white;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.edit-button {
+    background-color: #007bff;
+}
+
+.back-button {
+    background-color: #6c757d;
+}
+
+.edit-button:hover,
+.back-button:hover {
+    transform: translateY(-1px);
+    opacity: 0.9;
+}
+
+/* Dinamik alan butonları */
+.add-button {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.3s ease;
+}
+
+.add-button:hover {
+    background-color: #218838;
+    transform: translateY(-1px);
+}
+
+.add-button i {
+    font-size: 12px;
+}
+
+.remove-button {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-left: 10px;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.remove-button:hover {
+    background-color: #c82333;
+}
+
+/* Dosya yükleme alanı */
+.file-upload {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+.file-upload input[type="file"] {
+    display: none;
+}
+
+.file-upload-label {
+    background-color: #FF9F45;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.file-upload-label:hover {
+    background-color: #FF6B35;
+    transform: translateY(-1px);
+}
+
+.file-name-display {
+    margin-left: 10px;
+    font-size: 14px;
+    color: #666;
+}
+
+/* Select ve input stilleri */
+select, 
+input[type="text"], 
+input[type="number"], 
+input[type="time"],
+input[type="url"],
+textarea {
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    width: 100%;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    font-size: 14px;
+}
+
+select:focus, 
+input[type="text"]:focus, 
+input[type="number"]:focus, 
+input[type="time"]:focus,
+input[type="url"]:focus,
+textarea:focus {
+    border-color: #80bdff;
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+/* Filtre container */
+.filter-container {
+    text-align: center;
+    margin: 60px 0 20px 0;
+    padding: 25px;
+    background-color: #e9ecef;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.filter-container form {
+    display: inline-block;
+    margin: 0 auto;
+    width: 100%;
+    max-width: 600px;
+}
+
+.filter-container select {
+    margin: 10px;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #ced4da;
+    min-width: 250px;
+    font-size: 15px;
+}
+
+.filter-container input[type="submit"] {
+    background-color: #5cb85c;
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 20px 10px 10px 10px;
+    font-size: 16px;
+    min-width: 150px;
+}
+
+/* Tablo stilleri */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background-color: white;
+}
+
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6;
+    min-width: 100px;
+    max-width: 200px;
+    white-space: normal;
+    vertical-align: middle;
+}
+
+th {
+    background-color: #f8f9fa;
+    color: #495057;
+    font-weight: 600;
+}
+
+tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* Aksiyon butonları */
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: 120px;
+    min-width: 120px;
+    margin: 0 auto;
+}
+
+/* Sayfa başlığı */
+.page-title {
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 700;
+    font-size: 36px;
+    color: #2c3e50;
+    text-align: center;
+    padding: 20px 30px;
+    background: linear-gradient(to right, #f8f9fa, #e9ecef);
+    border-radius: 15px;
+    margin: 30px auto;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 2px solid #dee2e6;
+    max-width: 600px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Boşluk sınıfları */
+.section-spacing {
+    margin: 30px 0;
+}
+
+.button-spacing {
+    margin: 20px 0;
+}
+
+/* Responsive tasarım */
+@media (max-width: 768px) {
+    .container {
+        padding: 30px;
+        margin: 10px;
+        width: 95%;
+    }
+
+    .form-group {
+        flex-direction: column;
+    }
+
+    .form-group label {
+        width: 100%;
+        text-align: left;
+        margin-bottom: 5px;
+    }
+
+    .action-buttons {
+        flex-direction: row;
+        width: auto;
+    }
+
+    .button-group {
+        flex-direction: column;
+    }
+
+    .anime-cover {
+        width: 280px;
+        height: 400px;
+    }
+
+    .detail-row {
+        flex-direction: column;
+    }
+
+    .detail-label {
+        margin-bottom: 5px;
+    }
+
+    .filter-container select {
+        width: 100%;
+        margin: 10px 0;
+    }
+
+    .site-link {
+        display: block;
+        margin: 10px 0;
+    }
+}
+
+/* Anime liste butonu */
+.anime-list-button {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    margin: 0 auto;
+}
+
+.anime-list-button:hover {
+    background-color: #0056b3;
+    transform: translateY(-1px);
+}
+
+/* Aksiyon butonları için stil */
+.delete-button {
+    background-color: #dc3545;
+    color: white;
+    text-decoration: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    display: inline-block;
+    text-align: center;
+    margin: 2px 0;
+}
+
+.delete-button:hover {
+    background-color: #c82333;
+    transform: translateY(-1px);
+}
+
+.more-button {
+    background-color: #17a2b8;
+    color: white;
+    text-decoration: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    display: inline-block;
+    text-align: center;
+    margin: 2px 0;
+}
+
+.more-button:hover {
+    background-color: #138496;
+    transform: translateY(-1px);
+}
+
+/* Buton container stili */
+.button-container {
+    text-align: center;
+    margin: 20px auto;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+/* Ekle ve Vazgeç butonları için stiller */
+.submit-button {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.submit-button:hover {
+    background-color: #218838;
+    transform: translateY(-1px);
+}
+
+.cancel-button {
+    background-color: #6c757d;
+    color: white;
+    text-decoration: none;
+    padding: 12px 30px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.cancel-button:hover {
+    background-color: #5a6268;
+    transform: translateY(-1px);
+}
+
+/* Dinamik alan butonları için stil güncellemesi */
+.field-group {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px; /* Alt alan ile mesafe */
+    gap: 10px; /* Input ve buton arası boşluk */
+}
+
+.field-group input[type="text"] {
+    flex: 1;
+    margin-right: 10px; /* Input ile silme butonu arası ek boşluk */
+}
+
+/* Alternatif isim ekleme butonu için stil */
+.add-button {
+    margin-top: 10px; /* Üstteki alan ile mesafe */
+    margin-bottom: 20px; /* Alttaki alan ile mesafe */
+}
+
+/* Dinamik alanlar container'ı için stil */
+.dynamic-fields {
+    margin-bottom: 20px; /* Alt alan ile mesafe */
+}
+
+.genre-selection-container {
+    margin-bottom: 20px; /* Boşluk eklendi */
+}
+
+.genre-selection-container select {
+    width: 40%;
+    margin-bottom: 15px; /* Select ile alt alan arası boşluk */
+}
+
+.new-genre-input {
+    margin-top: 15px; /* Üst alan ile arasına boşluk */
+    display: 30px;
+    gap: 10px;
+    width: 36%
+}
+
+.new-genre-input input {
+    flex: 1;
+}
+
+.title-background {
+    background-color: #f5f5f5;
+    padding: 15px 30px;
+    border-radius: 8px;
+    display: inline-block;
+    font-family: 'Poppins', sans-serif;
+    font-size: 26px;
+    font-weight: 500;
+    color: #333;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 30px;
+}
+
+.page-title {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.anime-edit-title {
+    font-family: 'Montserrat', sans-serif;  /* Yeni font */
+    font-size: 36px;  /* Daha büyük yazı boyutu */
+    font-weight: 600;
+    color: #2c3e50;
+    text-align: center;
+    padding: 20px 30px;
+    background-color: #f5f5f5;
+    border-radius: 10px;
+    margin-bottom: 40px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.anime-list-button {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 700;  /* Bold için */
+    font-size: 16px;
+    transition: all 0.3s ease;
+    margin: 0 auto;
+}
+
+.anime-list-button:hover {
+    background-color: #0056b3;
+    transform: translateY(-1px);
+}
