@@ -1,0 +1,39 @@
+Versiyon 0.2  tarih 2/16/2025
+
+add_anime.php sayfasına;
+hakkında linki eklendi.
+yayın tarihi bölümü eklendi.
+
+index.php sayfasından;
+
+Tür bilgileri kaldırıldı. Filtreleme özelliği devam ediyor.
+
+edit_anime.php sayfasına;
+yayın tarihi bölümü eklendi.
+
+
+Anime Tracker [2025] Versiyon 0.1
+
+
+Anime Tracker localhostta çalışan anime izleme takip sitesi.  Yapabildikleri;
+Listeye Anime Ekleme ekranında;
+Listeye anime eklerken diğer isimlerini de ekleyebilme.
+Konu ve anime ile ilgili kişisel notunuzu ekleyebilme.
+Anidb ve MyAnimeList linki ekleyebilme.
+Tür ekleme.
+Yayın durumu bulunuyor. Yayın durunu devam eden animelere kaç günde bir, hangi gün ve saatte çıktığı bilgileri ekleme.
+Anime resmi ekleme
+Anime İzleme Listesi bölümde;
+Türe göre Filtreleme. İstediğiniz tür ismini ekleyebilme ve bunu diğer ekleyeceğiniz animeler de kullanabilme.
+Anime İzleme Listesi ve Daha Fazla bölümünde animenin eklediğiniz resmini  gözükür.
+Animenin yayını devam ediyorsa bir sonraki bölüme kalan süre.
+İzleme durumu kaç bölüm izlendiği
+Daha Fazla bölümünde;
+Listeye Anime Ekleme bölümde girdiğimiz bilgilerin hepsi gözükmekte.
+Düzeltme bölümünde;
+Bütün eklenen bilgileri güncelleme özelliği bulunuyor.
+
+iletişim
+
+hitsumo@sicakcikolata.com
+sicakcikolata.com

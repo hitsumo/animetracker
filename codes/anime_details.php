@@ -79,10 +79,27 @@ if (!empty($anime['next_episode_date'])) {
                     <span class="detail-value status"><?php echo htmlspecialchars($anime['status']); ?></span>
                 </div>
 
+               
+
                 <div class="detail-row">
-                    <span class="detail-label">Toplam Bölüm:</span>
-                    <span class="detail-value episode"><?php echo htmlspecialchars($anime['total_episodes']); ?></span>
-                </div>
+    <span class="detail-label">Toplam Bölüm:</span>
+    <span class="detail-value episode"><?php echo htmlspecialchars($anime['total_episodes']); ?></span>
+</div>
+
+<!-- Yeni eklenen yayın tarihi satırı -->
+<div class="detail-row">
+    <span class="detail-label">Yayın Tarihi:</span>
+    <span class="detail-value">
+        <?php 
+        if (!empty($anime['release_date'])) {
+            echo date('d.m.Y', strtotime($anime['release_date']));
+        } else {
+            echo 'Belirtilmemiş';
+        }
+        ?>
+    </span>
+</div>
+
 
                 <div class="detail-row">
                     <span class="detail-label">İzlenen Bölüm:</span>

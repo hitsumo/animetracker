@@ -126,7 +126,7 @@ foreach ($animes as $anime) {
         <th>Anime</th>
         <th>Durum</th>
         <th style="white-space: nowrap;">İzlenen Bölüm</th>  <!-- white-space: nowrap ekledik -->
-        <th>Tür</th>
+        
         <th>Resim</th>
         <th>Sonraki Bölüm</th>
         <th>Eylem</th>
@@ -136,7 +136,6 @@ foreach ($animes as $anime) {
                 <td><?php echo htmlspecialchars($anime['title']); ?></td>
                 <td><?php echo htmlspecialchars($anime['watch_status']); ?></td>
                 <td><?php echo htmlspecialchars($anime['watched_episodes']); ?></td>
-                <td><?php echo htmlspecialchars($anime['genres']); ?></td>
                 <td><img src="<?php echo htmlspecialchars($anime['image_path']); ?>" alt="<?php echo htmlspecialchars($anime['title']); ?>" width="100"></td>
                 <td>
                     <?php 

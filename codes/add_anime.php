@@ -43,6 +43,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $broadcast_day = $_POST['broadcast_day'] ?? '';
     $broadcast_time = $_POST['broadcast_time'] ?? '';
     $synopsis = $_POST['synopsis'] ?? '';
+    $release_date = $_POST['release_date'] ?? null;
 
     // Resim yükleme
     $target_dir = "uploads/";
@@ -59,7 +60,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     // Animeyi veritabanına ekle
-    $sql = "INSERT INTO animes (title, alternative_titles, status, total_episodes, watched_episodes, notes, genres, image_path, watch_status, next_episode_date, anidb_link, mal_link, episode_interval, broadcast_day, broadcast_time, synopsis) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO animes (title, alternative_titles, status, total_episodes, watched_episodes, notes, genres, image_path, watch_status, next_episode_date, anidb_link, mal_link, episode_interval, broadcast_day, broadcast_time, synopsis, release_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $stmt = $pdo->prepare($sql);
     $stmt->execute([
         $title,
@@ -77,7 +78,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $episode_interval,
         $broadcast_day,
         $broadcast_time,
-        $synopsis
+        $synopsis,
+        $release_date
     ]);
 
     header("Location: index.php");
@@ -98,10 +100,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <link rel="icon" type="image/x-icon" href="img/favicon.ico">
 </head>
 <body>
-    <div class="container">
-        <div class="page-title">
-    Listeye Anime Ekleme
-</div>
+   <div class="container">
+    <div class="header-section">
+        <a href="about.php" class="about-link">Hakkında</a>
+    </div>
+    <div class="page-title">
+        Listeye Anime Ekleme
+    </div>
 
 <div class="button-container">
     <a class="anime-list-button" href="index.php">Anime İzleme Listesi</a>
@@ -149,6 +154,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     <input type="number" name="total_episodes" required>
                 </div>
             </div>
+
+            <div class="form-group">
+    <label for="release_date">Yayın Tarihi:</label>
+    <div class="input-area">
+        <input type="date" name="release_date" id="release_date">
+    </div>
+</div>
 
             <div class="form-group">
                 <label for="status">Yayın Durumu:</label>
