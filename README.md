@@ -12,9 +12,9 @@ Ardından veritabanı ve websitesi için gerekli dosyaları oluşturacaktır.
 
 Kurulum bittikten sonra tarayıcınızdan http://localhost/anime_tracker/  adresine gitmeniz yeterli olacak.
 
-<a href="http://sicakcikolata.com/download/anime_tracker/AnimeTracker-v0.1.zip">Windows exe</a>
+<a href="http://sicakcikolata.com/download/anime_tracker/v0.2/AnimeTracker-v0.2.zip)">Windows exe</a>
 
-<a href="http://sicakcikolata.com/download/anime_tracker/animetrackercodes.zip">Kaynak kod</a>
+<a href="http://sicakcikolata.com/download/anime_tracker/v0.2/codes.zip">Kaynak kod</a>
 
 
 
