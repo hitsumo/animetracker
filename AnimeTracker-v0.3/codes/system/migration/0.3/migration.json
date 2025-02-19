@@ -1,0 +1,22 @@
+
+
+{
+    "version": "0.4",
+    "database": {
+        "file": "database.sql",
+        "required": true
+    },
+    "files": {
+        "add": [
+            "new_feature.php",
+            "js/new_script.js"
+        ],
+        "update": [
+            "index.php",
+            "style.css"
+        ],
+        "remove": [
+            "old_feature.php"
+        ]
+    }
+}
