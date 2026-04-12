@@ -1,0 +1,37 @@
+# Git line ending kontrolu
+# Her platformda dogru calismasini saglar
+
+# Shell scriptleri her zaman LF olmali - Linux container'larda calisir
+*.sh text eol=lf
+docker-entrypoint.sh text eol=lf
+
+# Docker ve Unix config dosyalari LF
+Dockerfile text eol=lf
+.dockerignore text eol=lf
+.htaccess text eol=lf
+
+# Windows'a ozel dosyalar CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.nsi text eol=crlf
+
+# Metin dosyalarini otomatik handle et
+*.php text
+*.html text
+*.css text
+*.js text
+*.json text
+*.md text
+*.txt text
+*.sql text
+*.yml text
+*.yaml text
+
+# Binary dosyalara dokunma
+*.exe binary
+*.zip binary
+*.ico binary
+*.jpg binary
+*.png binary
+*.gif binary
+*.pdf binary

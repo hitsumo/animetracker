@@ -1,0 +1,56 @@
+# Anime Tracker - .gitignore
+
+# Kullanici'ya ozel konfig - asla commit etme (DB sifreleri icerir)
+files/config.php
+
+# Kullanici yukledigi kapak gorselleri (uploads/.htaccess haric)
+files/uploads/*
+!files/uploads/.htaccess
+
+# Runtime cache ve gecici dosyalar
+files/temp/
+files/catalog_cache.json
+files/catalog_cache.json.tmp
+
+# Build ciktilari
+AnimeTracker.exe
+*.zip
+
+# XAMPP installer (150 MB - repoya koyma, release'de dagit)
+xampp-*.exe
+
+# Gelistirme artiklari
+dizin_listesi.txt
+dizin_yapisi.txt
+*.JPG
+*.jpg
+*.png
+!files/img/*.jpg
+!files/img/*.png
+!anime-tracker-icon.ico
+
+# Gelistirme dokumantasyonu (kisisel notlar, projeyle paylasma)
+PROJE_DURUMU.md
+
+# Test dosyalari
+session_test.php
+csrf_test.php
+test.php
+
+# Editor / OS artiklari
+.vscode/
+.idea/
+*.swp
+*.swo
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Log dosyalari
+*.log
+error_log
+
+# Yedekler
+*.bak
+*.backup
+*_backup.sql

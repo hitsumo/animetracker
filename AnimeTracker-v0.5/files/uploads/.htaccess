@@ -1,0 +1,17 @@
+# Anime Tracker - uploads/.htaccess
+#
+# This directory contains user-uploaded image files. To prevent code
+# execution attacks (where someone uploads a .php file disguised as an
+# image and then accesses it via URL), PHP execution is disabled here.
+#
+# Two layers of defense:
+#   1. php_flag engine off - tells mod_php to skip this directory
+#   2. FilesMatch with Require all denied - blocks direct access to
+#      any .php / .phtml / .phar / .php5 etc. file even if php_flag
+#      is overridden by server configuration
+
+php_flag engine off
+
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|phar)$">
+    Require all denied
+</FilesMatch>
