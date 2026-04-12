@@ -21,6 +21,61 @@
  */
 
    
+/**
+ * Extract the numeric MyAnimeList ID from a MAL URL.
+ *
+ * Accepts:
+ *   https://myanimelist.net/anime/12345
+ *   https://myanimelist.net/anime/12345/Some_Slug
+ *   http://myanimelist.net/anime/12345
+ *
+ * Returns null for empty input or URLs that don't match.
+ *
+ * Used by add_anime.php and edit_anime.php to populate the mal_id
+ * column automatically (so the catalog sync can match local rows
+ * against the server catalog by MAL ID without the user having to
+ * type the ID by hand).
+ */
+function parseMalId($url) {
+    if (empty($url) || !is_string($url)) {
+        return null;
+    }
+    if (preg_match('#myanimelist\.net/anime/(\d+)#i', $url, $m)) {
+        return (int)$m[1];
+    }
+    return null;
+}
+
+/**
+ * Extract the numeric AniDB ID from an AniDB URL.
+ *
+ * Accepts three URL formats that have appeared on AniDB over the years:
+ *   1. Modern:     https://anidb.net/anime/12345
+ *   2. Short:      https://anidb.net/a12345
+ *   3. Legacy CGI: https://anidb.net/perl-bin/animedb.pl?show=anime&aid=12345
+ *                  (older entries in existing databases still use this)
+ *
+ * Returns null for empty input or URLs that don't match.
+ */
+function parseAnidbId($url) {
+    if (empty($url) || !is_string($url)) {
+        return null;
+    }
+    // Legacy CGI form uses aid= parameter
+    if (preg_match('#aid=(\d+)#i', $url, $m)) {
+        return (int)$m[1];
+    }
+    // Short form: /a12345
+    if (preg_match('#anidb\.net/a(\d+)#i', $url, $m)) {
+        return (int)$m[1];
+    }
+    // Modern form: /anime/12345
+    if (preg_match('#anidb\.net/anime/(\d+)#i', $url, $m)) {
+        return (int)$m[1];
+    }
+    return null;
+}
+
 function calculateNextEpisodeDate($anime) {
     if ($anime['status'] != 'Yayın Devam Ediyor' || empty($anime['broadcast_day']) || empty($anime['broadcast_time'])) {
         return null;

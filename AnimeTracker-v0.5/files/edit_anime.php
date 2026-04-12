@@ -85,6 +85,40 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $anidb_link = $_POST['anidb_link'] ?? '';
     $mal_link = $_POST['mal_link'] ?? '';
 	$anime_schedule_link = $_POST['anime_schedule_link'] ?? ''; 
+
+    // MAL ve AniDB linkleri zorunlu - katalog senkronizasyonunda local
+    // ile sunucu arasindaki eslesmeyi saglayan kimlik alanlari bunlardan
+    // parse ediliyor. URL'ler bos veya tanimadigimiz formatta ise kullaniciyi
+    // geri yonlendir, hata goster.
+    $validation_errors = [];
+    $mal_id = parseMalId($mal_link);
+    $anidb_id = parseAnidbId($anidb_link);
+
+    if (empty(trim($mal_link))) {
+        $validation_errors[] = 'MyAnimeList linki zorunludur.';
+    } elseif ($mal_id === null) {
+        $validation_errors[] = 'MyAnimeList linki gecersiz format. Ornek: https://myanimelist.net/anime/12345';
+    }
+
+    if (empty(trim($anidb_link))) {
+        $validation_errors[] = 'AniDB linki zorunludur.';
+    } elseif ($anidb_id === null) {
+        $validation_errors[] = 'AniDB linki gecersiz format. Ornek: https://anidb.net/anime/12345';
+    }
+
+    if (!empty($validation_errors)) {
+        die(
+            '<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8">' .
+            '<title>Form Hatasi</title></head><body style="font-family:Arial;max-width:600px;margin:40px auto;padding:20px;">' .
+            '<h1 style="color:#d32f2f;">Form Hatasi</h1>' .
+            '<ul>' . implode('', array_map(function($e) {
+                return '<li>' . htmlspecialchars($e, ENT_QUOTES, 'UTF-8') . '</li>';
+            }, $validation_errors)) . '</ul>' .
+            '<p><a href="javascript:history.back()">Geri don ve duzelt</a></p>' .
+            '</body></html>'
+        );
+    }
+
     $episode_interval = $_POST['episode_interval'] ?? 7;
     $broadcast_day = $_POST['broadcast_day'] ?? '';
     $broadcast_time = $_POST['broadcast_time'] ?? '';
@@ -197,7 +231,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             release_date = ?,
             series_name = ?,
             media_type = ?,
-            next_in_series = ?
+            next_in_series = ?,
+            mal_id = ?,
+            anidb_id = ?
             WHERE id = ?";
             
     $stmt = $pdo->prepare($sql);
@@ -225,6 +261,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $series_name,
         $media_type,
         $next_in_series,
+        $mal_id,
+        $anidb_id,
         $id
     ]);
 
@@ -495,16 +533,16 @@ $selected_genres = !empty($anime['genres']) ? explode(',', $anime['genres']) : [
             </div>
 
             <div class="form-group">
-                <label for="anidb_link">AniDB Linki:</label>
+                <label for="anidb_link">AniDB Linki: <span style="color:#d32f2f;">*</span></label>
                 <div class="input-area">
-                    <input type="url" name="anidb_link" value="<?php echo htmlspecialchars($anime['anidb_link'] ?? ''); ?>">
+                    <input type="url" name="anidb_link" required placeholder="https://anidb.net/anime/12345" value="<?php echo htmlspecialchars($anime['anidb_link'] ?? ''); ?>">
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="mal_link">MyAnimeList Linki:</label>
+                <label for="mal_link">MyAnimeList Linki: <span style="color:#d32f2f;">*</span></label>
                 <div class="input-area">
-                    <input type="url" name="mal_link" value="<?php echo htmlspecialchars($anime['mal_link'] ?? ''); ?>">
+                    <input type="url" name="mal_link" required placeholder="https://myanimelist.net/anime/12345" value="<?php echo htmlspecialchars($anime['mal_link'] ?? ''); ?>">
                 </div>
             </div>
 			<div class="form-group">
