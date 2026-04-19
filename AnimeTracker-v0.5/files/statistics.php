@@ -36,6 +36,7 @@ $total_watched = (int)$pdo->query("SELECT COALESCE(SUM(watched_episodes),0) FROM
     <meta charset="UTF-8">
     <title>İstatistikler - Anime Tracker</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
     <style>
         .stats-container { max-width: 1100px; margin: 30px auto; padding: 20px; }
         .stats-card { background: #f4f7fa; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }

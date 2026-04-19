@@ -3,6 +3,21 @@
 # Kullanici'ya ozel konfig - asla commit etme (DB sifreleri icerir)
 files/config.php
 
+# Admin tool dosyalari - hassas veri iceren dosyalar
+# admin_sync.php: hedef sunucu URL'i var, example versiyonu repo'da
+# admin_secret.php: HMAC anahtari, example versiyonu repo'da
+# NOT: admin.php ve admin_pending.php hassas veri icermez,
+#      direkt repo'da yer alir (example gereksiz).
+admin_sync.php
+admin_secret.php
+AnimeTracker-v0.5/files/admin_sync.php
+AnimeTracker-v0.5/files/admin_secret.php
+
+# Sunucu tarafindaki config dosyalari (sadece server'da olmali)
+# Example versiyonlari repo'da yer alir.
+anime_api_config.php
+admin_push_config.php
+
 # Kullanici yukledigi kapak gorselleri (uploads/.htaccess haric)
 files/uploads/*
 !files/uploads/.htaccess
