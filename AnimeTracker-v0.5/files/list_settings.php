@@ -50,10 +50,26 @@ try {
     // Sessizce gec
 }
 
+// Bolum sayisi (aired_episodes) son senkronizasyon zamani. Madde C ile
+// eklendi. Otomatik gunluk run icin baslangic kontrolu olarak da kullanilir.
+// settings tablosundaki last_aired_sync satiri hic yoksa NULL doner.
+$lastAiredSync = null;
+try {
+    $stmt = $pdo->query("SELECT value FROM settings WHERE name = 'last_aired_sync'");
+    $lastAiredSync = $stmt->fetchColumn();
+} catch (PDOException $e) {
+    // Sessizce gec
+}
+
 // catalog_import.php basarili olursa mesaji querystring ile geri yolluyor.
 // Burada alip basarili alert'e ceviriyoruz.
 if (isset($_GET['catalog_msg'])) {
     $success_message = $_GET['catalog_msg'];
+}
+
+// Bolum sayisi senkronizasyonu sonuc mesaji (manuel buton sonrasi).
+if (isset($_GET['aired_msg'])) {
+    $success_message = $_GET['aired_msg'];
 }
 
 // Listeyi Dışa Aktarma İşlemi
@@ -65,6 +81,68 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? '')) {
         http_response_code(403);
         die('CSRF token gecersiz. Sayfayi yenileyip tekrar deneyin.');
+    }
+}
+
+// Madde C — Manuel "Bolum Sayisi Senkronizasyonu" butonu.
+// Form'dan POST geldiginde tum ongoing animeler icin AnimeSchedule
+// timetable'i sorgulanir, aired_episodes guncellenir. Sonuc mesajini
+// query string ile geri donderiyoruz (klasik PRG patern: form yenileme
+// sirasinda istek tekrarlanmasin).
+if (isset($_POST['sync_aired'])) {
+    $stats = syncAllOngoingAiredEpisodes($pdo, 3);
+
+    if (isset($stats['global_error'])) {
+        $msg = 'Senkronizasyon iptal edildi: ' . $stats['global_error'];
+        if ($stats['global_error'] === 'no_key') {
+            $msg = 'AnimeSchedule API anahtari config.php icinde tanimli degil.';
+        } elseif ($stats['global_error'] === 'http_429') {
+            $msg = 'API istek limiti asildi. Birkac dakika sonra tekrar deneyin.';
+        } elseif ($stats['global_error'] === 'http_401') {
+            $msg = 'API anahtari gecersiz. config.php yi kontrol edin.';
+        }
+        header('Location: list_settings.php?aired_msg=' . urlencode($msg));
+    } else {
+        $msg = $stats['updated'] . ' anime guncellendi, '
+             . $stats['unchanged'] . ' degismedi, '
+             . $stats['not_in_table'] . ' takvimde bulunamadi'
+             . ($stats['no_slug']  > 0 ? ', ' . $stats['no_slug']  . ' AnimeSchedule URL si yok' : '')
+             . ($stats['errors']   > 0 ? ', ' . $stats['errors']   . ' hata' : '')
+             . '.';
+        header('Location: list_settings.php?aired_msg=' . urlencode($msg));
+    }
+    exit;
+}
+
+// Madde C — Otomatik gunluk silent sync.
+// last_aired_sync timestamp'i bugune ait degilse (veya hic yoksa)
+// arka planda tum ongoing animeleri senkronize et. UI'da hicbir
+// gosterim olmaz (silent), kullanici sadece guncel rakamlari gorur.
+//
+// Karar: tetikleme list_settings.php basinda. Anasayfa (index.php)
+// daha sik aciliyor ama oranin yavaslamasini istemiyoruz - liste
+// ayarlari "bilincli aciliyor", kullanici 5-15 saniye beklemeyi
+// kabullenir.
+//
+// Hata durumunda last_aired_sync GUNCELLEMEZ (helper icinde global
+// hatalarda timestamp atilmaz), bu sayede bir sonraki sayfa yuklemede
+// tekrar denenir. Tek tek anime hatalari ise normal kabul edilir,
+// timestamp guncellenir.
+//
+// Karsilastirma 'Y-m-d' duzeyinde - aym gun icindeki ikinci aciliste
+// tekrar calistirilmaz. UTC kullanilir cunku tum sistem UTC odakli.
+$todayUtc = gmdate('Y-m-d');
+$lastSyncDate = $lastAiredSync ? substr((string)$lastAiredSync, 0, 10) : null;
+if ($lastSyncDate !== $todayUtc && !isset($_POST['sync_aired'])) {
+    // Sessizce arka planda. Kullaniciya duyurmak istemiyoruz cunku
+    // otomatik bir sey - sayfa biraz yavas yuklenir, o kadar.
+    syncAllOngoingAiredEpisodes($pdo, 3);
+    // Tazelenmis timestamp'i UI gosterimi icin yeniden oku
+    try {
+        $stmt = $pdo->query("SELECT value FROM settings WHERE name = 'last_aired_sync'");
+        $lastAiredSync = $stmt->fetchColumn();
+    } catch (PDOException $e) {
+        // Sessizce gec
     }
 }
 
@@ -238,6 +316,26 @@ if (isset($_POST['clear'])) {
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
         <button type="submit" class="settings-button">
             <i class="fas fa-cloud-download-alt"></i> Katalogdan Ice Aktar
+        </button>
+    </form>
+</div>
+
+	<!-- Bolum Sayisi Senkronizasyonu (Madde C) -->
+<div class="settings-section">
+    <h3>Bolum Sayisi Senkronizasyonu</h3>
+    <p>Yayini devam eden animelerin "yayinlanan bolum sayisi" bilgisi AnimeSchedule den otomatik olarak guncellenir. Bu sayfa her acildiginda gunde bir kez arka planda calisir; manuel calistirmak icin asagidaki butonu kullanabilirsiniz.</p>
+    <div id="aired-status">
+        <?php if ($lastAiredSync): ?>
+            Son senkronizasyon: <strong><?php echo htmlspecialchars($lastAiredSync, ENT_QUOTES, 'UTF-8'); ?> UTC</strong>
+        <?php else: ?>
+            <em>Henuz senkronize edilmedi.</em>
+        <?php endif; ?>
+    </div>
+    <form method="post" action="list_settings.php" style="margin-top: 10px;">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+        <input type="hidden" name="sync_aired" value="1">
+        <button type="submit" class="settings-button">
+            <i class="fas fa-sync"></i> Simdi Senkronize Et
         </button>
     </form>
 </div>

@@ -99,11 +99,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['do_push'])) {
         $error = 'ADMIN_PUSH_SECRET config.php icinde tanimli degil.';
     } else {
         try {
-            // Gather all catalog animes
+            // Gather all catalog animes.
+            // Genres no longer live on this row - they are in the
+            // anime_genres join table and get attached as a CSV string
+            // below to keep wire-format compatibility with the server
+            // (which still expects a comma-separated 'genres' string).
             $animeRows = $pdo->query("
                 SELECT id, title, alternative_titles, status,
                        total_episodes, aired_episodes,
-                       genres, synopsis, release_date,
+                       synopsis, release_date,
                        anidb_link, mal_link, anime_schedule_link,
                        episode_interval, broadcast_day, broadcast_time, broadcast_timezone,
                        series_name, media_type,
@@ -153,6 +157,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['do_push'])) {
             }
             unset($a);
 
+            // Genres (canonical taxonomy).
+            //
+            // Build a single in-memory map of anime_id -> [name, name, ...]
+            // by JOINing anime_genres with genres once, then attach each
+            // anime's genres as a comma-separated string. CSV format is
+            // the wire-format the server still expects (Decision 2 - A
+            // in PROJE_DURUMU.md: server side untouched). When the server
+            // moves to an array format in a later release this can be
+            // replaced with attaching the array directly.
+            $genreLinkRows = $pdo->query("
+                SELECT ag.anime_id, g.name
+                FROM anime_genres ag
+                INNER JOIN genres g ON g.id = ag.genre_id
+                ORDER BY ag.anime_id, g.name
+            ")->fetchAll(PDO::FETCH_ASSOC);
+
+            $genresByAnime = [];
+            foreach ($genreLinkRows as $row) {
+                $aid = (int)$row['anime_id'];
+                $genresByAnime[$aid][] = $row['name'];
+            }
+
+            foreach ($animeRows as &$a) {
+                $aid = (int)$a['id'];
+                $names = $genresByAnime[$aid] ?? [];
+                $a['genres'] = implode(',', $names);
+            }
+            unset($a);
+
             // Build payload
             $timestamp = time();
             $payload = [
@@ -182,8 +215,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['do_push'])) {
                 CURLOPT_TIMEOUT        => 30,
                 CURLOPT_HTTPHEADER     => [
                     'Content-Type: application/json',
-                    'X-Signature: ' . $signature,
-                    'X-Timestamp: ' . $timestamp,
+                    'X-Admin-Signature: ' . $signature,
                 ],
                 CURLOPT_SSL_VERIFYPEER => true,
             ]);
