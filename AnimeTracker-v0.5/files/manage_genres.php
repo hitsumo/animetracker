@@ -22,19 +22,32 @@
 
 
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/functions.php';
 
 // Tür silme işlemi
 if (isset($_POST['delete_genre'])) {
-    $genre_id = $_POST['genre_id'];
+    // CSRF kontrolu - form'dan gelen token oturumdaki ile eslesmiyorsa reddet.
+    // hash_equals timing-safe karsilastirma yapar (bkz. functions.php csrf_verify).
+    if (!csrf_verify($_POST['csrf_token'] ?? '')) {
+        http_response_code(403);
+        die('CSRF token gecersiz. Sayfayi yenileyip tekrar deneyin.');
+    }
+
+    // Cast to int defensively. Even with prepared statements, int cast
+    // documents the intent and prevents accidental string passing if
+    // the form ever changes. The ON DELETE CASCADE on anime_genres
+    // will automatically remove every link row that references this
+    // genre - no manual cleanup needed.
+    $genre_id = (int)$_POST['genre_id'];
     $stmt = $pdo->prepare("DELETE FROM genres WHERE id = ?");
     $stmt->execute([$genre_id]);
     header("Location: manage_genres.php");
     exit();
 }
 
-// Tüm türleri getir
-$stmt = $pdo->query("SELECT * FROM genres ORDER BY name ASC");
-$genres = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Master genre list. Fetched via the helper for consistency with the
+// other modules; same shape as the inline query (id, name).
+$genres = getAllGenres($pdo);
 ?>
 
 <!DOCTYPE html>
@@ -59,7 +72,8 @@ $genres = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <tr>
                 <td><?php echo htmlspecialchars($genre['name']); ?></td>
                 <td>
-                    <form method="post" style="display: inline;" onsubmit="return confirm('Bu türü silmek istediğinize emin misiniz?');">
+                    <form method="post" style="display: inline;" onsubmit="return confirm('Bu türü silmek istediğinize emin misiniz? Bu türü kullanan animelerden de otomatik olarak kaldırılacaktır.');">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
                         <input type="hidden" name="genre_id" value="<?php echo (int)$genre['id']; ?>">
                         <button type="submit" name="delete_genre" class="delete-button">
                             <i class="fas fa-trash"></i> Sil

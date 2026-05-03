@@ -24,14 +24,25 @@
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
 
-// Türleri veritabanından çek
-$genre_stmt = $pdo->query("SELECT name FROM genres ORDER BY name ASC");
-$genres = $genre_stmt->fetchAll(PDO::FETCH_ASSOC);
+// Master genre list for the dropdown. Fetched via the helper so the
+// rest of the page does not need to know which table the data lives
+// in. Returns rows with id and name.
+$genres = getAllGenres($pdo);
 
 // Seri adlarini cek (datalist auto-complete icin)
 $seriesNames = getAllSeriesNames($pdo);
 
+// Tum cumleleri cek (oneri sistemi icin tag input auto-complete kaynagi)
+$allTags = getAllTags($pdo);
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // CSRF kontrolu - form'dan gelen token oturumdaki ile eslesmiyorsa reddet.
+    // hash_equals timing-safe karsilastirma yapar (bkz. functions.php csrf_verify).
+    if (!csrf_verify($_POST['csrf_token'] ?? '')) {
+        http_response_code(403);
+        die('CSRF token gecersiz. Sayfayi yenileyip tekrar deneyin.');
+    }
+
     $title = $_POST['title'];
     $status = $_POST['status'];
     $total_episodes = $_POST['total_episodes'] ?? null;
@@ -53,8 +64,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // MAL ve AniDB linkleri zorunlu - katalog senkronizasyonunda local
     // ile sunucu arasindaki eslesmeyi saglayan kimlik alanlari bunlardan
-    // parse ediliyor. URL'ler bos veya tanimadigimiz formatta ise kullaniciyi
-    // geri yonlendir, hata goster.
+    // parse ediliyor.
     $validation_errors = [];
     $mal_id = parseMalId($mal_link);
     $anidb_id = parseAnidbId($anidb_link);
@@ -65,10 +75,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $validation_errors[] = 'MyAnimeList linki gecersiz format. Ornek: https://myanimelist.net/anime/12345';
     }
 
+    // AniDB: hem /anime/ hem /episode/ URL'leri kabul edilir.
+    // /anime/ URL'lerinden anidb_id parse edilir (sync icin).
+    // /episode/ URL'lerinde anidb_id NULL kalir, sync mal_id ile calisir.
     if (empty(trim($anidb_link))) {
         $validation_errors[] = 'AniDB linki zorunludur.';
-    } elseif ($anidb_id === null) {
-        $validation_errors[] = 'AniDB linki gecersiz format. Ornek: https://anidb.net/anime/12345';
+    } elseif (!preg_match('#^https?://anidb\.net/#i', $anidb_link)) {
+        $validation_errors[] = 'AniDB linki gecersiz. anidb.net adresi olmali. Ornek: https://anidb.net/anime/12345 veya https://anidb.net/episode/212772';
     }
 
     if (!empty($validation_errors)) {
@@ -89,6 +102,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $broadcast_timezone = $_POST['broadcast_timezone'] ?? 'Asia/Tokyo';
     $synopsis = $_POST['synopsis'] ?? '';
     $release_date = $_POST['release_date'] ?? null;
+    $end_date = $_POST['end_date'] ?? null;
 
     // Series relationship fields (v0.5 mid-cycle)
     $series_name = $_POST['series_name'] ?? null;
@@ -100,7 +114,34 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // bunu NULL'a cevirerek INSERT hatasini engelliyoruz.
     if ($broadcast_time === '') { $broadcast_time = null; }
     if ($release_date === '')   { $release_date = null; }
+    if ($end_date === '')       { $end_date = null; }
     if ($next_episode_date === '') { $next_episode_date = null; }
+
+    // Tarih format kontrolu: HTML date input YYYY-MM-DD gondermeli.
+    // Tarayici hatalari (orn. 5 haneli yil 20026) veya manuel giris
+    // yuzunden gecersiz tarih DB'ye ulasmadan yakalanir.
+    if ($release_date !== null && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $release_date)) {
+        $validation_errors[] = 'Yayin tarihi gecersiz format. Dogru format: YYYY-MM-DD (orn: 2026-04-08)';
+    }
+    if ($end_date !== null && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $end_date)) {
+        $validation_errors[] = 'Bitis tarihi gecersiz format. Dogru format: YYYY-MM-DD (orn: 2026-09-15)';
+    }
+    if ($next_episode_date !== null && !preg_match('/^\d{4}-\d{2}-\d{2}/', $next_episode_date)) {
+        $validation_errors[] = 'Sonraki bolum tarihi gecersiz format.';
+    }
+
+    if (!empty($validation_errors)) {
+        die(
+            '<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8">' .
+            '<title>Form Hatasi</title></head><body style="font-family:Arial;max-width:600px;margin:40px auto;padding:20px;">' .
+            '<h1 style="color:#d32f2f;">Form Hatasi</h1>' .
+            '<ul>' . implode('', array_map(function($e) {
+                return '<li>' . htmlspecialchars($e, ENT_QUOTES, 'UTF-8') . '</li>';
+            }, $validation_errors)) . '</ul>' .
+            '<p><a href="javascript:history.back()">Geri don ve duzelt</a></p>' .
+            '</body></html>'
+        );
+    }
 
     // Episode fields: bos string'leri NULL'a cevir (v0.5 ile total artik nullable)
     if ($total_episodes === '') { $total_episodes = null; }
@@ -124,6 +165,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
         // aired_episodes is meaningless for finished anime - clear it.
         $aired_episodes = null;
+    }
+
+    // Madde E - Tek bolumlu animede yayin bitis tarihi anlamsiz.
+    // Film, OVA, Special veya tek bolumlu herhangi bir icerik tek seferde
+    // yayinlandigi icin baslangic = bitis. Frontend (JS) zaten bu durumda
+    // end-date alanini gizliyor, server-side de ayni kurali uyguluyoruz
+    // (JS kapaliysa veya direkt POST yapilirsa savunma).
+    // Kullanici 2->1 degisikligi yaparsa eski end_date degeri NULL'a cevrilir
+    // (Karar 2 - Secenek A).
+    if ((int)$total_episodes === 1) {
+        $end_date = null;
     }
 
     // Resim yukleme - functions.php icindeki guvenli helper kullaniliyor
@@ -153,8 +205,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Animeyi veritabanına ekle. mal_id ve anidb_id kolonlari URL'lerden
     // yukarida parse edildi - katalog senkronizasyonunda kimlik eslesmesi
     // icin kullaniliyorlar.
-    $sql = "INSERT INTO animes (title, alternative_titles, status, total_episodes, aired_episodes, watched_episodes, notes, genres, image_path, watch_status, next_episode_date, anidb_link, mal_link, anime_schedule_link, episode_interval, broadcast_day, broadcast_time, broadcast_timezone, synopsis, release_date, series_name, media_type, next_in_series, mal_id, anidb_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-    
+    //
+    // Genres no longer live on this row - they are written to the
+    // anime_genres join table after the INSERT, using the new anime's
+    // lastInsertId(). See setAnimeGenresByNames() below.
+    $sql = "INSERT INTO animes (title, alternative_titles, status, total_episodes, aired_episodes, watched_episodes, notes, image_path, watch_status, next_episode_date, anidb_link, mal_link, anime_schedule_link, episode_interval, broadcast_day, broadcast_time, broadcast_timezone, synopsis, release_date, end_date, series_name, media_type, next_in_series, mal_id, anidb_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
     $stmt = $pdo->prepare($sql);
     $stmt->execute([
         $title,
@@ -164,7 +220,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $aired_episodes,
         $watched_episodes,
         $notes,
-        implode(',', $posted_genres),
         $target_file,
         $watch_status,
         $next_episode_date,
@@ -177,12 +232,46 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $broadcast_timezone,
         $synopsis,
         $release_date,
+        $end_date,
         $series_name,
         $media_type,
         $next_in_series,
         $mal_id,
         $anidb_id
     ]);
+
+    // Yeni animenin ID'sini al - hem genres hem tags eklemek icin gerekli.
+    $new_anime_id = (int)$pdo->lastInsertId();
+
+    // Turleri kaydet (kanonik taksonomi).
+    // Form bize secilen tur isimlerini virgulle ayrilmis sekilde gonderir
+    // (#genres-input hidden alani). setAnimeGenresByNames her ismi
+    // findOrCreateGenre ile ID'ye cevirir, sonra anime_genres tablosuna
+    // yazar. Master genres tablosunda olmayan isimler otomatik olarak
+    // eklenir - bu sayede kullanici add_anime ekraninda yeni tur
+    // ekleyebilir (mevcut "Yeni tur ekle" butonu add_genre.php uzerinden
+    // de yeni satir uretiyor; her iki yol da ayni sonuca varir).
+    if (!empty($posted_genres)) {
+        setAnimeGenresByNames($pdo, $new_anime_id, $posted_genres);
+    }
+
+    // Cumleleri kaydet (oneri sistemi).
+    // Form bize virgulle ayrilmis cumle listesi gonderir. Her cumle icin
+    // findOrCreateTag cagrilir - mevcut cumle varsa ID'si alinir, yoksa
+    // yenisi olusturulur. Bu sayede kullanici add_anime sayfasinda yeni
+    // cumle olusturmak icin manage_tags.php'ye gitmek zorunda kalmaz.
+    $tag_names_raw = $_POST['tags'] ?? '';
+    $tag_names = array_filter(array_map('trim', explode(',', $tag_names_raw)));
+    $tag_ids = [];
+    foreach ($tag_names as $tn) {
+        $tid = findOrCreateTag($pdo, $tn);
+        if ($tid > 0) {
+            $tag_ids[] = $tid;
+        }
+    }
+    if (!empty($tag_ids)) {
+        setAnimeTags($pdo, $new_anime_id, $tag_ids);
+    }
 
     header("Location: index.php");
     exit();
@@ -217,6 +306,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <div class="section-spacing"></div>
 
     <form action="" method="post" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
         <div class="form-group">
             <label for="title">Anime İsmi:</label>
             <div class="input-area">
@@ -251,7 +341,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <div class="form-group">
             <label for="total_episodes">Toplam Bölüm Sayısı:</label>
             <div class="input-area">
-                <input type="number" name="total_episodes" min="0" placeholder="Bilinmiyorsa boş bırakın">
+                <input type="number" name="total_episodes" min="0" placeholder="Bilinmiyorsa boş bırakın" oninput="toggleEndDateBySingleEpisode()">
             </div>
         </div>
 
@@ -268,6 +358,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <label for="release_date">Yayın Tarihi:</label>
             <div class="input-area">
                 <input type="date" name="release_date" id="release_date">
+            </div>
+        </div>
+
+        <div id="end-date-section" style="display: none;">
+            <div class="form-group">
+                <label for="end_date">Yayın Bitiş Tarihi:</label>
+                <div class="input-area">
+                    <input type="date" name="end_date" id="end_date">
+                </div>
             </div>
         </div>
 
@@ -294,6 +393,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <label for="broadcast_day">Yayın Günü:</label>
                 <div class="input-area">
                     <select name="broadcast_day">
+                        <option value="">Seçiniz</option>
                         <option value="Pazartesi">Pazartesi</option>
                         <option value="Salı">Salı</option>
                         <option value="Çarşamba">Çarşamba</option>
@@ -376,9 +476,33 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </div>
 
         <div class="form-group">
+            <label>Cumleler:</label>
+            <div class="input-area">
+                <div class="tag-input-wrapper" style="position: relative;">
+                    <input type="text" id="tag-input" autocomplete="off" maxlength="150"
+                           placeholder="Cumle ekle (orn: Okulda gecsin, Spor temasi olsun)..."
+                           style="width: 100%; padding: 8px;">
+                    <div id="tag-suggestions" class="tag-suggestions"
+                         style="display: none; position: absolute; top: 100%; left: 0; right: 0;
+                                background: #fff; border: 1px solid #ccc; border-top: none;
+                                max-height: 200px; overflow-y: auto; z-index: 100;"></div>
+                </div>
+                <div id="selected-tags" class="genre-tags" style="margin-top: 8px;">
+                    <!-- Secilen cumle rozetleri burada gozukur -->
+                </div>
+                <input type="hidden" name="tags" id="tags-input" value="">
+                <small class="form-text text-muted">
+                    Yazinca eslesenler gozukur. Eslesme yoksa Enter ile yeni cumle olusturulur.
+                    <a href="manage_tags.php">Cumleleri yonet</a>
+                </small>
+            </div>
+        </div>
+
+        <div class="form-group">
             <label for="notes">Notlar:</label>
             <div class="input-area">
                 <textarea name="notes" rows="4"></textarea>
+                <small class="form-text text-muted">notlar bolumu silinirse sync ile geri gelmez</small>
             </div>
         </div>
 
@@ -412,7 +536,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <div class="form-group">
             <label for="anidb_link">AniDB Linki: <span style="color:#d32f2f;">*</span></label>
             <div class="input-area">
-                <input type="url" name="anidb_link" required placeholder="https://anidb.net/anime/12345">
+                <input type="url" name="anidb_link" required placeholder="https://anidb.net/anime/12345 veya /episode/12345">
             </div>
         </div>
 
@@ -425,7 +549,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 		<div class="form-group">
     <label for="anime_schedule_link">AnimeSchedule Linki:</label>
     <div class="input-area">
-        <input type="url" name="anime_schedule_link" placeholder="https://animeschedule.net/anime/...">
+        <input type="url" name="anime_schedule_link" id="anime_schedule_link" placeholder="https://animeschedule.net/anime/...">
+        <button type="button" id="animeschedule-fetch-btn" onclick="fetchAnimeScheduleData()" style="margin-top:8px; padding:8px 14px; background:#5a4ed1; color:#fff; border:none; border-radius:4px; cursor:pointer;">
+            <i class="fas fa-magic"></i> Otomatik Doldur
+        </button>
+        <div id="animeschedule-status" style="margin-top:8px; font-size:13px;"></div>
     </div>
 </div>
 
@@ -476,21 +604,41 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         const status = document.querySelector('select[name="status"]').value;
         const broadcastDetails = document.getElementById('broadcast-details');
         const airedSection = document.getElementById('aired-episodes-section');
+        const endDateSection = document.getElementById('end-date-section');
 
         // Broadcast details (interval, day, time) only matter for ongoing anime
         if (status === 'Yayın Devam Ediyor') {
             broadcastDetails.style.display = 'block';
+            airedSection.style.display = 'block';
+            endDateSection.style.display = 'none';
+        } else if (status === 'Yayın Tamamlandı') {
+            broadcastDetails.style.display = 'none';
+            airedSection.style.display = 'none';
+            // Madde E - Tek bolumde end_date gizli kalir, status finished olsa bile.
+            // Kararin tek noktada toplanmasi icin helper'a delegate ediyoruz.
+            endDateSection.style.display = isSingleEpisode() ? 'none' : 'block';
         } else {
             broadcastDetails.style.display = 'none';
-        }
-
-        // Aired episodes field only makes sense for ongoing anime.
-        // For finished anime the total episode count is used instead.
-        if (status === 'Yayın Devam Ediyor') {
-            airedSection.style.display = 'block';
-        } else {
             airedSection.style.display = 'none';
+            endDateSection.style.display = 'none';
         }
+    }
+
+    // Madde E - Toplam bolum sayisi 1 ise yayin bitis tarihi alani anlamsiz.
+    // total_episodes input'undaki her degisiklik bu fonksiyonu tetikler;
+    // toggleBroadcastDetails() icindeki status bazli mantikla beraber calisir.
+    function isSingleEpisode() {
+        const totalEl = document.querySelector('input[name="total_episodes"]');
+        if (!totalEl) return false;
+        return parseInt(totalEl.value, 10) === 1;
+    }
+
+    function toggleEndDateBySingleEpisode() {
+        // Status finished olmadigi surece end-date zaten gizli; status finished
+        // ise toggleBroadcastDetails() icindeki tek-bolum kontrolu calistirilir.
+        // Kullanici total'i 1 yaparsa end-date hemen gizlenir, 2'ye cikarirsa
+        // (status finished iken) tekrar gorunur.
+        toggleBroadcastDetails();
     }
 
     function toggleWatchedEpisodes() {
@@ -573,6 +721,248 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         `).join('');
         
         input.value = selectedGenres.join(',');
+    }
+
+    /* ---------------------------------------------------------------
+     * Tag input (recommendation system).
+     * Standalone from the genre selector above. The user types into a
+     * single input; matches from the existing tag library appear in a
+     * dropdown; if no match exists the dropdown shows a "create new
+     * tag" option. Selected tags appear as removable badges. The
+     * hidden #tags-input is what actually posts to the server as a
+     * comma-separated list of tag names.
+     * --------------------------------------------------------------- */
+    const allTags = <?php echo json_encode(array_map(function($t) { return $t['name']; }, $allTags), JSON_UNESCAPED_UNICODE); ?>;
+    let selectedTags = [];
+
+    const tagInput = document.getElementById('tag-input');
+    const tagSuggestions = document.getElementById('tag-suggestions');
+
+    function escapeHtml(str) {
+        return String(str).replace(/[&<>"']/g, function(c) {
+            return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+        });
+    }
+
+    function renderSuggestions() {
+        const query = tagInput.value.trim();
+        if (query === '') {
+            tagSuggestions.style.display = 'none';
+            return;
+        }
+        const lower = query.toLowerCase();
+        const matches = allTags.filter(t =>
+            t.toLowerCase().includes(lower) && !selectedTags.includes(t)
+        );
+
+        let html = '';
+        matches.slice(0, 10).forEach(t => {
+            html += `<div class="tag-suggestion-item" data-name="${escapeHtml(t)}"
+                          style="padding: 6px 10px; cursor: pointer;">${escapeHtml(t)}</div>`;
+        });
+
+        // Show "create new" option only if exact match (case-insensitive)
+        // does not already exist in the library or in current selection.
+        const exact = allTags.find(t => t.toLowerCase() === lower);
+        const alreadySelected = selectedTags.some(t => t.toLowerCase() === lower);
+        if (!exact && !alreadySelected) {
+            html += `<div class="tag-suggestion-item tag-suggestion-new" data-name="${escapeHtml(query)}"
+                          style="padding: 6px 10px; cursor: pointer; background: #f0f8ff; font-style: italic;">
+                          + Yeni cumle olustur: "${escapeHtml(query)}"</div>`;
+        }
+
+        if (html === '') {
+            tagSuggestions.style.display = 'none';
+            return;
+        }
+
+        tagSuggestions.innerHTML = html;
+        tagSuggestions.style.display = 'block';
+    }
+
+    function addTag(name) {
+        name = name.trim();
+        if (name === '') return;
+        // Case-insensitive duplicate check on the client side
+        if (selectedTags.some(t => t.toLowerCase() === name.toLowerCase())) {
+            return;
+        }
+        selectedTags.push(name);
+        // If this is a brand-new tag, add it to the in-memory library
+        // so subsequent suggestions include it.
+        if (!allTags.some(t => t.toLowerCase() === name.toLowerCase())) {
+            allTags.push(name);
+        }
+        tagInput.value = '';
+        tagSuggestions.style.display = 'none';
+        updateSelectedTags();
+    }
+
+    function removeTag(name) {
+        selectedTags = selectedTags.filter(t => t !== name);
+        updateSelectedTags();
+    }
+
+    function updateSelectedTags() {
+        const container = document.getElementById('selected-tags');
+        const hidden = document.getElementById('tags-input');
+        container.innerHTML = selectedTags.map(t => `
+            <div class="genre-tag">
+                ${escapeHtml(t)}
+                <button type="button" data-tag-name="${escapeHtml(t)}">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `).join('');
+        // Wire remove buttons (avoid inline onclick with quoted user data)
+        container.querySelectorAll('button[data-tag-name]').forEach(btn => {
+            btn.addEventListener('click', () => removeTag(btn.dataset.tagName));
+        });
+        hidden.value = selectedTags.join(',');
+    }
+
+    tagInput.addEventListener('input', renderSuggestions);
+    tagInput.addEventListener('focus', renderSuggestions);
+
+    // Click a suggestion = add it
+    tagSuggestions.addEventListener('click', e => {
+        const item = e.target.closest('.tag-suggestion-item');
+        if (item) {
+            addTag(item.dataset.name);
+        }
+    });
+
+    // Enter = add the typed text (matching existing or creating new)
+    tagInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const v = tagInput.value.trim();
+            if (v !== '') {
+                addTag(v);
+            }
+        } else if (e.key === 'Escape') {
+            tagSuggestions.style.display = 'none';
+        }
+    });
+
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', e => {
+        if (!e.target.closest('.tag-input-wrapper')) {
+            tagSuggestions.style.display = 'none';
+        }
+    });
+
+    // ====================================================================
+    // AnimeSchedule "Otomatik Doldur" button
+    // ====================================================================
+    //
+    // Calls fetch_animeschedule.php with the URL from the anime_schedule_link
+    // input. Response.fields is an object of "form_field_name -> value"
+    // pairs (only the fields the API could actually fill). We iterate it
+    // and write each value into the matching form element ONLY when that
+    // element is currently empty - existing manual input is never
+    // overwritten.
+    //
+    // broadcast_timezone has special handling: the form starts pre-filled
+    // with "Asia/Tokyo" (default), so "empty" means "still on default".
+    // We treat anything else as "user changed it on purpose, do not touch".
+    function fetchAnimeScheduleData() {
+        const urlInput = document.getElementById('anime_schedule_link');
+        const statusDiv = document.getElementById('animeschedule-status');
+        const btn = document.getElementById('animeschedule-fetch-btn');
+
+        const url = (urlInput.value || '').trim();
+        if (url === '') {
+            statusDiv.style.color = '#c0392b';
+            statusDiv.textContent = 'Once AnimeSchedule URL ini girin.';
+            return;
+        }
+
+        // Read CSRF token from the hidden input that already lives at the
+        // top of the form (added when CSRF protection was enabled).
+        const csrfInput = document.querySelector('input[name="csrf_token"]');
+        const csrfToken = csrfInput ? csrfInput.value : '';
+
+        // Disable button + show progress so the user knows something is
+        // happening. Re-enabled in the finally block.
+        btn.disabled = true;
+        statusDiv.style.color = '#555';
+        statusDiv.textContent = 'AnimeSchedule den veri cekiliyor...';
+
+        const formData = new FormData();
+        formData.append('csrf_token', csrfToken);
+        formData.append('url', url);
+
+        fetch('fetch_animeschedule.php', {
+            method: 'POST',
+            body: formData,
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) {
+                statusDiv.style.color = '#c0392b';
+                statusDiv.textContent = data.error || 'Bilinmeyen hata.';
+                return;
+            }
+
+            const fields = data.fields || {};
+            const filled = [];
+            const skipped = [];
+
+            // Walk every field the API gave us. For each one find the
+            // matching DOM element by name attribute and write only
+            // when the element is currently empty.
+            for (const fieldName in fields) {
+                if (!Object.prototype.hasOwnProperty.call(fields, fieldName)) continue;
+                const value = fields[fieldName];
+                const el = document.querySelector('[name="' + fieldName + '"]');
+                if (!el) {
+                    skipped.push(fieldName + ' (alan bulunamadi)');
+                    continue;
+                }
+
+                // Decide whether the element counts as "empty".
+                let isEmpty;
+                if (fieldName === 'broadcast_timezone') {
+                    // Special case: default is Asia/Tokyo. Treat that as
+                    // "user has not chosen yet" so we still set the value.
+                    // If the user changed it to something else, respect it.
+                    isEmpty = (el.value === '' || el.value === 'Asia/Tokyo');
+                } else {
+                    isEmpty = (el.value === '' || el.value === null);
+                }
+
+                if (!isEmpty) {
+                    skipped.push(fieldName);
+                    continue;
+                }
+
+                el.value = value;
+                filled.push(fieldName);
+
+                // status drives the visibility of broadcast/aired/end_date
+                // sections via toggleBroadcastDetails(). Trigger it so the
+                // newly-filled broadcast_day/time become visible.
+                if (fieldName === 'status' && typeof toggleBroadcastDetails === 'function') {
+                    toggleBroadcastDetails();
+                }
+            }
+
+            if (filled.length === 0) {
+                statusDiv.style.color = '#888';
+                statusDiv.textContent = 'Doldurulacak bos alan bulunamadi (tum alanlar dolu).';
+            } else {
+                statusDiv.style.color = '#27ae60';
+                statusDiv.textContent = filled.length + ' alan dolduruldu: ' + filled.join(', ') + '.';
+            }
+        })
+        .catch(err => {
+            statusDiv.style.color = '#c0392b';
+            statusDiv.textContent = 'Istek basarisiz: ' + err.message;
+        })
+        .finally(() => {
+            btn.disabled = false;
+        });
     }
     </script>
 </body>

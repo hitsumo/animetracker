@@ -28,6 +28,12 @@
  *     // $pdo is now available
  */
 
+// All date/time calculations use UTC internally. The database stores
+// UTC, PHP compares UTC, and the browser converts to the user's local
+// timezone for display. This prevents offset bugs caused by the
+// server's default timezone (e.g. XAMPP shipping with Europe/Berlin).
+date_default_timezone_set('UTC');
+
 // Start the PHP session so modules can use $_SESSION (CSRF tokens,
 // future auth state, etc.). We start it here centrally so every page
 // that includes db.php gets a session - no module has to remember
@@ -63,9 +69,20 @@ foreach ($required as $constant) {
 // - charset=utf8mb4 is required for Turkish characters and emoji
 // - ERRMODE_EXCEPTION makes failures throw instead of silently returning false
 // - EMULATE_PREPARES = false forces real prepared statements (safer against SQLi)
+// - DB_HOST supports "host:port" format (e.g. "127.0.0.1:3307" or "localhost:3308")
 try {
+    $dsn_host = DB_HOST;
+    $dsn_port = '';
+    if (strpos(DB_HOST, ':') !== false) {
+        list($dsn_host, $dsn_port) = explode(':', DB_HOST, 2);
+    }
+    $dsn = 'mysql:host=' . $dsn_host
+         . ($dsn_port !== '' ? ';port=' . $dsn_port : '')
+         . ';dbname=' . DB_NAME
+         . ';charset=utf8mb4';
+
     $pdo = new PDO(
-        'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=utf8mb4',
+        $dsn,
         DB_USER,
         DB_PASS,
         [

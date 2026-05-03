@@ -24,9 +24,10 @@
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
 
-// Türleri çek
-$genre_stmt = $pdo->query("SELECT name FROM genres ORDER BY name ASC");
-$genres = $genre_stmt->fetchAll(PDO::FETCH_ASSOC);
+// Master genre list for the filter dropdown. Fetched via the helper
+// so the rest of the page does not have to know which table the data
+// lives in.
+$genres = getAllGenres($pdo);
 
 // Silme islemi — POST + CSRF token
 // GET kullanmiyoruz cunku (a) HTTP standartina aykiri, (b) tarayici pre-fetch
@@ -79,6 +80,7 @@ $genre_filter = isset($_GET['genre_filter']) ? $_GET['genre_filter'] : '';
 $watch_status_filter = isset($_GET['watch_status_filter']) ? $_GET['watch_status_filter'] : '';
 $broadcast_status_filter = isset($_GET['broadcast_status_filter']) ? $_GET['broadcast_status_filter'] : '';
 $letter_filter = isset($_GET['letter_filter']) ? $_GET['letter_filter'] : '';
+$search_query = isset($_GET['q']) ? trim($_GET['q']) : '';
 
 // Sayfa basina gosterilecek anime sayisi
 $allowed_per_page = [10, 20, 30, 50, 100, 0]; // 0 = hepsi
@@ -87,11 +89,30 @@ if (!in_array($per_page, $allowed_per_page, true)) {
     $per_page = 10;
 }
 
+// Genre filter clause used in both the main SELECT and the special
+// watched_episodes branch below. Defined once so the two stay in sync.
+// Uses an IN-subquery against the anime_genres join table so the outer
+// SELECT * does not need to be rewritten as a JOIN. MySQL 5.6+ rewrites
+// this as a semi-join internally, so there is no performance penalty.
+// Match is by exact genre name (no LIKE wildcards) - this fixes the
+// false-positive bug where the old "genres LIKE %Komedi%" matched
+// "Romantik Komedi" too.
+$genre_filter_clause = " AND id IN (
+    SELECT ag.anime_id
+    FROM anime_genres ag
+    INNER JOIN genres g ON g.id = ag.genre_id
+    WHERE g.name = :genre
+)";
+
 // SQL sorgusunu oluştur
 $sql = "SELECT * FROM animes WHERE 1=1";
 
+if ($search_query !== '') {
+    $sql .= " AND (title LIKE :search1 OR alternative_titles LIKE :search2)";
+}
+
 if ($genre_filter) {
-    $sql .= " AND genres LIKE :genre";
+    $sql .= $genre_filter_clause;
 }
 
 if ($watch_status_filter) {
@@ -120,8 +141,12 @@ $sql .= " ORDER BY " . $sort_column . " " . strtoupper($sort_order);
 if ($sort_column == 'watched_episodes') {
     $sql = "SELECT * FROM animes WHERE 1=1";
     
+    if ($search_query !== '') {
+        $sql .= " AND (title LIKE :search1 OR alternative_titles LIKE :search2)";
+    }
+    
     if ($genre_filter) {
-        $sql .= " AND genres LIKE :genre";
+        $sql .= $genre_filter_clause;
     }
     
     if ($watch_status_filter) {
@@ -147,8 +172,16 @@ if ($sort_column == 'watched_episodes') {
 
 $stmt = $pdo->prepare($sql);
 
+if ($search_query !== '') {
+    $stmt->bindValue(':search1', '%' . $search_query . '%');
+    $stmt->bindValue(':search2', '%' . $search_query . '%');
+}
 if ($genre_filter) {
-    $stmt->bindValue(':genre', '%' . $genre_filter . '%');
+    // Exact match against genres.name (no wildcards). The old code
+    // wrapped the value in % to use LIKE which produced false positives
+    // (e.g. "Komedi" matched "Romantik Komedi"). The relational schema
+    // makes those collisions impossible.
+    $stmt->bindValue(':genre', $genre_filter);
 }
 if ($watch_status_filter) {
     $stmt->bindValue(':status', $watch_status_filter);
@@ -163,21 +196,92 @@ if ($letter_filter && preg_match('/^[A-Za-z]$/', $letter_filter)) {
 $stmt->execute();
 $animes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Her anime için kontrollerimizi yapalım
+// Her anime icin kontrollerimizi yapalim
 foreach ($animes as $key => $anime) {
-    // Anime tamamlanmış mı kontrol et ve güncelle
-    $animes[$key] = checkIfAnimeCompleted($pdo, $anime);
+    // Anime tamamlanmis mi kontrol et ve guncelle
+    $animes[$key] = checkIfAnimeCompleted($pdo, $animes[$key]);
     
-    // Sonraki bölüm tarihini kontrol et
-    if (!empty($anime['next_episode_date'])) {
-        updateNextEpisodeDate($pdo, $anime);
+    // Sonraki bolum tarihini kontrol et ve aired_episodes guncelle.
+    // Pass by reference: fonksiyon anime array'ini yerinde gunceller,
+    // boylece ayni sayfa yuklemesinde guncel veri gosterilir.
+    if (!empty($animes[$key]['next_episode_date'])) {
+        updateNextEpisodeDate($pdo, $animes[$key]);
     }
 }
 
-// Toplam sayiyi sakla (gosterim oncesi), sonra limite gore kes
+// Toplam sayiyi sakla, sayfa bazli kesim yap
 $total_results = count($animes);
+$current_page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+
 if ($per_page > 0 && $total_results > $per_page) {
-    $animes = array_slice($animes, 0, $per_page);
+    $total_pages = (int)ceil($total_results / $per_page);
+    if ($current_page > $total_pages) $current_page = $total_pages;
+    $offset = ($current_page - 1) * $per_page;
+    $animes = array_slice($animes, $offset, $per_page);
+} else {
+    $total_pages = 1;
+    $current_page = 1;
+}
+
+// Sayfalama linklerini olusturan yardimci fonksiyon
+function buildPaginationUrl($page) {
+    $params = $_GET;
+    if ($page <= 1) {
+        unset($params['page']);
+    } else {
+        $params['page'] = $page;
+    }
+    // Bos parametreleri temizle
+    foreach ($params as $k => $v) {
+        if ($v === '') unset($params[$k]);
+    }
+    return '?' . http_build_query($params);
+}
+
+function renderPagination($current_page, $total_pages, $total_results, $per_page) {
+    if ($total_pages <= 1) return;
+    
+    $start = ($current_page - 1) * $per_page + 1;
+    $end = min($current_page * $per_page, $total_results);
+    
+    echo '<div class="pagination-bar">';
+    echo '<span class="pagination-info">' . $total_results . ' anime, sayfa ' . $current_page . '/' . $total_pages . ' (' . $start . '-' . $end . ')</span>';
+    echo '<div class="pagination-links">';
+    
+    // Onceki
+    if ($current_page > 1) {
+        echo '<a href="' . buildPaginationUrl($current_page - 1) . '" class="page-link">&laquo; Onceki</a>';
+    }
+    
+    // Sayfa numaralari
+    $range = 2; // aktif sayfanin iki yaninda kac sayfa gosterilsin
+    $show_start = max(1, $current_page - $range);
+    $show_end = min($total_pages, $current_page + $range);
+    
+    if ($show_start > 1) {
+        echo '<a href="' . buildPaginationUrl(1) . '" class="page-link">1</a>';
+        if ($show_start > 2) echo '<span class="page-dots">...</span>';
+    }
+    
+    for ($i = $show_start; $i <= $show_end; $i++) {
+        if ($i == $current_page) {
+            echo '<span class="page-link active">' . $i . '</span>';
+        } else {
+            echo '<a href="' . buildPaginationUrl($i) . '" class="page-link">' . $i . '</a>';
+        }
+    }
+    
+    if ($show_end < $total_pages) {
+        if ($show_end < $total_pages - 1) echo '<span class="page-dots">...</span>';
+        echo '<a href="' . buildPaginationUrl($total_pages) . '" class="page-link">' . $total_pages . '</a>';
+    }
+    
+    // Sonraki
+    if ($current_page < $total_pages) {
+        echo '<a href="' . buildPaginationUrl($current_page + 1) . '" class="page-link">Sonraki &raquo;</a>';
+    }
+    
+    echo '</div></div>';
 }
 
 // Sıralama bağlantısı oluşturma fonksiyonu
@@ -208,6 +312,11 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
     global $per_page;
     if ($per_page !== 10) {
         $params['per_page'] = $per_page;
+    }
+    
+    global $search_query;
+    if ($search_query !== '') {
+        $params['q'] = $search_query;
     }
     
     return '?' . http_build_query($params);
@@ -275,16 +384,64 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
         th {
             white-space: nowrap;
         }
+        .pagination-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .pagination-info {
+            color: #666;
+            font-size: 0.85em;
+        }
+        .pagination-links {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .page-link {
+            display: inline-block;
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #4a90e2;
+            font-size: 0.9em;
+            background: #fff;
+        }
+        .page-link:hover { background: #f0f0f0; }
+        .page-link.active {
+            background: #4a90e2;
+            color: #fff;
+            border-color: #4a90e2;
+        }
+        .page-dots { color: #999; padding: 0 4px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header-section">
+            <a href="recommendations.php" class="about-link">Ne İzlesem?</a>
+            <a href="recent.php" class="about-link">Son Düzenlenenler</a>
             <a href="list_settings.php" class="about-link">Liste Ayarları</a>
             <a href="statistics.php" class="about-link">İstatistikler</a>
+            <a href="help.php" class="about-link">Yardım</a>
         </div>
         <div class="page-title">
             ANİME İZLEME LİSTESİ
+        </div>
+
+        <div style="max-width: 500px; margin: 15px auto; background: #e9ecef; padding: 15px 20px; border-radius: 8px;">
+            <form method="GET" action="" style="display: flex; gap: 8px;">
+                <input type="text" name="q" value="<?php echo htmlspecialchars($search_query); ?>" placeholder="Anime ara..." style="flex: 1; padding: 10px 14px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;">
+                <button type="submit" style="padding: 10px 18px; background: #4a90e2; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">Ara</button>
+                <?php if ($search_query !== ''): ?>
+                    <a href="index.php" style="padding: 10px 14px; background: #e0e0e0; color: #333; border-radius: 6px; text-decoration: none; font-size: 14px; display: flex; align-items: center;">Temizle</a>
+                <?php endif; ?>
+            </form>
         </div>
         
         <div class="filter-container">
@@ -328,6 +485,7 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                         <?php
                         // Mevcut diger filtreleri korumak icin querystring olustur
                         $preserve = [];
+                        if ($search_query !== '') $preserve['q'] = $search_query;
                         if ($genre_filter) $preserve['genre_filter'] = $genre_filter;
                         if ($watch_status_filter) $preserve['watch_status_filter'] = $watch_status_filter;
                         if ($broadcast_status_filter) $preserve['broadcast_status_filter'] = $broadcast_status_filter;
@@ -361,6 +519,9 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                 
                 <input type="hidden" name="sort" value="<?php echo htmlspecialchars($sort_column); ?>">
                 <input type="hidden" name="order" value="<?php echo htmlspecialchars($sort_order); ?>">
+                <?php if ($search_query !== ''): ?>
+                    <input type="hidden" name="q" value="<?php echo htmlspecialchars($search_query); ?>">
+                <?php endif; ?>
                 
                 <div class="form-actions filter-full">
                     <input type="submit" value="Filtrele">
@@ -371,6 +532,8 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
         <div class="button-container">
             <a href="add_anime.php" class="anime-list-button">Yeni Anime Ekle</a>
         </div>
+
+        <?php renderPagination($current_page, $total_pages, $total_results, $per_page); ?>
 
         <table>
             <thead>
@@ -467,6 +630,9 @@ if ($anime['status'] == 'Yayın Tamamlandı') {
                 <?php endif; ?>
             </tbody>
         </table>
+
+        <?php renderPagination($current_page, $total_pages, $total_results, $per_page); ?>
+
     </div>
 
     <script>

@@ -61,6 +61,17 @@ if (!empty($anime['next_in_series'])) {
     $nextAnime = $nextStmt->fetch(PDO::FETCH_ASSOC);
 }
 
+// Check if this anime is part of a next_in_series chain (either it
+// points forward or another anime points to it). Used to show the
+// "Seri Kronolojisi" button.
+$isInSeriesChain = !empty($anime['next_in_series']);
+if (!$isInSeriesChain) {
+    $chainCheck = $pdo->prepare("SELECT COUNT(*) FROM animes WHERE next_in_series = ?");
+    $chainCheck->execute([(int)$anime['id']]);
+    $isInSeriesChain = ((int)$chainCheck->fetchColumn() > 0);
+    $chainCheck->closeCursor();
+}
+
 // Ayni serideki tum animeler (marker ekleme formu dropdown'u icin)
 $sameSeriesAnimes = [];
 if (!empty($anime['series_name'])) {
@@ -129,7 +140,7 @@ if (!empty($anime['series_name'])) {
 </div>
 <?php endif; ?>
 
-<!-- Yeni eklenen yayın tarihi satırı -->
+<!-- Yayin tarihi -->
 <div class="detail-row">
     <span class="detail-label">Yayın Tarihi:</span>
     <span class="detail-value">
@@ -142,6 +153,20 @@ if (!empty($anime['series_name'])) {
         ?>
     </span>
 </div>
+<?php
+// Madde E - Tek bolumlu animede yayin bitis tarihi anlamsiz (baslangic = bitis).
+// Status finished AND end_date dolu AND total_episodes 1 degil ise goster.
+if ($anime['status'] == 'Yayın Tamamlandı'
+    && !empty($anime['end_date'])
+    && (int)($anime['total_episodes'] ?? 0) !== 1):
+?>
+<div class="detail-row">
+    <span class="detail-label">Yayın Bitiş Tarihi:</span>
+    <span class="detail-value">
+        <?php echo date('d.m.Y', strtotime($anime['end_date'])); ?>
+    </span>
+</div>
+<?php endif; ?>
 <?php if ($anime['status'] == 'Yayın Devam Ediyor'): ?>
 <div class="detail-row" style="margin-top: -8px;">
     <span class="detail-label"></span>
@@ -163,15 +188,26 @@ if (!empty($anime['series_name'])) {
                 </div>
                 <?php endif; ?>
 
+                <?php if (!empty($anime['user_synopsis'])): ?>
+                <div class="detail-row">
+                    <span class="detail-label">Kişisel Konu:</span>
+                    <span class="detail-value synopsis"><?php echo nl2br(htmlspecialchars($anime['user_synopsis'])); ?></span>
+                </div>
+                <?php endif; ?>
+
             
 
                 <div class="detail-row">
                     <span class="detail-label">Türler:</span>
                     <div class="detail-value genres">
-                        <?php 
-                        $genres = explode(',', $anime['genres']);
-                        foreach ($genres as $genre): ?>
-                            <span class="genre-tag"><?php echo htmlspecialchars(trim($genre)); ?></span>
+                        <?php
+                        // Genres come from the anime_genres join table.
+                        // Helper returns rows with id and name; trim is no
+                        // longer needed because the names are stored
+                        // canonically in the genres table.
+                        $genre_rows = getAnimeGenres($pdo, $anime['id']);
+                        foreach ($genre_rows as $genre_row): ?>
+                            <span class="genre-tag"><?php echo htmlspecialchars($genre_row['name']); ?></span>
                         <?php endforeach; ?>
                     </div>
                 </div>
@@ -192,7 +228,7 @@ if (!empty($anime['series_name'])) {
 
                     <div class="detail-row">
                         <span class="detail-label">Yayın Saati:</span>
-                        <span class="detail-value broadcast-time"><?php echo htmlspecialchars($anime['broadcast_time'] ?? 'Belirtilmemiş'); ?></span>
+                        <span class="detail-value broadcast-time"><?php echo htmlspecialchars(!empty($anime['broadcast_time']) ? substr($anime['broadcast_time'], 0, 5) : 'Belirtilmemiş'); ?></span>
                     </div>
 
      <div class="detail-row">
@@ -319,6 +355,14 @@ if (!empty($anime['series_name'])) {
                         <?php echo htmlspecialchars($nextAnime['watch_status']); ?>
                     </span>
                 </div>
+            </div>
+            <?php endif; ?>
+
+            <?php if ($isInSeriesChain): ?>
+            <div style="margin: 15px 0;">
+                <a href="series_timeline.php?id=<?php echo (int)$anime['id']; ?>" class="chronology-button" style="background: #8e44ad;">
+                    <i class="fas fa-list-ol"></i> Seri Kronolojisi
+                </a>
             </div>
             <?php endif; ?>
 

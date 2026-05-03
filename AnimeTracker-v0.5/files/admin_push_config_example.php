@@ -28,7 +28,7 @@ define('ADMIN_SECRET', 'REPLACE_WITH_64_CHAR_HEX_FROM_openssl_rand_-hex_32');
 // Note that port format can be either plain "localhost" or "host:port"
 // if your MariaDB listens on a non-standard port (e.g. "localhost:3308"
 // on Plesk shared hosting).
-define('DB_HOST', 'localhost:3308');
-define('DB_NAME', 'sicakcik_animetracker');
-define('DB_USER', 'sicakcik_animetracker');
+define('DB_HOST', 'localhost');
+define('DB_NAME', 'database_name');
+define('DB_USER', 'database_name');
 define('DB_PASS', 'REPLACE_WITH_DB_PASSWORD');

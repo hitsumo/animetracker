@@ -57,6 +57,17 @@ if (isset($_GET['catalog_msg'])) {
 }
 
 // Listeyi Dışa Aktarma İşlemi
+// Asagidaki tum POST islemleri (export, import, clear) icin ortak CSRF kontrolu.
+// Tek noktada yaparak ileride eklenecek POST handler'larin da otomatik
+// korunmasini sagliyoruz. Mevcut catalog_import.php endpoint'i kendi CSRF
+// kontrolunu kendisi yapiyor (ayri sayfa), o etkilenmez.
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!csrf_verify($_POST['csrf_token'] ?? '')) {
+        http_response_code(403);
+        die('CSRF token gecersiz. Sayfayi yenileyip tekrar deneyin.');
+    }
+}
+
 if (isset($_POST['export'])) {
     $stmt = $pdo->query("SELECT * FROM animes");
     $animes = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -163,6 +174,7 @@ if (isset($_POST['clear'])) {
                 <h3>Listeyi Dışa Aktar</h3>
                 <p>Mevcut anime listenizi JSON formatında dışa aktarın.</p>
                 <form method="post">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
                     <button type="submit" name="export" class="settings-button">
                         <i class="fas fa-download"></i> Listeyi Dışa Aktar
                     </button>
@@ -174,6 +186,7 @@ if (isset($_POST['clear'])) {
                 <h3>Listeyi İçe Aktar</h3>
                 <p>Önceden dışa aktarılmış bir listeyi içe aktarın.</p>
                 <form method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
                     <div class="file-upload">
                         <input type="file" name="import_file" id="import_file" accept=".json" required>
                         <label for="import_file" class="file-upload-label">
@@ -191,6 +204,7 @@ if (isset($_POST['clear'])) {
                 <h3>Listeyi Temizle</h3>
                 <p>DİKKAT: Bu işlem geri alınamaz!</p>
                 <form method="post" onsubmit="return confirmClear()">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
                     <input type="hidden" name="confirm_clear" value="yes">
                     <button type="submit" name="clear" class="settings-button danger">
                         <i class="fas fa-trash-alt"></i> Listeyi Temizle
