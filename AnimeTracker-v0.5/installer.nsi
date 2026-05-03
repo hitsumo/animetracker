@@ -1,12 +1,31 @@
-﻿Unicode true
+Unicode true
 
 !include "MUI2.nsh"
 !include "FileFunc.nsh"
 !include "WinMessages.nsh"
 
+; Sürüm bilgisi.
+; Build sirasinda version.txt dosyasindan okunur, installer .exe adina ve
+; Windows "Programlar ve Ozellikler" listesine eklenecek DisplayVersion
+; degerine yansitilir. Yeni bir surum cikartirken yalnizca files/version.txt'yi
+; guncellemek yeterli — burayi elle degistirmenize gerek yok.
+;
+; !searchparse compile-time'da dosyadan regex ile deger cikarir. version.txt
+; icinde duz metin olarak "0.5" yazmasi yeterli (yeni satir karakteri olsa
+; bile sorunsuz okunur).
+!searchparse /file "files\version.txt" "" APP_VERSION ""
+
+; Build tarihi.
+; Her .exe build edisinde elle guncellenir. yyyy-mm-dd formatinda yaz.
+; Sadece install sirasinda DB yedegi alinirken yedek dosya adina yazilir
+; (orn. at_install_backup_2026-05-02.sql). Tek kullanicili bir uygulama
+; oldugu icin runtime tarihi yerine compile-time tarihi yeterlidir;
+; build ile install genelde ayni gun yapilir.
+!define BUILD_DATE "2026-05-02"
+
 ; Kurulum tanımlamaları
 Name "Anime Tracker"
-OutFile "AnimeTracker.exe"
+OutFile "AnimeTracker-v${APP_VERSION}.exe"
 InstallDir "$PROGRAMFILES\AnimeTracker"
 RequestExecutionLevel admin
 
@@ -70,6 +89,12 @@ Section "Ana Bileşenler" SEC01
     
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\AnimeTracker" \
     "DisplayName" "Anime Tracker"
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\AnimeTracker" \
+    "DisplayVersion" "${APP_VERSION}"
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\AnimeTracker" \
+    "Publisher" "Okan Sumer"
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\AnimeTracker" \
+    "URLInfoAbout" "https://www.sicakcikolata.com"
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\AnimeTracker" \
     "UninstallString" "$INSTDIR\uninstall.exe"
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\AnimeTracker" \
@@ -144,7 +169,18 @@ Section "Anime Tracker Kurulumu" SecMain
         ExecWait '"$SYSDIR\cmd.exe" /C ""C:\xampp\mysql\bin\mysql.exe" -u root anime_tracker < "$OUTDIR\schema.sql""'
         DetailPrint "Veritabanı başarıyla oluşturuldu."
     ${Else}
-        DetailPrint "Veritabanı zaten mevcut. Atlanıyor..."
+        ; Veritabani zaten var. Dosyalar zaten "files\*.*" ile uzerine yazildi
+        ; (yukarida, satir 142'deki File /r komutu). Yeni PHP dosyalari eski
+        ; schema'yla bozusabilir (orn. bir schema degisikligi yapilmis ama bu
+        ; DB'de uygulanmamis ise). Bu yuzden yedek alma adimi guvence saglar -
+        ; install bozuk gitse bile bu yedekten geri donulebilir.
+        ;
+        ; Yedek dosya adi: at_install_backup_${BUILD_DATE}.sql
+        ; BUILD_DATE bu dosyanin basinda elle tanimlanir; her .exe build edisinde
+        ; version.txt yaninda BUILD_DATE de guncellenmelidir.
+        DetailPrint "Veritabani zaten mevcut, yedek aliniyor..."
+        ExecWait '"$SYSDIR\cmd.exe" /C ""C:\xampp\mysql\bin\mysqldump.exe" -u root anime_tracker > "$DESKTOP\at_install_backup_${BUILD_DATE}.sql""'
+        DetailPrint "Yedek alindi: $DESKTOP\at_install_backup_${BUILD_DATE}.sql"
     ${EndIf}
     
     ; config.php olustur
@@ -152,6 +188,12 @@ Section "Anime Tracker Kurulumu" SecMain
     ; config.php'yi installer dogrudan yazmali. XAMPP varsayilanlari kullaniliyor:
     ; localhost host, root kullanici, bos sifre. Bu bilgiler XAMPP'in kendi
     ; kurulum varsayilanlariyla birebir esleshir.
+    ;
+    ; ANIMESCHEDULE_API_KEY yorum satiri olarak eklenir cunku token kullaniciya
+    ; ozel ve installer onu bilemez. Kullanici "Otomatik Doldur" butonunu kullanmak
+    ; isterse config.php'yi acip son satirdaki // isaretini silip kendi token'ini
+    ; yapistirir. Bu kullanici icin acik bir self-serve yol — example dosyaya
+    ; bakmaya gerek kalmaz.
     DetailPrint "config.php olusturuluyor..."
     FileOpen $2 "$OUTDIR\config.php" w
     FileWrite $2 "<?php$\r$\n"
@@ -159,6 +201,15 @@ Section "Anime Tracker Kurulumu" SecMain
     FileWrite $2 "define('DB_NAME', 'anime_tracker');$\r$\n"
     FileWrite $2 "define('DB_USER', 'root');$\r$\n"
     FileWrite $2 "define('DB_PASS', '');$\r$\n"
+    FileWrite $2 "$\r$\n"
+    FileWrite $2 "// AnimeSchedule API anahtari (opsiyonel - 'Otomatik Doldur' butonu icin)$\r$\n"
+    FileWrite $2 "// Token almak icin:$\r$\n"
+    FileWrite $2 "//   1. https://animeschedule.net adresinde hesap acin$\r$\n"
+    FileWrite $2 "//   2. https://animeschedule.net/users/<kullaniciadi>/settings/api sayfasini acin$\r$\n"
+    FileWrite $2 "//   3. Yeni uygulama olusturun (animelist scope GEREKMEZ)$\r$\n"
+    FileWrite $2 "//   4. Token degerini (ID degil) kopyalayin$\r$\n"
+    FileWrite $2 "//   5. Asagidaki satirin basindaki // isaretini silin ve token'i yapistirin$\r$\n"
+    FileWrite $2 "// define('ANIMESCHEDULE_API_KEY', 'token_buraya_gelecek');$\r$\n"
     FileClose $2
     
     ; Kurulum sonrasi temizlik: setup.php ve install.php sadece manuel
