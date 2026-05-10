@@ -1,4 +1,4 @@
-Unicode true
+﻿Unicode true
 
 !include "MUI2.nsh"
 !include "FileFunc.nsh"
@@ -26,7 +26,7 @@ Unicode true
 ; Kurulum tanımlamaları
 Name "Anime Tracker"
 OutFile "AnimeTracker-v${APP_VERSION}.exe"
-Unicode true  
+ 
 InstallDir "$PROGRAMFILES\AnimeTracker"
 RequestExecutionLevel admin
 
