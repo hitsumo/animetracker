@@ -11,7 +11,7 @@ Ardından veritabanı ve websitesi için gerekli dosyaları oluşturacaktır.
 
 Kurulum bittikten sonra tarayıcınızdan http://localhost/anime_tracker/  adresine gitmeniz yeterli olacak.
 
-<a href="https://drive.proton.me/urls/XQ92P0KM3R#tzPRSMRrUrCB">Windows exe</a>
+<a href="https://drive.proton.me/urls/Q8CY4B0B9R#6ALpS6OzeFjr">Windows exe</a>
 
 www.sicakcikolata.com
 
