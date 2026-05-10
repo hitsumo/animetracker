@@ -11,6 +11,13 @@ Ardından veritabanı ve websitesi için gerekli dosyaları oluşturacaktır.
 
 Kurulum bittikten sonra tarayıcınızdan http://localhost/anime_tracker/  adresine gitmeniz yeterli olacak.
 
+ÖNEMLİ 
+
+**Windows SmartScreen Uyarisi:**
+Kurulum sırasında "Windows protected your PC" uyarısını görebilirsiniz.
+Uygulama imzalı olmadığı için normaldır.
+"More info" -> "Run anyway" diyerek devam edin.
+
 <a href="https://drive.proton.me/urls/Q8CY4B0B9R#6ALpS6OzeFjr">Windows exe</a>
 
 www.sicakcikolata.com
