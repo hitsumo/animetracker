@@ -1,0 +1,489 @@
+<?php
+/**
+  [Anime Tracker/Anime izleme takip listesi.
+    https://www.sicakcikolata.com]
+  Copyright (C) 2025 [Okan Sumer]
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License version 2 as
+  published by the Free Software Foundation.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+  MA 02110-1301, USA.
+ */
+
+/**
+ * help.php - Kullanici yardim / nasil calisir sayfasi.
+ *
+ * Teknik olmayan dille sistemin nasil calistigini anlatir. Ozellikle
+ * sync davranisi, kisisel alanlar (Notlar / Kisisel Konu), oneri
+ * sistemi ve veri guvenligi konularinda kullaniciyi bilgilendirir.
+ *
+ * Statik icerik - ne DB baglantisi ne PHP mantigi gerektirir.
+ * Menuden veya Hakkinda sayfasindan linklenebilir.
+ */
+?>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Yardım - Anime Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <style>
+        .help-container {
+            max-width: 850px;
+            margin: 40px auto;
+            padding: 30px 40px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            font-family: 'Poppins', sans-serif;
+            color: #333;
+            line-height: 1.7;
+        }
+        .help-container h1 {
+            font-size: 2em;
+            color: #2c3e50;
+            margin-top: 0;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #4a90e2;
+        }
+        .help-container h2 {
+            font-size: 1.4em;
+            color: #2c3e50;
+            margin-top: 35px;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #eee;
+        }
+        .help-container h3 {
+            font-size: 1.1em;
+            color: #4a90e2;
+            margin-top: 22px;
+            margin-bottom: 8px;
+        }
+        .help-container p {
+            margin: 10px 0;
+            color: #444;
+        }
+        .help-container ul {
+            padding-left: 24px;
+            margin: 10px 0;
+        }
+        .help-container li {
+            margin: 6px 0;
+        }
+        .help-container code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 0.9em;
+            color: #c7254e;
+        }
+        .help-container .box {
+            background: #f8f9fa;
+            border-left: 4px solid #4a90e2;
+            padding: 12px 18px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        .help-container .box.warning {
+            background: #fff8e1;
+            border-left-color: #ffc107;
+        }
+        .help-container .box.safe {
+            background: #e8f5e9;
+            border-left-color: #4caf50;
+        }
+        .help-container .box.danger {
+            background: #ffebee;
+            border-left-color: #e53935;
+        }
+        .help-container .icon-inline {
+            color: #4a90e2;
+            margin-right: 6px;
+        }
+        .help-container .toc {
+            background: #f8f9fa;
+            padding: 15px 25px;
+            border-radius: 6px;
+            margin-bottom: 25px;
+        }
+        .help-container .toc a {
+            color: #4a90e2;
+            text-decoration: none;
+        }
+        .help-container .toc a:hover {
+            text-decoration: underline;
+        }
+        .help-container table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        .help-container th, .help-container td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        .help-container th {
+            background: #f4f6f8;
+            font-weight: 600;
+        }
+        .back-link {
+            display: inline-block;
+            margin: 20px 0;
+            color: #4a90e2;
+            text-decoration: none;
+        }
+        .back-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+<div class="help-container">
+    <a href="index.php" class="back-link">&larr; Ana Sayfaya Dön</a>
+
+    <h1><i class="fas fa-question-circle icon-inline"></i> Yardım</h1>
+
+    <p>
+        Anime Tracker'in nasil calistigi, hangi alanlarin neye yaradigi ve
+        neye dikkat etmeniz gerektigi burada. Bir ozelligi merak
+        ediyorsaniz ilgili bolumu okuyun.
+    </p>
+
+    <div class="toc">
+        <strong>Icindekiler:</strong>
+        <ul style="margin: 8px 0 0;">
+            <li><a href="#alanlar">Anime Alanlari — Hangisi Ne Yapar?</a></li>
+            <li><a href="#sync">Katalog Sync — Nasil Calisir?</a></li>
+            <li><a href="#kisisel-alanlar">Kisisel Alanlar — Notlar ve Kisisel Konu</a></li>
+            <li><a href="#oneri">Ne Izlesem? — Oneri Sistemi</a></li>
+            <li><a href="#kronoloji">Seriler ve Kronoloji</a></li>
+            <li><a href="#silme-uyarilari">Silme Uyarilari</a></li>
+            <li><a href="#guncelleme">Guncelleme Sistemi</a></li>
+            <li><a href="#saat-dilimi">Saat Dilimi (TZ)</a></li>
+        </ul>
+    </div>
+
+    <!-- =============================================================== -->
+    <h2 id="alanlar">Anime Alanlari — Hangisi Ne Yapar?</h2>
+
+    <p>
+        Anime ekleme ve duzenleme ekranindaki alanlar iki gruba ayrilir:
+        <strong>katalog alanlari</strong> (sunucudan gelir, sync ile
+        guncellenir) ve <strong>kisisel alanlar</strong> (size ozel,
+        hicbir zaman sunucuya gitmez).
+    </p>
+
+    <h3><i class="fas fa-cloud icon-inline"></i> Katalog Alanlari (sync edilir)</h3>
+    <ul>
+        <li><strong>Anime Ismi, Alternatif Isimler</strong></li>
+        <li><strong>Konu</strong> — Animenin resmi ozeti</li>
+        <li><strong>Turler</strong> — Aksiyon, Komedi, vb.</li>
+        <li><strong>Cumleler (Etiketler)</strong> — "Ne Izlesem?" sistemi icin</li>
+        <li><strong>Yayin durumu, bolum sayisi, yayin gun/saati</strong></li>
+        <li><strong>MAL / AniDB / AnimeSchedule linkleri</strong></li>
+        <li><strong>Seri bilgileri</strong> (seri adi, medya turu, sonraki seri)</li>
+    </ul>
+    <p>
+        Bu alanlari elle degistirirseniz, bir sonraki sync'te
+        <strong>uzerine yazilir</strong> (sunucunun dedigi gecer).
+    </p>
+
+    <h3><i class="fas fa-user icon-inline"></i> Kisisel Alanlar (sync edilmez)</h3>
+    <ul>
+        <li><strong>Izlenen Bolum sayisi</strong></li>
+        <li><strong>Izleme Durumu</strong> (Izlendi / Izleniyor / Izlenme Planlandi)</li>
+        <li><strong>Notlar</strong> — Size ozel hatirlatmalar, yorumlar</li>
+        <li><strong>Kisisel Konu</strong> — Kendi yorumunuz / aciklamaniz</li>
+        <li><strong>Poster (kendi yuklediyseniz)</strong></li>
+        <li><strong>Sonraki bolum tarihi</strong> (lokal hesap)</li>
+    </ul>
+    <p>
+        Bu alanlara sunucu <strong>dokunmaz</strong>. Istediginiz kadar
+        yazabilir, degistirebilirsiniz.
+    </p>
+
+    <!-- =============================================================== -->
+    <h2 id="sync">Katalog Sync — Nasil Calisir?</h2>
+
+    <p>
+        Liste Ayarlari sayfasinda "Katalogdan Ice Aktar" dugmesine
+        bastiginizda, sunucudaki katalog lokal veritabaninizla
+        birlestirilir.
+    </p>
+
+    <div class="box safe">
+        <strong><i class="fas fa-shield-alt"></i> Kaybolmaz:</strong>
+        Izleme verileriniz, notlariniz, Kisisel Konu, kendi yukleginiz
+        poster — bunlar size ozeldir ve sync'te asla dokunulmaz.
+    </div>
+
+    <div class="box warning">
+        <strong><i class="fas fa-exclamation-triangle"></i> Uzerine Yazilir:</strong>
+        Anime ismi, konu, turler, yayin bilgileri gibi katalog alanlari
+        her sync'te sunucunun son haline gore guncellenir. Elle
+        degistirdiyseniz kaybolur.
+    </div>
+
+    <h3>Kendi Ekledigim Animeler Ne Olur?</h3>
+    <p>
+        Siz bir anime ekledikten sonra admin tarafindan kataloga alinmamissa
+        (yani sizin ozel kayitlariniz), bu animeler sync'te <strong>hic
+        dokunulmaz</strong>. Tum alanlari korunur.
+    </p>
+
+    <h3>Sync Ne Zaman Calisir?</h3>
+    <p>
+        Otomatik degil — sadece siz istedikce. Liste Ayarlari → "Katalogdan
+        Ice Aktar" dugmesine basinca bir defa calisir.
+    </p>
+
+    <!-- =============================================================== -->
+    <h2 id="kisisel-alanlar">Kisisel Alanlar — Notlar ve Kisisel Konu</h2>
+
+    <p>
+        Iki farkli kisisel metin alaniniz var. Farklari:
+    </p>
+
+    <table>
+        <tr>
+            <th>Alan</th>
+            <th>Amac</th>
+            <th>Ornek</th>
+        </tr>
+        <tr>
+            <td><strong>Notlar</strong></td>
+            <td>Kisa hatirlatmalar</td>
+            <td>"Arkadasla beraber izle", "ilk 3 bolumden sonra hizli izle"</td>
+        </tr>
+        <tr>
+            <td><strong>Kisisel Konu</strong></td>
+            <td>Uzun yorumlar, kendi ozetiniz</td>
+            <td>Kendi cevirisiniz, kendi yorumunuz, kendi ozetiniz</td>
+        </tr>
+    </table>
+
+    <h3><i class="fas fa-sync icon-inline"></i> Kisisel Konu Nasil Olusur?</h3>
+    <p>
+        <strong>Ilk durumda tek "Konu" alani vardir.</strong> Kendiniz
+        yazarsaniz veya sunucudan gelen konu orada durur. Eger katalogdan
+        gelen yeni bir sey varsa ve siz o alana kendi yazinizi yazmissaniz,
+        ilk sync sirasinda:
+    </p>
+    <ul>
+        <li>Sizin yazdiginiz metin otomatik olarak <strong>"Kisisel Konu"</strong> alanina tasinir</li>
+        <li>Sunucudan gelen metin "Konu" alanina yazilir (duzenleyemezsiniz, salt okunur olur)</li>
+        <li>Artik iki alan goreceksiniz, duzenlediginiz her sey "Kisisel Konu"ya gider</li>
+    </ul>
+
+    <div class="box warning">
+        <strong><i class="fas fa-exclamation-triangle"></i> Dikkat:</strong>
+        Kisisel Konu'yu silerseniz <strong>sync ile geri gelmez</strong>.
+        Ayni sekilde Notlar alanini silerseniz o da geri gelmez. Bu iki
+        alan size ozel ve kalici olarak sizin kontrolunuzde.
+    </div>
+
+    <!-- =============================================================== -->
+    <h2 id="oneri">Ne Izlesem? — Oneri Sistemi</h2>
+
+    <p>
+        Menudeki "Ne Izlesem?" linki, listenizden size uygun anime
+        onermesi icin tasarlanmis bir aractir.
+    </p>
+
+    <h3>Nasil Calisir?</h3>
+    <p>
+        Yonetici (admin) her animeye birkac <strong>cumle etiketi</strong>
+        atar: "Okulda gecsin", "Spor olsun", "Buyu olsun" gibi. Siz bu
+        cumlelerden istediginizi sec, "Oner" butonuna basin.
+    </p>
+
+    <h3>Kepce Mantigi</h3>
+    <p>
+        Her secilen cumle bir kepce gibi dusunun. Kepce kendi eslesmesini
+        listeden ceker. Birden fazla kepce secerseniz, en cok kepceye
+        uyan anime ust sirada gozukur.
+    </p>
+
+    <div class="box safe">
+        <strong><i class="fas fa-check"></i> Onemli:</strong>
+        Cok cumle secerseniz sonuclar azalmaz, aksine siralama
+        netlesir. Sistem AND yerine OR + puan mantigi kullanir.
+    </div>
+
+    <h3>Surpriz Sec</h3>
+    <p>
+        Hic cumle secmeden "Surpriz Sec" derseniz, sistem size
+        izlememis oldugunuz bir anime rastgele secer. Kararsiz
+        kaldiginizda hizli bir cozum.
+    </p>
+
+    <h3>Arama Kutusu</h3>
+    <p>
+        Cumle listesi uzadiginda arama kutusuna yazabilirsiniz. Yazdiginiz
+        harflerle <strong>baslayan</strong> cumleler liste halinde
+        gorulur. Turkce karakterler ayirt edilir — "u" yazarsaniz "U" ile
+        baslayanlar, "ü" yazarsaniz "Ü" ile baslayanlar gelir.
+    </p>
+
+    <!-- =============================================================== -->
+    <h2 id="kronoloji">Seriler ve Kronoloji</h2>
+
+    <p>
+        Birbirine bagli animeler icin iki tur iliski sistemi var:
+    </p>
+
+    <h3>Seri Bilgisi</h3>
+    <p>
+        Bir anime'nin hangi seriye ait oldugu <strong>seri adi</strong> ve
+        <strong>medya turu</strong> (TV / Film / OVA / Special / ONA) ile
+        belirlenir. Ayni seri adini paylasan animeler anime detayinda
+        "Bagli Animeler" bolumunde gozukur.
+    </p>
+
+    <h3>Sonraki Seri (next_in_series)</h3>
+    <p>
+        Bir animeyi bitirince hangi animeyi izlemeniz gerektigi. Detay
+        sayfasinda "Sirada" kutusunda gozukur.
+    </p>
+
+    <h3>Kronoloji Isaretleri</h3>
+    <p>
+        Detective Conan gibi seriler icin: "54. boleumden sonra 1. filmi
+        izle" gibi bolum seviyesinde isaretler tutulur. Detay sayfasinda
+        aktif uyari olarak gorulur, ayri bir "Kronoloji" sayfasinda da
+        timeline halinde listelenir.
+    </p>
+
+    <div class="box warning">
+        <strong><i class="fas fa-exclamation-triangle"></i> Dikkat:</strong>
+        Kronoloji isaretleri de sync'te katalog otoritedir. Kendiniz
+        marker eklediyseniz sync sonrasi kaybolur.
+    </div>
+
+    <!-- =============================================================== -->
+    <h2 id="silme-uyarilari">Silme Uyarilari</h2>
+
+    <div class="box danger">
+        <strong><i class="fas fa-trash-alt"></i> Geri Alinamaz Silmeler:</strong>
+        <ul style="margin: 8px 0 0;">
+            <li><strong>Notlar</strong> alanini bossaltmak → sync geri getirmez</li>
+            <li><strong>Kisisel Konu</strong> alanini bossaltmak → sync geri getirmez</li>
+            <li>Anime silmek → kalici, izleme verisi dahil her sey gider</li>
+            <li>Poster dosyasi silmek → sync sirasinda katalog posteri tekrar indirilir
+                (ancak size ozel yukledilmiş poster geri gelmez)</li>
+        </ul>
+    </div>
+
+    <div class="box safe">
+        <strong><i class="fas fa-undo"></i> Geri Alinabilir (sync ile):</strong>
+        <ul style="margin: 8px 0 0;">
+            <li>Konu alanini degistirmek / bossaltmak → bir sonraki sync'te katalog konusu geri gelir</li>
+            <li>Anime ismi degistirmek → sync'te duzelir</li>
+            <li>Tur listesi / yayin bilgisi degistirmek → sync'te duzelir</li>
+        </ul>
+    </div>
+
+    <!-- =============================================================== -->
+    <h2 id="guncelleme">Guncelleme Sistemi</h2>
+
+    <p>
+        Anime Tracker'in kendisi zaman zaman yeni surumlerle gelir. Liste
+        Ayarlari → "Guncelleme Kontrolu" dugmesi ile yeni sürüm olup
+        olmadigini kontrol edebilirsiniz.
+    </p>
+
+    <p>
+        Yeni surum varsa, tek tikla otomatik guncelleme yapilir:
+    </p>
+    <ul>
+        <li>Sunucudan yeni surum indirilir</li>
+        <li>Dosyalar yerinde guncellenir (<code>config.php</code>, <code>uploads/</code> ve izleme verileriniz korunur)</li>
+        <li>Veritabani gerekirse otomatik guncellenir</li>
+        <li>Sayfa yenilenir, yeni surum aktif</li>
+    </ul>
+
+    <div class="box safe">
+        <strong><i class="fas fa-shield-alt"></i> Guncelleme Sirasinda Kaybolmaz:</strong>
+        Animeleriniz, izleme verileriniz, notlariniz, poster'leriniz,
+        DB kimlik bilgileriniz — hic biri etkilenmez.
+    </div>
+
+    <!-- =============================================================== -->
+    <h2 id="saat-dilimi">Saat Dilimi — Yayin Saati Nasil Gosterilir?</h2>
+
+    <p>
+        Anime Tracker tum tarih ve saatleri veritabaninda <strong>UTC</strong>
+        olarak saklar. Size gosterirken iki ayri saat dilimi devreye girer:
+    </p>
+
+    <h3>1. Yayin Saat Dilimi (animenin TZ'i)</h3>
+    <p>
+        Anime ekleme/duzenleme formundaki "Yayin Saat Dilimi" alani.
+        Animenin gercekten yayinlandigi yer (cogu Japon animesi icin
+        <code>Asia/Tokyo</code>). Burayi <strong>animenin yayin yeri</strong>
+        olarak doldurun, kendi saat diliminiz olarak degil. Liste tum IANA
+        saat dilimlerini icerir; istediginizi secebilirsiniz.
+    </p>
+
+    <h3>2. Goruntu Saat Dilimi (sizin TZ'iniz)</h3>
+    <p>
+        Liste Ayarlari → "Goruntu Saat Dilimi" alani. Yayin saatleri ve
+        "sonraki bolume kalan sure" hesabi bu saat diliminize gore gosterilir.
+        Yeni kurulumda varsayilan <code>Europe/Istanbul</code>'dur. Baska bir
+        ulkeden kullaniyorsaniz buradan kendi TZ'inizi secin.
+    </p>
+
+    <p>
+        Ornek: Bir anime <code>Asia/Tokyo</code> saatinde Persembe 23:30'da
+        yayinlaniyorsa ve goruntu TZ'iniz <code>Europe/Berlin</code> ise,
+        anime detay sayfasi:
+    </p>
+    <ul>
+        <li><strong>Yayin Saati:</strong> 23:30 (JST)</li>
+        <li><strong>Sizin saatinizle:</strong> 16:30 (CET) — yaz/kis saatine gore degisir</li>
+    </ul>
+
+    <div class="box info">
+        <strong><i class="fas fa-info-circle"></i> Yaz/Kis Saati (DST):</strong>
+        Avrupa ve ABD gibi yaz/kis saati uygulayan TZ'lerde, animenin
+        yerel saatinizdeki gosterimi yilda iki kez 1 saat kayar
+        (Mart sonu ve Ekim sonu). Bu beklenen davranistir — animenin
+        gercek yayin saati Tokyo'da hep ayni, sadece sizin yerel
+        karsiligi mevsime gore degisir. Turkiye 2016'dan beri DST
+        kullanmadigi icin Istanbul TZ'inde bu kayma yoktur.
+    </div>
+
+    <h3>Eski v0.5 Kurulumlardan Yukseltme</h3>
+    <p>
+        v0.5.1'e gectikten sonra hicbir veriniz kaybolmaz. Yayin saatleri
+        ayni gorunur (Asia/Tokyo varsayilan TZ'de eklenmis kayitlar
+        hala Asia/Tokyo'da). Tek farkliliklar:
+    </p>
+    <ul>
+        <li>Anime detay sayfasinda yayin saatinin yaninda TZ etiketi (JST, CET, vs.) gozukur</li>
+        <li>Sizin TZ'inizden farkli yayin saatlerinde "sizin saatinizle" satiri eklenir</li>
+        <li>Liste Ayarlari'nda "Goruntu Saat Dilimi" secimi acilir</li>
+    </ul>
+
+    <p style="margin-top: 40px; color: #888; font-size: 0.9em;">
+        Daha fazla sorunuz icin: daha fazla ayrintili teknik bilgi
+        proje GitHub sayfasinda bulunur.
+    </p>
+
+    <a href="index.php" class="back-link">&larr; Ana Sayfaya Dön</a>
+</div>
+</body>
+</html>

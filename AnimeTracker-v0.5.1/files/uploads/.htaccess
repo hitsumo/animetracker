@@ -1,0 +1,5 @@
+# Disable PHP execution in this directory
+php_flag engine off
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|phar)$">
+    Require all denied
+</FilesMatch>
