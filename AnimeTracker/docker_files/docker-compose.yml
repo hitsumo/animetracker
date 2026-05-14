@@ -1,0 +1,63 @@
+# Anime Tracker - Docker Compose
+#
+# Kullanim:
+#   docker compose up -d     -> sistemi baslat (arka planda)
+#   docker compose down      -> sistemi durdur
+#   docker compose down -v   -> sistemi durdur VE veritabanini sil (DIKKAT!)
+#   docker compose logs -f   -> canli loglari izle
+#
+# Ilk calistirmada:
+#   1. MariaDB container'i DB'yi olusturur ve schema.sql'i yukler
+#      (files/schema.sql dosyasi init script olarak mount edilir)
+#   2. App container'i config.php'yi otomatik yazar (entrypoint)
+#   3. Tarayicida http://localhost:8080 acilinca uygulama hazir
+#
+# Veriler:
+#   - Anime verileri (DB): "db_data" named volume
+#   - Kapak gorselleri: "uploads" named volume
+#   - Hicbiri container silinince kaybolmaz (-v kullanilmadikca)
+
+services:
+  # Uygulama container'i (PHP + Apache)
+  app:
+    build: .
+    container_name: anime_tracker_app
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      DB_HOST: db
+      DB_NAME: anime_tracker
+      DB_USER: anime_user
+      DB_PASS: change_me_to_something_strong
+    volumes:
+      # Kullanici yukledigi kapak gorselleri kalici olsun
+      - uploads:/var/www/html/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Veritabani container'i (MariaDB)
+  db:
+    image: mariadb:10.11
+    container_name: anime_tracker_db
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: root_password_change_me
+      MARIADB_DATABASE: anime_tracker
+      MARIADB_USER: anime_user
+      MARIADB_PASSWORD: change_me_to_something_strong
+    volumes:
+      # DB verileri kalici olsun
+      - db_data:/var/lib/mysql
+      # Ilk acilista schema.sql otomatik calisir
+      - ./files/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  db_data:
+  uploads:
