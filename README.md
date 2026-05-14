@@ -18,7 +18,7 @@ Kurulum sırasında "Windows protected your PC" uyarısını görebilirsiniz.
 Uygulama imzalı olmadığı için normaldır.
 "More info" -> "Run anyway" diyerek devam edin.
 
-<a href="https://drive.proton.me/urls/Q8CY4B0B9R#6ALpS6OzeFjr">Windows exe</a>
+<a href="https://drive.proton.me/urls/H8FP7PP3MG#TCDmyPPTBhvb">Windows exe</a>
 
 www.sicakcikolata.com
 
