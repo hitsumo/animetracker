@@ -230,10 +230,6 @@ foreach ($rows as $r) {
 // uploaded their own poster, we keep it. If they want the catalog poster
 // back they can delete it and re-sync (then the new INSERT path applies
 // on next catalog update of that anime, or they can manually upload).
-//
-// Genres are no longer in this row - they are written to the
-// anime_genres join table by the dedicated genres block below the
-// merge loop, mirroring the tags handler.
 $updateSql = "
     UPDATE animes SET
         title = :title,
@@ -241,6 +237,7 @@ $updateSql = "
         status = :status,
         total_episodes = :total_episodes,
         aired_episodes = :aired_episodes,
+        genres = :genres,
         synopsis = :synopsis,
         release_date = :release_date,
         anidb_link = :anidb_link,
@@ -262,11 +259,10 @@ $updateStmt = $pdo->prepare($updateSql);
 
 // INSERT for new catalog entries. image_path gets set to the local
 // relative path of the downloaded poster (or NULL if download failed).
-// Genres are written to anime_genres in the dedicated block below.
 $insertSql = "
     INSERT INTO animes (
         title, alternative_titles, status, total_episodes, aired_episodes,
-        watched_episodes, notes, image_path,
+        watched_episodes, notes, genres, image_path,
         watch_status, next_episode_date,
         anidb_link, mal_link, anime_schedule_link,
         episode_interval, broadcast_day, broadcast_time, broadcast_timezone,
@@ -275,7 +271,7 @@ $insertSql = "
         mal_id, anidb_id, catalog_uuid, source
     ) VALUES (
         :title, :alternative_titles, :status, :total_episodes, :aired_episodes,
-        0, NULL, :image_path,
+        0, NULL, :genres, :image_path,
         'Izlenme Planlandi', NULL,
         :anidb_link, :mal_link, :anime_schedule_link,
         :episode_interval, :broadcast_day, :broadcast_time, :broadcast_timezone,
@@ -294,7 +290,6 @@ $stats = [
     'unchanged'         => 0,
     'markers'           => 0,
     'tags'              => 0,
-    'genres'            => 0,
     'poster_downloaded' => 0,
     'poster_cached'     => 0, // already had the local copy
     'poster_failed'     => 0,
@@ -327,15 +322,13 @@ try {
         }
 
         // Common parameter set used for both UPDATE and INSERT.
-        // Genres are NOT in this set - they are handled separately
-        // after the merge loop, written to anime_genres via the
-        // dedicated genres block (mirrors the tags handler).
         $params = [
             ':title'               => $ca['title']               ?? '',
             ':alternative_titles'  => $ca['alternative_titles']  ?? null,
             ':status'              => $ca['status']              ?? 'Yayin Tamamlandi',
             ':total_episodes'      => $ca['total_episodes']      ?? null,
             ':aired_episodes'      => $ca['aired_episodes']      ?? null,
+            ':genres'              => $ca['genres']              ?? null,
             ':synopsis'            => $ca['synopsis']            ?? null,
             ':release_date'        => $ca['release_date']        ?? null,
             ':anidb_link'          => $ca['anidb_link']          ?? null,
@@ -454,80 +447,6 @@ try {
         }
     }
 
-    // Genres (canonical taxonomy).
-    //
-    // Server still emits genres as a CSV string in $ca['genres']
-    // ("Aksiyon,Macera,Komedi"). We parse that here, resolve each
-    // name to a local genres.id (creating the master row on the fly
-    // if needed), then DELETE+INSERT the anime_genres link rows.
-    //
-    // Animes the catalog did not send (i.e. user's source='local'
-    // entries) are left untouched - their genres are local-only.
-    //
-    // Note on inline pattern: setAnimeGenresByNames() in functions.php
-    // wraps DELETE+INSERT in its own beginTransaction(), which would
-    // collide with the outer transaction we are already in. The tags
-    // handler below uses the same inline pattern for the same reason.
-    $findGenreStmt        = $pdo->prepare("SELECT id FROM genres WHERE name = ? LIMIT 1");
-    $insertGenreStmt      = $pdo->prepare("INSERT INTO genres (name) VALUES (?)");
-    $deleteGenreLinkStmt  = $pdo->prepare("DELETE FROM anime_genres WHERE anime_id = ?");
-    $insertGenreLinkStmt  = $pdo->prepare("INSERT INTO anime_genres (anime_id, genre_id) VALUES (?, ?)");
-
-    $resolveGenreId = function($name) use ($findGenreStmt, $insertGenreStmt, $pdo) {
-        $name = trim((string)$name);
-        if ($name === '') return 0;
-        if (mb_strlen($name) > 50) {
-            $name = mb_substr($name, 0, 50);
-        }
-        $findGenreStmt->execute([$name]);
-        $id = $findGenreStmt->fetchColumn();
-        $findGenreStmt->closeCursor();
-        if ($id !== false) {
-            return (int)$id;
-        }
-        try {
-            $insertGenreStmt->execute([$name]);
-            return (int)$pdo->lastInsertId();
-        } catch (PDOException $e) {
-            if ($e->getCode() === '23000') {
-                $findGenreStmt->execute([$name]);
-                $existingId = $findGenreStmt->fetchColumn();
-                $findGenreStmt->closeCursor();
-                if ($existingId !== false) {
-                    return (int)$existingId;
-                }
-            }
-            throw $e;
-        }
-    };
-
-    // Rebuild anime_genres for every anime that arrived in this sync.
-    foreach ($catalogAnimes as $ca) {
-        $serverId = (int)($ca['id'] ?? 0);
-        if ($serverId === 0) continue;
-        $localAnimeId = $catalogIdToLocalId[$serverId] ?? null;
-        if ($localAnimeId === null) continue;
-
-        // Server sends genres as a comma-separated string. Empty / missing
-        // is fine - the DELETE below still clears any stale links.
-        $genreCsv = $ca['genres'] ?? '';
-        $genreNames = [];
-        if (is_string($genreCsv) && $genreCsv !== '') {
-            $genreNames = array_filter(array_map('trim', explode(',', $genreCsv)));
-        }
-
-        $deleteGenreLinkStmt->execute([$localAnimeId]);
-        $seen = [];
-        foreach ($genreNames as $gn) {
-            $genreId = $resolveGenreId($gn);
-            if ($genreId <= 0) continue;
-            if (isset($seen[$genreId])) continue;
-            $seen[$genreId] = true;
-            $insertGenreLinkStmt->execute([$localAnimeId, $genreId]);
-            $stats['genres']++;
-        }
-    }
-
     // Tags (recommendation system sentences).
     //
     // Each anime in the payload carries its own tag list as plain
@@ -624,11 +543,10 @@ try {
 // --- Success redirect ---------------------------------------------------
 
 $msg = sprintf(
-    'Katalog senkronizasyonu tamamlandi: %d yeni, %d guncellendi, %d kronoloji notu, %d tur bagi, %d cumle bagi, %d poster indirildi (%d mevcut).',
+    'Katalog senkronizasyonu tamamlandi: %d yeni, %d guncellendi, %d kronoloji notu, %d cumle bagi, %d poster indirildi (%d mevcut).',
     $stats['inserted'],
     $stats['updated'],
     $stats['markers'],
-    $stats['genres'],
     $stats['tags'],
     $stats['poster_downloaded'],
     $stats['poster_cached']
