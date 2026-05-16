@@ -14,8 +14,7 @@
  *   "current_version": "0.5",
  *   "latest_version": "0.5",
  *   "needs_update": false,
- *   "update_available": "Sistem guncel",
- *   "download_url": null
+ *   "update_available": "Sistem guncel"
  * }
  *
  * On error:
@@ -34,6 +33,14 @@
  *   (shouldn't happen after a correct install).
  * - There is NO hardcoded version fallback. A missing version is an
  *   error we report, not a stale default we silently return.
+ * - No download_url is returned. The actual upgrade path is the
+ *   in-place ZIP auto-update handled by update.php (called by the UI
+ *   via runUpdate() in list_settings.php). The old .exe download_url
+ *   was a leftover from a pre-auto-update design: it pointed at an
+ *   installer .exe that is no longer published on the server (the
+ *   .exe is distributed out-of-band for fresh installs only). Nothing
+ *   in the UI ever consumed download_url, so it was removed to avoid
+ *   returning a dead link that 404s.
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -150,8 +157,4 @@ echo json_encode([
     'update_available' => $needsUpdate
         ? ('Yeni versiyon mevcut: ' . $latestVersion)
         : 'Sistem guncel',
-    'download_url'     => $needsUpdate
-        ? ('https://animetracker.sicakcikolata.com/updates/'
-            . $latestVersion . '/AnimeTracker-v' . $latestVersion . '.exe')
-        : null,
 ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);

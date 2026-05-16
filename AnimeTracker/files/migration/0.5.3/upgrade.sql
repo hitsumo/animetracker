@@ -1,0 +1,46 @@
+-- Anime Tracker - Migration 0.5.3
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- Upgrades a 0.5.2 database to 0.5.3.
+--
+-- Change: chronology_markers gets a `source` column (Karar 1B).
+--
+-- Why:
+--   catalog_import.php used to run a blanket
+--   "DELETE FROM chronology_markers" before reloading catalog markers.
+--   Any marker the admin added locally but had not yet pushed to the
+--   catalog was wiped on every "Katalogdan Ice Aktar". This caused a
+--   real marker-loss incident on 14 Nisan 2026. The `source` column
+--   lets catalog_import.php scope its delete to WHERE source='catalog'
+--   so locally-created (source='user') markers survive.
+--
+-- Backfill policy (intentional):
+--   Existing rows default to 'user'. This is the safe direction: 'user'
+--   markers are protected from the catalog delete, so the migration
+--   itself never destroys data. The opposite default ('catalog') would
+--   make the very next import delete the admin's own markers - exactly
+--   the bug we are fixing.
+--
+--   Side effect: markers that originally came from the catalog are now
+--   labelled 'user' too (pre-0.5.3 there was no way to tell them apart).
+--   They are not deleted on the next import. catalog_import.php (0.5.3)
+--   re-inserts catalog markers with
+--   "INSERT ... ON DUPLICATE KEY UPDATE source='catalog'", which
+--   promotes any locally-stored marker that exactly matches a catalog
+--   marker (same anime_id, after_episode, related_anime_id) back to
+--   'catalog'. Genuinely admin-only markers (no catalog twin) stay
+--   'user' and remain protected. The table reconverges to correct
+--   labels after one post-upgrade catalog import.
+--
+-- Idempotency:
+--   No "IF NOT EXISTS" - MySQL does not support it for ADD COLUMN.
+--   migration_manager.php treats error 1060 (duplicate column) as an
+--   idempotent error and ignores it, so re-running this migration or
+--   running it on a fresh install (where schema.sql already created
+--   the column) is safe.
+
+ALTER TABLE `chronology_markers`
+  ADD COLUMN `source` enum('catalog','user') NOT NULL DEFAULT 'user'
+  AFTER `note`;

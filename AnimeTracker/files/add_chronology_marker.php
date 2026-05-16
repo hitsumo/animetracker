@@ -84,10 +84,17 @@ if (!$relatedAnime) {
 
 // Insert the marker. The UNIQUE KEY (anime_id, after_episode,
 // related_anime_id) will prevent exact duplicates from a double-submit.
+//
+// source is set explicitly to 'user' (Karar 1B). The schema default is
+// also 'user', but stating it here keeps the intent in the code: a
+// locally-created marker must never be wiped by catalog_import.php,
+// which only deletes WHERE source='catalog'. Relying on the schema
+// default alone would silently break this contract if the default ever
+// changed.
 try {
     $insertStmt = $pdo->prepare("
-        INSERT INTO chronology_markers (anime_id, after_episode, related_anime_id, note)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO chronology_markers (anime_id, after_episode, related_anime_id, note, source)
+        VALUES (?, ?, ?, ?, 'user')
     ");
     $insertStmt->execute([$anime_id, $after_episode, $related_anime_id, $note]);
 } catch (PDOException $e) {

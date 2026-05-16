@@ -215,6 +215,15 @@ CREATE TABLE IF NOT EXISTS `settings` (
 -- orphans. The UNIQUE KEY prevents duplicate markers from double-submit
 -- (add_chronology_marker.php catches the 23000 error code and reports
 -- "already exists" to the user).
+--
+-- The `source` column (added in 0.5.3, Karar 1B) separates catalog
+-- markers from locally-created ones. catalog_import.php only deletes
+-- WHERE source='catalog' before reloading, so an admin's own markers
+-- (source='user') are never wiped by a "Katalogdan Ice Aktar" that
+-- runs before those markers have been pushed to the catalog. This
+-- prevents the 14 Nisan 2026 marker-loss incident from recurring.
+-- New markers default to 'user'; admin_push.php marks server-imported
+-- markers as 'catalog'.
 -- --------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS `chronology_markers` (
@@ -223,6 +232,7 @@ CREATE TABLE IF NOT EXISTS `chronology_markers` (
   `after_episode` int(11) NOT NULL,
   `related_anime_id` int(11) NOT NULL,
   `note` text DEFAULT NULL,
+  `source` enum('catalog','user') NOT NULL DEFAULT 'user',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_marker` (`anime_id`, `after_episode`, `related_anime_id`),

@@ -338,12 +338,33 @@ try {
 
     // Chronology markers: wipe and reload. The admin's chronology is
     // authoritative - there is no server-side editing of markers.
-    $pdo->exec("DELETE FROM chronology_markers");
+    //
+    // Karar 1B: the DELETE is scoped to WHERE source='catalog' and the
+    // INSERT writes source='catalog'. On the server every marker is a
+    // catalog marker (no per-user markers exist here), so this is a
+    // consistency/forward-safety measure, not a behavioural change in
+    // normal operation. It matters for two things:
+    //   1. The local client pulls these rows via catalog.php; storing
+    //      them as 'catalog' keeps the round-trip label correct so
+    //      catalog_import.php's "DELETE WHERE source='catalog'" targets
+    //      the right rows and never wipes the admin's local source='user'
+    //      markers.
+    //   2. Reconvergence: the manual server-side ALTER backfills existing
+    //      rows to 'user' (DEFAULT). ON DUPLICATE KEY UPDATE promotes any
+    //      row matching the UNIQUE KEY back to 'catalog', so the first
+    //      push after the schema change succeeds even if the admin has
+    //      not run the one-time "UPDATE chronology_markers SET
+    //      source='catalog'" cleanup yet (no UNIQUE-key collision /
+    //      transaction rollback).
+    $pdo->exec("DELETE FROM chronology_markers WHERE source = 'catalog'");
 
     if (!empty($chronology)) {
         $markerStmt = $pdo->prepare("
-            INSERT INTO chronology_markers (anime_id, after_episode, related_anime_id, note)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO chronology_markers (anime_id, after_episode, related_anime_id, note, source)
+            VALUES (?, ?, ?, ?, 'catalog')
+            ON DUPLICATE KEY UPDATE
+                note = VALUES(note),
+                source = 'catalog'
         ");
         foreach ($chronology as $m) {
             $adminAnimeId   = (int)($m['anime_id'] ?? 0);

@@ -46,7 +46,7 @@ require_once __DIR__ . '/functions.php';
 
 // CHANGE THIS: Your server's admin_push.php URL.
 // Example: 'https://animetracker.yourdomain.com/admin_push.php'
-const ADMIN_PUSH_URL = 'https://your-server.com/admin_push.php';
+const ADMIN_PUSH_URL = 'https://animetracker.yourdomain.com/admin_push.php';
 
 // Local-only: refuse requests that don't come from the loopback interface.
 // This is an admin tool - nobody remote should be able to reach it.
@@ -118,7 +118,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['do_push'])) {
                 ORDER BY id
             ")->fetchAll(PDO::FETCH_ASSOC);
 
-            // Gather all chronology markers
+            // Gather all chronology markers.
+            //
+            // Karar 1B: this SELECT intentionally has NO
+            // "WHERE source = 'catalog'" filter. The admin curates the
+            // universal chronology, so a push must carry BOTH the admin's
+            // own markers (source='user') and previously-synced ones
+            // (source='catalog') up to the catalog. The source='user'
+            // label exists only to protect local markers from being
+            // wiped by a catalog_import that runs before a push - it is
+            // NOT a draft/unpublished state. admin_push.php stores every
+            // pushed marker as source='catalog' (publishing to the
+            // catalog makes it catalog-managed); the next local import
+            // then reconverges the local labels via ON DUPLICATE KEY
+            // UPDATE.
+            //
+            // DO NOT add a source filter here. Filtering to 'catalog'
+            // would silently stop the admin's own markers from ever
+            // reaching the catalog and re-break the 14 Nisan 2026
+            // marker-loss fix from the other direction.
             $markers = $pdo->query("
                 SELECT anime_id, after_episode, related_anime_id, note
                 FROM chronology_markers

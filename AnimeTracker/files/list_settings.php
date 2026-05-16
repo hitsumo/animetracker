@@ -50,6 +50,20 @@ try {
     // Sessizce gec
 }
 
+// Karar 1B: kataloga gonderilmemis (source='user') kronoloji isareti
+// sayisi. Sifirdan buyukse "Katalogdan Ice Aktar" oncesi yumusak uyari
+// gosterilir (buton pasif YAPILMAZ - import artik source='user'
+// satirlari silmiyor, bkz catalog_import.php). Defansif: source kolonu
+// henuz yoksa (0.5.3 oncesi DB, migration calismadan once) sorgu hata
+// verir, sayiyi 0 kabul edip uyariyi gostermeyiz.
+$unpushedUserMarkers = 0;
+try {
+    $stmt = $pdo->query("SELECT COUNT(*) FROM chronology_markers WHERE source = 'user'");
+    $unpushedUserMarkers = (int)$stmt->fetchColumn();
+} catch (PDOException $e) {
+    // source kolonu yok veya sorgu basarisiz - 0 kabul et, uyari gosterme
+}
+
 // Bolum sayisi (aired_episodes) son senkronizasyon zamani. Madde C ile
 // eklendi. Otomatik gunluk run icin baslangic kontrolu olarak da kullanilir.
 // settings tablosundaki last_aired_sync satiri hic yoksa NULL doner.
@@ -312,6 +326,14 @@ if (isset($_POST['clear'])) {
             <em>Henuz senkronize edilmedi.</em>
         <?php endif; ?>
     </div>
+    <?php if ($unpushedUserMarkers > 0): ?>
+    <div style="margin-top: 10px; padding: 10px; border-left: 4px solid #e6a700; background: #fff8e1; color: #5a4500; font-size: 0.92em;">
+        Katalog ile senkronize olmayan <strong><?php echo (int)$unpushedUserMarkers; ?></strong> kronoloji
+        isareti var. Ice aktarma bunlari <strong>silmez</strong> &mdash; kendi ekledikleriniz korunur,
+        katalogdan gelenler otomatik eslestirilir. Evrensel kronolojinin eksiksiz kalmasi icin
+        bunlari admin push ile kataloga gondermeniz onerilir.
+    </div>
+    <?php endif; ?>
     <form method="post" action="catalog_import.php" onsubmit="return confirmCatalogSync()" style="margin-top: 10px;">
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
         <button type="submit" class="settings-button">
@@ -367,12 +389,20 @@ if (isset($_POST['clear'])) {
     }
 
     function confirmCatalogSync() {
-        return confirm(
+        var unpushedMarkers = <?php echo (int)$unpushedUserMarkers; ?>;
+        var msg =
             "Katalogdan ice aktarilacak.\n\n" +
             "Kendi izleme durumlariniz ve notlariniz KORUNUR.\n" +
-            "Sadece anime bilgileri (baslik, synopsis, bolum sayisi vs.) guncellenir.\n\n" +
-            "Devam etmek istiyor musunuz?"
-        );
+            "Sadece anime bilgileri (baslik, synopsis, bolum sayisi vs.) guncellenir.\n\n";
+        if (unpushedMarkers > 0) {
+            msg +=
+                "NOT: Katalog ile senkronize olmayan " + unpushedMarkers +
+                " kronoloji isareti var.\n" +
+                "Ice aktarma bunlari SILMEZ. Kendi ekledikleriniz korunur,\n" +
+                "katalogdan gelenler otomatik eslestirilir.\n\n";
+        }
+        msg += "Devam etmek istiyor musunuz?";
+        return confirm(msg);
     }
 	
 function checkUpdate() {
