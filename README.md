@@ -5,7 +5,7 @@
 
 
 
-Anime Tracker bir anime listesi oluşma düzenleme ayrıca eklediğiniz animeye kişisel not ekleme (  anime listesine not ekleme özelliği bu projeyi oluşturma nedenim :) ) ve listede devam eden animelerin yeyın takibini yapan bir web sitesi.  
+Anime Tracker bir anime listesi oluşma düzenleme ayrıca eklediğiniz animeye kişisel not ekleme (  anime listesine not ekleme özelliği bu projeyi oluşturma nedenim :) ) ve listede devam eden animelerin yeyın takibini yapan bir programdır.
 Bu program web sitesinin localhostta çalışması için gerekli xammp programını kurup apache ve mysql  servislerini başlatacaktır.
 Ardından veritabanı ve websitesi için gerekli dosyaları oluşturacaktır.
 
@@ -18,7 +18,7 @@ Kurulum sırasında "Windows protected your PC" uyarısını görebilirsiniz.
 Uygulama imzalı olmadığı için normaldır.
 "More info" -> "Run anyway" diyerek devam edin.
 
-<a href="https://drive.proton.me/urls/H8FP7PP3MG#TCDmyPPTBhvb">Windows exe</a>
+<a href="https://drive.proton.me/urls/XQ92P0KM3R#tzPRSMRrUrCB">Windows exe</a>
 
 www.sicakcikolata.com
 
