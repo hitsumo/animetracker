@@ -7,10 +7,10 @@ Bu sürüm otomatik güncelleme ile gelir; ekstra bir şey yapmanıza gerek yokt
 
 ## Yenilikler
 
-- **Mükerrer anime uyarısı:** Aynı MAL veya AniDB bağlantısına sahip bir
-  animeyi ikinci kez eklemeye çalışırsanız artık anlaşılır bir uyarı
-  görürsünüz ve mevcut kayda tek tıkla gidebilirsiniz. Eskiden teknik
-  bir hata ekranı çıkıyordu.
+- **Tekrarlanan veri uyarısı:** Aynı MAL veya AniDB bağlantısına sahip
+  bir animeyi ikinci kez eklemeye çalışırsanız artık anlaşılır bir
+  "Tekrarlanan veri hatası" uyarısı görürsünüz ve mevcut kayda tek
+  tıkla gidebilirsiniz. Eskiden teknik bir hata ekranı çıkıyordu.
 
 - **Resim güvenliği:** Anime düzenlerken yeni bir kapak resmi
   yüklediğinizde, kayıt başarısız olursa eski resminiz korunur. Artık

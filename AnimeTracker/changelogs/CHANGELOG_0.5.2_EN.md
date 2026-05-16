@@ -8,10 +8,10 @@ on your part.
 
 ## What's new
 
-- **Duplicate anime warning:** If you try to add an anime that already
-  exists (same MAL or AniDB link), you now get a clear warning and can
-  jump to the existing record with a single click. Previously a
-  technical error screen appeared.
+- **Duplicate data warning:** If you try to add an anime that already
+  exists (same MAL or AniDB link), you now get a clear "Duplicate data
+  error" warning and can jump to the existing record with a single
+  click. Previously a technical error screen appeared.
 
 - **Image safety:** When you upload a new cover image while editing an
   anime, your old image is preserved if the save fails. Image loss no
