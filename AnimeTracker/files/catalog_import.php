@@ -424,14 +424,29 @@ try {
         }
     }
 
-    // Chronology markers: wipe and reload. The catalog is authoritative
-    // for chronology (it's universal, not per-user).
-    $pdo->exec("DELETE FROM chronology_markers");
+    // Chronology markers: catalog is authoritative for catalog markers,
+    // but the user's own markers (source='user') must survive an import.
+    //
+    // Karar 1B: the DELETE is scoped to WHERE source='catalog' so a
+    // pull never wipes the user's local source='user' markers. This is
+    // the local-side half of the 14 Nisan 2026 marker-loss fix
+    // (admin_sync.php / admin_push.php are the server-side half). The
+    // INSERT writes source='catalog' and ON DUPLICATE KEY UPDATE also
+    // forces source='catalog', so a marker the user happens to have
+    // locally as source='user' that the catalog also publishes gets
+    // reconverged to 'catalog' (it is now catalog-managed). Markers the
+    // user created that the catalog does NOT publish stay source='user'
+    // and keep showing the list_settings.php "push these up" warning
+    // until the admin pushes them.
+    $pdo->exec("DELETE FROM chronology_markers WHERE source = 'catalog'");
 
     if (!empty($catalogMarkers)) {
         $markerStmt = $pdo->prepare("
-            INSERT INTO chronology_markers (anime_id, after_episode, related_anime_id, note)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO chronology_markers (anime_id, after_episode, related_anime_id, note, source)
+            VALUES (?, ?, ?, ?, 'catalog')
+            ON DUPLICATE KEY UPDATE
+                note = VALUES(note),
+                source = 'catalog'
         ");
         foreach ($catalogMarkers as $m) {
             $serverAnimeId   = (int)($m['anime_id'] ?? 0);
