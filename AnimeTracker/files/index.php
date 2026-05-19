@@ -350,6 +350,136 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
             border: none;
         }
         
+        /* Liste tablosu tasma duzeltmesi (0.5.5 ek).
+           style.css'te "table { width:auto }" + her hucre
+           "min-width:100px" var; genis tablo, container'i
+           (width:70%) asip ozellikle zoom'da disari tasiyordu.
+           Eski bir layout hatasiydi, 0.5.5 regresyonu degil.
+
+           Cozum: liste tablosunu container genisligine
+           sabitle (width:100%, table-layout:fixed) ve
+           sutunlara oransal genislik ver. Boylece icerik ne
+           olursa olsun tablo container icinde kalir, kaydirma
+           gerekmez. Kurallar SADECE .list-table-wrap altindaki
+           tabloyu hedefler; anime_details / statistics gibi
+           diger sayfalardaki global "th,td" kurallari
+           etkilenmez (07 disiplini: minimum, izole mudahale). */
+        .list-table-wrap {
+            max-width: 100%;
+        }
+
+        .list-table-wrap table {
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        .list-table-wrap th,
+        .list-table-wrap td {
+            min-width: 0;
+            max-width: none;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+        }
+
+        /* Sutun genislikleri (6 sutun):
+           Anime | Durum | Izlenen Bolum | Resim | Sonraki Bolum | Eylem
+           Yuzdeler toplami 100. Resim ve Eylem icerik
+           genisligine gore biraz daha genis; digerleri dar
+           metin sutunu. */
+        .list-table-wrap th:nth-child(1),
+        .list-table-wrap td:nth-child(1) { width: 22%; }  /* Anime */
+        .list-table-wrap th:nth-child(2),
+        .list-table-wrap td:nth-child(2) { width: 12%; }  /* Durum */
+        .list-table-wrap th:nth-child(3),
+        .list-table-wrap td:nth-child(3) { width: 14%; }  /* Izlenen Bolum */
+        .list-table-wrap th:nth-child(4),
+        .list-table-wrap td:nth-child(4) { width: 16%; }  /* Resim */
+        .list-table-wrap th:nth-child(5),
+        .list-table-wrap td:nth-child(5) { width: 22%; }  /* Sonraki Bolum */
+        .list-table-wrap th:nth-child(6),
+        .list-table-wrap td:nth-child(6) { width: 14%; }  /* Eylem */
+
+        /* Resim sutunu: tablo daralinca poster tasmasin. */
+        .list-table-wrap td:nth-child(4) img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* 0.5.5 - liste ici hizli bolum guncelleme (+/-) */
+        .ep-quick {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        .ep-quick .ep-text {
+            text-align: center;
+        }
+
+        .ep-badge {
+            font-size: 13px;
+            color: #888780;
+            line-height: 1;
+        }
+
+        .ep-controls {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .ep-sep {
+            color: #999;
+            font-size: 12px;
+        }
+
+        .ep-step {
+            width: 22px;
+            height: 22px;
+            line-height: 20px;
+            padding: 0;
+            border: 1px solid #D85A30;
+            background: #D85A30;
+            color: #fff;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .ep-step:hover:not(:disabled) {
+            background: #993C1D;
+            border-color: #993C1D;
+            color: #fff;
+        }
+
+        .ep-step:disabled {
+            border-color: #D3D1C7;
+            background: #F1EFE8;
+            color: #B4B2A9;
+            opacity: 1;
+            cursor: not-allowed;
+        }
+
+        .ep-step:disabled:hover {
+            background: #F1EFE8;
+            color: #B4B2A9;
+        }
+
+        .ep-quick.busy .ep-step {
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        .ep-quick.flash .ep-text {
+            transition: color 0.15s ease;
+            color: #2e7d32;
+            font-weight: 600;
+        }
+
         .sort-buttons {
             display: inline-block;
             margin-left: 5px;
@@ -535,6 +665,7 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
 
         <?php renderPagination($current_page, $total_pages, $total_results, $per_page); ?>
 
+        <div class="list-table-wrap">
         <table>
             <thead>
                 <tr>
@@ -589,14 +720,56 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                                 //  - total_episodes set  -> watched/total (finished or short series)
                                 //  - total NULL, aired set -> watched/aired (yayında) (long ongoing series)
                                 //  - everything NULL     -> watched/?
-                                if (!empty($anime['total_episodes'])) {
-                                    echo htmlspecialchars($anime['watched_episodes'] . '/' . $anime['total_episodes']);
-                                } elseif (!empty($anime['aired_episodes'])) {
-                                    echo htmlspecialchars($anime['watched_episodes'] . '/' . $anime['aired_episodes']) . ' <small>(yayında)</small>';
+                                //
+                                // 0.5.5: ceiling (tavan) = total if set, else aired,
+                                // else null (unknown). The +/- buttons use this to
+                                // decide which side to disable. The bound logic is
+                                // duplicated server side in update_watched.php; that
+                                // copy is authoritative, this one is for UX only.
+                                // Match the pre-0.5.5 !empty() semantics
+                                // exactly: a 0 (or NULL) total/aired counts
+                                // as "not set" and falls through to the
+                                // next display branch. update_watched.php
+                                // uses the same rule so client and server
+                                // agree on the ceiling.
+                                $ec_watched = (int)$anime['watched_episodes'];
+                                $ec_total   = !empty($anime['total_episodes'])
+                                              ? (int)$anime['total_episodes'] : null;
+                                $ec_aired   = !empty($anime['aired_episodes'])
+                                              ? (int)$anime['aired_episodes'] : null;
+                                $ec_ceiling = ($ec_total !== null) ? $ec_total
+                                              : (($ec_aired !== null) ? $ec_aired : null);
+
+                                // ep_text = pure count (no badge). The
+                                // "(yayında)" tag is now a separate line
+                                // between the count and the +/- buttons,
+                                // so it lives in its own variable.
+                                $ec_badge = '';
+                                if ($ec_total !== null) {
+                                    $ec_text = htmlspecialchars($ec_watched . '/' . $ec_total);
+                                } elseif ($ec_aired !== null) {
+                                    $ec_text  = htmlspecialchars($ec_watched . '/' . $ec_aired);
+                                    $ec_badge = '(yayında)';
                                 } else {
-                                    echo htmlspecialchars($anime['watched_episodes']) . '/?';
+                                    $ec_text = htmlspecialchars($ec_watched) . '/?';
                                 }
-                            ?></td>
+
+                                // No known ceiling -> hide the controls entirely.
+                                // "-" alone would be possible but the cell is
+                                // cleaner with nothing until the user has episode
+                                // data; the message belongs in Senkronize Et flow.
+                                $ec_has_controls = ($ec_ceiling !== null);
+                                $ec_at_min = ($ec_watched <= 0);
+                                $ec_at_max = ($ec_ceiling !== null && $ec_watched >= $ec_ceiling);
+                            ?><?php if ($ec_has_controls): ?><div class="ep-quick" data-anime-id="<?php echo (int)$anime['id']; ?>" data-ceiling="<?php echo (int)$ec_ceiling; ?>">
+                                    <span class="ep-text"><?php echo $ec_text; ?></span>
+                                    <?php if ($ec_badge !== ''): ?><span class="ep-badge"><?php echo htmlspecialchars($ec_badge); ?></span><?php endif; ?>
+                                    <div class="ep-controls">
+                                        <button type="button" class="ep-step ep-minus" onclick="quickWatched(this, -1)"<?php echo $ec_at_min ? ' disabled' : ''; ?> title="Bir bolum geri">&minus;</button>
+                                        <span class="ep-sep">/</span>
+                                        <button type="button" class="ep-step ep-plus" onclick="quickWatched(this, 1)"<?php echo $ec_at_max ? ' disabled' : ''; ?> title="Bir bolum ileri">+</button>
+                                    </div>
+                                </div><?php else: ?><?php echo $ec_text; ?><?php if ($ec_badge !== ''): ?> <small>(yayında)</small><?php endif; ?><?php endif; ?></td>
                             <td><img src="<?php echo htmlspecialchars($anime['image_path']); ?>" alt="<?php echo htmlspecialchars($anime['title']); ?>" width="100"></td>
                             <td class="next-episode-cell">
 <?php 
@@ -630,17 +803,89 @@ if ($anime['status'] == 'Yayın Tamamlandı') {
                 <?php endif; ?>
             </tbody>
         </table>
+        </div>
 
         <?php renderPagination($current_page, $total_pages, $total_results, $per_page); ?>
 
     </div>
 
     <script>
+    // CSRF token, JS fetch'leri icin. Form'lardaki hidden input ile
+    // ayni session degeri; burada bir kez basiliyor.
+    var CSRF_TOKEN = <?php echo json_encode(csrf_token()); ?>;
+
     // Anime ismini tikla-genislet. Uzun isimler CSS ile "..." seklinde
     // kirpiliyor, kullanici tiklayinca tam halini gosteriyoruz. Tekrar
     // tiklayinca yine kirpiliyor (toggle).
     function toggleAnimeTitle(element) {
         element.classList.toggle('expanded');
+    }
+
+    // 0.5.5 - liste ici hizli bolum guncelleme.
+    // "+" / "-" butonuna basinca update_watched.php'ye AJAX POST atar,
+    // watched_episodes +-1 olur, hucre yerinde guncellenir. Form
+    // acmadan. Sinir kontrolu hem burada (UX) hem sunucuda (yetkili)
+    // yapilir; sunucu son sozu soyler.
+    function quickWatched(btn, delta) {
+        var box = btn.closest('.ep-quick');
+        if (!box || box.classList.contains('busy')) {
+            return;
+        }
+
+        var animeId = parseInt(box.getAttribute('data-anime-id'), 10);
+        var ceiling = parseInt(box.getAttribute('data-ceiling'), 10);
+        var textEl  = box.querySelector('.ep-text');
+        var minusEl = box.querySelector('.ep-minus');
+        var plusEl  = box.querySelector('.ep-plus');
+
+        box.classList.add('busy');
+
+        var body = new URLSearchParams();
+        body.set('csrf_token', CSRF_TOKEN);
+        body.set('anime_id', String(animeId));
+        body.set('delta', String(delta));
+
+        fetch('update_watched.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body.toString()
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            box.classList.remove('busy');
+
+            if (!data || !data.success) {
+                var msg = (data && data.error)
+                    ? data.error
+                    : 'Bolum guncellenemedi. Sayfayi yenileyip tekrar deneyin.';
+                alert(msg);
+                return;
+            }
+
+            // Hucre sayimini guncelle. Badge ("(yayında)") artik ayri
+            // bir .ep-badge satiri; +/- sadece izlenen sayisini degistirir,
+            // yayin durumunu degil. Bu yuzden sadece saf "izlenen/tavan"
+            // metnini yaziyoruz, badge'e dokunmuyoruz.
+            var base = data.watched_episodes + '/'
+                + (data.ceiling !== null ? data.ceiling : '?');
+            textEl.textContent = base;
+
+            // Sinir butonlarini guncelle (sunucudan gelen at_min/at_max
+            // yetkili kaynak).
+            if (minusEl) { minusEl.disabled = !!data.at_min; }
+            if (plusEl)  { plusEl.disabled  = !!data.at_max; }
+
+            // Kisa gorsel geri bildirim.
+            box.classList.add('flash');
+            setTimeout(function () { box.classList.remove('flash'); }, 350);
+
+            // Not: satir yerinde kalir; siralama bir sonraki sayfa
+            // yuklemesinde duzelir (proje_durumu_07 Bolum 3 karari).
+        })
+        .catch(function () {
+            box.classList.remove('busy');
+            alert('Sunucuya ulasilamadi. Internet baglantinizi kontrol edin.');
+        });
     }
     </script>
 </body>
