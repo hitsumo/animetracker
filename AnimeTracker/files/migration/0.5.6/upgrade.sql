@@ -1,0 +1,17 @@
+-- Surum 0.5.6 - watch_status one-way automation
+--
+-- Bu surumde sema DEGISMEDI. animes.watch_status enum'u zaten 0.5.x
+-- boyunca ('Izlendi','Izleniyor','Izlenme Planlandi') idi; 0.5.6
+-- sadece mevcut enum degerleri arasinda otomatik UPDATE yapar
+-- (update_watched.php endpoint'i icinde, +1 yonunde).
+--
+-- Bu dosya bilincli olarak BOS birakildi. migration_manager.php
+-- glob(migration/*) ile klasor varligini tarar; klasor olmazsa
+-- atlayan kurulum (or. 0.5.4 -> 0.5.6) settings.version 0.5.5'te
+-- TAKILIR. preg_replace yorumlari siler, array_filter bos
+-- statement'lari eler -> foreach donmez, SQL calismaz AMA
+-- settings.version 0.5.6'ya ilerler (foreach disinda, satir 162).
+-- 0.5.1 ve 0.5.5 ayni desen.
+--
+-- KARARLAR.md Bolum 2 ve build_release_disiplini.md Adim 2:
+-- her surumde migration/{surum}/upgrade.sql VARDIR.

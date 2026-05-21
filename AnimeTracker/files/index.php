@@ -714,7 +714,7 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                     <?php foreach ($animes as $anime): ?>
                         <tr>
                             <td><span class="list-anime-title" onclick="toggleAnimeTitle(this)" title="Tam ismi gormek icin tiklayin"><?php echo htmlspecialchars($anime['title']); ?></span></td>
-                            <td><?php echo htmlspecialchars($anime['watch_status']); ?></td>
+                            <td class="watch-status-cell"><?php echo htmlspecialchars($anime['watch_status']); ?></td>
                             <td class="episode-count"><?php
                                 // Episode display logic (v0.5+):
                                 //  - total_episodes set  -> watched/total (finished or short series)
@@ -874,6 +874,24 @@ if ($anime['status'] == 'Yayın Tamamlandı') {
             // yetkili kaynak).
             if (minusEl) { minusEl.disabled = !!data.at_min; }
             if (plusEl)  { plusEl.disabled  = !!data.at_max; }
+
+            // 0.5.6 - watch_status otomatik gecisi (tek yon).
+            // Sunucu mevcut watch_status'u + delta=+1 isareti ile karar
+            // verdi: Planlandi -> Izleniyor (ilk + veya yeniden baslama)
+            // ve/veya watched==tavan -> Izlendi. Sadece bayrak true ise
+            // satirin durum hucresini guncelle - "-" bastiginda veya
+            // tavan asilmadiginda gereksiz DOM yazma yapilmaz. Ters yon
+            // (Izlendi'den dusus) 0.5.7'ye birakildi (proje_durumu_07
+            // Bolum 3 + KARARLAR.md Bolum 5).
+            if (data.watch_status_changed && data.watch_status_new) {
+                var tr = box.closest('tr');
+                if (tr) {
+                    var statusTd = tr.querySelector('.watch-status-cell');
+                    if (statusTd) {
+                        statusTd.textContent = data.watch_status_new;
+                    }
+                }
+            }
 
             // Kisa gorsel geri bildirim.
             box.classList.add('flash');
