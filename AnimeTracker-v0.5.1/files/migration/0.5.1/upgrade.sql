@@ -1,5 +1,0 @@
--- Anime Tracker 0.5.1 migration
--- No schema changes in this release.
--- This file exists only to bump settings.version to 0.5.1.
--- The actual fix is the add_genre.php CSRF protection
--- (PHP-only change, no DB impact).
