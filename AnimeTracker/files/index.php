@@ -560,11 +560,11 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
             <a href="statistics.php" class="about-link">İstatistikler</a>
             <a href="help.php" class="about-link">Yardım</a>
         </div>
-        <div class="page-title">
-            ANİME İZLEME LİSTESİ
+        <div class="list-page-title">
+            Anime İzleme Listesi
         </div>
 
-        <div style="max-width: 500px; margin: 15px auto; background: #e9ecef; padding: 15px 20px; border-radius: 8px;">
+        <div style="max-width: 380px; margin: 15px auto; background: #e9ecef; padding: 15px 20px; border-radius: 8px;">
             <form method="GET" action="" style="display: flex; gap: 8px;">
                 <input type="text" name="q" value="<?php echo htmlspecialchars($search_query); ?>" placeholder="Anime ara..." style="flex: 1; padding: 10px 14px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;">
                 <button type="submit" style="padding: 10px 18px; background: #4a90e2; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">Ara</button>

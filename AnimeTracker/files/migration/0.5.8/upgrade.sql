@@ -1,0 +1,17 @@
+-- Surum 0.5.8 - help.php guncellemesi + index.php basligi kucultme
+-- Bu surumde sema degismedi. Sadece settings.version'i 0.5.8'e
+-- ilerletmek icin bos migration. 0.5.1 / 0.5.5 / 0.5.6 / 0.5.7
+-- deseninde.
+--
+-- Surum icerigi:
+--   - help.php: "Hizli Izleme Butonlari (+/-)" bolumu eklendi.
+--     0.5.6 + 0.5.7 ile gelen +/- otomasyon davranisinin
+--     belgelenmesi (4 kural + ardisik edge case + tetiklenmeyen
+--     durumlar + ceiling-bilinmeyen davranis).
+--   - index.php: ana sayfa basligi .page-title yerine yeni
+--     .list-page-title class'i kullaniyor (kompakt varyant,
+--     diger 6 sayfa .page-title'da kaldi).
+--   - style.css: .list-page-title kurali eklendi; duplicate
+--     .page-title kurali (text-align + margin-bottom) temizlendi.
+--
+-- Sema degisikligi: YOK. DB ALTER yok.

@@ -506,6 +506,27 @@ tr:hover {
     letter-spacing: 1px;
 }
 
+/* Liste sayfasi basligi (index.php) - daha kompakt varyant.
+   .page-title'in kucultulmus turevi: ana sayfa basligi listenin
+   onunde devasa durmasin diye. Diger sayfalar (Duzenle, Ayarlar,
+   Ne Izlesem? vs.) .page-title kullanmaya devam eder. */
+.list-page-title {
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    color: #2c3e50;
+    text-align: center;
+    padding: 12px 20px;
+    background: linear-gradient(to right, #f8f9fa, #eef0f2);
+    border-radius: 10px;
+    margin: 20px auto;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+    border: 1px solid #dee2e6;
+    max-width: 400px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
 /* Boşluk sınıfları */
 .section-spacing {
     margin: 30px 0;
@@ -718,11 +739,6 @@ tr:hover {
     font-weight: 500;
     color: #333;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    margin-bottom: 30px;
-}
-
-.page-title {
-    text-align: center;
     margin-bottom: 30px;
 }
 

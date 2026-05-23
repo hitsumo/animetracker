@@ -110,6 +110,10 @@
             background: #ffebee;
             border-left-color: #e53935;
         }
+        .help-container .box.info {
+            background: #e3f2fd;
+            border-left-color: #1976d2;
+        }
         .help-container .icon-inline {
             color: #4a90e2;
             margin-right: 6px;
@@ -166,6 +170,7 @@
         <strong>Icindekiler:</strong>
         <ul style="margin: 8px 0 0;">
             <li><a href="#alanlar">Anime Alanlari — Hangisi Ne Yapar?</a></li>
+            <li><a href="#hizli-butonlar">Hizli Izleme Butonlari (+/-)</a></li>
             <li><a href="#sync">Katalog Sync — Nasil Calisir?</a></li>
             <li><a href="#kisisel-alanlar">Kisisel Alanlar — Notlar ve Kisisel Konu</a></li>
             <li><a href="#oneri">Ne İzlesem? — Öneri Sistemi</a></li>
@@ -204,7 +209,7 @@
     <h3><i class="fas fa-user icon-inline"></i> Kisisel Alanlar (sync edilmez)</h3>
     <ul>
         <li><strong>Izlenen Bolum sayisi</strong></li>
-        <li><strong>Izleme Durumu</strong> (Izlendi / Izleniyor / Izlenme Planlandi)</li>
+        <li><strong>Izleme Durumu</strong> (Izlendi / Izleniyor / Izlenme Planlandi) — listedeki <a href="#hizli-butonlar"><code>+/-</code> butonlariyla otomatik degisebilir</a></li>
         <li><strong>Notlar</strong> — Size ozel hatirlatmalar, yorumlar</li>
         <li><strong>Kisisel Konu</strong> — Kendi yorumunuz / aciklamaniz</li>
         <li><strong>Poster (kendi yuklediyseniz)</strong></li>
@@ -213,6 +218,118 @@
     <p>
         Bu alanlara sunucu <strong>dokunmaz</strong>. Istediginiz kadar
         yazabilir, degistirebilirsiniz.
+    </p>
+
+    <!-- =============================================================== -->
+    <h2 id="hizli-butonlar">Hizli Izleme Butonlari (+/-)</h2>
+
+    <p>
+        Listede her animenin yaninda <code>+</code> ve <code>-</code>
+        butonlari var. Bu butonlarla "Duzenle" ekranina gitmeden Izlenen
+        Bolum sayisini bir artirip azaltabilirsiniz. Sayim degisirken
+        belirli kosullarda <strong>Izleme Durumu da otomatik olarak
+        guncellenir</strong>.
+    </p>
+
+    <h3>Otomatik Durum Gecisleri</h3>
+
+    <p>
+        Asagidaki tablo dort temel durumu ozetler:
+    </p>
+
+    <table>
+        <tr>
+            <th>Su anki durum</th>
+            <th>Aksiyon</th>
+            <th>Yeni durum</th>
+        </tr>
+        <tr>
+            <td>Izlenme Planlandi + 0/12</td>
+            <td><code>+</code></td>
+            <td>Izleniyor + 1/12</td>
+        </tr>
+        <tr>
+            <td>Izleniyor + 11/12</td>
+            <td><code>+</code></td>
+            <td>Izlendi + 12/12</td>
+        </tr>
+        <tr>
+            <td>Izlendi + 12/12</td>
+            <td><code>-</code></td>
+            <td>Izleniyor + 11/12</td>
+        </tr>
+        <tr>
+            <td>Izleniyor + 1/12</td>
+            <td><code>-</code></td>
+            <td>Izlenme Planlandi + 0/12</td>
+        </tr>
+    </table>
+
+    <p>
+        Mantik basit: durum sinir gecislerinde (basa donus, sona ulasma)
+        otomatik degisir, ara degerlerde dokunulmaz.
+    </p>
+
+    <h3>Tek Tikla Iki Adim</h3>
+
+    <p>
+        Bazen tek bir <code>+</code> veya <code>-</code> basisi iki gecisi
+        birden tetikleyebilir:
+    </p>
+
+    <ul>
+        <li><strong>Planlandi + 11/12 → <code>+</code> → Izlendi + 12/12.</strong>
+        Once Planlandi'dan Izleniyor'a, sonra tavana ulastigi icin
+        Izleniyor'dan Izlendi'ye tek tikla gecer.</li>
+        <li><strong>Izlendi + 1/12 → <code>-</code> → Izlenme Planlandi + 0/12.</strong>
+        Yukaridakinin aynadaki yansimasi: once Izleniyor'a, sonra 0'a indigi
+        icin Planlandi'ya tek tikla doner.</li>
+    </ul>
+
+    <h3>Ne Zaman Tetiklenmez?</h3>
+
+    <div class="box safe">
+        <strong><i class="fas fa-info-circle"></i> Otomasyon dokunmaz:</strong>
+        <ul style="margin: 8px 0 0;">
+            <li><strong>Izleniyor + ara deger</strong> (ornek: 7/12) —
+            <code>+</code> veya <code>-</code> basildiginda durum Izleniyor
+            olarak kalir, sadece sayim degisir.</li>
+            <li><strong>Izlenme Planlandi + <code>-</code></strong> —
+            Planlandi durumunda <code>-</code> basmak ne sayimi ne durumu
+            degistirir (zaten 0).</li>
+            <li><strong>Izlendi + tavan altinda + <code>+</code></strong> —
+            manuel olarak anormal duruma getirilmis bir kayda <code>+</code>
+            basinca durum Izlendi olarak kalir; otomasyon zorla duzeltmez,
+            manuel niyetiniz korunur.</li>
+        </ul>
+    </div>
+
+    <h3>Bolum Sayisi Bilinmeyen Animeler</h3>
+
+    <p>
+        Toplam veya yayinlanan bolum sayisi bilinmiyorsa (tavansiz eski
+        OVA'lar, programi belirsiz seriler gibi):
+    </p>
+
+    <ul>
+        <li><strong>Tavana ulasma kontrolu yapilamaz</strong> — bu yuzden
+        <code>+</code> ile otomatik "Izlendi" gecisi calismaz. Manuel
+        olarak Duzenle'den isaretlemeniz gerekir.</li>
+        <li><strong>0'a inis kontrolu tavandan bagimsiz calisir</strong> —
+        Izleniyor + 1/? uzerinde <code>-</code> basildiginda durum yine
+        Izlenme Planlandi + 0/?'e otomatik doner.</li>
+        <li><strong>Manuel Izlendi yapilmis tavansiz animede <code>-</code></strong>
+        basildiginda durum Izlendi olarak kalir — sistem guvenli bir gecis
+        yapamadigi icin manuel duruma karismaz.</li>
+    </ul>
+
+    <h3>Manuel Duzenleme Her Zaman Serbest</h3>
+
+    <p>
+        Otomatik durum gecisleri sadece <code>+</code> ve <code>-</code>
+        butonlarina basarken devreye girer. "Duzenle" formundan istediginiz
+        durumu manuel olarak <strong>her zaman</strong> secebilirsiniz;
+        otomasyon ona karismaz.
     </p>
 
     <!-- =============================================================== -->
@@ -361,7 +478,7 @@
 
     <h3>Kronoloji Isaretleri</h3>
     <p>
-        Detective Conan gibi seriler icin: "54. boleumden sonra 1. filmi
+        Detective Conan gibi seriler icin: "54. bolumden sonra 1. filmi
         izle" gibi bolum seviyesinde isaretler tutulur. Detay sayfasinda
         aktif uyari olarak gorulur, ayri bir "Kronoloji" sayfasinda da
         timeline halinde listelenir.
@@ -383,7 +500,7 @@
             <li><strong>Kisisel Konu</strong> alanini bossaltmak → sync geri getirmez</li>
             <li>Anime silmek → kalici, izleme verisi dahil her sey gider</li>
             <li>Poster dosyasi silmek → sync sirasinda katalog posteri tekrar indirilir
-                (ancak size ozel yukledilmiş poster geri gelmez)</li>
+                (ancak kendi yuklediginiz poster geri gelmez)</li>
         </ul>
     </div>
 
