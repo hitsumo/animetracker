@@ -875,14 +875,21 @@ if ($anime['status'] == 'Yayın Tamamlandı') {
             if (minusEl) { minusEl.disabled = !!data.at_min; }
             if (plusEl)  { plusEl.disabled  = !!data.at_max; }
 
-            // 0.5.6 - watch_status otomatik gecisi (tek yon).
-            // Sunucu mevcut watch_status'u + delta=+1 isareti ile karar
-            // verdi: Planlandi -> Izleniyor (ilk + veya yeniden baslama)
-            // ve/veya watched==tavan -> Izlendi. Sadece bayrak true ise
-            // satirin durum hucresini guncelle - "-" bastiginda veya
-            // tavan asilmadiginda gereksiz DOM yazma yapilmaz. Ters yon
-            // (Izlendi'den dusus) 0.5.7'ye birakildi (proje_durumu_07
-            // Bolum 3 + KARARLAR.md Bolum 5).
+            // 0.5.6 / 0.5.7 - watch_status otomatik gecisi (cift yon).
+            // Sunucu mevcut watch_status'u + delta isareti ile karar
+            // verdi:
+            //   delta=+1: Planlandi -> Izleniyor (Kural 1) ve/veya
+            //             watched==tavan -> Izlendi (Kural 2).
+            //   delta=-1: Izlendi + new<tavan -> Izleniyor (Kural 3,
+            //             Kural 2'nin simetrigi) ve/veya Izleniyor +
+            //             new==0 -> Planlandi (Kural 4, Kural 1'in
+            //             simetrigi). Ikisi de 0.5.7 ile eklendi.
+            // JS yon bilmiyor: sadece watch_status_changed bayragina
+            // bakar. Hangi kural fire ettiyse fire etti, sonuc string'i
+            // watch_status_new'da gelir. Gereksiz DOM yazma yok - bayrak
+            // false ise (kural fire etmedi) td'ye dokunulmaz. JS Yaklasim
+            // 1 deseni (0.5.6'da tanimlandi) yeni kurallari eklemeyi JS
+            // degisikligi olmadan mumkun kildi.
             if (data.watch_status_changed && data.watch_status_new) {
                 var tr = box.closest('tr');
                 if (tr) {

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Anime Tracker - Quick Watched-Episode Update Endpoint (0.5.5 / 0.5.6)
+ * Anime Tracker - Quick Watched-Episode Update Endpoint (0.5.5 / 0.5.6 / 0.5.7)
  * https://www.sicakcikolata.com
  * Copyright (C) 2025 Okan Sumer
  * Licensed under GNU General Public License v2
@@ -31,7 +31,7 @@
  *     are hidden/disabled client side - the user is told to sync /
  *     enter episode data first. "-" still works down to 0.
  *
- * 0.5.6 - watch_status one-way automation (only on delta=+1):
+ * 0.5.6 - watch_status forward automation (only on delta=+1):
  *   Rule 1: if current watch_status is 'Izlenme Planlandi', + flips it
  *           to 'Izleniyor'. The act of incrementing is treated as a
  *           "started watching" signal. Also handles the "paused -> back"
@@ -44,8 +44,29 @@
  *   The two rules apply sequentially in the same request, so the edge
  *   case "Planlandi + 11/12 -> +1 -> 12/12" yields 'Izlendi' in one
  *   click (Planlandi -> Izleniyor -> Izlendi via the same call).
- *   "-" never touches watch_status. The reverse transition (watched
- *   dropping below ceiling -> back to Izleniyor) is deferred to 0.5.7.
+ *
+ * 0.5.7 - watch_status reverse automation (only on delta=-1):
+ *   Rule 3: if the new watched count is below the ceiling AND the
+ *           current watch_status is 'Izlendi', flip to 'Izleniyor'.
+ *           Symmetric reverse of Rule 2: stepping out of "watched all"
+ *           back into "watching". Ceiling-known animes only - if the
+ *           ceiling is unknown (no total, no aired) the rule does not
+ *           fire and any manual 'Izlendi' is preserved as-is.
+ *   Rule 4: if the new watched count is 0 AND the current watch_status
+ *           is 'Izleniyor', flip to 'Izlenme Planlandi'. Symmetric
+ *           reverse of Rule 1: stepping all the way back to zero count
+ *           while in "watching" mode is read as "haven't started yet".
+ *           Triggers on absolute zero, not on a relative ceiling check,
+ *           so it works for ceiling-unknown animes too.
+ *   Rules 3 and 4 apply sequentially in the same request, so the edge
+ *   case "Izlendi + 1/12 -> -1 -> 0/12" yields 'Izlenme Planlandi' in
+ *   one click (Izlendi -> Izleniyor -> Izlenme Planlandi via the same
+ *   call - the symmetric mirror of the Rule 1+2 edge case on the +1
+ *   side).
+ *   "-" leaves watch_status alone in cases not covered by Rule 3 or 4
+ *   (Izleniyor + - with new > 0 stays Izleniyor; Planlandi + - stays
+ *   Planlandi). Rules 1 and 2 do not fire on delta=-1; Rules 3 and 4
+ *   do not fire on delta=+1.
  *
  * Request:
  *   POST update_watched.php
@@ -196,24 +217,43 @@ if ($delta === 1) {
     }
 }
 
-// --- watch_status target (0.5.6) -----------------------------------------
+// --- watch_status target (0.5.6 + 0.5.7) ---------------------------------
 //
-// One-way automation, fires only on delta=+1. Two sequential rules; the
-// edge case Planlandi + 11/12 -> +1 -> 12/12 needs both to apply in the
-// same call (Planlandi -> Izleniyor -> Izlendi).
+// Two-way automation, four rules total. Forward rules (1, 2) fire only
+// on delta=+1; reverse rules (3, 4) fire only on delta=-1. Rules within
+// each direction apply sequentially, which is what makes the two-step
+// edge cases work:
+//   - +1 edge: Planlandi + 11/12 -> +1 -> 12/12 fires Rule 1 then Rule 2
+//     in one call (Planlandi -> Izleniyor -> Izlendi).
+//   - -1 edge: Izlendi + 1/12 -> -1 -> 0/12 fires Rule 3 then Rule 4 in
+//     one call (Izlendi -> Izleniyor -> Izlenme Planlandi). Symmetric
+//     mirror of the +1 edge.
 //
-// Rule 1: 'Izlenme Planlandi' + (any +) -> 'Izleniyor'. The "+" press
-//         is the "started / resumed watching" signal. Covers both the
-//         first time the user opens an anime and the case where they
-//         manually set status back to Planlandi (pause) and later
-//         resume.
-// Rule 2: new watched == ceiling AND status not already 'Izlendi'
+// Rule 1 (0.5.6): 'Izlenme Planlandi' + (any +) -> 'Izleniyor'. The "+"
+//         press is the "started / resumed watching" signal. Covers both
+//         the first time the user opens an anime and the case where they
+//         manually set status back to Planlandi (pause) and later resume.
+// Rule 2 (0.5.6): new watched == ceiling AND status not already 'Izlendi'
 //         -> 'Izlendi'. Ceiling-known animes only; "+" above ceiling
 //         was already rejected above so this is safe to evaluate here.
+// Rule 3 (0.5.7): new watched < ceiling AND status === 'Izlendi'
+//         -> 'Izleniyor'. Symmetric reverse of Rule 2. Ceiling-known
+//         animes only; if the ceiling is unknown the rule is skipped
+//         and a manual 'Izlendi' state is preserved.
+// Rule 4 (0.5.7): new watched == 0 AND status === 'Izleniyor'
+//         -> 'Izlenme Planlandi'. Symmetric reverse of Rule 1. Triggers
+//         on absolute zero (not a ceiling-relative comparison), so it
+//         works for ceiling-unknown animes too. Reads Rule 3's just-set
+//         target, which is what makes the Izlendi -> Izleniyor ->
+//         Planlandi chain on the -1 edge work in one click.
 //
-// "-" (delta=-1) never touches watch_status. The reverse transition
-// (Izlendi -> Izleniyor when watched drops below ceiling) is the 0.5.7
-// stage, intentionally out of scope here.
+// Deliberate asymmetries still left as user-controlled (post-Rule-4):
+//   - 'Izleniyor' + - with new > 0 stays 'Izleniyor' (Rule 4 needs
+//     new === 0; a partial step back is not "give up").
+//   - 'Izlenme Planlandi' + - stays 'Izlenme Planlandi' (no rule needs
+//     to fire; the pause intent is preserved across decrement attempts).
+//   - 'Izlendi' + + below ceiling stays 'Izlendi' (a stuck-Izlendi
+//     state is not auto-corrected on +; the user can manually edit).
 //
 // Enum values are matched verbatim against schema.sql:
 //   watch_status enum('Izlendi','Izleniyor','Izlenme Planlandi')
@@ -226,6 +266,14 @@ if ($delta === 1) {
     if ($ceiling !== null && $new === $ceiling
         && $target_watch_status !== 'İzlendi') {
         $target_watch_status = 'İzlendi';
+    }
+} elseif ($delta === -1) {
+    if ($ceiling !== null && $new < $ceiling
+        && $target_watch_status === 'İzlendi') {
+        $target_watch_status = 'İzleniyor';
+    }
+    if ($new === 0 && $target_watch_status === 'İzleniyor') {
+        $target_watch_status = 'İzlenme Planlandı';
     }
 }
 $watch_status_changed = ($target_watch_status !== $current_watch_status);

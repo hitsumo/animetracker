@@ -1,0 +1,7 @@
+-- Surum 0.5.7 - watch_status reverse automation (Kural 3)
+-- Bu surumde sema degismedi. update_watched.php icine delta=-1 dali
+-- (Kural 3: Izlendi + tavandan dusus -> Izleniyor) eklendi; DB yapisina
+-- dokunulmadi. Bos migration: settings.version'i 0.5.7'e ilerletmek
+-- icin migration_manager.php klasor varligi kuralina uyum (KARARLAR.md
+-- Bolum 2 + build_release_disiplini.md Adim 2). 0.5.1 / 0.5.5 / 0.5.6
+-- deseni.
