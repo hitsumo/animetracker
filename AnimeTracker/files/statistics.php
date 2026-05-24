@@ -3,9 +3,8 @@
  * Anime Tracker - Istatistik Sayfasi
  * Toplam anime sayisi, medya turu dagilimi, yayin/izleme durumu istatistikleri
  */
-require_once 'config.php';
-require_once 'db.php';
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/functions.php';
 
 // Toplam anime sayisi
 $total = $pdo->query("SELECT COUNT(*) FROM animes")->fetchColumn();
@@ -24,9 +23,21 @@ $by_status = $pdo->query("
 ")->fetchAll(PDO::FETCH_ASSOC);
 
 // Izleme durumuna gore
-$by_watch = $pdo->query("
-    SELECT watch_status, COUNT(*) AS cnt FROM animes GROUP BY watch_status ORDER BY cnt DESC
-")->fetchAll(PDO::FETCH_ASSOC);
+// 0.6: ASCII enum geciste sabit dropdown sirasiyla goster (Watched ->
+// Watching -> PlanToWatch -> OnHold). Veride hic OnHold yoksa GROUP BY
+// o satiri uretmez; biz yine de sifir gostermek istiyoruz - kullanici
+// 4. ozelligin var oldugunu gorsun. Bunu yapmak icin SQL sonucunu ASCII
+// degerine gore lookup'a cevirip helper'in sirasiyla doluyoruz.
+$by_watch_raw = $pdo->query("
+    SELECT watch_status, COUNT(*) AS cnt FROM animes GROUP BY watch_status
+")->fetchAll(PDO::FETCH_KEY_PAIR);
+$by_watch = [];
+foreach (watch_status_options() as $ws_value => $ws_label) {
+    $by_watch[] = [
+        'label' => $ws_label,
+        'cnt'   => (int)($by_watch_raw[$ws_value] ?? 0),
+    ];
+}
 
 // Toplam izlenen bolum sayisi
 $total_watched = (int)$pdo->query("SELECT COALESCE(SUM(watched_episodes),0) FROM animes")->fetchColumn();
@@ -93,7 +104,7 @@ $total_watched = (int)$pdo->query("SELECT COALESCE(SUM(watched_episodes),0) FROM
         <table class="stats-table">
             <tr><th>Durum</th><th>Adet</th></tr>
             <?php foreach ($by_watch as $row): ?>
-                <tr><td><?php echo htmlspecialchars($row['watch_status']); ?></td><td><?php echo $row['cnt']; ?></td></tr>
+                <tr><td><?php echo htmlspecialchars($row['label']); ?></td><td><?php echo $row['cnt']; ?></td></tr>
             <?php endforeach; ?>
         </table>
     </div>

@@ -32,41 +32,64 @@
  *     enter episode data first. "-" still works down to 0.
  *
  * 0.5.6 - watch_status forward automation (only on delta=+1):
- *   Rule 1: if current watch_status is 'Izlenme Planlandi', + flips it
- *           to 'Izleniyor'. The act of incrementing is treated as a
+ *   Rule 1: if current watch_status is 'PlanToWatch', + flips it
+ *           to 'Watching'. The act of incrementing is treated as a
  *           "started watching" signal. Also handles the "paused -> back"
- *           case (user manually set Planlandi again, then comes back
- *           months later and hits + - jumps back to Izleniyor).
+ *           case (user manually set PlanToWatch again, then comes back
+ *           months later and hits + - jumps back to Watching).
  *   Rule 2: if the new watched count equals the ceiling and the status
- *           is not already 'Izlendi', flip to 'Izlendi'. Ceiling-known
+ *           is not already 'Watched', flip to 'Watched'. Ceiling-known
  *           anime only - for unknown-ceiling animes the + is refused
  *           before reaching this point.
  *   The two rules apply sequentially in the same request, so the edge
- *   case "Planlandi + 11/12 -> +1 -> 12/12" yields 'Izlendi' in one
- *   click (Planlandi -> Izleniyor -> Izlendi via the same call).
+ *   case "PlanToWatch + 11/12 -> +1 -> 12/12" yields 'Watched' in one
+ *   click (PlanToWatch -> Watching -> Watched via the same call).
  *
  * 0.5.7 - watch_status reverse automation (only on delta=-1):
  *   Rule 3: if the new watched count is below the ceiling AND the
- *           current watch_status is 'Izlendi', flip to 'Izleniyor'.
+ *           current watch_status is 'Watched', flip to 'Watching'.
  *           Symmetric reverse of Rule 2: stepping out of "watched all"
  *           back into "watching". Ceiling-known animes only - if the
  *           ceiling is unknown (no total, no aired) the rule does not
- *           fire and any manual 'Izlendi' is preserved as-is.
+ *           fire and any manual 'Watched' is preserved as-is.
  *   Rule 4: if the new watched count is 0 AND the current watch_status
- *           is 'Izleniyor', flip to 'Izlenme Planlandi'. Symmetric
- *           reverse of Rule 1: stepping all the way back to zero count
- *           while in "watching" mode is read as "haven't started yet".
- *           Triggers on absolute zero, not on a relative ceiling check,
- *           so it works for ceiling-unknown animes too.
+ *           is 'Watching', flip to 'PlanToWatch'. Symmetric reverse of
+ *           Rule 1: stepping all the way back to zero count while in
+ *           "watching" mode is read as "haven't started yet". Triggers
+ *           on absolute zero, not on a relative ceiling check, so it
+ *           works for ceiling-unknown animes too.
  *   Rules 3 and 4 apply sequentially in the same request, so the edge
- *   case "Izlendi + 1/12 -> -1 -> 0/12" yields 'Izlenme Planlandi' in
- *   one click (Izlendi -> Izleniyor -> Izlenme Planlandi via the same
- *   call - the symmetric mirror of the Rule 1+2 edge case on the +1
- *   side).
+ *   case "Watched + 1/12 -> -1 -> 0/12" yields 'PlanToWatch' in one
+ *   click (Watched -> Watching -> PlanToWatch via the same call - the
+ *   symmetric mirror of the Rule 1+2 edge case on the +1 side).
  *   "-" leaves watch_status alone in cases not covered by Rule 3 or 4
- *   (Izleniyor + - with new > 0 stays Izleniyor; Planlandi + - stays
- *   Planlandi). Rules 1 and 2 do not fire on delta=-1; Rules 3 and 4
- *   do not fire on delta=+1.
+ *   ('Watching' + - with new > 0 stays 'Watching'; 'PlanToWatch' + -
+ *   stays 'PlanToWatch'). Rules 1 and 2 do not fire on delta=-1; Rules
+ *   3 and 4 do not fire on delta=+1.
+ *
+ * 0.6 - 'OnHold' support + Rule 5 + ASCII enum migration:
+ *   Schema change: watch_status enum was migrated from TR labels to
+ *   ASCII values ('Watched','Watching','PlanToWatch','OnHold'). UI text
+ *   stays Turkish via watch_status_label() in functions.php. A 4th
+ *   value 'OnHold' (TR label "Izleme Ertelendi") was added: semantics
+ *   "I started watching, took a break, keep my progress". Distinct from
+ *   'PlanToWatch' ("haven't started") - 'OnHold' preserves
+ *   watched_episodes intact when the user toggles into it from the edit
+ *   form (see edit_anime.php toggleWatchedEpisodes JS).
+ *
+ *   Rule 5: if current watch_status is 'OnHold' AND delta=+1, flip to
+ *           'Watching'. Resume signal, analogous to Rule 1 but from a
+ *           different source (paused mid-series rather than not started).
+ *           Combined with Rule 1 in the code (both produce 'Watching');
+ *           the subsequent Rule 2 chain still applies, so an OnHold
+ *           anime at (ceiling-1)/ceiling + 1 lands on 'Watched' in one
+ *           click via Rule 5 + Rule 2.
+ *
+ *   "-" while OnHold does not trigger any rule (mirror of PlanToWatch +
+ *   -). Status stays 'OnHold', watched_episodes simply decrements. This
+ *   is intentional: a user pausing mid-series and then "undoing" one
+ *   episode is rare; if they want to roll back further they switch
+ *   status manually from the edit form.
  *
  * Request:
  *   POST update_watched.php
@@ -79,11 +102,12 @@
  *     "success":              true,
  *     "watched_episodes":     12,
  *     "old_value":            11,
- *     "ceiling":              24,         // null if no known ceiling
- *     "at_min":               false,      // watched == 0  -> client disables "-"
- *     "at_max":               false,      // watched == ceiling -> disables "+"
- *     "watch_status_changed": true,       // 0.5.6 - did the rules fire?
- *     "watch_status_new":     "Izlendi"   // 0.5.6 - new value, or null if unchanged
+ *     "ceiling":              24,           // null if no known ceiling
+ *     "at_min":               false,        // watched == 0  -> client disables "-"
+ *     "at_max":               false,        // watched == ceiling -> disables "+"
+ *     "watch_status_changed": true,         // 0.5.6 - did the rules fire?
+ *     "watch_status_new":     "Watched",    // 0.5.6 - new ASCII value, or null
+ *     "watch_status_label":   "Izlendi"     // 0.6 - new TR UI label, or null
  *   }
  *
  * Response (error):
@@ -217,63 +241,80 @@ if ($delta === 1) {
     }
 }
 
-// --- watch_status target (0.5.6 + 0.5.7) ---------------------------------
+// --- watch_status target (0.5.6 + 0.5.7 + 0.6) ---------------------------
 //
-// Two-way automation, four rules total. Forward rules (1, 2) fire only
+// Two-way automation, five rules total. Forward rules (1, 2, 5) fire only
 // on delta=+1; reverse rules (3, 4) fire only on delta=-1. Rules within
 // each direction apply sequentially, which is what makes the two-step
 // edge cases work:
-//   - +1 edge: Planlandi + 11/12 -> +1 -> 12/12 fires Rule 1 then Rule 2
-//     in one call (Planlandi -> Izleniyor -> Izlendi).
-//   - -1 edge: Izlendi + 1/12 -> -1 -> 0/12 fires Rule 3 then Rule 4 in
-//     one call (Izlendi -> Izleniyor -> Izlenme Planlandi). Symmetric
-//     mirror of the +1 edge.
+//   - +1 edge: PlanToWatch + 11/12 -> +1 -> 12/12 fires Rule 1 then Rule
+//     2 in one call (PlanToWatch -> Watching -> Watched). Same shape for
+//     OnHold via Rule 5 + Rule 2.
+//   - -1 edge: Watched + 1/12 -> -1 -> 0/12 fires Rule 3 then Rule 4 in
+//     one call (Watched -> Watching -> PlanToWatch). Symmetric mirror of
+//     the +1 edge.
 //
-// Rule 1 (0.5.6): 'Izlenme Planlandi' + (any +) -> 'Izleniyor'. The "+"
-//         press is the "started / resumed watching" signal. Covers both
-//         the first time the user opens an anime and the case where they
-//         manually set status back to Planlandi (pause) and later resume.
-// Rule 2 (0.5.6): new watched == ceiling AND status not already 'Izlendi'
-//         -> 'Izlendi'. Ceiling-known animes only; "+" above ceiling
-//         was already rejected above so this is safe to evaluate here.
-// Rule 3 (0.5.7): new watched < ceiling AND status === 'Izlendi'
-//         -> 'Izleniyor'. Symmetric reverse of Rule 2. Ceiling-known
+// Rule 1 (0.5.6): 'PlanToWatch' + (any +) -> 'Watching'. The "+" press
+//         is the "started watching" signal. Covers the first time the
+//         user opens an anime.
+// Rule 2 (0.5.6): new watched == ceiling AND status not already
+//         'Watched' -> 'Watched'. Ceiling-known animes only; "+" above
+//         ceiling was already rejected above so this is safe to evaluate
+//         here.
+// Rule 3 (0.5.7): new watched < ceiling AND status === 'Watched'
+//         -> 'Watching'. Symmetric reverse of Rule 2. Ceiling-known
 //         animes only; if the ceiling is unknown the rule is skipped
-//         and a manual 'Izlendi' state is preserved.
-// Rule 4 (0.5.7): new watched == 0 AND status === 'Izleniyor'
-//         -> 'Izlenme Planlandi'. Symmetric reverse of Rule 1. Triggers
-//         on absolute zero (not a ceiling-relative comparison), so it
-//         works for ceiling-unknown animes too. Reads Rule 3's just-set
-//         target, which is what makes the Izlendi -> Izleniyor ->
-//         Planlandi chain on the -1 edge work in one click.
+//         and a manual 'Watched' state is preserved.
+// Rule 4 (0.5.7): new watched == 0 AND status === 'Watching'
+//         -> 'PlanToWatch'. Symmetric reverse of Rule 1. Triggers on
+//         absolute zero (not a ceiling-relative comparison), so it works
+//         for ceiling-unknown animes too. Reads Rule 3's just-set
+//         target, which is what makes the Watched -> Watching ->
+//         PlanToWatch chain on the -1 edge work in one click.
+// Rule 5 (0.6):   'OnHold' + (any +) -> 'Watching'. Resume signal -
+//         analogous to Rule 1 but from a different source (paused
+//         mid-series rather than not started). Combined with Rule 1 in
+//         code (same target). OnHold + (ceiling-1)/ceiling + 1 chain
+//         lands on 'Watched' via Rule 5 then Rule 2 in one click.
 //
-// Deliberate asymmetries still left as user-controlled (post-Rule-4):
-//   - 'Izleniyor' + - with new > 0 stays 'Izleniyor' (Rule 4 needs
+// Deliberate asymmetries still left as user-controlled (post-rules):
+//   - 'Watching' + - with new > 0 stays 'Watching' (Rule 4 needs
 //     new === 0; a partial step back is not "give up").
-//   - 'Izlenme Planlandi' + - stays 'Izlenme Planlandi' (no rule needs
-//     to fire; the pause intent is preserved across decrement attempts).
-//   - 'Izlendi' + + below ceiling stays 'Izlendi' (a stuck-Izlendi
+//   - 'PlanToWatch' + - stays 'PlanToWatch' (no rule needs to fire;
+//     the pause intent is preserved across decrement attempts).
+//   - 'OnHold' + - stays 'OnHold' (mirror of PlanToWatch + -; pause
+//     intent preserved, watched_episodes simply decrements).
+//   - 'Watched' + + below ceiling stays 'Watched' (a stuck-Watched
 //     state is not auto-corrected on +; the user can manually edit).
 //
-// Enum values are matched verbatim against schema.sql:
-//   watch_status enum('Izlendi','Izleniyor','Izlenme Planlandi')
+// Enum values are matched verbatim against schema.sql (0.6 ASCII):
+//   watch_status enum('Watched','Watching','PlanToWatch','OnHold')
 
 $target_watch_status = $current_watch_status;
 if ($delta === 1) {
-    if ($target_watch_status === 'İzlenme Planlandı') {
-        $target_watch_status = 'İzleniyor';
+    // Rule 1 (0.5.6) + Rule 5 (0.6): 'PlanToWatch' or 'OnHold' + (+) ->
+    // 'Watching'. The "+" press is the "started / resumed watching"
+    // signal. Rule 1 covers the first time the user opens an anime;
+    // Rule 5 covers resuming after a manual OnHold pause. Both produce
+    // 'Watching' so they are combined here; the subsequent Rule 2 can
+    // still fire in the same call if the new count hits the ceiling
+    // (single-click chain like OnHold + 11/12 -> +1 -> 12/12 lands on
+    // 'Watched' via Rule 5 then Rule 2).
+    if ($target_watch_status === 'PlanToWatch'
+        || $target_watch_status === 'OnHold') {
+        $target_watch_status = 'Watching';
     }
     if ($ceiling !== null && $new === $ceiling
-        && $target_watch_status !== 'İzlendi') {
-        $target_watch_status = 'İzlendi';
+        && $target_watch_status !== 'Watched') {
+        $target_watch_status = 'Watched';
     }
 } elseif ($delta === -1) {
     if ($ceiling !== null && $new < $ceiling
-        && $target_watch_status === 'İzlendi') {
-        $target_watch_status = 'İzleniyor';
+        && $target_watch_status === 'Watched') {
+        $target_watch_status = 'Watching';
     }
-    if ($new === 0 && $target_watch_status === 'İzleniyor') {
-        $target_watch_status = 'İzlenme Planlandı';
+    if ($new === 0 && $target_watch_status === 'Watching') {
+        $target_watch_status = 'PlanToWatch';
     }
 }
 $watch_status_changed = ($target_watch_status !== $current_watch_status);
@@ -312,5 +353,10 @@ uw_respond([
     'at_min'               => ($new <= 0),
     'at_max'               => ($ceiling !== null && $new >= $ceiling),
     'watch_status_changed' => $watch_status_changed,
+    // 0.5.6 - ASCII internal value, or null if unchanged.
     'watch_status_new'     => $watch_status_changed ? $target_watch_status : null,
+    // 0.6 - TR UI label for the same value. The client writes this into
+    // the DOM so the user sees Turkish; the ASCII field stays for
+    // programmatic consumers (debugging, integration tests).
+    'watch_status_label'   => $watch_status_changed ? watch_status_label($target_watch_status) : null,
 ]);

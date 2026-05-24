@@ -75,7 +75,7 @@ if ($mode === 'surprise') {
     // Falls back to any anime if the unwatched pool is empty.
     $stmt = $pdo->query(
         "SELECT * FROM animes
-         WHERE watch_status != 'İzlendi'
+         WHERE watch_status != 'Watched'
          ORDER BY RAND()
          LIMIT 1"
     );
@@ -108,7 +108,7 @@ if ($mode === 'surprise') {
         GROUP BY a.id
         ORDER BY
             score DESC,
-            CASE WHEN a.watch_status = 'İzlendi' THEN 1 ELSE 0 END ASC,
+            CASE WHEN a.watch_status = 'Watched' THEN 1 ELSE 0 END ASC,
             RAND()
     ";
     // Sort priority:
@@ -134,18 +134,22 @@ if ($mode === 'surprise') {
 }
 
 // Helper to build a watch-status badge consistent with the rest of the
-// app. We keep this local to the page rather than adding to functions.php
-// because it is purely a presentation concern.
+// app. Page-local because it is purely a presentation concern (inline
+// style, used in 2 places here only). The status -> color map uses the
+// 0.6 ASCII enum keys; label and CSS class come from the central
+// functions.php helpers (single source of truth for naming).
 function watch_status_badge($status) {
     $colors = [
-        'İzlendi'           => '#28a745',
-        'İzleniyor'         => '#007bff',
-        'İzlenme Planlandı' => '#6c757d',
+        'Watched'     => '#28a745',
+        'Watching'    => '#007bff',
+        'PlanToWatch' => '#6c757d',
+        'OnHold'      => '#e0a000',
     ];
     $color = $colors[$status] ?? '#6c757d';
+    $label = watch_status_label($status);
     return '<span style="display: inline-block; padding: 2px 8px;
         background: ' . $color . '; color: #fff; border-radius: 10px;
-        font-size: 12px;">' . htmlspecialchars($status) . '</span>';
+        font-size: 12px;">' . htmlspecialchars($label) . '</span>';
 }
 ?>
 <!DOCTYPE html>
@@ -538,7 +542,7 @@ function watch_status_badge($status) {
                     </h3>
                     <?php foreach ($group as $r):
                         $a = $r['anime'];
-                        $isWatched = ($a['watch_status'] === 'İzlendi');
+                        $isWatched = ($a['watch_status'] === 'Watched');
                     ?>
                         <div class="rec-anime-card<?php echo $isWatched ? ' watched' : ''; ?>">
                             <?php if (!empty($a['image_path'])): ?>

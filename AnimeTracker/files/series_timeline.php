@@ -171,9 +171,13 @@ function seriesMediaIcon($type) {
             background: #3498db;
             border-color: #3498db;
         }
-        .st-item.is-planned::before {
+        .st-item.is-plantowatch::before {
             background: #fff;
             border-color: #bbb;
+        }
+        .st-item.is-onhold::before {
+            background: #e0a000;
+            border-color: #e0a000;
         }
 
         /* Card */
@@ -252,7 +256,8 @@ function seriesMediaIcon($type) {
         }
         .badge-watched { background: #d1fae5; color: #065f46; }
         .badge-watching { background: #dbeafe; color: #1e40af; }
-        .badge-planned { background: #fef3c7; color: #92400e; }
+        .badge-plantowatch { background: #f3f4f6; color: #4b5563; }
+        .badge-onhold { background: #fef3c7; color: #92400e; }
 
         .st-order {
             color: #bbb;
@@ -297,19 +302,14 @@ function seriesMediaIcon($type) {
         <?php foreach ($chain as $i => $item): ?>
             <?php
                 $ws = $item['watch_status'] ?? '';
-                if (mb_strpos($ws, 'zlendi') !== false) {
-                    $statusClass = 'is-watched';
-                    $badgeClass = 'badge-watched';
-                    $badgeText = 'Izlendi';
-                } elseif (mb_strpos($ws, 'zleniyor') !== false) {
-                    $statusClass = 'is-watching';
-                    $badgeClass = 'badge-watching';
-                    $badgeText = 'Izleniyor';
-                } else {
-                    $statusClass = 'is-planned';
-                    $badgeClass = 'badge-planned';
-                    $badgeText = 'Planlandi';
-                }
+                // 0.6: ASCII enum -> stable CSS suffix via central helper.
+                // style.css (0.6 adim 8) targets is-watched / badge-watched
+                // and the corresponding watching / plantowatch / onhold
+                // variants. Label text comes from watch_status_label.
+                $wsKey = watch_status_css_class($ws);
+                $statusClass = 'is-' . $wsKey;
+                $badgeClass = 'badge-' . $wsKey;
+                $badgeText = watch_status_label($ws);
 
                 $isCurrent = ((int)$item['id'] === $currentAnimeId);
 

@@ -170,6 +170,7 @@
         <strong>Icindekiler:</strong>
         <ul style="margin: 8px 0 0;">
             <li><a href="#alanlar">Anime Alanlari — Hangisi Ne Yapar?</a></li>
+            <li><a href="#izleme-durumlari">Izleme Durumlari — Dort Secenek</a></li>
             <li><a href="#hizli-butonlar">Hizli Izleme Butonlari (+/-)</a></li>
             <li><a href="#sync">Katalog Sync — Nasil Calisir?</a></li>
             <li><a href="#kisisel-alanlar">Kisisel Alanlar — Notlar ve Kisisel Konu</a></li>
@@ -209,7 +210,7 @@
     <h3><i class="fas fa-user icon-inline"></i> Kisisel Alanlar (sync edilmez)</h3>
     <ul>
         <li><strong>Izlenen Bolum sayisi</strong></li>
-        <li><strong>Izleme Durumu</strong> (Izlendi / Izleniyor / Izlenme Planlandi) — listedeki <a href="#hizli-butonlar"><code>+/-</code> butonlariyla otomatik degisebilir</a></li>
+        <li><strong>Izleme Durumu</strong> (Izlendi / Izleniyor / Izlenme Planlandi / Izleme Ertelendi) — listedeki <a href="#hizli-butonlar"><code>+/-</code> butonlariyla otomatik degisebilir</a></li>
         <li><strong>Notlar</strong> — Size ozel hatirlatmalar, yorumlar</li>
         <li><strong>Kisisel Konu</strong> — Kendi yorumunuz / aciklamaniz</li>
         <li><strong>Poster (kendi yuklediyseniz)</strong></li>
@@ -218,6 +219,36 @@
     <p>
         Bu alanlara sunucu <strong>dokunmaz</strong>. Istediginiz kadar
         yazabilir, degistirebilirsiniz.
+    </p>
+
+    <!-- =============================================================== -->
+    <h2 id="izleme-durumlari">Izleme Durumlari</h2>
+
+    <p>
+        Her animenin bir <strong>Izleme Durumu</strong> vardir. Dort secenek
+        farkli izleme asamalarini karsilar:
+    </p>
+
+    <ul>
+        <li><strong>Izlenme Planlandi</strong> — Henuz baslamadiniz, ileride
+        izlemek istiyorsunuz. Izlenen bolum: 0.</strong></li>
+        <li><strong>Izleniyor</strong> — Aktif olarak izliyorsunuz. Izlenen
+        bolum tavan ile sifir arasinda bir yerde.</li>
+        <li><strong>Izlendi</strong> — Bittirdiginiz animeler. Izlenen
+        bolum = toplam bolum.</li>
+        <li><strong>Izleme Ertelendi</strong> — Izlemeye basladiniz ama ara
+        verdiniz, ilerlemeniz korunsun. <em>Planlandi'dan farki:</em>
+        Planlandi "henuz baslamadim" demektir (izlenen=0), Ertelendi
+        "biraz izledim, suanda ara veriyorum" demektir (izlenen>0).</li>
+    </ul>
+
+    <p>
+        <strong>Ne zaman Ertelendi kullanmali?</strong> Bir animeyi 6 ay
+        sonra geri donmek uzere yarida birakirsaniz, durumu Ertelendi
+        yapin. Boylece "Izleniyor" listenizdeki aktif izleme akisi
+        kalabaliklasmaz, ama Planlandi'ya da dusmez (cunku ilerlemeniz
+        var). Hazir oldugunuzda <code>+</code> basarsiniz, sistem otomatik
+        olarak Izleniyor'a geri ceker.
     </p>
 
     <!-- =============================================================== -->
@@ -234,7 +265,7 @@
     <h3>Otomatik Durum Gecisleri</h3>
 
     <p>
-        Asagidaki tablo dort temel durumu ozetler:
+        Asagidaki tablo bes temel durumu ozetler:
     </p>
 
     <table>
@@ -263,6 +294,11 @@
             <td><code>-</code></td>
             <td>Izlenme Planlandi + 0/12</td>
         </tr>
+        <tr>
+            <td>Izleme Ertelendi + 5/12</td>
+            <td><code>+</code></td>
+            <td>Izleniyor + 6/12</td>
+        </tr>
     </table>
 
     <p>
@@ -284,6 +320,9 @@
         <li><strong>Izlendi + 1/12 → <code>-</code> → Izlenme Planlandi + 0/12.</strong>
         Yukaridakinin aynadaki yansimasi: once Izleniyor'a, sonra 0'a indigi
         icin Planlandi'ya tek tikla doner.</li>
+        <li><strong>Izleme Ertelendi + 11/12 → <code>+</code> → Izlendi + 12/12.</strong>
+        Ertelendigin animede son bolume varinca, ayni mantik calisir: once
+        Izleniyor'a, sonra tavana ulastigi icin Izlendi'ye tek tikla gecer.</li>
     </ul>
 
     <h3>Ne Zaman Tetiklenmez?</h3>
@@ -301,6 +340,13 @@
             manuel olarak anormal duruma getirilmis bir kayda <code>+</code>
             basinca durum Izlendi olarak kalir; otomasyon zorla duzeltmez,
             manuel niyetiniz korunur.</li>
+            <li><strong>Izleme Ertelendi + <code>-</code></strong> —
+            Ertelenmis bir animede <code>-</code> basildiginda durum
+            Izleme Ertelendi olarak kalir, sadece sayim 1 azalir. "Ara
+            verdim ama bir bolumu unutmustum" gibi nadir durumlar icindir.
+            Devam etmek istediginizde <code>+</code> basin (yukaridaki
+            5. kural devreye girer) veya Duzenle'den durumu manuel
+            degistirin.</li>
         </ul>
     </div>
 

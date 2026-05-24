@@ -22,6 +22,102 @@
 
    
 /**
+ * Map an internal watch_status ENUM value to a user-facing label.
+ *
+ * Since 0.6, the DB enum stores ASCII values ('Watched', 'Watching',
+ * 'PlanToWatch', 'OnHold'). The user-facing UI text remains Turkish.
+ * This helper is the single source of truth for the translation.
+ *
+ * Adding a new language: extend the $map with a new lang key.
+ * Adding a new status:   add an entry under each lang.
+ *
+ * Falls back to the raw status if the value is unknown (defensive -
+ * a stray enum value never produces an empty cell).
+ *
+ * @param string $status One of 'Watched', 'Watching', 'PlanToWatch', 'OnHold'.
+ * @param string $lang   'tr' (default) or 'en'.
+ * @return string        Localized label, or $status itself if unmapped.
+ */
+function watch_status_label($status, $lang = 'tr') {
+    static $map = [
+        'tr' => [
+            'Watched'     => 'İzlendi',
+            'Watching'    => 'İzleniyor',
+            'PlanToWatch' => 'İzlenme Planlandı',
+            'OnHold'      => 'İzleme Ertelendi',
+        ],
+        'en' => [
+            'Watched'     => 'Watched',
+            'Watching'    => 'Watching',
+            'PlanToWatch' => 'Plan to Watch',
+            'OnHold'      => 'On Hold',
+        ],
+    ];
+    return $map[$lang][$status] ?? $status;
+}
+
+/**
+ * Return the watch_status options for a dropdown, in display order.
+ *
+ * Order: Watched, Watching, PlanToWatch, OnHold.
+ *   - First three preserve the existing UI order from 0.5.x (filter
+ *     dropdown in index.php was Watched / Watching / PlanToWatch).
+ *   - OnHold is appended at the end as the newest, least-used value -
+ *     keeps existing user muscle memory intact.
+ *
+ * Use as:
+ *   foreach (watch_status_options() as $value => $label) {
+ *       echo "<option value=\"{$value}\">{$label}</option>";
+ *   }
+ *
+ * @param string $lang 'tr' (default) or 'en'.
+ * @return array       Associative array: ASCII value => localized label.
+ */
+function watch_status_options($lang = 'tr') {
+    $order = ['Watched', 'Watching', 'PlanToWatch', 'OnHold'];
+    $options = [];
+    foreach ($order as $status) {
+        $options[$status] = watch_status_label($status, $lang);
+    }
+    return $options;
+}
+
+/**
+ * Map an internal watch_status ENUM value to a stable CSS class suffix.
+ *
+ * Pre-0.6, classes were built ad-hoc from the TR enum value via
+ * strtolower(str_replace(' ', '-', $status)), which produced names with
+ * the Turkish "ı" character (e.g. ws-izlenme-planlandı). The 0.6 ASCII
+ * migration moved DB values to English, which would now produce names
+ * like ws-watched / ws-plantowatch - English in the markup and a clash
+ * with the KARARLAR Bolum 1 convention "UI Turkish, internals English".
+ *
+ * Resolution: a stable, language-neutral suffix per enum value. CSS in
+ * style.css (0.6 adim 8) targets these exact names. The suffix is also
+ * ASCII-clean and case-insensitive friendly.
+ *
+ *   Watched     -> watched
+ *   Watching    -> watching
+ *   PlanToWatch -> plantowatch
+ *   OnHold      -> onhold
+ *
+ * Unknown values fall back to 'unknown' so a stray DB value never
+ * produces an empty class attribute.
+ *
+ * @param string $status One of 'Watched', 'Watching', 'PlanToWatch', 'OnHold'.
+ * @return string        CSS suffix (no prefix). Caller adds its own prefix.
+ */
+function watch_status_css_class($status) {
+    static $map = [
+        'Watched'     => 'watched',
+        'Watching'    => 'watching',
+        'PlanToWatch' => 'plantowatch',
+        'OnHold'      => 'onhold',
+    ];
+    return $map[$status] ?? 'unknown';
+}
+
+/**
  * Extract the numeric MyAnimeList ID from a MAL URL.
  *
  * Accepts:
@@ -234,7 +330,7 @@ function getTimeUntilNextEpisode($next_episode_date, $watched_episodes = 0, $tot
  *   - status is 'Yayın Tamamlandı' (broadcast finished in Japan)
  *   - total_episodes is set (not NULL, not 0)
  *   - watched_episodes >= total_episodes
- *   - watch_status is not already 'İzlendi'
+ *   - watch_status is not already 'Watched'
  *
  * This means ongoing anime (One Piece, Detective Conan) are never
  * touched automatically - the user tracks aired_episodes manually.
@@ -254,14 +350,14 @@ function checkIfAnimeCompleted($pdo, $anime) {
         return $anime;
     }
 
-    if ($anime['watch_status'] === 'İzlendi') {
+    if ($anime['watch_status'] === 'Watched') {
         return $anime;
     }
 
     // All conditions met - mark as watched.
-    $stmt = $pdo->prepare("UPDATE animes SET watch_status = 'İzlendi' WHERE id = :id");
+    $stmt = $pdo->prepare("UPDATE animes SET watch_status = 'Watched' WHERE id = :id");
     $stmt->execute(['id' => $anime['id']]);
-    $anime['watch_status'] = 'İzlendi';
+    $anime['watch_status'] = 'Watched';
 
     return $anime;
 }
@@ -514,7 +610,7 @@ function getActiveChronologyAlert($pdo, $anime_id, $watched_episodes) {
         JOIN animes a ON a.id = cm.related_anime_id
         WHERE cm.anime_id = ?
           AND cm.after_episode <= ?
-          AND a.watch_status != 'İzlendi'
+          AND a.watch_status != 'Watched'
         ORDER BY cm.after_episode ASC
         LIMIT 1
     ");

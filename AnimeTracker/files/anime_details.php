@@ -214,8 +214,8 @@ if ($anime['status'] == 'Yayın Tamamlandı'
 
                 <div class="detail-row">
                     <span class="detail-label">İzleme Durumu:</span>
-                    <span class="detail-value status-badge <?php echo strtolower(str_replace(' ', '-', $anime['watch_status'])); ?>">
-                        <?php echo htmlspecialchars($anime['watch_status']); ?>
+                    <span class="detail-value status-badge <?php echo watch_status_css_class($anime['watch_status']); ?>">
+                        <?php echo htmlspecialchars(watch_status_label($anime['watch_status'])); ?>
                     </span>
                 </div>
 
@@ -325,8 +325,8 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                             (<?php echo htmlspecialchars($chronologyAlert['related_media_type']); ?>)
                         <?php endif; ?>
                     </a>
-                    <span class="alert-watch-status ws-<?php echo strtolower(str_replace(' ', '-', $chronologyAlert['related_watch_status'])); ?>">
-                        <?php echo htmlspecialchars($chronologyAlert['related_watch_status']); ?>
+                    <span class="alert-watch-status ws-<?php echo watch_status_css_class($chronologyAlert['related_watch_status']); ?>">
+                        <?php echo htmlspecialchars(watch_status_label($chronologyAlert['related_watch_status'])); ?>
                     </span>
                     <?php if (!empty($chronologyAlert['note'])): ?>
                         <small class="alert-note"><?php echo htmlspecialchars($chronologyAlert['note']); ?></small>
@@ -351,8 +351,8 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                             (<?php echo htmlspecialchars($nextAnime['media_type']); ?>)
                         <?php endif; ?>
                     </a>
-                    <span class="next-anime-status ws-<?php echo strtolower(str_replace(' ', '-', $nextAnime['watch_status'])); ?>">
-                        <?php echo htmlspecialchars($nextAnime['watch_status']); ?>
+                    <span class="next-anime-status ws-<?php echo watch_status_css_class($nextAnime['watch_status']); ?>">
+                        <?php echo htmlspecialchars(watch_status_label($nextAnime['watch_status'])); ?>
                     </span>
                 </div>
             </div>
@@ -397,8 +397,8 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                                     <span class="related-anime-progress">
                                         <?php echo (int)$ra['watched_episodes']; ?>/<?php echo $ra['total_episodes'] ? (int)$ra['total_episodes'] : '?'; ?>
                                     </span>
-                                    <span class="related-anime-status ws-<?php echo strtolower(str_replace(' ', '-', $ra['watch_status'])); ?>">
-                                        <?php echo htmlspecialchars($ra['watch_status']); ?>
+                                    <span class="related-anime-status ws-<?php echo watch_status_css_class($ra['watch_status']); ?>">
+                                        <?php echo htmlspecialchars(watch_status_label($ra['watch_status'])); ?>
                                     </span>
                                 </div>
                             <?php endforeach; ?>
@@ -431,8 +431,8 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                                     (<?php echo htmlspecialchars($cm['related_media_type']); ?>)
                                 <?php endif; ?>
                             </a>
-                            <span class="marker-watch-status ws-<?php echo strtolower(str_replace(' ', '-', $cm['related_watch_status'])); ?>">
-                                <?php echo htmlspecialchars($cm['related_watch_status']); ?>
+                            <span class="marker-watch-status ws-<?php echo watch_status_css_class($cm['related_watch_status']); ?>">
+                                <?php echo htmlspecialchars(watch_status_label($cm['related_watch_status'])); ?>
                             </span>
                             <?php if (!empty($cm['note'])): ?>
                                 <small class="marker-note">(<?php echo htmlspecialchars($cm['note']); ?>)</small>

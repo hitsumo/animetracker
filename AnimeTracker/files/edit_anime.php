@@ -709,14 +709,14 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                 <div class="input-area">
                     <select name="watch_status" onchange="toggleWatchedEpisodes()" required>
                         <option value="">Seçiniz</option>
-                        <option value="İzlendi" <?php echo $anime['watch_status'] == 'İzlendi' ? 'selected' : ''; ?>>İzlendi</option>
-                        <option value="İzleniyor" <?php echo $anime['watch_status'] == 'İzleniyor' ? 'selected' : ''; ?>>İzleniyor</option>
-                        <option value="İzlenme Planlandı" <?php echo $anime['watch_status'] == 'İzlenme Planlandı' ? 'selected' : ''; ?>>İzlenme Planlandı</option>
+                        <?php foreach (watch_status_options() as $ws_value => $ws_label): ?>
+                            <option value="<?php echo htmlspecialchars($ws_value); ?>" <?php echo $anime['watch_status'] === $ws_value ? 'selected' : ''; ?>><?php echo htmlspecialchars($ws_label); ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
             </div>
 
-            <div id="watched-episodes-section" style="display: <?php echo $anime['watch_status'] == 'İzleniyor' ? 'block' : 'none'; ?>">
+            <div id="watched-episodes-section" style="display: <?php echo in_array($anime['watch_status'], ['Watching', 'OnHold'], true) ? 'block' : 'none'; ?>">
                 <div class="form-group">
                     <label for="watched_episodes">İzlenen Bölüm Sayısı:</label>
                     <div class="input-area">
@@ -955,11 +955,15 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
         function toggleWatchedEpisodes() {
             const watchStatus = document.querySelector('select[name="watch_status"]').value;
             const watchedEpisodesDiv = document.getElementById('watched-episodes-section');
-            if (watchStatus === 'İzleniyor') {
+            // Watching ve OnHold: izlenen bolum input'u gorunur, mevcut
+            // deger KORUNUR (sifirlanmaz, tavana cekilmez). Watching aktif
+            // izleme, OnHold ara verme - ikisinde de ilerleme saklanir.
+            // Form davranisi ayni dali paylasir; fark sadece semantik.
+            if (watchStatus === 'Watching' || watchStatus === 'OnHold') {
                 watchedEpisodesDiv.style.display = 'block';
             } else {
                 watchedEpisodesDiv.style.display = 'none';
-                if (watchStatus === 'İzlendi') {
+                if (watchStatus === 'Watched') {
                     // Fall back to aired_episodes when total is blank (ongoing
                     // series where the final count is still unknown).
                     const total = document.querySelector('input[name="total_episodes"]').value;
@@ -967,7 +971,7 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                                   document.querySelector('input[name="aired_episodes"]').value : '';
                     document.querySelector('input[name="watched_episodes"]').value =
                         total || aired || '0';
-                } else if (watchStatus === 'İzlenme Planlandı') {
+                } else if (watchStatus === 'PlanToWatch') {
                     document.querySelector('input[name="watched_episodes"]').value = '0';
                 }
             }

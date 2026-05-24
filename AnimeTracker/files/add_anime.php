@@ -532,9 +532,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <div class="input-area">
                 <select name="watch_status" onchange="toggleWatchedEpisodes()" required>
                     <option value="">Seçiniz</option>
-                    <option value="İzlendi">İzlendi</option>
-                    <option value="İzleniyor">İzleniyor</option>
-                    <option value="İzlenme Planlandı">İzlenme Planlandı</option>
+                    <?php foreach (watch_status_options() as $ws_value => $ws_label): ?>
+                        <option value="<?php echo htmlspecialchars($ws_value); ?>"><?php echo htmlspecialchars($ws_label); ?></option>
+                    <?php endforeach; ?>
                 </select>
             </div>
         </div>
@@ -744,18 +744,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     function toggleWatchedEpisodes() {
         const watchStatus = document.querySelector('select[name="watch_status"]').value;
         const watchedEpisodesDiv = document.getElementById('watched-episodes-section');
-        if (watchStatus === 'İzleniyor') {
+        // Watching ve OnHold: izlenen bolum input'u gorunur, mevcut deger
+        // korunur. Watching = aktif izleme, OnHold = ara verildi (ilerleme
+        // saklanir). Form davranisi acisindan ayni dali paylasirlar;
+        // aralarindaki fark sadece semantik.
+        if (watchStatus === 'Watching' || watchStatus === 'OnHold') {
             watchedEpisodesDiv.style.display = 'block';
         } else {
             watchedEpisodesDiv.style.display = 'none';
-            if (watchStatus === 'İzlendi') {
+            if (watchStatus === 'Watched') {
                 // Fall back to aired_episodes when total is blank (ongoing
                 // series where the final count is still unknown).
                 const total = document.querySelector('input[name="total_episodes"]').value;
                 const aired = document.querySelector('input[name="aired_episodes"]').value;
                 document.querySelector('input[name="watched_episodes"]').value =
                     total || aired || '0';
-            } else if (watchStatus === 'İzlenme Planlandı') {
+            } else if (watchStatus === 'PlanToWatch') {
                 document.querySelector('input[name="watched_episodes"]').value = '0';
             }
         }

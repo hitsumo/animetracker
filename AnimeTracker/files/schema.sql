@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS `animes` (
   `watched_episodes` int(11) DEFAULT 0,
   `notes` text DEFAULT NULL,
   `image_path` varchar(255) DEFAULT NULL,
-  `watch_status` enum('İzlendi','İzleniyor','İzlenme Planlandı') NOT NULL,
+  `watch_status` enum('Watched','Watching','PlanToWatch','OnHold') NOT NULL,
   `next_episode_date` datetime DEFAULT NULL,
   `anidb_link` varchar(255) DEFAULT NULL,
   `mal_link` varchar(255) DEFAULT NULL,

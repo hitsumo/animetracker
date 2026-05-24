@@ -593,9 +593,9 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                     <label for="watch_status_filter">İzleme Durumuna Göre Filtrele:</label>
                     <select name="watch_status_filter" id="watch_status_filter">
                         <option value="">Tümü</option>
-                        <option value="İzlendi" <?php echo $watch_status_filter == 'İzlendi' ? 'selected' : ''; ?>>İzlendi</option>
-                        <option value="İzleniyor" <?php echo $watch_status_filter == 'İzleniyor' ? 'selected' : ''; ?>>İzleniyor</option>
-                        <option value="İzlenme Planlandı" <?php echo $watch_status_filter == 'İzlenme Planlandı' ? 'selected' : ''; ?>>İzlenme Planlandı</option>
+                        <?php foreach (watch_status_options() as $ws_value => $ws_label): ?>
+                            <option value="<?php echo htmlspecialchars($ws_value); ?>" <?php echo $watch_status_filter === $ws_value ? 'selected' : ''; ?>><?php echo htmlspecialchars($ws_label); ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
                 <div style="margin-top: 20px;"></div>
@@ -714,7 +714,7 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                     <?php foreach ($animes as $anime): ?>
                         <tr>
                             <td><span class="list-anime-title" onclick="toggleAnimeTitle(this)" title="Tam ismi gormek icin tiklayin"><?php echo htmlspecialchars($anime['title']); ?></span></td>
-                            <td class="watch-status-cell"><?php echo htmlspecialchars($anime['watch_status']); ?></td>
+                            <td class="watch-status-cell"><?php echo htmlspecialchars(watch_status_label($anime['watch_status'])); ?></td>
                             <td class="episode-count"><?php
                                 // Episode display logic (v0.5+):
                                 //  - total_episodes set  -> watched/total (finished or short series)
@@ -895,7 +895,13 @@ if ($anime['status'] == 'Yayın Tamamlandı') {
                 if (tr) {
                     var statusTd = tr.querySelector('.watch-status-cell');
                     if (statusTd) {
-                        statusTd.textContent = data.watch_status_new;
+                        // 0.6: sunucu hem ASCII iç değeri (watch_status_new) hem
+                        // de TR UI etiketi (watch_status_label) döndürür. Helper
+                        // var ise onu yaz; eski sunucu cevabı için fallback olarak
+                        // ham değeri yaz. update_watched.php 0.6 ile label alanı
+                        // ekledi - bu fallback eski tarayıcı önbelleğine karşı
+                        // savunmadır.
+                        statusTd.textContent = data.watch_status_label || data.watch_status_new;
                     }
                 }
             }

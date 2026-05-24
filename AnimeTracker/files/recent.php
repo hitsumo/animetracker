@@ -126,9 +126,10 @@ $recent = $stmt->fetchAll(PDO::FETCH_ASSOC);
             font-size: 0.8em;
             font-weight: 500;
         }
-        .badge-izleniyor { background: #dbeafe; color: #1e40af; }
-        .badge-izlendi { background: #d1fae5; color: #065f46; }
-        .badge-planlandi { background: #fef3c7; color: #92400e; }
+        .badge-watching { background: #dbeafe; color: #1e40af; }
+        .badge-watched { background: #d1fae5; color: #065f46; }
+        .badge-plantowatch { background: #f3f4f6; color: #4b5563; }
+        .badge-onhold { background: #fef3c7; color: #92400e; }
         .recent-time {
             text-align: right;
             font-size: 0.8em;
@@ -172,13 +173,10 @@ $recent = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 // Watch status badge
                 $ws = $anime['watch_status'] ?? '';
-                if (mb_strpos($ws, 'zleniyor') !== false) {
-                    $badgeClass = 'badge-izleniyor';
-                } elseif (mb_strpos($ws, 'zlendi') !== false) {
-                    $badgeClass = 'badge-izlendi';
-                } else {
-                    $badgeClass = 'badge-planlandi';
-                }
+                // 0.6: ASCII enum -> stable CSS suffix via central helper.
+                // style.css (0.6 adim 8) targets badge-watched / badge-
+                // watching / badge-plantowatch / badge-onhold uniformly.
+                $badgeClass = 'badge-' . watch_status_css_class($ws);
 
                 // Time ago
                 $updatedTs = strtotime($anime['updated_at']);
@@ -207,7 +205,7 @@ $recent = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     </a>
                     <div class="recent-meta">
                         <span class="badge-status <?php echo $badgeClass; ?>">
-                            <?php echo htmlspecialchars($ws); ?>
+                            <?php echo htmlspecialchars(watch_status_label($ws)); ?>
                         </span>
                         <span><i class="fas fa-play-circle"></i> <?php echo $epDisplay; ?></span>
                         <span><i class="fas fa-broadcast-tower"></i> <?php echo htmlspecialchars($anime['status']); ?></span>
