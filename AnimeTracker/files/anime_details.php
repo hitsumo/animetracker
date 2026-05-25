@@ -79,6 +79,18 @@ if (!empty($anime['series_name'])) {
     $ssStmt->execute([$anime['series_name'], (int)$anime['id']]);
     $sameSeriesAnimes = $ssStmt->fetchAll(PDO::FETCH_ASSOC);
 }
+
+// 0.6.1 - Duygu Etiketleri (single-user)
+// Bu anime icin kullanicinin koydugu duygu isaretlerini yukle. Single-user
+// modda user_id=1 sabit; Faz 2 multi-user gecisinde $_SESSION['user_id']
+// olur (KARARLAR Bolum 5 Faz 2 tasinacaklar listesi).
+$emoStmt = $pdo->prepare(
+    "SELECT emotion FROM user_anime_emotion
+      WHERE user_id = 1 AND anime_id = ?"
+);
+$emoStmt->execute([(int)$anime['id']]);
+$currentEmotions = $emoStmt->fetchAll(PDO::FETCH_COLUMN, 0);
+$emoStmt->closeCursor();
 ?>
 
 <!DOCTYPE html>
@@ -214,9 +226,41 @@ if ($anime['status'] == 'Yayın Tamamlandı'
 
                 <div class="detail-row">
                     <span class="detail-label">İzleme Durumu:</span>
-                    <span class="detail-value status-badge <?php echo watch_status_css_class($anime['watch_status']); ?>">
-                        <?php echo htmlspecialchars(watch_status_label($anime['watch_status'])); ?>
+                    <span class="detail-value">
+                        <span class="status-badge <?php echo watch_status_css_class($anime['watch_status']); ?>">
+                            <?php echo htmlspecialchars(watch_status_label($anime['watch_status'])); ?>
+                        </span>
                     </span>
+                </div>
+
+                <!-- 0.6.1 - Duygu Etiketleri (single-user). Kullanici bu
+                     animeye en fazla 3 duygu isareti koyabilir. Tikla =
+                     toggle (varsa kaldir, yoksa ekle); 3'e ulasinca diger
+                     pasif butonlar disabled olur. Sunucu tarafi update_emotion.php
+                     ayni siniri zorlar (UI bypass edilirse sunucu reddeder).
+                     KARARLAR Bolum 8 v1 spec. -->
+                <div class="detail-row emotion-row">
+                    <span class="detail-label">Duygu:</span>
+                    <div class="detail-value">
+                        <div class="emotion-toolbar"
+                             data-anime-id="<?php echo (int)$anime['id']; ?>"
+                             data-csrf="<?php echo htmlspecialchars(csrf_token()); ?>">
+                            <?php foreach (emotion_options() as $value => $label):
+                                $isActive = in_array($value, $currentEmotions, true);
+                                $atMax    = (count($currentEmotions) >= 3 && !$isActive);
+                            ?>
+                                <button type="button"
+                                        class="emotion-btn emotion-btn-<?php echo emotion_css_class($value); ?><?php echo $isActive ? ' is-active' : ''; ?>"
+                                        data-emotion="<?php echo htmlspecialchars($value); ?>"
+                                        <?php echo $atMax ? 'disabled' : ''; ?>>
+                                    <?php echo htmlspecialchars($label); ?>
+                                </button>
+                            <?php endforeach; ?>
+                            <span class="emotion-toolbar-meta">
+                                <span class="emotion-count"><?php echo count($currentEmotions); ?></span>/3
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
                 <?php if ($anime['status'] == 'Yayın Devam Ediyor'): ?>
@@ -492,5 +536,91 @@ if ($anime['status'] == 'Yayın Tamamlandı'
             </div>
         </div>
     </div>
+
+    <!-- 0.6.1 - Duygu Etiketleri toggle scripti
+         Her butona tiklama: POST update_emotion.php ile toggle. Sunucu
+         otoriter; cevaptaki current_emotions listesini DOM'a yansitir.
+         Cap kontrolu (3'te diger pasif butonlari disabled yap) sunucu
+         cevabindaki at_max flag'i ile yapilir, lokalde sayma yok. -->
+    <script>
+    (function() {
+        var toolbar = document.querySelector('.emotion-toolbar');
+        if (!toolbar) return;
+
+        var animeId = toolbar.dataset.animeId;
+        var csrf    = toolbar.dataset.csrf;
+        var meta    = toolbar.querySelector('.emotion-count');
+        var buttons = toolbar.querySelectorAll('.emotion-btn');
+
+        function syncFromServer(currentEmotions, atMax) {
+            // Aktif/disabled durumlarini sunucudaki gercege gore yeniden
+            // kur. currentEmotions: ASCII emotion degerlerini icerir.
+            var active = {};
+            for (var i = 0; i < currentEmotions.length; i++) {
+                active[currentEmotions[i]] = true;
+            }
+            buttons.forEach(function(btn) {
+                var emo = btn.dataset.emotion;
+                var isOn = !!active[emo];
+                btn.classList.toggle('is-active', isOn);
+                // 3'e ulasildiysa pasif butonlari disable et; aktif olanlar
+                // her zaman tiklanabilir (toggle off serbest).
+                btn.disabled = (atMax && !isOn);
+            });
+            meta.textContent = currentEmotions.length;
+        }
+
+        toolbar.addEventListener('click', function(ev) {
+            var btn = ev.target.closest('.emotion-btn');
+            if (!btn || btn.disabled) return;
+
+            var emotion = btn.dataset.emotion;
+            // Geri donus gelene kadar tum butonlari kilitle - cift tikla
+            // race'i onler.
+            buttons.forEach(function(b) { b.disabled = true; });
+
+            var form = new FormData();
+            form.append('csrf_token', csrf);
+            form.append('anime_id', animeId);
+            form.append('emotion', emotion);
+
+            fetch('update_emotion.php', {
+                method: 'POST',
+                body: form,
+                credentials: 'same-origin'
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    syncFromServer(data.current_emotions || [], !!data.at_max);
+                } else {
+                    // Sunucu reddetti - butonlari onceki haline geri dondur
+                    // ve mesaji goster. Sayfayi tekrar render etmek yerine
+                    // mevcut DOM'dan aktif listesini cikarip kullaniyoruz.
+                    var fallback = [];
+                    buttons.forEach(function(b) {
+                        if (b.classList.contains('is-active')) {
+                            fallback.push(b.dataset.emotion);
+                        }
+                    });
+                    syncFromServer(fallback, fallback.length >= 3);
+                    alert(data.error || 'Islem basarisiz oldu.');
+                }
+            })
+            .catch(function(err) {
+                // Ag hatasi - butonlari onceki aktif/disabled durumuna
+                // dondur. Hata aciklayici degil cunku JSON donmedi.
+                var fallback = [];
+                buttons.forEach(function(b) {
+                    if (b.classList.contains('is-active')) {
+                        fallback.push(b.dataset.emotion);
+                    }
+                });
+                syncFromServer(fallback, fallback.length >= 3);
+                alert('Baglanti hatasi. Lutfen tekrar deneyin.');
+            });
+        });
+    })();
+    </script>
 </body>
 </html>

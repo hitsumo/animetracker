@@ -18,14 +18,10 @@ RUN mkdir -p /var/www/html/uploads \
     && chown -R www-data:www-data /var/www/html/uploads
 
 # PHP ayarlari: dosya yukleme limitleri ve zaman dilimi
-# Uygulama tarafi UTC kullaniyor (functions.php her anime icin kendi
-# broadcast_timezone'unu tasiyor) - burada date.timezone sadece PHP'nin
-# genel default'u, UTC kabul edilebilir. Europe/Istanbul da yazilabilir
-# ama UTC uygulama logic'iyle uyumludur.
 RUN echo "upload_max_filesize = 10M" > /usr/local/etc/php/conf.d/anime-tracker.ini \
     && echo "post_max_size = 12M" >> /usr/local/etc/php/conf.d/anime-tracker.ini \
     && echo "max_execution_time = 60" >> /usr/local/etc/php/conf.d/anime-tracker.ini \
-    && echo "date.timezone = UTC" >> /usr/local/etc/php/conf.d/anime-tracker.ini
+    && echo "date.timezone = Europe/Istanbul" >> /usr/local/etc/php/conf.d/anime-tracker.ini
 
 # Calisma dizini
 WORKDIR /var/www/html
@@ -34,15 +30,8 @@ WORKDIR /var/www/html
 COPY files/ /var/www/html/
 
 # Docker entrypoint: config.php otomatik olustur + izinler
-# dos2unix gerekli cunku dosya Windows'ta duzenlendiyse CRLF tasiyor olabilir,
-# bash CRLF'yi anlamaz ve "bad interpreter" hatasi verir.
 COPY docker-entrypoint.sh /usr/local/bin/
-RUN apt-get update && apt-get install -y dos2unix \
-    && dos2unix /usr/local/bin/docker-entrypoint.sh \
-    && chmod +x /usr/local/bin/docker-entrypoint.sh \
-    && apt-get remove -y dos2unix \
-    && apt-get autoremove -y \
-    && rm -rf /var/lib/apt/lists/*
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["apache2-foreground"]

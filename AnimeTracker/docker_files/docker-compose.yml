@@ -1,16 +1,32 @@
 # Anime Tracker - Docker Compose
 #
+# ILK KURULUM:
+#   1. ".env.example" dosyasini ".env" olarak kopyalayin
+#      (cp .env.example .env  /  Windows: copy .env.example .env)
+#   2. .env dosyasini acin, sifreleri DEGISTIRIN
+#      (DB_PASS, DB_ROOT_PASS - uzun + rastgele olmali)
+#   3. docker compose up -d
+#
 # Kullanim:
 #   docker compose up -d     -> sistemi baslat (arka planda)
 #   docker compose down      -> sistemi durdur
 #   docker compose down -v   -> sistemi durdur VE veritabanini sil (DIKKAT!)
 #   docker compose logs -f   -> canli loglari izle
 #
+# Port yapilandirmasi:
+#   Varsayilan host port 8080 (tarayicidan http://localhost:8080).
+#   XAMPP veya baska bir sistem 8080'i kullaniyorsa cakismayi
+#   onlemek icin APP_PORT ortam degiskeni ile baska bir port secin:
+#     APP_PORT=8090 docker compose up -d
+#   Veya proje kokune .env dosyasi ekleyerek kalici ayar yapin:
+#     echo APP_PORT=8090 > .env
+#     docker compose up -d
+#
 # Ilk calistirmada:
 #   1. MariaDB container'i DB'yi olusturur ve schema.sql'i yukler
 #      (files/schema.sql dosyasi init script olarak mount edilir)
 #   2. App container'i config.php'yi otomatik yazar (entrypoint)
-#   3. Tarayicida http://localhost:8080 acilinca uygulama hazir
+#   3. Tarayicida http://localhost:${APP_PORT:-8080} acilinca uygulama hazir
 #
 # Veriler:
 #   - Anime verileri (DB): "db_data" named volume
@@ -24,12 +40,13 @@ services:
     container_name: anime_tracker_app
     restart: unless-stopped
     ports:
-      - "8080:80"
+      # Host port: APP_PORT env var (varsayilan 8080) -> container 80
+      - "${APP_PORT:-8080}:80"
     environment:
       DB_HOST: db
-      DB_NAME: anime_tracker
-      DB_USER: anime_user
-      DB_PASS: change_me_to_something_strong
+      DB_NAME: ${DB_NAME:-anime_tracker}
+      DB_USER: ${DB_USER:-anime_user}
+      DB_PASS: ${DB_PASS:?DB_PASS .env dosyasinda tanimli olmali}
     volumes:
       # Kullanici yukledigi kapak gorselleri kalici olsun
       - uploads:/var/www/html/uploads
@@ -43,10 +60,10 @@ services:
     container_name: anime_tracker_db
     restart: unless-stopped
     environment:
-      MARIADB_ROOT_PASSWORD: root_password_change_me
-      MARIADB_DATABASE: anime_tracker
-      MARIADB_USER: anime_user
-      MARIADB_PASSWORD: change_me_to_something_strong
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASS:?DB_ROOT_PASS .env dosyasinda tanimli olmali}
+      MARIADB_DATABASE: ${DB_NAME:-anime_tracker}
+      MARIADB_USER: ${DB_USER:-anime_user}
+      MARIADB_PASSWORD: ${DB_PASS:?DB_PASS .env dosyasinda tanimli olmali}
     volumes:
       # DB verileri kalici olsun
       - db_data:/var/lib/mysql

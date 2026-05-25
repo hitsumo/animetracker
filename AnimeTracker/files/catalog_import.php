@@ -276,7 +276,7 @@ $insertSql = "
     ) VALUES (
         :title, :alternative_titles, :status, :total_episodes, :aired_episodes,
         0, NULL, :image_path,
-        'Izlenme Planlandi', NULL,
+        'PlanToWatch', NULL,
         :anidb_link, :mal_link, :anime_schedule_link,
         :episode_interval, :broadcast_day, :broadcast_time, :broadcast_timezone,
         :synopsis, :release_date,

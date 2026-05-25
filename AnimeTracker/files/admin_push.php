@@ -249,7 +249,7 @@ try {
     ";
     $updateStmt = $pdo->prepare($updateSql);
 
-    // INSERT. watched_episodes=0, watch_status='Izlenme Planlandi' — this is
+    // INSERT. watched_episodes=0, watch_status='PlanToWatch' - this is
     // the server's view of the anime, not tied to any user's progress.
     $insertSql = "
         INSERT INTO animes (
@@ -264,7 +264,7 @@ try {
         ) VALUES (
             :title, :alternative_titles, :status, :total_episodes, :aired_episodes,
             0, NULL, :genres, :image_path,
-            'Izlenme Planlandi', NULL,
+            'PlanToWatch', NULL,
             :anidb_link, :mal_link, :anime_schedule_link,
             :episode_interval, :broadcast_day, :broadcast_time, :broadcast_timezone,
             :synopsis, :release_date,

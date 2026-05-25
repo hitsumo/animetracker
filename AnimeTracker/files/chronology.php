@@ -185,17 +185,22 @@ function getMediaTypeIcon($type) {
 
                 <?php elseif ($item['type'] === 'anime'): ?>
                     <?php
-                    if ($item['watch_status'] === 'İzlendi') {
+                    // 0.6.1 fix: 0.6'da DB ASCII enum'a gecti ama bu blok TR
+                    // enum karsilastirmasinda kaldi - tum animeler else dalina
+                    // (upcoming) dusuyordu, kronoloji sayfasi yanlis goruntulu.
+                    // KARARLAR Bolum 2: substring/gevsek karsilastirma kontrolu
+                    // disinda "kesin TR enum karsilastirma" da arananacak.
+                    if ($item['watch_status'] === 'Watched') {
                         $statusClass = 'watched';
                         $statusText = 'Izlendi';
                         $statusCss = 'done';
-                    } elseif ($item['watch_status'] === 'İzleniyor') {
+                    } elseif ($item['watch_status'] === 'Watching') {
                         $statusClass = 'watching';
                         $statusText = 'Izleniyor';
                         $statusCss = 'active';
                     } else {
                         $statusClass = 'upcoming';
-                        $statusText = htmlspecialchars($item['watch_status']);
+                        $statusText = htmlspecialchars(watch_status_label($item['watch_status']));
                         $statusCss = 'pending';
                     }
                     ?>

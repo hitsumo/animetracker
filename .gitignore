@@ -69,3 +69,22 @@ error_log
 *.bak
 *.backup
 *_backup.sql
+
+
+# Anime Tracker - .gitignore'a eklenmesi onerilen satirlar
+# (Mevcut .gitignore zaten varsa, asagidaki satirlarin orada
+# bulunup bulunmadigini kontrol et. Yoksa ekle.)
+
+# Docker - ortam degiskenleri (gercek sifreler)
+.env
+.env.local
+.env.*.local
+
+# NOT: .env.example commit edilir (ornek dosya, gercek sifre icermez)
+# Sadece ".env" ve "*.local" varyantlari ignore edilir.
+
+# Docker volume verileri (eger lokal bind mount kullaniyorsan)
+# Bizim setup'ta named volume kullaniliyor, bu satirlar genellikle
+# gereksiz - ama emin olmak icin:
+docker-data/
+docker_data/

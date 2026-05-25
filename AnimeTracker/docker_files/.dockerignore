@@ -1,37 +1,38 @@
 # Docker image'a dahil edilmeyecek dosyalar
-# NOT: Bu dosyanin adi ".dockerignore" olmali (basta nokta).
-# Windows'ta File Explorer gizli dosyalari varsayilan olarak gostermez.
+#
+# Amac: build context'i kucult, gelistirme/release artifact'lerini
+# container icinde tutma, hassas dosyalari isaretle.
 
-# Proje koku dosyalari (.exe, ikonlar, installer.nsi vs.)
+# Release artifact'leri (build sonucu uretilenler)
 *.exe
 *.nsi
 *.ico
-*.md
-*.txt
+*.zip
 xampp-*.exe
 AnimeTracker*.exe
 
-# Ekran goruntuleri ve test dosyalari
-*.JPG
-*.jpg
-*.png
+# Belge ve metin dosyalari (kullaniciya gerek yok)
+*.md
+*.txt
+!files/version.txt
+
+# Test ve gelistirme dosyalari
 session_test.php
 csrf_test.php
+docker_test/
 
-# Geliştirme dokumantasyonu (Docker image'a dahil edilmesine gerek yok)
-PROJE_DURUMU.md
-
-# Git
+# Version control
 .git
 .gitignore
+.gitattributes
 
-# Docker compose (image'a dahil edilmez, sadece docker build context)
+# Docker kontrol dosyalari (image'in disinda kullanilir)
 docker-compose.yml
+docker-compose.*.yml
+Dockerfile
+.dockerignore
 
-# Installer'dan kalma config.php Docker container'da gereksiz
-# (entrypoint zaten uretiyor)
-files/config.php
-
-# Ama version.txt ve license.txt gerekli - istisna
-!files/version.txt
-!files/license.txt
+# Ortam degiskenleri (HASSAS - .env asla image'a girmemeli)
+.env
+.env.local
+.env.*.local

@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS `animes` (
   `watched_episodes` int(11) DEFAULT 0,
   `notes` text DEFAULT NULL,
   `image_path` varchar(255) DEFAULT NULL,
-  `watch_status` enum('Watched','Watching','PlanToWatch','OnHold') NOT NULL,
+  `watch_status` enum('Watched','Watching','PlanToWatch','OnHold') NOT NULL DEFAULT 'PlanToWatch',
   `next_episode_date` datetime DEFAULT NULL,
   `anidb_link` varchar(255) DEFAULT NULL,
   `mal_link` varchar(255) DEFAULT NULL,
@@ -292,6 +292,77 @@ CREATE TABLE IF NOT EXISTS `anime_tags` (
     FOREIGN KEY (`anime_id`) REFERENCES `animes` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_anime_tags_tag`
     FOREIGN KEY (`tag_id`) REFERENCES `tags` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+-- Table: user_anime_emotion
+-- The user's emotional reactions to anime, recorded as marks (not
+-- scores). Each row is one (user, anime, emotion) triple; a user can
+-- mark up to 3 different emotions per anime. This is intentionally
+-- NOT a rating system - there is no 1-10 score, no star count, no
+-- "good vs bad" axis. The philosophy: a single score forces a complex
+-- subjective response into one number and loses information.
+--
+-- Relationship to anime_tags (objective descriptive sentences set by
+-- the admin) vs user_anime_emotion (subjective emotional marks set by
+-- each user):
+--   - anime_tags    = "interest filter" (what the anime is ABOUT;
+--                     e.g. "Okulda gecsin"). Admin-curated, shared
+--                     via catalog. Used by recommendations.php.
+--   - user_anime_emotion = "mood signal" (what the anime MAKES YOU
+--                     FEEL; e.g. "Huzunlendirdi"). User-set, private
+--                     per user. Aggregated public distribution shown
+--                     on the detail page (Faz 2 / 0.8 onwards; in
+--                     single-user mode the aggregation is just the
+--                     owner's own marks, kept as personal reference).
+--
+-- Schema decisions (24 May 2026, KARARLAR Bolum 8):
+--   - PRIMARY KEY (user_id, anime_id, emotion) - one row per mark,
+--     enforces uniqueness of a single emotion per anime per user.
+--   - Multi-mark cap of 3 is enforced at the PHP layer (endpoint),
+--     not by a DB trigger. Endpoint counts existing rows for
+--     (user_id, anime_id) before INSERT.
+--   - emotion VARCHAR(32), NOT an ENUM. The canonical list is
+--     maintained in functions.php emotion_options() as a single
+--     source of truth (helper-family pattern, watch_status_label
+--     precedent). Extending the set later becomes a one-line helper
+--     change rather than an ALTER MODIFY migration. Lesson from the
+--     0.6 ASCII migration: ENUM modifies are expensive.
+--   - user_id DEFAULT 1: single-user mode always writes user_id=1.
+--     When Faz 2 / 0.8 introduces multi-user, the same table is
+--     shared - existing rows belong to the original admin (id=1)
+--     and new users get their own ids. No data migration needed.
+--   - No FK on user_id: the users table does not exist in single-user
+--     mode. Faz 2 will add the FK in a follow-up migration once the
+--     users table is created.
+--   - FK anime_id -> animes(id) ON DELETE CASCADE: emotion marks
+--     belong to the anime; if the anime is removed they go with it.
+--     There is no catalog reconvergence here (cf. Karar 1B
+--     chronology_markers.source); emotion marks are pure user-scope
+--     data and never sync with the catalog in either direction.
+--   - created_at TIMESTAMP: when the user placed this mark. Useful
+--     for "recently marked" queries and for resolving conflicts on
+--     JSON re-import (Senaryo A) in Faz 2.
+--   - idx_anime: supports aggregated distribution queries
+--     (SELECT emotion, COUNT(*) FROM user_anime_emotion WHERE
+--     anime_id = ? GROUP BY emotion). Minimal effect in single-user
+--     mode, valuable in multi-user mode.
+--   - idx_emotion: placeholder for filter queries
+--     ("show me everything that made me laugh"). To be used by
+--     recommendations.php in a future release.
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `user_anime_emotion` (
+  `user_id`    int(11) NOT NULL DEFAULT 1,
+  `anime_id`   int(11) NOT NULL,
+  `emotion`    varchar(32) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`user_id`, `anime_id`, `emotion`),
+  KEY `idx_anime`   (`anime_id`),
+  KEY `idx_emotion` (`emotion`),
+  CONSTRAINT `fk_uae_anime`
+    FOREIGN KEY (`anime_id`) REFERENCES `animes` (`id`)
+    ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
