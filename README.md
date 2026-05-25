@@ -22,3 +22,15 @@ Uygulama imzalı olmadığı için normaldır.
 
 www.sicakcikolata.com
 
+## Docker ile kurulum
+
+Linux, macOS veya Docker Desktop kurulu Windows için:
+
+git clone https://github.com/hitsumo/animetracker
+cd animetracker/AnimeTracker
+cp .env.example .env       # Linux/macOS
+copy .env.example .env     # Windows
+# .env dosyasini ac, DB_PASS ve DB_ROOT_PASS sifrelerini DEGISTIR
+docker compose up -d
+
+Tarayicidan http://localhost:8080 (veya .env'de APP_PORT degistirdinse o port).
