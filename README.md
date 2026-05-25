@@ -82,7 +82,7 @@ If XAMPP or another system is using port 8080, set `APP_PORT=8090` in `.env` to 
 ## Links
 
 - [Website](http://www.sicakcikolata.com)
-- [Release notes](https://github.com/hitsumo/animetracker/releases)
+
 - [AI usage notice](AI_NOTICE_EN.md)
 
 ## License
