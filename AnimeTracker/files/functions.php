@@ -38,7 +38,13 @@
  * @param string $lang   'tr' (default) or 'en'.
  * @return string        Localized label, or $status itself if unmapped.
  */
-function watch_status_label($status, $lang = 'tr') {
+function watch_status_label($status, $lang = null) {
+    // Default to the active UI language. Passing $lang explicitly still
+    // overrides this - useful for tests, admin scripts, or any spot that
+    // needs a specific language regardless of the user's UI choice.
+    if ($lang === null) {
+        $lang = current_lang();
+    }
     static $map = [
         'tr' => [
             'Watched'     => 'İzlendi',
@@ -73,7 +79,10 @@ function watch_status_label($status, $lang = 'tr') {
  * @param string $lang 'tr' (default) or 'en'.
  * @return array       Associative array: ASCII value => localized label.
  */
-function watch_status_options($lang = 'tr') {
+function watch_status_options($lang = null) {
+    if ($lang === null) {
+        $lang = current_lang();
+    }
     $order = ['Watched', 'Watching', 'PlanToWatch', 'OnHold'];
     $options = [];
     foreach ($order as $status) {
@@ -135,7 +144,10 @@ function watch_status_css_class($status) {
  * @param string $lang    'tr' (default) or 'en'.
  * @return string         Localized label, or $emotion itself if unmapped.
  */
-function emotion_label($emotion, $lang = 'tr') {
+function emotion_label($emotion, $lang = null) {
+    if ($lang === null) {
+        $lang = current_lang();
+    }
     static $map = [
         'tr' => [
             'Huzunlendirdi'   => 'Hüzünlendirdi',
@@ -188,7 +200,10 @@ function emotion_label($emotion, $lang = 'tr') {
  * @param string $lang 'tr' (default) or 'en'.
  * @return array       Associative array: ASCII value => localized label.
  */
-function emotion_options($lang = 'tr') {
+function emotion_options($lang = null) {
+    if ($lang === null) {
+        $lang = current_lang();
+    }
     $order = [
         'Huzunlendirdi',
         'Heyecanlandirdi',
@@ -247,6 +262,224 @@ function emotion_css_class($emotion) {
         'MotiveEtti'      => 'motiveetti',
     ];
     return $map[$emotion] ?? 'unknown';
+}
+
+// =====================================================================
+// SECTION: Generic application settings (key-value store)
+// ---------------------------------------------------------------------
+// The settings table is a generic name -> value store (see schema.sql).
+// Until 0.6.2 each caller wrote its own SELECT / INSERT against it,
+// which meant the INSERT ... ON DUPLICATE KEY UPDATE pattern was
+// repeated in several places. These two helpers collect that into one
+// spot so future callers (including the i18n layer below) do not have
+// to know the SQL shape.
+//
+// Existing direct-SQL callers (check_update.php, list_settings.php,
+// update.php, the last_aired_sync writer in this file) are intentionally
+// left alone in this release - changing them is a separate cleanup pass
+// and the helpers + the legacy code coexist without conflict because
+// they both speak the same INSERT ... ON DUPLICATE pattern.
+// =====================================================================
+
+/**
+ * Read a value from the settings key-value table.
+ *
+ * Returns the stored string for $name, or $default if the row does not
+ * exist. Treats DB errors as "row absent" - a transient read failure
+ * should never crash a page, and the caller is expected to supply a
+ * safe default (e.g. 'tr' for display_language).
+ *
+ * @param PDO         $pdo
+ * @param string      $name     Settings key (e.g. 'version', 'display_language').
+ * @param string|null $default  Returned when the row is absent.
+ * @return string|null
+ */
+function get_setting($pdo, $name, $default = null) {
+    try {
+        $stmt = $pdo->prepare("SELECT value FROM settings WHERE name = ? LIMIT 1");
+        $stmt->execute([$name]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row === false) {
+            return $default;
+        }
+        return $row['value'];
+    } catch (PDOException $e) {
+        error_log('[anime_tracker] get_setting(' . $name . '): ' . $e->getMessage());
+        return $default;
+    }
+}
+
+/**
+ * Write a value to the settings key-value table.
+ *
+ * Uses INSERT ... ON DUPLICATE KEY UPDATE so the row is created on
+ * first use and overwritten on subsequent writes. Returns true on
+ * success, false on a DB error (logged via error_log).
+ *
+ * Callers that need to react to a write failure should check the
+ * return value; callers that just want "best effort" persistence can
+ * ignore it.
+ *
+ * @param PDO    $pdo
+ * @param string $name
+ * @param string $value
+ * @return bool
+ */
+function set_setting($pdo, $name, $value) {
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO settings (name, value) VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE value = VALUES(value)
+        ");
+        $stmt->execute([$name, $value]);
+        return true;
+    } catch (PDOException $e) {
+        error_log('[anime_tracker] set_setting(' . $name . '): ' . $e->getMessage());
+        return false;
+    }
+}
+
+// =====================================================================
+// SECTION: UI translations (i18n)
+// ---------------------------------------------------------------------
+// Three-function family, parallel to the watch_status_* / emotion_*
+// helpers: one function loads state, one reports state, one renders.
+//
+//   lang_init($pdo)     Reads display_language from settings, loads the
+//                       matching dictionary into a static cache. Called
+//                       once at the top of each page that uses t().
+//   current_lang()      Returns 'tr' or 'en'. Falls back to 'tr' if
+//                       lang_init() was not called yet.
+//   t($key)             Returns the translated string. Falls back to
+//                       Turkish if the English entry is missing, then
+//                       to $key itself if even Turkish is missing -
+//                       a defensive choice so a missing key shows up
+//                       as a visible token instead of a blank cell.
+//
+// Adding a new language: drop a lang/<code>.php file with the same
+// keys, append the code to $allowed in lang_init(), done. The CSS
+// classes used elsewhere in the project are already ASCII suffixes
+// (watched / huzunlendirdi / ...) so they are language-independent.
+// =====================================================================
+
+/**
+ * Internal cache shared by lang_init / current_lang / t.
+ *
+ * Pulled out into its own accessor so all three helpers see the same
+ * state without each one re-implementing the static. Callers should
+ * not invoke this directly.
+ *
+ * @param array|null $write  When non-null, replaces the cached state.
+ * @return array{lang: string, dict: array, fallback: array}
+ */
+function _lang_cache($write = null) {
+    static $cache = [
+        'lang'     => 'tr',
+        'dict'     => null,
+        'fallback' => null,
+    ];
+    if ($write !== null) {
+        $cache = $write;
+    }
+    return $cache;
+}
+
+/**
+ * Initialize the i18n layer for the current request.
+ *
+ * Reads display_language from the settings table, loads the matching
+ * dictionary from lang/<code>.php, and also pre-loads lang/tr.php as
+ * a fallback so the per-key fallback in t() does not need to touch
+ * the filesystem on every miss.
+ *
+ * Should be called once at the top of each page that uses t(), right
+ * after the db.php / functions.php requires. Subsequent calls in the
+ * same request are no-ops.
+ *
+ * @param PDO $pdo
+ * @return void
+ */
+function lang_init($pdo) {
+    $cache = _lang_cache();
+    if ($cache['dict'] !== null) {
+        return; // already initialised this request
+    }
+
+    $allowed = ['tr', 'en'];
+    $lang = get_setting($pdo, 'display_language', 'tr');
+    if (!in_array($lang, $allowed, true)) {
+        $lang = 'tr';
+    }
+
+    $dict     = _lang_load($lang);
+    $fallback = ($lang === 'tr') ? $dict : _lang_load('tr');
+
+    _lang_cache([
+        'lang'     => $lang,
+        'dict'     => $dict,
+        'fallback' => $fallback,
+    ]);
+}
+
+/**
+ * Load a translation dictionary from disk.
+ *
+ * Returns an empty array if the file is missing or does not return
+ * an array - the t() helper will then either fall back to Turkish or
+ * to the raw key, so a missing dictionary degrades gracefully rather
+ * than crashing the page.
+ *
+ * @param string $lang
+ * @return array
+ */
+function _lang_load($lang) {
+    $path = __DIR__ . '/lang/' . $lang . '.php';
+    if (!is_file($path)) {
+        error_log('[anime_tracker] lang file missing: ' . $path);
+        return [];
+    }
+    $data = include $path;
+    return is_array($data) ? $data : [];
+}
+
+/**
+ * Return the active language code for the current request.
+ *
+ * Returns 'tr' if lang_init() has not been called yet - this keeps
+ * pages that have not been translated yet rendering in their
+ * original Turkish wording instead of throwing.
+ *
+ * @return string  'tr' or 'en'.
+ */
+function current_lang() {
+    $cache = _lang_cache();
+    return $cache['lang'];
+}
+
+/**
+ * Translate a UI string key into the active language.
+ *
+ * Lookup order:
+ *   1. Active language dictionary (loaded by lang_init).
+ *   2. Turkish dictionary (fallback - English may have gaps while
+ *      translation is in progress).
+ *   3. The key itself, returned unchanged - a visible token tells
+ *      the developer which entry is missing without leaving the
+ *      user with a blank screen.
+ *
+ * @param string $key  Dot-namespaced key, e.g. 'nav.statistics'.
+ * @return string
+ */
+function t($key) {
+    $cache = _lang_cache();
+
+    if ($cache['dict'] !== null && isset($cache['dict'][$key])) {
+        return $cache['dict'][$key];
+    }
+    if ($cache['fallback'] !== null && isset($cache['fallback'][$key])) {
+        return $cache['fallback'][$key];
+    }
+    return $key;
 }
 
 /**
@@ -392,14 +625,45 @@ function updateNextEpisodeDate($pdo, &$anime) {
     $anime['next_episode_date'] = $newNextEpisodeDate;
 }
 
-function getTimeUntilNextEpisode($next_episode_date, $watched_episodes = 0, $total_episodes = 0, $aired_episodes = 0) {
+function getTimeUntilNextEpisode($next_episode_date, $watched_episodes = 0, $total_episodes = 0, $aired_episodes = 0, $lang = null) {
+    // The $lang parameter mirrors the watch_status_label / emotion_label
+    // pattern: explicit override wins, otherwise the active UI language
+    // (set by lang_init) is used. Hard-coded strings live in a static
+    // $map so a future third language only needs one new entry per key.
+    if ($lang === null) {
+        $lang = current_lang();
+    }
+    static $map = [
+        'tr' => [
+            'completed'    => 'İzleme tamamlandı',
+            'catch_up'     => '%d bölüm izlenebilir (%d. bölümden devam)',
+            'unset'        => 'Belirtilmemiş',
+            'new_episode'  => 'Yeni bölüm yayınlandı',
+            'time_until'   => '%d. bölüme kalan süre:',
+            'unit_day'     => '%d gün',
+            'unit_hour'    => '%d saat',
+            'unit_minute'  => '%d dakika',
+        ],
+        'en' => [
+            'completed'    => 'Watched all episodes',
+            'catch_up'     => '%d episodes available (continue from ep. %d)',
+            'unset'        => 'Not set',
+            'new_episode'  => 'New episode aired',
+            'time_until'   => 'Time until ep. %d:',
+            'unit_day'     => '%d d',
+            'unit_hour'    => '%d h',
+            'unit_minute'  => '%d m',
+        ],
+    ];
+    $L = $map[$lang] ?? $map['tr']; // fallback to TR if unknown lang
+
     // User has watched every episode that has a final count.
     // NOTE: This is about the WATCH status, not the broadcast status.
     // For ongoing anime the caller passes total_episodes = 0 (or NULL
     // from DB, which becomes 0 here), so this branch is skipped and we
     // fall through to calculate the time to the next broadcast.
     if ($total_episodes > 0 && $watched_episodes >= $total_episodes) {
-        return 'Izleme tamamlandi';
+        return $L['completed'];
     }
 
     // Sonraki izlenecek bolum numarasi
@@ -408,14 +672,14 @@ function getTimeUntilNextEpisode($next_episode_date, $watched_episodes = 0, $tot
     // Eger aired_episodes bilgisi varsa ve kullanici henuz yayinlanmis
     // bolumlere yetismediyse, geri sayim gostermenin anlami yok.
     // Ornek: Detective Conan 1185 bolum yayinlandi, kullanici 430'da.
-    // 431. bolum zaten mevcut — beklemesine gerek yok.
+    // 431. bolum zaten mevcut - beklemesine gerek yok.
     if ($aired_episodes > 0 && $next_episode_number <= $aired_episodes) {
         $remaining = $aired_episodes - $watched_episodes;
-        return $remaining . ' bolum izlenebilir (' . $next_episode_number . '. bolumden devam)';
+        return sprintf($L['catch_up'], $remaining, $next_episode_number);
     }
 
     if (empty($next_episode_date)) {
-        return 'Belirtilmemis';
+        return $L['unset'];
     }
 
     // DB stores next_episode_date in UTC. Read it explicitly as UTC so
@@ -423,32 +687,35 @@ function getTimeUntilNextEpisode($next_episode_date, $watched_episodes = 0, $tot
     $next_dt = new DateTime($next_episode_date, new DateTimeZone('UTC'));
     $next_episode_timestamp = $next_dt->getTimestamp();
     $current_timestamp = time();
-    
+
     // Zaman gecmisse (yeni bolum yayinlandi)
     if ($next_episode_timestamp < $current_timestamp) {
-        return 'Yeni bolum yayinlandi';
+        return $L['new_episode'];
     }
-    
-    // Kalan sureyi hesapla — bu sadece kullanici yayinlanan bolumlere
+
+    // Kalan sureyi hesapla - bu sadece kullanici yayinlanan bolumlere
     // yetismis ve bir sonraki bolumun yayinini bekliyorsa anlamli.
     $seconds_remaining = $next_episode_timestamp - $current_timestamp;
     $days = floor($seconds_remaining / 86400);
     $hours = floor(($seconds_remaining % 86400) / 3600);
     $minutes = floor(($seconds_remaining % 3600) / 60);
-    
-    // Zamanli gosterim
-    $time_string = "";
+
+    // Zamanli gosterim. The cell shows this inside <pre>, so newlines
+    // render literally. Format matches the pre-i18n version for visual
+    // continuity (number on top line, units below).
+    $parts = [];
     if ($days > 0) {
-        $time_string .= "$days gun\n ";
+        $parts[] = sprintf($L['unit_day'], $days);
     }
     if ($hours > 0) {
-        $time_string .= "$hours saat ";
+        $parts[] = sprintf($L['unit_hour'], $hours);
     }
     if ($minutes > 0) {
-        $time_string .= "$minutes dakika";
+        $parts[] = sprintf($L['unit_minute'], $minutes);
     }
-    
-    return $next_episode_number . ". bolume\n kalan sure:\n" . $time_string;
+    $time_string = implode(' ', $parts);
+
+    return sprintf($L['time_until'], $next_episode_number) . "\n" . $time_string;
 }
 
 /**

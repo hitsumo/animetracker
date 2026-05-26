@@ -24,6 +24,9 @@
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
 
+// Initialise the i18n layer (see lang_init() in functions.php).
+lang_init($pdo);
+
 $id = $_GET['id'];
 $sql = "SELECT * FROM animes WHERE id = ?";
 $stmt = $pdo->prepare($sql);
@@ -35,7 +38,7 @@ $anidb_safe = safe_url($anime['anidb_link'] ?? '');
 			$schedule_safe = safe_url($anime['anime_schedule_link'] ?? '');
 
 if (!$anime) {
-    echo "Anime bulunamadı.";
+    echo htmlspecialchars(t('anime_details.error.not_found'));
     exit();
 }
 
@@ -94,10 +97,10 @@ $emoStmt->closeCursor();
 ?>
 
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="<?php echo htmlspecialchars(current_lang(), ENT_QUOTES, 'UTF-8'); ?>">
 <head>
     <meta charset="UTF-8">
-    <title><?php echo htmlspecialchars($anime['title']); ?> - Detaylar</title>
+    <title><?php echo htmlspecialchars($anime['title']); ?> - <?php echo htmlspecialchars(t('anime_details.title_suffix'), ENT_QUOTES, 'UTF-8'); ?></title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
@@ -107,6 +110,21 @@ $emoStmt->closeCursor();
 </head>
 <body>
     <div class="container">
+        <div class="header-section">
+            <?php // SECTION: Language switcher (snippet copy - see _lang_switcher_reference.php) ?>
+            <div class="lang-switcher" role="group" aria-label="<?php echo htmlspecialchars(t('lang.aria_label'), ENT_QUOTES, 'UTF-8'); ?>">
+                <form action="set_language.php" method="post" class="lang-switch-form">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="lang" value="tr">
+                    <button type="submit" class="lang-switch<?php echo current_lang() === 'tr' ? ' lang-switch-active' : ''; ?>"><?php echo htmlspecialchars(t('lang.tr_label'), ENT_QUOTES, 'UTF-8'); ?></button>
+                </form>
+                <form action="set_language.php" method="post" class="lang-switch-form">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="lang" value="en">
+                    <button type="submit" class="lang-switch<?php echo current_lang() === 'en' ? ' lang-switch-active' : ''; ?>"><?php echo htmlspecialchars(t('lang.en_label'), ENT_QUOTES, 'UTF-8'); ?></button>
+                </form>
+            </div>
+        </div>
         <h1>
             <div class="anime-title-container">
                 <div class="anime-title page-title">
@@ -126,41 +144,41 @@ $emoStmt->closeCursor();
         <div class="anime-details-container">
             <div class="anime-details">
                 <div class="detail-row">
-                    <span class="detail-label">Durum:</span>
+                    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.status'), ENT_QUOTES, 'UTF-8'); ?></span>
                     <span class="detail-value status"><?php echo htmlspecialchars($anime['status']); ?></span>
                 </div>
 
                
 
                 <div class="detail-row">
-    <span class="detail-label">Toplam Bölüm:</span>
+    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.total_episodes'), ENT_QUOTES, 'UTF-8'); ?></span>
     <span class="detail-value episode"><?php
         // v0.5+: total_episodes can be NULL for ongoing anime with
         // unknown final episode count (One Piece, Detective Conan).
         if (!empty($anime['total_episodes'])) {
             echo htmlspecialchars($anime['total_episodes']);
         } else {
-            echo '<em>Bilinmiyor</em>';
+            echo '<em>' . htmlspecialchars(t('anime_details.label.unknown')) . '</em>';
         }
     ?></span>
 </div>
 
 <?php if (!empty($anime['aired_episodes'])): ?>
 <div class="detail-row">
-    <span class="detail-label">Yayınlanan Bölüm:</span>
+    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.aired_episodes'), ENT_QUOTES, 'UTF-8'); ?></span>
     <span class="detail-value episode"><?php echo htmlspecialchars($anime['aired_episodes']); ?></span>
 </div>
 <?php endif; ?>
 
 <!-- Yayin tarihi -->
 <div class="detail-row">
-    <span class="detail-label">Yayın Tarihi:</span>
+    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.release_date'), ENT_QUOTES, 'UTF-8'); ?></span>
     <span class="detail-value">
         <?php 
         if (!empty($anime['release_date'])) {
             echo date('d.m.Y', strtotime($anime['release_date']));
         } else {
-            echo 'Belirtilmemiş';
+            echo htmlspecialchars(t('anime_details.label.unset'));
         }
         ?>
     </span>
@@ -173,7 +191,7 @@ if ($anime['status'] == 'Yayın Tamamlandı'
     && (int)($anime['total_episodes'] ?? 0) !== 1):
 ?>
 <div class="detail-row">
-    <span class="detail-label">Yayın Bitiş Tarihi:</span>
+    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.end_date'), ENT_QUOTES, 'UTF-8'); ?></span>
     <span class="detail-value">
         <?php echo date('d.m.Y', strtotime($anime['end_date'])); ?>
     </span>
@@ -183,26 +201,32 @@ if ($anime['status'] == 'Yayın Tamamlandı'
 <div class="detail-row" style="margin-top: -8px;">
     <span class="detail-label"></span>
     <span class="detail-value" style="font-size: 11px; color: #6c757d; font-style: italic;">
-        Saat bilgisi <a href="<?php echo $schedule_safe ?: 'https://animeschedule.net'; ?>" target="_blank" rel="noopener noreferrer" style="color: #6c757d; text-decoration: underline;">AnimeSchedule</a>'den alinmistir
+        <?php
+        // The label has a "%s" placeholder for the AnimeSchedule link.
+        // We build the HTML link first, then substitute it - the result
+        // contains the user's chosen translation around safe HTML.
+        $schedule_link_html = '<a href="' . ($schedule_safe ?: 'https://animeschedule.net') . '" target="_blank" rel="noopener noreferrer" style="color: #6c757d; text-decoration: underline;">AnimeSchedule</a>';
+        echo sprintf(t('anime_details.label.broadcast_attribution'), $schedule_link_html);
+        ?>
     </span>
 </div>
 <?php endif; ?>
 
                 <div class="detail-row">
-                    <span class="detail-label">İzlenen Bölüm:</span>
+                    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.watched_episodes'), ENT_QUOTES, 'UTF-8'); ?></span>
                     <span class="detail-value episode"><?php echo htmlspecialchars($anime['watched_episodes']); ?></span>
                 </div>
 
                 <?php if (!empty($anime['synopsis'])): ?>
                 <div class="detail-row">
-                    <span class="detail-label">Konu:</span>
+                    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.synopsis'), ENT_QUOTES, 'UTF-8'); ?></span>
                     <span class="detail-value synopsis"><?php echo nl2br(htmlspecialchars($anime['synopsis'])); ?></span>
                 </div>
                 <?php endif; ?>
 
                 <?php if (!empty($anime['user_synopsis'])): ?>
                 <div class="detail-row">
-                    <span class="detail-label">Kişisel Konu:</span>
+                    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.user_synopsis'), ENT_QUOTES, 'UTF-8'); ?></span>
                     <span class="detail-value synopsis"><?php echo nl2br(htmlspecialchars($anime['user_synopsis'])); ?></span>
                 </div>
                 <?php endif; ?>
@@ -210,7 +234,7 @@ if ($anime['status'] == 'Yayın Tamamlandı'
             
 
                 <div class="detail-row">
-                    <span class="detail-label">Türler:</span>
+                    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.genres'), ENT_QUOTES, 'UTF-8'); ?></span>
                     <div class="detail-value genres">
                         <?php
                         // Genres come from the anime_genres join table.
@@ -225,7 +249,7 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                 </div>
 
                 <div class="detail-row">
-                    <span class="detail-label">İzleme Durumu:</span>
+                    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.watch_status'), ENT_QUOTES, 'UTF-8'); ?></span>
                     <span class="detail-value">
                         <span class="status-badge <?php echo watch_status_css_class($anime['watch_status']); ?>">
                             <?php echo htmlspecialchars(watch_status_label($anime['watch_status'])); ?>
@@ -240,7 +264,7 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                      ayni siniri zorlar (UI bypass edilirse sunucu reddeder).
                      KARARLAR Bolum 8 v1 spec. -->
                 <div class="detail-row emotion-row">
-                    <span class="detail-label">Duygu:</span>
+                    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.emotion'), ENT_QUOTES, 'UTF-8'); ?></span>
                     <div class="detail-value">
                         <div class="emotion-toolbar"
                              data-anime-id="<?php echo (int)$anime['id']; ?>"
@@ -266,17 +290,17 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                 <?php if ($anime['status'] == 'Yayın Devam Ediyor'): ?>
                 <div class="broadcast-info">
                     <div class="detail-row">
-                        <span class="detail-label">Yayın Günü:</span>
-                        <span class="detail-value"><?php echo htmlspecialchars($anime['broadcast_day'] ?? 'Belirtilmemiş'); ?></span>
+                        <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.broadcast_day'), ENT_QUOTES, 'UTF-8'); ?></span>
+                        <span class="detail-value"><?php echo htmlspecialchars(!empty($anime['broadcast_day']) ? $anime['broadcast_day'] : t('anime_details.label.unset')); ?></span>
                     </div>
 
                     <div class="detail-row">
-                        <span class="detail-label">Yayın Saati:</span>
-                        <span class="detail-value broadcast-time"><?php echo htmlspecialchars(!empty($anime['broadcast_time']) ? substr($anime['broadcast_time'], 0, 5) : 'Belirtilmemiş'); ?></span>
+                        <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.broadcast_time'), ENT_QUOTES, 'UTF-8'); ?></span>
+                        <span class="detail-value broadcast-time"><?php echo htmlspecialchars(!empty($anime['broadcast_time']) ? substr($anime['broadcast_time'], 0, 5) : t('anime_details.label.unset')); ?></span>
                     </div>
 
      <div class="detail-row">
-    <span class="detail-label">Sonraki Bölüm:</span>
+    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.next_episode'), ENT_QUOTES, 'UTF-8'); ?></span>
     <span class="detail-value next-episode">
         <?php echo getTimeUntilNextEpisode($anime['next_episode_date'], $anime['watched_episodes'], $anime['total_episodes'] ?? 0, $anime['aired_episodes'] ?? 0); ?>
     </span>
@@ -287,7 +311,7 @@ if ($anime['status'] == 'Yayın Tamamlandı'
     <span class="detail-label"></span>
     <span class="detail-value">
         <a href="chronology.php?id=<?php echo (int)$anime['id']; ?>" class="chronology-button">
-            <i class="fas fa-stream"></i> Kronoloji
+            <i class="fas fa-stream"></i> <?php echo htmlspecialchars(t('anime_details.btn.chronology'), ENT_QUOTES, 'UTF-8'); ?>
         </a>
     </span>
 </div>
@@ -295,7 +319,7 @@ if ($anime['status'] == 'Yayın Tamamlandı'
 
                     <?php if (!empty($anime['notes'])): ?>
                 <div class="detail-row">
-                    <span class="detail-label">Notlar:</span>
+                    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.notes'), ENT_QUOTES, 'UTF-8'); ?></span>
                     <span class="detail-value"><?php echo nl2br(htmlspecialchars($anime['notes'])); ?></span>
                 </div>
                 <?php endif; ?>
@@ -311,7 +335,7 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                 <?php if ($anime['status'] != 'Yayın Devam Ediyor' && !empty($chronologyMarkers)): ?>
                 <div class="detail-row" style="margin-top: 10px;">
                     <a href="chronology.php?id=<?php echo (int)$anime['id']; ?>" class="chronology-button">
-                        <i class="fas fa-stream"></i> Kronoloji
+                        <i class="fas fa-stream"></i> <?php echo htmlspecialchars(t('anime_details.btn.chronology'), ENT_QUOTES, 'UTF-8'); ?>
                     </a>
                 </div>
                 <?php endif; ?>
@@ -326,7 +350,7 @@ if ($anime['status'] == 'Yayın Tamamlandı'
             ?>
             <?php if ($anidb_safe || $mal_safe || true): ?>
             <div class="external-links">
-                <h3>Anime Siteleri</h3>
+                <h3><?php echo htmlspecialchars(t('anime_details.section.external_sites'), ENT_QUOTES, 'UTF-8'); ?></h3>
                 <?php if ($anidb_safe): ?>
                 <a href="<?php echo $anidb_safe; ?>" 
                    target="_blank" 
@@ -362,7 +386,7 @@ if ($anime['status'] == 'Yayın Tamamlandı'
             <div class="chronology-alert">
                 <div class="alert-icon"><i class="fas fa-exclamation-triangle"></i></div>
                 <div class="alert-content">
-                    <strong><?php echo (int)$chronologyAlert['after_episode']; ?>. bölümden sonra izlenmeli:</strong>
+                    <strong><?php echo htmlspecialchars(sprintf(t('anime_details.alert.watch_after'), (int)$chronologyAlert['after_episode'])); ?></strong>
                     <a href="anime_details.php?id=<?php echo (int)$chronologyAlert['related_id']; ?>" class="alert-anime-link">
                         <?php echo htmlspecialchars($chronologyAlert['related_title']); ?>
                         <?php if (!empty($chronologyAlert['related_media_type'])): ?>
@@ -387,7 +411,7 @@ if ($anime['status'] == 'Yayın Tamamlandı'
             ?>
             <?php if ($nextAnime): ?>
             <div class="next-anime-panel">
-                <h3><i class="fas fa-arrow-right"></i> Sıradaki</h3>
+                <h3><i class="fas fa-arrow-right"></i> <?php echo htmlspecialchars(t('anime_details.section.next_up'), ENT_QUOTES, 'UTF-8'); ?></h3>
                 <div class="next-anime-info">
                     <a href="anime_details.php?id=<?php echo (int)$nextAnime['id']; ?>" class="next-anime-link">
                         <?php echo htmlspecialchars($nextAnime['title']); ?>
@@ -405,7 +429,7 @@ if ($anime['status'] == 'Yayın Tamamlandı'
             <?php if ($isInSeriesChain): ?>
             <div style="margin: 15px 0;">
                 <a href="series_timeline.php?id=<?php echo (int)$anime['id']; ?>" class="chronology-button" style="background: #8e44ad;">
-                    <i class="fas fa-list-ol"></i> Seri Kronolojisi
+                    <i class="fas fa-list-ol"></i> <?php echo htmlspecialchars(t('anime_details.btn.series_chronology'), ENT_QUOTES, 'UTF-8'); ?>
                 </a>
             </div>
             <?php endif; ?>
@@ -418,21 +442,31 @@ if ($anime['status'] == 'Yayın Tamamlandı'
             ?>
             <?php if (!empty($relatedAnimes)): ?>
             <div class="related-animes-section">
-                <h3><i class="fas fa-link"></i> Bağlantılı Animeler
+                <h3><i class="fas fa-link"></i> <?php echo htmlspecialchars(t('anime_details.section.related'), ENT_QUOTES, 'UTF-8'); ?>
                     <small>(<?php echo htmlspecialchars($anime['series_name']); ?>)</small>
                 </h3>
                 <div class="related-animes-list">
                     <?php
-                    // media_type'a gore grupla
+                    // media_type'a gore grupla. Type ASCII string (DB enum-ish),
+                    // i18n fallback label is shown only for the "Other" bucket.
                     $grouped = [];
                     foreach ($relatedAnimes as $ra) {
-                        $type = $ra['media_type'] ?? 'Diger';
+                        $type = $ra['media_type'] ?? '__other__';
+                        if ($type === '' || $type === '__other__') {
+                            $type = '__other__';
+                        }
                         $grouped[$type][] = $ra;
                     }
                     ?>
                     <?php foreach ($grouped as $type => $animes): ?>
                         <div class="related-group">
-                            <h4><?php echo htmlspecialchars($type); ?></h4>
+                            <h4><?php
+                                echo htmlspecialchars(
+                                    $type === '__other__'
+                                        ? t('anime_details.section.related_other_type')
+                                        : $type
+                                );
+                            ?></h4>
                             <?php foreach ($animes as $ra): ?>
                                 <div class="related-anime-item">
                                     <a href="anime_details.php?id=<?php echo (int)$ra['id']; ?>" class="related-anime-link">
@@ -461,13 +495,13 @@ if ($anime['status'] == 'Yayın Tamamlandı'
             ?>
             <?php if (!empty($chronologyMarkers) || !empty($sameSeriesAnimes)): ?>
             <div class="chronology-section">
-                <h3><i class="fas fa-clock"></i> Kronoloji Notları</h3>
+                <h3><i class="fas fa-clock"></i> <?php echo htmlspecialchars(t('anime_details.section.chronology'), ENT_QUOTES, 'UTF-8'); ?></h3>
 
                 <?php if (!empty($chronologyMarkers)): ?>
                 <div class="marker-list">
                     <?php foreach ($chronologyMarkers as $cm): ?>
                         <div class="marker-item">
-                            <span class="marker-episode"><?php echo (int)$cm['after_episode']; ?>. bölümden sonra</span>
+                            <span class="marker-episode"><?php echo htmlspecialchars(sprintf(t('anime_details.marker.after_episode'), (int)$cm['after_episode'])); ?></span>
                             <span class="marker-arrow">→</span>
                             <a href="anime_details.php?id=<?php echo (int)$cm['related_anime_id']; ?>" class="marker-anime-link">
                                 <?php echo htmlspecialchars($cm['related_title']); ?>
@@ -482,11 +516,11 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                                 <small class="marker-note">(<?php echo htmlspecialchars($cm['note']); ?>)</small>
                             <?php endif; ?>
                             <form method="POST" action="delete_chronology_marker.php" class="marker-delete-form"
-                                  onsubmit="return confirm('Bu kronoloji notunu silmek istediginize emin misiniz?');">
+                                  onsubmit="return confirm(<?php echo htmlspecialchars(json_encode(t('anime_details.marker.delete_confirm'), JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8'); ?>);">
                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
                                 <input type="hidden" name="marker_id" value="<?php echo (int)$cm['id']; ?>">
                                 <input type="hidden" name="anime_id" value="<?php echo (int)$anime['id']; ?>">
-                                <button type="submit" class="marker-delete-btn" title="Sil"><i class="fas fa-times"></i></button>
+                                <button type="submit" class="marker-delete-btn" title="<?php echo htmlspecialchars(t('anime_details.marker.delete_tooltip'), ENT_QUOTES, 'UTF-8'); ?>"><i class="fas fa-times"></i></button>
                             </form>
                         </div>
                     <?php endforeach; ?>
@@ -495,18 +529,18 @@ if ($anime['status'] == 'Yayın Tamamlandı'
 
                 <?php if (!empty($sameSeriesAnimes)): ?>
                 <div class="marker-add-form">
-                    <h4>Yeni Kronoloji Notu Ekle</h4>
+                    <h4><?php echo htmlspecialchars(t('anime_details.marker_form.title'), ENT_QUOTES, 'UTF-8'); ?></h4>
                     <form method="POST" action="add_chronology_marker.php">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
                         <input type="hidden" name="anime_id" value="<?php echo (int)$anime['id']; ?>">
                         <div class="marker-form-row">
-                            <label>Bölümden sonra:</label>
-                            <input type="number" name="after_episode" min="1" max="<?php echo $anime['total_episodes'] ? (int)$anime['total_episodes'] : 9999; ?>" required placeholder="Orn: 23">
+                            <label><?php echo htmlspecialchars(t('anime_details.marker_form.after_episode'), ENT_QUOTES, 'UTF-8'); ?></label>
+                            <input type="number" name="after_episode" min="1" max="<?php echo $anime['total_episodes'] ? (int)$anime['total_episodes'] : 9999; ?>" required placeholder="<?php echo htmlspecialchars(t('anime_details.marker_form.after_episode_placeholder'), ENT_QUOTES, 'UTF-8'); ?>">
                         </div>
                         <div class="marker-form-row">
-                            <label>İzlenecek anime:</label>
+                            <label><?php echo htmlspecialchars(t('anime_details.marker_form.target_anime'), ENT_QUOTES, 'UTF-8'); ?></label>
                             <select name="related_anime_id" required>
-                                <option value="">Seçiniz</option>
+                                <option value=""><?php echo htmlspecialchars(t('anime_details.marker_form.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
                                 <?php foreach ($sameSeriesAnimes as $ssa): ?>
                                     <option value="<?php echo (int)$ssa['id']; ?>">
                                         <?php echo htmlspecialchars($ssa['title']); ?>
@@ -516,10 +550,10 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                             </select>
                         </div>
                         <div class="marker-form-row">
-                            <label>Not (opsiyonel):</label>
-                            <input type="text" name="note" placeholder="Orn: Kanonik kronoloji">
+                            <label><?php echo htmlspecialchars(t('anime_details.marker_form.note'), ENT_QUOTES, 'UTF-8'); ?></label>
+                            <input type="text" name="note" placeholder="<?php echo htmlspecialchars(t('anime_details.marker_form.note_placeholder'), ENT_QUOTES, 'UTF-8'); ?>">
                         </div>
-                        <button type="submit" class="marker-add-btn"><i class="fas fa-plus"></i> Ekle</button>
+                        <button type="submit" class="marker-add-btn"><i class="fas fa-plus"></i> <?php echo htmlspecialchars(t('anime_details.marker_form.submit'), ENT_QUOTES, 'UTF-8'); ?></button>
                     </form>
                 </div>
                 <?php endif; ?>
@@ -528,10 +562,10 @@ if ($anime['status'] == 'Yayın Tamamlandı'
 
             <div class="button-group">
                 <a href="edit_anime.php?id=<?php echo $anime['id']; ?>" class="edit-button">
-                    <i class="fas fa-edit"></i> Düzenle
+                    <i class="fas fa-edit"></i> <?php echo htmlspecialchars(t('anime_details.btn.edit'), ENT_QUOTES, 'UTF-8'); ?>
                 </a>
                 <a href="index.php" class="back-button">
-                    <i class="fas fa-arrow-left"></i> Geri Dön
+                    <i class="fas fa-arrow-left"></i> <?php echo htmlspecialchars(t('anime_details.btn.back'), ENT_QUOTES, 'UTF-8'); ?>
                 </a>
             </div>
         </div>
@@ -604,7 +638,7 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                         }
                     });
                     syncFromServer(fallback, fallback.length >= 3);
-                    alert(data.error || 'Islem basarisiz oldu.');
+                    alert(data.error || <?php echo json_encode(t('anime_details.js.operation_failed'), JSON_UNESCAPED_UNICODE); ?>);
                 }
             })
             .catch(function(err) {
@@ -617,7 +651,7 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                     }
                 });
                 syncFromServer(fallback, fallback.length >= 3);
-                alert('Baglanti hatasi. Lutfen tekrar deneyin.');
+                alert(<?php echo json_encode(t('anime_details.js.connection_error'), JSON_UNESCAPED_UNICODE); ?>);
             });
         });
     })();

@@ -24,6 +24,11 @@
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
 
+// Initialise the i18n layer. Reads display_language from settings on
+// the first call of the request and caches the dictionary, so later
+// t() calls in this file are pure array lookups.
+lang_init($pdo);
+
 // Master genre list for the filter dropdown. Fetched via the helper
 // so the rest of the page does not have to know which table the data
 // lives in.
@@ -245,12 +250,14 @@ function renderPagination($current_page, $total_pages, $total_results, $per_page
     $end = min($current_page * $per_page, $total_results);
     
     echo '<div class="pagination-bar">';
-    echo '<span class="pagination-info">' . $total_results . ' anime, sayfa ' . $current_page . '/' . $total_pages . ' (' . $start . '-' . $end . ')</span>';
+    echo '<span class="pagination-info">' . htmlspecialchars(sprintf(t('index.pagination.info'), $total_results, $current_page, $total_pages, $start, $end)) . '</span>';
     echo '<div class="pagination-links">';
-    
+
     // Onceki
     if ($current_page > 1) {
-        echo '<a href="' . buildPaginationUrl($current_page - 1) . '" class="page-link">&laquo; Onceki</a>';
+        // t() returns the label with HTML entities (&laquo;) preserved -
+        // do NOT htmlspecialchars it or the chevron will render as text.
+        echo '<a href="' . buildPaginationUrl($current_page - 1) . '" class="page-link">' . t('index.pagination.prev') . '</a>';
     }
     
     // Sayfa numaralari
@@ -278,7 +285,7 @@ function renderPagination($current_page, $total_pages, $total_results, $per_page
     
     // Sonraki
     if ($current_page < $total_pages) {
-        echo '<a href="' . buildPaginationUrl($current_page + 1) . '" class="page-link">Sonraki &raquo;</a>';
+        echo '<a href="' . buildPaginationUrl($current_page + 1) . '" class="page-link">' . t('index.pagination.next') . '</a>';
     }
     
     echo '</div></div>';
@@ -324,10 +331,10 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
 ?>
 
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="<?php echo htmlspecialchars(current_lang(), ENT_QUOTES, 'UTF-8'); ?>">
 <head>
     <meta charset="UTF-8">
-    <title>Anime İzleme Listesi</title>
+    <title><?php echo htmlspecialchars(t('index.page_title'), ENT_QUOTES, 'UTF-8'); ?></title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
@@ -554,22 +561,35 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
 <body>
     <div class="container">
         <div class="header-section">
-            <a href="recommendations.php" class="about-link">Ne İzlesem?</a>
-            <a href="recent.php" class="about-link">Son Düzenlenenler</a>
-            <a href="list_settings.php" class="about-link">Liste Ayarları</a>
-            <a href="statistics.php" class="about-link">İstatistikler</a>
-            <a href="help.php" class="about-link">Yardım</a>
+            <a href="recommendations.php" class="about-link"><?php echo htmlspecialchars(t('nav.what_to_watch'), ENT_QUOTES, 'UTF-8'); ?></a>
+            <a href="recent.php" class="about-link"><?php echo htmlspecialchars(t('nav.recent_edits'), ENT_QUOTES, 'UTF-8'); ?></a>
+            <a href="list_settings.php" class="about-link"><?php echo htmlspecialchars(t('nav.list_settings'), ENT_QUOTES, 'UTF-8'); ?></a>
+            <a href="statistics.php" class="about-link"><?php echo htmlspecialchars(t('nav.statistics'), ENT_QUOTES, 'UTF-8'); ?></a>
+            <a href="help.php" class="about-link"><?php echo htmlspecialchars(t('nav.help'), ENT_QUOTES, 'UTF-8'); ?></a>
+            <?php // SECTION: Language switcher (snippet copy - see _lang_switcher_reference.php) ?>
+            <div class="lang-switcher" role="group" aria-label="<?php echo htmlspecialchars(t('lang.aria_label'), ENT_QUOTES, 'UTF-8'); ?>">
+                <form action="set_language.php" method="post" class="lang-switch-form">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="lang" value="tr">
+                    <button type="submit" class="lang-switch<?php echo current_lang() === 'tr' ? ' lang-switch-active' : ''; ?>"><?php echo htmlspecialchars(t('lang.tr_label'), ENT_QUOTES, 'UTF-8'); ?></button>
+                </form>
+                <form action="set_language.php" method="post" class="lang-switch-form">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="lang" value="en">
+                    <button type="submit" class="lang-switch<?php echo current_lang() === 'en' ? ' lang-switch-active' : ''; ?>"><?php echo htmlspecialchars(t('lang.en_label'), ENT_QUOTES, 'UTF-8'); ?></button>
+                </form>
+            </div>
         </div>
         <div class="list-page-title">
-            Anime İzleme Listesi
+            <?php echo htmlspecialchars(t('index.list_title'), ENT_QUOTES, 'UTF-8'); ?>
         </div>
 
         <div style="max-width: 380px; margin: 15px auto; background: #e9ecef; padding: 15px 20px; border-radius: 8px;">
             <form method="GET" action="" style="display: flex; gap: 8px;">
-                <input type="text" name="q" value="<?php echo htmlspecialchars($search_query); ?>" placeholder="Anime ara..." style="flex: 1; padding: 10px 14px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;">
-                <button type="submit" style="padding: 10px 18px; background: #4a90e2; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">Ara</button>
+                <input type="text" name="q" value="<?php echo htmlspecialchars($search_query); ?>" placeholder="<?php echo htmlspecialchars(t('index.search.placeholder'), ENT_QUOTES, 'UTF-8'); ?>" style="flex: 1; padding: 10px 14px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;">
+                <button type="submit" style="padding: 10px 18px; background: #4a90e2; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;"><?php echo htmlspecialchars(t('index.search.submit'), ENT_QUOTES, 'UTF-8'); ?></button>
                 <?php if ($search_query !== ''): ?>
-                    <a href="index.php" style="padding: 10px 14px; background: #e0e0e0; color: #333; border-radius: 6px; text-decoration: none; font-size: 14px; display: flex; align-items: center;">Temizle</a>
+                    <a href="index.php" style="padding: 10px 14px; background: #e0e0e0; color: #333; border-radius: 6px; text-decoration: none; font-size: 14px; display: flex; align-items: center;"><?php echo htmlspecialchars(t('index.search.clear'), ENT_QUOTES, 'UTF-8'); ?></a>
                 <?php endif; ?>
             </form>
         </div>
@@ -577,9 +597,9 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
         <div class="filter-container">
             <form method="GET" action="" onsubmit="for(var i=0;i&lt;this.elements.length;i++){var el=this.elements[i];if(el.name&amp;&amp;el.value===''){el.disabled=true;}}">
                 <div class="filter-group">
-                    <label for="genre_filter">Türe Göre Filtrele:</label>
+                    <label for="genre_filter"><?php echo htmlspecialchars(t('index.filter.genre'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <select name="genre_filter" id="genre_filter">
-                        <option value="">Tümü</option>
+                        <option value=""><?php echo htmlspecialchars(t('index.filter.all'), ENT_QUOTES, 'UTF-8'); ?></option>
                         <?php foreach ($genres as $genre): ?>
                             <option value="<?php echo htmlspecialchars($genre['name']); ?>" 
                                     <?php echo $genre_filter == $genre['name'] ? 'selected' : ''; ?>>
@@ -590,9 +610,9 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                 </div>
                 <div style="margin-top: 20px;"></div>
                 <div class="filter-group">
-                    <label for="watch_status_filter">İzleme Durumuna Göre Filtrele:</label>
+                    <label for="watch_status_filter"><?php echo htmlspecialchars(t('index.filter.watch_status'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <select name="watch_status_filter" id="watch_status_filter">
-                        <option value="">Tümü</option>
+                        <option value=""><?php echo htmlspecialchars(t('index.filter.all'), ENT_QUOTES, 'UTF-8'); ?></option>
                         <?php foreach (watch_status_options() as $ws_value => $ws_label): ?>
                             <option value="<?php echo htmlspecialchars($ws_value); ?>" <?php echo $watch_status_filter === $ws_value ? 'selected' : ''; ?>><?php echo htmlspecialchars($ws_label); ?></option>
                         <?php endforeach; ?>
@@ -600,17 +620,17 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                 </div>
                 <div style="margin-top: 20px;"></div>
                 <div class="filter-group">
-                    <label for="broadcast_status_filter">Yayın Durumuna Göre Filtrele:</label>
+                    <label for="broadcast_status_filter"><?php echo htmlspecialchars(t('index.filter.broadcast'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <select name="broadcast_status_filter" id="broadcast_status_filter">
-                        <option value="">Tümü</option>
-                        <option value="Yayın Devam Ediyor" <?php echo $broadcast_status_filter == 'Yayın Devam Ediyor' ? 'selected' : ''; ?>>Yayın Devam Ediyor</option>
-                        <option value="Yayın Tamamlandı" <?php echo $broadcast_status_filter == 'Yayın Tamamlandı' ? 'selected' : ''; ?>>Yayın Tamamlandı</option>
+                        <option value=""><?php echo htmlspecialchars(t('index.filter.all'), ENT_QUOTES, 'UTF-8'); ?></option>
+                        <option value="Yayın Devam Ediyor" <?php echo $broadcast_status_filter == 'Yayın Devam Ediyor' ? 'selected' : ''; ?>><?php echo htmlspecialchars(t('index.broadcast.ongoing'), ENT_QUOTES, 'UTF-8'); ?></option>
+                        <option value="Yayın Tamamlandı" <?php echo $broadcast_status_filter == 'Yayın Tamamlandı' ? 'selected' : ''; ?>><?php echo htmlspecialchars(t('index.broadcast.finished'), ENT_QUOTES, 'UTF-8'); ?></option>
                     </select>
                 </div>
                 <div style="margin-top: 20px;"></div>
                 <div class="filter-group filter-full">
                     <details class="letter-filter-details" <?php echo $letter_filter ? 'open' : ''; ?>>
-                        <summary>Harfe Göre Filtrele <?php echo $letter_filter ? '(' . htmlspecialchars($letter_filter) . ')' : ''; ?></summary>
+                        <summary><?php echo htmlspecialchars(t('index.filter.letter'), ENT_QUOTES, 'UTF-8'); ?> <?php echo $letter_filter ? '(' . htmlspecialchars($letter_filter) . ')' : ''; ?></summary>
                         <div class="letter-filter">
                         <?php
                         // Mevcut diger filtreleri korumak icin querystring olustur
@@ -636,14 +656,14 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
 
                 <div style="margin-top: 20px;"></div>
                 <div class="filter-group">
-                    <label for="per_page">Sayfada Göster:</label>
+                    <label for="per_page"><?php echo htmlspecialchars(t('index.filter.per_page'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <select name="per_page" id="per_page" onchange="this.form.submit()">
                         <option value="10" <?php echo $per_page == 10 ? 'selected' : ''; ?>>10</option>
                         <option value="20" <?php echo $per_page == 20 ? 'selected' : ''; ?>>20</option>
                         <option value="30" <?php echo $per_page == 30 ? 'selected' : ''; ?>>30</option>
                         <option value="50" <?php echo $per_page == 50 ? 'selected' : ''; ?>>50</option>
                         <option value="100" <?php echo $per_page == 100 ? 'selected' : ''; ?>>100</option>
-                        <option value="0" <?php echo $per_page == 0 ? 'selected' : ''; ?>>Hepsi</option>
+                        <option value="0" <?php echo $per_page == 0 ? 'selected' : ''; ?>><?php echo htmlspecialchars(t('index.filter.show_all'), ENT_QUOTES, 'UTF-8'); ?></option>
                     </select>
                 </div>
                 
@@ -654,13 +674,13 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                 <?php endif; ?>
                 
                 <div class="form-actions filter-full">
-                    <input type="submit" value="Filtrele">
+                    <input type="submit" value="<?php echo htmlspecialchars(t('index.filter.submit'), ENT_QUOTES, 'UTF-8'); ?>">
                 </div>
             </form>
         </div>
 
         <div class="button-container">
-            <a href="add_anime.php" class="anime-list-button">Yeni Anime Ekle</a>
+            <a href="add_anime.php" class="anime-list-button"><?php echo htmlspecialchars(t('index.add_anime'), ENT_QUOTES, 'UTF-8'); ?></a>
         </div>
 
         <?php renderPagination($current_page, $total_pages, $total_results, $per_page); ?>
@@ -670,7 +690,7 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
             <thead>
                 <tr>
                     <th>
-                        Anime
+                        <?php echo htmlspecialchars(t('index.col.anime'), ENT_QUOTES, 'UTF-8'); ?>
                         <div class="sort-buttons">
                             <a href="<?php echo getSortLink('title', 'asc', $genre_filter, $watch_status_filter); ?>" 
                                class="sort-button <?php echo ($sort_column == 'title' && $sort_order == 'asc') ? 'active' : ''; ?>">↑</a>
@@ -679,7 +699,7 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                         </div>
                     </th>
                     <th>
-                        Durum
+                        <?php echo htmlspecialchars(t('index.col.status'), ENT_QUOTES, 'UTF-8'); ?>
                         <div class="sort-buttons">
                             <a href="<?php echo getSortLink('watch_status', 'asc', $genre_filter, $watch_status_filter); ?>" 
                                class="sort-button <?php echo ($sort_column == 'watch_status' && $sort_order == 'asc') ? 'active' : ''; ?>">↑</a>
@@ -688,7 +708,7 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                         </div>
                     </th>
                     <th>
-                        İzlenen Bölüm
+                        <?php echo htmlspecialchars(t('index.col.watched_episodes'), ENT_QUOTES, 'UTF-8'); ?>
                         <div class="sort-buttons">
                             <a href="<?php echo getSortLink('watched_episodes', 'asc', $genre_filter, $watch_status_filter); ?>" 
                                class="sort-button <?php echo ($sort_column == 'watched_episodes' && $sort_order == 'asc') ? 'active' : ''; ?>">↑</a>
@@ -696,9 +716,9 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                                class="sort-button <?php echo ($sort_column == 'watched_episodes' && $sort_order == 'desc') ? 'active' : ''; ?>">↓</a>
                         </div>
                     </th>
-                    <th>Resim</th>
+                    <th><?php echo htmlspecialchars(t('index.col.image'), ENT_QUOTES, 'UTF-8'); ?></th>
                     <th>
-                        Sonraki Bölüm
+                        <?php echo htmlspecialchars(t('index.col.next_episode'), ENT_QUOTES, 'UTF-8'); ?>
                         <div class="sort-buttons">
                             <a href="<?php echo getSortLink('next_episode_date', 'asc', $genre_filter, $watch_status_filter); ?>" 
                                class="sort-button <?php echo ($sort_column == 'next_episode_date' && $sort_order == 'asc') ? 'active' : ''; ?>">↑</a>
@@ -706,14 +726,14 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                                class="sort-button <?php echo ($sort_column == 'next_episode_date' && $sort_order == 'desc') ? 'active' : ''; ?>">↓</a>
                         </div>
                     </th>
-                    <th style="text-align: center;">Eylem</th>
+                    <th style="text-align: center;"><?php echo htmlspecialchars(t('index.col.action'), ENT_QUOTES, 'UTF-8'); ?></th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (count($animes) > 0): ?>
                     <?php foreach ($animes as $anime): ?>
                         <tr>
-                            <td><span class="list-anime-title" onclick="toggleAnimeTitle(this)" title="Tam ismi gormek icin tiklayin"><?php echo htmlspecialchars($anime['title']); ?></span></td>
+                            <td><span class="list-anime-title" onclick="toggleAnimeTitle(this)" title="<?php echo htmlspecialchars(t('index.row.title_tooltip'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($anime['title']); ?></span></td>
                             <td class="watch-status-cell"><?php echo htmlspecialchars(watch_status_label($anime['watch_status'])); ?></td>
                             <td class="episode-count"><?php
                                 // Episode display logic (v0.5+):
@@ -749,7 +769,7 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                                     $ec_text = htmlspecialchars($ec_watched . '/' . $ec_total);
                                 } elseif ($ec_aired !== null) {
                                     $ec_text  = htmlspecialchars($ec_watched . '/' . $ec_aired);
-                                    $ec_badge = '(yayında)';
+                                    $ec_badge = t('index.row.ep_aired_badge');
                                 } else {
                                     $ec_text = htmlspecialchars($ec_watched) . '/?';
                                 }
@@ -765,16 +785,16 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                                     <span class="ep-text"><?php echo $ec_text; ?></span>
                                     <?php if ($ec_badge !== ''): ?><span class="ep-badge"><?php echo htmlspecialchars($ec_badge); ?></span><?php endif; ?>
                                     <div class="ep-controls">
-                                        <button type="button" class="ep-step ep-minus" onclick="quickWatched(this, -1)"<?php echo $ec_at_min ? ' disabled' : ''; ?> title="Bir bolum geri">&minus;</button>
+                                        <button type="button" class="ep-step ep-minus" onclick="quickWatched(this, -1)"<?php echo $ec_at_min ? ' disabled' : ''; ?> title="<?php echo htmlspecialchars(t('index.row.ep_minus_tooltip'), ENT_QUOTES, 'UTF-8'); ?>">&minus;</button>
                                         <span class="ep-sep">/</span>
-                                        <button type="button" class="ep-step ep-plus" onclick="quickWatched(this, 1)"<?php echo $ec_at_max ? ' disabled' : ''; ?> title="Bir bolum ileri">+</button>
+                                        <button type="button" class="ep-step ep-plus" onclick="quickWatched(this, 1)"<?php echo $ec_at_max ? ' disabled' : ''; ?> title="<?php echo htmlspecialchars(t('index.row.ep_plus_tooltip'), ENT_QUOTES, 'UTF-8'); ?>">+</button>
                                     </div>
-                                </div><?php else: ?><?php echo $ec_text; ?><?php if ($ec_badge !== ''): ?> <small>(yayında)</small><?php endif; ?><?php endif; ?></td>
+                                </div><?php else: ?><?php echo $ec_text; ?><?php if ($ec_badge !== ''): ?> <small><?php echo htmlspecialchars($ec_badge); ?></small><?php endif; ?><?php endif; ?></td>
                             <td><img src="<?php echo htmlspecialchars($anime['image_path']); ?>" alt="<?php echo htmlspecialchars($anime['title']); ?>" width="100"></td>
                             <td class="next-episode-cell">
 <?php 
 if ($anime['status'] == 'Yayın Tamamlandı') {
-    echo "Yayın Tamamlandı";
+    echo htmlspecialchars(t('index.broadcast.finished'));
 } else if (!empty($anime['next_episode_date'])) {
     echo '<pre class="next-episode-info">' . getTimeUntilNextEpisode($anime['next_episode_date'], $anime['watched_episodes'], $anime['total_episodes'] ?? 0, $anime['aired_episodes'] ?? 0) . '</pre>';
 } else {
@@ -784,13 +804,13 @@ if ($anime['status'] == 'Yayın Tamamlandı') {
 </td>
                             <td>
                                 <div class="action-buttons">
-                                    <a href="anime_details.php?id=<?php echo $anime['id']; ?>" class="more-button">Daha Fazla</a>
-                                    <a href="edit_anime.php?id=<?php echo $anime['id']; ?>" class="edit-button">Düzenle</a>
+                                    <a href="anime_details.php?id=<?php echo $anime['id']; ?>" class="more-button"><?php echo htmlspecialchars(t('index.row.more_button'), ENT_QUOTES, 'UTF-8'); ?></a>
+                                    <a href="edit_anime.php?id=<?php echo $anime['id']; ?>" class="edit-button"><?php echo htmlspecialchars(t('index.row.edit_button'), ENT_QUOTES, 'UTF-8'); ?></a>
                                     <form method="POST" action="index.php"
-                                          onsubmit="return confirm('Bu animeyi silmek istediğinize emin misiniz?');">
+                                          onsubmit="return confirm(<?php echo htmlspecialchars(json_encode(t('index.row.delete_confirm'), JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8'); ?>);">
                                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
                                         <input type="hidden" name="delete_id" value="<?php echo (int)$anime['id']; ?>">
-                                        <button type="submit" class="delete-button">Sil</button>
+                                        <button type="submit" class="delete-button"><?php echo htmlspecialchars(t('index.row.delete_button'), ENT_QUOTES, 'UTF-8'); ?></button>
                                     </form>
                                 </div>
                             </td>
@@ -798,7 +818,7 @@ if ($anime['status'] == 'Yayın Tamamlandı') {
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="6" style="text-align: center;">Hiç anime bulunamadı.</td>
+                        <td colspan="6" style="text-align: center;"><?php echo htmlspecialchars(t('index.row.no_results'), ENT_QUOTES, 'UTF-8'); ?></td>
                     </tr>
                 <?php endif; ?>
             </tbody>
@@ -857,7 +877,7 @@ if ($anime['status'] == 'Yayın Tamamlandı') {
             if (!data || !data.success) {
                 var msg = (data && data.error)
                     ? data.error
-                    : 'Bolum guncellenemedi. Sayfayi yenileyip tekrar deneyin.';
+                    : <?php echo json_encode(t('index.js.update_failed'), JSON_UNESCAPED_UNICODE); ?>;
                 alert(msg);
                 return;
             }
@@ -915,7 +935,7 @@ if ($anime['status'] == 'Yayın Tamamlandı') {
         })
         .catch(function () {
             box.classList.remove('busy');
-            alert('Sunucuya ulasilamadi. Internet baglantinizi kontrol edin.');
+            alert(<?php echo json_encode(t('index.js.network_error'), JSON_UNESCAPED_UNICODE); ?>);
         });
     }
     </script>

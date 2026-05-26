@@ -1,0 +1,28 @@
+-- Anime Tracker 0.6.2 migration
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- ---------------------------------------------------------------------
+-- This release adds Turkish/English UI language support.
+--
+-- No schema changes are required: display_language is a runtime
+-- settings key created on first language switch (same pattern as
+-- last_aired_sync and last_catalog_sync - see schema.sql for the
+-- "missing rows are created on demand" note).
+--
+-- This file exists so migration_manager.php advances settings.version
+-- from 0.6.1 to 0.6.2 (see KARARLAR Bolum 2 "Bos migration kurali":
+-- migration_manager walks the migration/{version}/ folders and stops
+-- if a folder is missing - an empty upgrade.sql keeps the chain
+-- intact without applying any DDL).
+--
+-- preg_replace strips the SQL comments below, array_filter removes
+-- the resulting blank lines, and the version row is bumped at the
+-- end of the migration cycle. The example precedent is the 0.5.1
+-- migration which used the same "empty halka" pattern (proje_durumu
+-- and KARARLAR Bolum 2 reference 0.5.1 and 0.5.5 as canonical
+-- examples).
+-- ---------------------------------------------------------------------
+
+-- Intentionally no SQL statements below.
