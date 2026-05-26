@@ -1,11 +1,17 @@
 FROM php:8.2-apache
 
+# zip extension icin sistem kutuphanesi gerekli (PHP 8.2-apache
+# image'i slim - libzip-dev varsayilan olarak yok)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libzip-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 # Gerekli PHP eklentileri:
 #   pdo_mysql  - veritabani baglantisi (PDO)
 #   zip        - update.php icin ZipArchive
-#   fileinfo   - resim yukleme MIME tespiti (finfo)
-RUN docker-php-ext-install pdo_mysql zip \
-    && docker-php-ext-enable fileinfo
+# Not: fileinfo (resim yukleme MIME tespiti) PHP 8.x'te built-in -
+# ayrica enable etmeye gerek yok.
+RUN docker-php-ext-install pdo_mysql zip
 
 # Apache mod_rewrite etkinlestir (uploads/.htaccess icin gerekli)
 RUN a2enmod rewrite
@@ -27,7 +33,12 @@ RUN echo "upload_max_filesize = 10M" > /usr/local/etc/php/conf.d/anime-tracker.i
 WORKDIR /var/www/html
 
 # Uygulama dosyalarini kopyala
-COPY files/ /var/www/html/
+# --chown=www-data: update.php var olan dosyalari overwrite edebilsin.
+# Windows host'tan COPY default olarak root:root + 755 mode verir,
+# www-data Apache user'i mevcut PHP dosyalarinin uzerine yazamaz ve
+# update.php "Dosya kopyalanamadi" hatasi firlatir. KARARLAR Bolum 2
+# Docker permission disiplini (0.6.2 dersi).
+COPY --chown=www-data:www-data files/ /var/www/html/
 
 # Docker entrypoint: config.php otomatik olustur + izinler
 COPY docker-entrypoint.sh /usr/local/bin/
