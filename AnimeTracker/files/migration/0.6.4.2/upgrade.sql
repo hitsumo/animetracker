@@ -1,0 +1,6 @@
+-- Anime Tracker 0.6.4.2 migration
+-- No schema changes in this release.
+-- This file exists only to bump settings.version to 0.5.1.
+-- The actual fix is the add_genre.php CSRF protection
+-- (PHP-only change, no DB impact).
+--inuyasha movie 1 finish. now watching mairimashita! iruma-kun.
