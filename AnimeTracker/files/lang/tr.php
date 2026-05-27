@@ -273,6 +273,7 @@ return [
     'add_anime.error.mal_link_invalid'       => 'MyAnimeList linki gecersiz format. Ornek: https://myanimelist.net/anime/12345',
     'add_anime.error.anidb_link_required'    => 'AniDB linki zorunludur.',
     'add_anime.error.anidb_link_invalid'     => 'AniDB linki gecersiz. anidb.net adresi olmali. Ornek: https://anidb.net/anime/12345 veya https://anidb.net/episode/212772',
+    'add_anime.error.release_date_invalid'   => 'Yayin tarihi gecersiz format. Dogru format: YYYY-MM-DD (orn: 2026-04-08)',
     'add_anime.error.end_date_invalid'       => 'Bitis tarihi gecersiz format. Dogru format: YYYY-MM-DD (orn: 2026-09-15)',
     'add_anime.error.next_episode_date_invalid' => 'Sonraki bolum tarihi gecersiz format.',
 
@@ -304,6 +305,56 @@ return [
     'add_anime.js.no_empty_fields'           => 'Doldurulacak bos alan bulunamadi (tum alanlar dolu).',
     'add_anime.js.fields_filled_prefix'      => 'Alan dolduruldu:',
     'add_anime.js.request_failed_prefix'     => 'Istek basarisiz:',
+
+    // -----------------------------------------------------------------
+    // edit_anime.php - mevcut anime duzenleme sayfasi
+    // -----------------------------------------------------------------
+    //
+    // edit_anime form yapisi add_anime ile buyuk olcude paraleldir, bu
+    // yuzden tum label/placeholder/buton/gun/timezone/option/hint
+    // anahtarlari add_anime.* uzerinden yeniden kullanilir (KARARLAR
+    // Bolum 7 tek-kaynak prensibi). Asagidaki anahtarlar SADECE
+    // edit_anime'a ozgu olanlar: sayfa basligi, Guncelle butonu,
+    // kilitli durum uyarisi, Kisisel Konu (Mode 2) alanlari, Siradaki
+    // Anime alani, duplicate hatasinin edit-tarafi metinleri ve aired
+    // episodes sync (Senkronize Et) butonu icin JS string'leri.
+
+    // Page meta
+    'edit_anime.page_title'                  => 'Anime Düzenle',
+    'edit_anime.heading'                     => 'Anime Düzenle',
+
+    // Submit button (add_anime "Ekle" yerine "Guncelle")
+    'edit_anime.btn.submit'                  => 'Güncelle',
+
+    // Status field - locked hint shown when anime status is "Yayin
+    // Tamamlandi" (the select is replaced with a readonly input).
+    'edit_anime.status.locked_hint'          => 'Bu anime yayını tamamlandığı için durum değiştirilemez.',
+
+    // Synopsis Mode 2 - user_synopsis is set, "Konu" becomes readonly
+    // (server text) and "Kisisel Konu" is the editable personal field.
+    // The label "Konu:" itself is shared with add_anime.label.synopsis.
+    'edit_anime.hint.synopsis_readonly'      => "server'dan gelir, sync ile guncellenir",
+    'edit_anime.label.user_synopsis'         => 'Kişisel Konu:',
+    'edit_anime.ph.user_synopsis'            => 'Kendi yorumunuz, cevirisi, ozeti',
+    'edit_anime.hint.user_synopsis'          => 'kullanici konu bolumu - silinirse sync ile geri gelmez',
+
+    // Next-in-series field (only on edit, not on add)
+    'edit_anime.label.next_in_series'        => 'Sıradaki Anime (opsiyonel):',
+    'edit_anime.hint.next_in_series'         => 'Bu animeyi bitirdikten sonra izlenecek anime. ★ = aynı seri.',
+
+    // Duplicate detection - edit-side wording differs from add (a value
+    // is "used by another record" rather than "already exists").
+    'edit_anime.duplicate.already_used_suffix'   => 'baska bir kayitta kullaniliyor.',
+    'edit_anime.duplicate.conflicting_record_prefix' => 'Tekrarlanan veri hatasini olusturan kayit:',
+    'edit_anime.error_page.go_to_conflicting'    => 'Cakisma olan kayda git',
+
+    // Aired episodes sync button (only on edit) - JS LANG bloku
+    'edit_anime.js.aired_sync.fetching'      => 'AnimeSchedule den bolum sayisi cekiliyor...',
+    'edit_anime.js.aired_sync.this_week'     => ' (bu hafta)',
+    'edit_anime.js.aired_sync.last_week'     => ' (gecen hafta)',
+    'edit_anime.js.aired_sync.weeks_ago_fmt' => ' (%d hafta once)',
+    'edit_anime.js.aired_sync.updated_prefix'   => 'Guncellendi:',
+    'edit_anime.js.aired_sync.no_change_prefix' => 'Mevcut deger zaten guncel:',
 
     // -----------------------------------------------------------------
     // help.php - kullanici yardim / nasil calisir sayfasi

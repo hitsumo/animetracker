@@ -2,7 +2,7 @@
 /**
   [Anime Tracker/Anime izleme takip listesi.
     https://www.sicakcikolata.com]
-  Copyright (C) 2025 [Okan Sümer]
+  Copyright (C) 2025 [Okan Sumer]
  
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License version 2 as
@@ -43,7 +43,7 @@ $seriesNames = getAllSeriesNames($pdo);
 // Tum cumleleri cek (oneri sistemi icin tag input auto-complete kaynagi)
 $allTags = getAllTags($pdo);
 
-// Anime bilgilerini çek
+// Anime bilgilerini cek
 $stmt = $pdo->prepare('SELECT * FROM animes WHERE id = ?');
 $stmt->execute([$id]);
 $anime = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -72,15 +72,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // hash_equals timing-safe karsilastirma yapar (bkz. functions.php csrf_verify).
     if (!csrf_verify($_POST['csrf_token'] ?? '')) {
         http_response_code(403);
-        die('CSRF token gecersiz. Sayfayi yenileyip tekrar deneyin.');
+        die(htmlspecialchars(t('add_anime.csrf.invalid'), ENT_QUOTES, 'UTF-8'));
     }
 
     // Mevcut anime bilgilerini kontrol et
     if ($anime['status'] == 'Yayın Tamamlandı') {
-        // Eğer anime yayını tamamlandıysa, durumu değiştirmeye izin verme
+        // Eger anime yayini tamamlandiysa, durumu degistirmeye izin verme
         $_POST['status'] = 'Yayın Tamamlandı';
     }
-    
+
     $title = $_POST['title'];
     $status = $_POST['status'];
     $total_episodes = $_POST['total_episodes'] ?? null;
@@ -98,7 +98,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $next_episode_date = $_POST['next_episode_date'] ?? null;
     $anidb_link = $_POST['anidb_link'] ?? '';
     $mal_link = $_POST['mal_link'] ?? '';
-	$anime_schedule_link = $_POST['anime_schedule_link'] ?? ''; 
+    $anime_schedule_link = $_POST['anime_schedule_link'] ?? '';
 
     // MAL ve AniDB linkleri zorunlu - katalog senkronizasyonunda local
     // ile sunucu arasindaki eslesmeyi saglayan kimlik alanlari bunlardan
@@ -108,29 +108,31 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $anidb_id = parseAnidbId($anidb_link);
 
     if (empty(trim($mal_link))) {
-        $validation_errors[] = 'MyAnimeList linki zorunludur.';
+        $validation_errors[] = t('add_anime.error.mal_link_required');
     } elseif ($mal_id === null) {
-        $validation_errors[] = 'MyAnimeList linki gecersiz format. Ornek: https://myanimelist.net/anime/12345';
+        $validation_errors[] = t('add_anime.error.mal_link_invalid');
     }
 
     // AniDB: hem /anime/ hem /episode/ URL'leri kabul edilir.
     // /anime/ URL'lerinden anidb_id parse edilir (sync icin).
     // /episode/ URL'lerinde anidb_id NULL kalir, sync mal_id ile calisir.
     if (empty(trim($anidb_link))) {
-        $validation_errors[] = t('edit_anime.validation.anidb_required');
+        $validation_errors[] = t('add_anime.error.anidb_link_required');
     } elseif (!preg_match('#^https?://anidb\.net/#i', $anidb_link)) {
-        $validation_errors[] = t('edit_anime.validation.anidb_invalid');
+        $validation_errors[] = t('add_anime.error.anidb_link_invalid');
     }
 
     if (!empty($validation_errors)) {
+        $errorTitle   = htmlspecialchars(t('add_anime.error_page.form_error_title'), ENT_QUOTES, 'UTF-8');
+        $goBackLabel  = htmlspecialchars(t('add_anime.error_page.go_back_and_fix'), ENT_QUOTES, 'UTF-8');
         die(
             '<!DOCTYPE html><html lang="' . htmlspecialchars(current_lang(), ENT_QUOTES, 'UTF-8') . '"><head><meta charset="UTF-8">' .
-            '<title>' . htmlspecialchars(t('edit_anime.error_page.form_title'), ENT_QUOTES, 'UTF-8') . '</title></head><body style="font-family:Arial;max-width:600px;margin:40px auto;padding:20px;">' .
-            '<h1 style="color:#d32f2f;">' . htmlspecialchars(t('edit_anime.error_page.form_title'), ENT_QUOTES, 'UTF-8') . '</h1>' .
+            '<title>' . $errorTitle . '</title></head><body style="font-family:Arial;max-width:600px;margin:40px auto;padding:20px;">' .
+            '<h1 style="color:#d32f2f;">' . $errorTitle . '</h1>' .
             '<ul>' . implode('', array_map(function($e) {
                 return '<li>' . htmlspecialchars($e, ENT_QUOTES, 'UTF-8') . '</li>';
             }, $validation_errors)) . '</ul>' .
-            '<p><a href="javascript:history.back()">' . htmlspecialchars(t('edit_anime.error_page.go_back_fix'), ENT_QUOTES, 'UTF-8') . '</a></p>' .
+            '<p><a href="javascript:history.back()">' . $goBackLabel . '</a></p>' .
             '</body></html>'
         );
     }
@@ -180,24 +182,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Tarayici hatalari (orn. 5 haneli yil 20026) veya manuel giris
     // yuzunden gecersiz tarih DB'ye ulasmadan yakalanir.
     if ($release_date !== null && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $release_date)) {
-        $validation_errors[] = t('edit_anime.validation.release_date_format');
+        $validation_errors[] = t('add_anime.error.release_date_invalid');
     }
     if ($end_date !== null && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $end_date)) {
-        $validation_errors[] = t('edit_anime.validation.end_date_format');
+        $validation_errors[] = t('add_anime.error.end_date_invalid');
     }
     if ($next_episode_date !== null && !preg_match('/^\d{4}-\d{2}-\d{2}/', $next_episode_date)) {
-        $validation_errors[] = t('edit_anime.validation.next_date_format');
+        $validation_errors[] = t('add_anime.error.next_episode_date_invalid');
     }
 
     if (!empty($validation_errors)) {
+        $errorTitle  = htmlspecialchars(t('add_anime.error_page.form_error_title'), ENT_QUOTES, 'UTF-8');
+        $goBackLabel = htmlspecialchars(t('add_anime.error_page.go_back_and_fix'), ENT_QUOTES, 'UTF-8');
         die(
             '<!DOCTYPE html><html lang="' . htmlspecialchars(current_lang(), ENT_QUOTES, 'UTF-8') . '"><head><meta charset="UTF-8">' .
-            '<title>' . htmlspecialchars(t('edit_anime.error_page.form_title'), ENT_QUOTES, 'UTF-8') . '</title></head><body style="font-family:Arial;max-width:600px;margin:40px auto;padding:20px;">' .
-            '<h1 style="color:#d32f2f;">' . htmlspecialchars(t('edit_anime.error_page.form_title'), ENT_QUOTES, 'UTF-8') . '</h1>' .
+            '<title>' . $errorTitle . '</title></head><body style="font-family:Arial;max-width:600px;margin:40px auto;padding:20px;">' .
+            '<h1 style="color:#d32f2f;">' . $errorTitle . '</h1>' .
             '<ul>' . implode('', array_map(function($e) {
                 return '<li>' . htmlspecialchars($e, ENT_QUOTES, 'UTF-8') . '</li>';
             }, $validation_errors)) . '</ul>' .
-            '<p><a href="javascript:history.back()">' . htmlspecialchars(t('edit_anime.error_page.go_back_fix'), ENT_QUOTES, 'UTF-8') . '</a></p>' .
+            '<p><a href="javascript:history.back()">' . $goBackLabel . '</a></p>' .
             '</body></html>'
         );
     }
@@ -218,7 +222,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     // Status-based normalization for episode counts.
-    // Frontend (JS) already hides aired_episodes when status is 'Yayın Tamamlandı',
+    // Frontend (JS) already hides aired_episodes when status is 'Yayin Tamamlandi',
     // but we enforce the same rule server-side as a safety net in case JS is
     // disabled or someone posts directly.
     if ($status === 'Yayın Tamamlandı') {
@@ -252,12 +256,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     try {
         $newImagePath = handleImageUpload($_FILES['image'] ?? null);
     } catch (Exception $e) {
+        $imageErrorTitle = htmlspecialchars(t('add_anime.error_page.image_error_title'), ENT_QUOTES, 'UTF-8');
+        $goBackLabel     = htmlspecialchars(t('add_anime.error_page.go_back_and_retry'), ENT_QUOTES, 'UTF-8');
         die(
             '<!DOCTYPE html><html lang="' . htmlspecialchars(current_lang(), ENT_QUOTES, 'UTF-8') . '"><head><meta charset="UTF-8">' .
-            '<title>' . htmlspecialchars(t('edit_anime.error_page.upload_title'), ENT_QUOTES, 'UTF-8') . '</title></head><body style="font-family:Arial;max-width:600px;margin:40px auto;padding:20px;">' .
-            '<h1 style="color:#d32f2f;">' . htmlspecialchars(t('edit_anime.error_page.upload_h1'), ENT_QUOTES, 'UTF-8') . '</h1>' .
+            '<title>' . $imageErrorTitle . '</title></head><body style="font-family:Arial;max-width:600px;margin:40px auto;padding:20px;">' .
+            '<h1 style="color:#d32f2f;">' . $imageErrorTitle . '</h1>' .
             '<p>' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8') . '</p>' .
-            '<p><a href="javascript:history.back()">' . htmlspecialchars(t('edit_anime.error_page.go_back_retry'), ENT_QUOTES, 'UTF-8') . '</a></p>' .
+            '<p><a href="javascript:history.back()">' . $goBackLabel . '</a></p>' .
             '</body></html>'
         );
     }
@@ -274,7 +280,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $target_file = $anime['image_path'];
     }
 
-    // Sonraki bölüm tarihini hesapla
+    // Sonraki bolum tarihini hesapla
     if ($status === 'Yayın Devam Ediyor' && !empty($broadcast_day) && !empty($broadcast_time)) {
         $next_episode_date = calculateNextEpisodeDate([
             'status' => $status,
@@ -284,7 +290,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         ]);
     }
 
-    // Animeyi güncelle.
+    // Animeyi guncelle.
     // Genres no longer live on this row - they are written to the
     // anime_genres join table after the UPDATE via
     // setAnimeGenresByNames(), mirroring the tags handler below.
@@ -301,7 +307,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             next_episode_date = ?,
             anidb_link = ?,
             mal_link = ?,
-			anime_schedule_link = ?, 
+            anime_schedule_link = ?,
             episode_interval = ?,
             broadcast_day = ?,
             broadcast_time = ?,
@@ -316,7 +322,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             mal_id = ?,
             anidb_id = ?
             WHERE id = ?";
-            
+
     $stmt = $pdo->prepare($sql);
 
     // UPDATE execute'u try/catch icinde calistir. mal_id, anidb_id ve
@@ -393,7 +399,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $existingTitle = null;
 
         if ($indexName === 'idx_mal_id' && !empty($mal_id)) {
-            $fieldLabel = 'MAL ID';
+            $fieldLabel = t('add_anime.duplicate.field_mal_id');
             $duplicateValue = (string)$mal_id;
             // ON edit, mevcut animenin kendi MAL ID'si conflict olamaz
             // cunku WHERE id = ? var; conflict baska bir kayittan geliyor.
@@ -406,7 +412,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $existingTitle = $row['title'];
             }
         } elseif ($indexName === 'idx_anidb_id' && !empty($anidb_id)) {
-            $fieldLabel = 'AniDB ID';
+            $fieldLabel = t('add_anime.duplicate.field_anidb_id');
             $duplicateValue = (string)$anidb_id;
             $look = $pdo->prepare("SELECT id, title FROM animes WHERE anidb_id = ? AND id != ? LIMIT 1");
             $look->execute([$anidb_id, $id]);
@@ -416,39 +422,41 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $existingTitle = $row['title'];
             }
         } elseif ($indexName === 'idx_catalog_uuid') {
-            $fieldLabel = t('edit_anime.error_page.dup_field_catalog_uuid');
+            $fieldLabel = t('add_anime.duplicate.field_catalog_uuid');
         } else {
-            $fieldLabel = t('edit_anime.error_page.dup_field_undefined');
+            $fieldLabel = t('add_anime.duplicate.field_unknown');
         }
 
-        $headerMsg = t('edit_anime.error_page.duplicate_h1');
+        $headerMsg = htmlspecialchars(t('add_anime.error_page.duplicate_title'), ENT_QUOTES, 'UTF-8');
         $detailMsg = htmlspecialchars($fieldLabel, ENT_QUOTES, 'UTF-8');
         if ($duplicateValue !== '') {
             $detailMsg .= ' (' . htmlspecialchars($duplicateValue, ENT_QUOTES, 'UTF-8') . ')';
         }
-        $detailMsg .= ' ' . htmlspecialchars(t('edit_anime.error_page.dup_used_in_another'), ENT_QUOTES, 'UTF-8');
+        $detailMsg .= ' ' . htmlspecialchars(t('edit_anime.duplicate.already_used_suffix'), ENT_QUOTES, 'UTF-8');
         if ($existingId !== null && $existingTitle !== null) {
-            $detailMsg .= ' ' . htmlspecialchars(t('edit_anime.error_page.dup_conflicting_record'), ENT_QUOTES, 'UTF-8') . ' <strong>'
-                . htmlspecialchars($existingTitle, ENT_QUOTES, 'UTF-8')
-                . '</strong>';
+            $detailMsg .= ' ' . htmlspecialchars(t('edit_anime.duplicate.conflicting_record_prefix'), ENT_QUOTES, 'UTF-8')
+                . ' <strong>' . htmlspecialchars($existingTitle, ENT_QUOTES, 'UTF-8') . '</strong>';
         }
 
         $existingLink = '';
         if ($existingId !== null) {
             $existingLink =
                 '<p><a href="anime_details.php?id=' . (int)$existingId . '" '
-                . 'style="color:#1976d2;">' . htmlspecialchars(t('edit_anime.error_page.dup_go_to_record'), ENT_QUOTES, 'UTF-8') . '</a></p>';
+                . 'style="color:#1976d2;">' . htmlspecialchars(t('edit_anime.error_page.go_to_conflicting'), ENT_QUOTES, 'UTF-8') . '</a></p>';
         }
+
+        $goBackLabel = htmlspecialchars(t('add_anime.error_page.go_back_and_fix'), ENT_QUOTES, 'UTF-8');
+        $goToListLabel = htmlspecialchars(t('add_anime.error_page.go_to_list'), ENT_QUOTES, 'UTF-8');
 
         die(
             '<!DOCTYPE html><html lang="' . htmlspecialchars(current_lang(), ENT_QUOTES, 'UTF-8') . '"><head><meta charset="UTF-8">' .
-            '<title>' . htmlspecialchars(t('edit_anime.error_page.duplicate_title'), ENT_QUOTES, 'UTF-8') . '</title></head>' .
+            '<title>' . $headerMsg . '</title></head>' .
             '<body style="font-family:Arial;max-width:600px;margin:40px auto;padding:20px;">' .
-            '<h1 style="color:#d32f2f;">' . htmlspecialchars($headerMsg, ENT_QUOTES, 'UTF-8') . '</h1>' .
+            '<h1 style="color:#d32f2f;">' . $headerMsg . '</h1>' .
             '<p>' . $detailMsg . '</p>' .
             $existingLink .
-            '<p><a href="javascript:history.back()">' . htmlspecialchars(t('edit_anime.error_page.go_back_fix'), ENT_QUOTES, 'UTF-8') . '</a></p>' .
-            '<p><a href="index.php">' . htmlspecialchars(t('edit_anime.error_page.dup_go_to_list'), ENT_QUOTES, 'UTF-8') . '</a></p>' .
+            '<p><a href="javascript:history.back()">' . $goBackLabel . '</a></p>' .
+            '<p><a href="index.php">' . $goToListLabel . '</a></p>' .
             '</body></html>'
         );
     }
@@ -479,7 +487,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     exit();
 }
 
-// Alternatif isimleri diziye çevir
+// Alternatif isimleri diziye cevir
 $alternative_titles = !empty($anime['alternative_titles']) ? explode('|', $anime['alternative_titles']) : [];
 // Mevcut turleri JOIN tablosundan cek (form yuklenirken rozet ve hidden
 // input dolumu icin). Helper id+name doner; alttaki kullanim noktalari
@@ -521,11 +529,11 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
             </div>
         </div>
         <div class="page-title">
-            <?php echo htmlspecialchars(t('edit_anime.page_title'), ENT_QUOTES, 'UTF-8'); ?>
+            <?php echo htmlspecialchars(t('edit_anime.heading'), ENT_QUOTES, 'UTF-8'); ?>
         </div>
 
         <div class="button-container">
-            <a class="anime-list-button" href="index.php"><?php echo htmlspecialchars(t('edit_anime.back_to_list'), ENT_QUOTES, 'UTF-8'); ?></a>
+            <a class="anime-list-button" href="index.php"><?php echo htmlspecialchars(t('index.list_title'), ENT_QUOTES, 'UTF-8'); ?></a>
         </div>
         <div class="button-spacing"></div>
 
@@ -534,14 +542,14 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
         <form action="" method="post" enctype="multipart/form-data">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
             <div class="form-group">
-                <label for="title"><?php echo htmlspecialchars(t('edit_anime.label.anime_name'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <label for="title"><?php echo htmlspecialchars(t('add_anime.label.title'), ENT_QUOTES, 'UTF-8'); ?></label>
                 <div class="input-area">
                     <input type="text" name="title" value="<?php echo htmlspecialchars($anime['title']); ?>" required>
                 </div>
             </div>
 
             <div class="form-group">
-                <label><?php echo htmlspecialchars(t('edit_anime.label.alt_titles'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <label><?php echo htmlspecialchars(t('add_anime.label.alternative_titles'), ENT_QUOTES, 'UTF-8'); ?></label>
                 <div class="input-area">
                     <div id="alternative-titles" class="dynamic-fields">
                         <?php foreach ($alternative_titles as $alt_title): ?>
@@ -554,7 +562,7 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                         <?php endforeach; ?>
                     </div>
                     <button type="button" class="add-button" onclick="addAlternativeTitle()">
-                        <i class="fas fa-plus"></i> <?php echo htmlspecialchars(t('edit_anime.btn.add_alt_title'), ENT_QUOTES, 'UTF-8'); ?>
+                        <i class="fas fa-plus"></i> <?php echo htmlspecialchars(t('add_anime.btn.add_alternative_title'), ENT_QUOTES, 'UTF-8'); ?>
                     </button>
                 </div>
             </div>
@@ -562,49 +570,49 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
             <?php
             // Synopsis display mode:
             //   Mode 1: user_synopsis IS NULL  -> single "Konu" field, editable, writes to synopsis
-            //   Mode 2: user_synopsis is set   -> "Konu" readonly (server metin), "Kisisel Konu" editable
+            //   Mode 2: user_synopsis is set   -> "Konu" readonly (server text), "Kisisel Konu" editable
             // See PROJE_DURUMU.md "Kisisel Konu" section for the full rationale.
             $synopsisMode = ($anime['user_synopsis'] === null) ? 1 : 2;
             ?>
 
             <?php if ($synopsisMode === 1): ?>
                 <div class="form-group">
-                    <label for="synopsis"><?php echo htmlspecialchars(t('edit_anime.label.synopsis'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <label for="synopsis"><?php echo htmlspecialchars(t('add_anime.label.synopsis'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <div class="input-area">
-                        <textarea name="synopsis" rows="6" placeholder="<?php echo htmlspecialchars(t('edit_anime.placeholder.synopsis'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($anime['synopsis'] ?? ''); ?></textarea>
+                        <textarea name="synopsis" rows="6" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.synopsis'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($anime['synopsis'] ?? ''); ?></textarea>
                     </div>
                 </div>
             <?php else: ?>
                 <div class="form-group">
-                    <label for="synopsis_readonly"><?php echo htmlspecialchars(t('edit_anime.label.synopsis'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <label for="synopsis_readonly"><?php echo htmlspecialchars(t('add_anime.label.synopsis'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <div class="input-area">
                         <textarea id="synopsis_readonly" rows="6" readonly
                                   style="background-color: #f5f5f5; color: #555; cursor: not-allowed;"><?php echo htmlspecialchars($anime['synopsis'] ?? ''); ?></textarea>
-                        <small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.help.synopsis_readonly'), ENT_QUOTES, 'UTF-8'); ?></small>
+                        <small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.hint.synopsis_readonly'), ENT_QUOTES, 'UTF-8'); ?></small>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label for="user_synopsis"><?php echo htmlspecialchars(t('edit_anime.label.user_synopsis'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <div class="input-area">
-                        <textarea name="user_synopsis" rows="4" placeholder="<?php echo htmlspecialchars(t('edit_anime.placeholder.user_synopsis'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($anime['user_synopsis'] ?? ''); ?></textarea>
-                        <small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.help.user_synopsis'), ENT_QUOTES, 'UTF-8'); ?></small>
+                        <textarea name="user_synopsis" rows="4" placeholder="<?php echo htmlspecialchars(t('edit_anime.ph.user_synopsis'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($anime['user_synopsis'] ?? ''); ?></textarea>
+                        <small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.hint.user_synopsis'), ENT_QUOTES, 'UTF-8'); ?></small>
                     </div>
                 </div>
             <?php endif; ?>
 
             <div class="form-group">
-                <label for="total_episodes"><?php echo htmlspecialchars(t('edit_anime.label.total_episodes'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <label for="total_episodes"><?php echo htmlspecialchars(t('add_anime.label.total_episodes'), ENT_QUOTES, 'UTF-8'); ?></label>
                 <div class="input-area">
-                    <input type="number" name="total_episodes" value="<?php echo htmlspecialchars($anime['total_episodes'] ?? ''); ?>" min="0" placeholder="<?php echo htmlspecialchars(t('edit_anime.placeholder.total_unknown'), ENT_QUOTES, 'UTF-8'); ?>" oninput="toggleEndDateBySingleEpisode()">
+                    <input type="number" name="total_episodes" value="<?php echo htmlspecialchars($anime['total_episodes'] ?? ''); ?>" min="0" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.total_episodes'), ENT_QUOTES, 'UTF-8'); ?>" oninput="toggleEndDateBySingleEpisode()">
                 </div>
             </div>
 
             <div id="aired-episodes-section" style="display: <?php echo $anime['status'] == 'Yayın Devam Ediyor' ? 'block' : 'none'; ?>;">
                 <div class="form-group">
-                    <label for="aired_episodes"><?php echo htmlspecialchars(t('edit_anime.label.aired_episodes'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <label for="aired_episodes"><?php echo htmlspecialchars(t('add_anime.label.aired_episodes'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <div class="input-area">
-                        <input type="number" name="aired_episodes" id="aired_episodes" value="<?php echo htmlspecialchars($anime['aired_episodes'] ?? ''); ?>" min="0" placeholder="<?php echo htmlspecialchars(t('edit_anime.placeholder.aired'), ENT_QUOTES, 'UTF-8'); ?>">
+                        <input type="number" name="aired_episodes" id="aired_episodes" value="<?php echo htmlspecialchars($anime['aired_episodes'] ?? ''); ?>" min="0" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.aired_episodes'), ENT_QUOTES, 'UTF-8'); ?>">
                         <?php
                         // Senkronize butonu sadece MAL ID dolu animelerde gosterilir.
                         // mal_id yoksa AnimeSchedule timetable'da eslestirme yapilamaz,
@@ -614,7 +622,7 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                         if (!empty($anime['mal_id'])):
                         ?>
                         <button type="button" id="aired-sync-btn" onclick="syncAiredEpisodes()" style="margin-top:8px; padding:8px 14px; background:#27ae60; color:#fff; border:none; border-radius:4px; cursor:pointer;">
-                            <i class="fas fa-sync"></i> <?php echo htmlspecialchars(t('edit_anime.btn.sync_aired'), ENT_QUOTES, 'UTF-8'); ?>
+                            <i class="fas fa-sync"></i> <?php echo htmlspecialchars(t('add_anime.btn.animeschedule_fetch'), ENT_QUOTES, 'UTF-8'); ?>
                         </button>
                         <div id="aired-sync-status" style="margin-top:8px; font-size:13px;"></div>
                         <?php endif; ?>
@@ -623,9 +631,9 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
             </div>
 
             <div class="form-group">
-                <label for="release_date"><?php echo htmlspecialchars(t('edit_anime.label.release_date'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <label for="release_date"><?php echo htmlspecialchars(t('add_anime.label.release_date'), ENT_QUOTES, 'UTF-8'); ?></label>
                 <div class="input-area">
-                    <input type="date" name="release_date" id="release_date" 
+                    <input type="date" name="release_date" id="release_date"
                            value="<?php echo isset($anime['release_date']) ? date('Y-m-d', strtotime($anime['release_date'])) : ''; ?>">
                 </div>
             </div>
@@ -639,7 +647,7 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
             ?>
             <div id="end-date-section" style="display: <?php echo $endDateInitialDisplay; ?>;">
                 <div class="form-group">
-                    <label for="end_date"><?php echo htmlspecialchars(t('edit_anime.label.end_date'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <label for="end_date"><?php echo htmlspecialchars(t('add_anime.label.end_date'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <div class="input-area">
                         <input type="date" name="end_date" id="end_date"
                                value="<?php echo isset($anime['end_date']) ? date('Y-m-d', strtotime($anime['end_date'])) : ''; ?>">
@@ -648,17 +656,17 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
             </div>
 
             <div class="form-group">
-    <label for="status"><?php echo htmlspecialchars(t('edit_anime.label.broadcast_status'), ENT_QUOTES, 'UTF-8'); ?></label>
+    <label for="status"><?php echo htmlspecialchars(t('add_anime.label.status'), ENT_QUOTES, 'UTF-8'); ?></label>
     <div class="input-area">
         <?php if ($anime['status'] == 'Yayın Tamamlandı'): ?>
             <!-- Yayin tamamlandiysa, alan kilitli olsun -->
             <input type="text" name="status" value="Yayın Tamamlandı" readonly class="locked-field">
 <div style="margin-top: 10px;"></div>
 <input type="hidden" name="status" value="Yayın Tamamlandı">
-<small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.help.status_locked'), ENT_QUOTES, 'UTF-8'); ?></small>
+<small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.status.locked_hint'), ENT_QUOTES, 'UTF-8'); ?></small>
         <?php else: ?>
             <select name="status" onchange="toggleBroadcastDetails()" required>
-                <option value=""><?php echo htmlspecialchars(t('edit_anime.option.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
+                <option value=""><?php echo htmlspecialchars(t('add_anime.option.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
                 <option value="Yayın Tamamlandı" <?php echo $anime['status'] == 'Yayın Tamamlandı' ? 'selected' : ''; ?>><?php echo htmlspecialchars(t('index.broadcast.finished'), ENT_QUOTES, 'UTF-8'); ?></option>
                 <option value="Yayın Devam Ediyor" <?php echo $anime['status'] == 'Yayın Devam Ediyor' ? 'selected' : ''; ?>><?php echo htmlspecialchars(t('index.broadcast.ongoing'), ENT_QUOTES, 'UTF-8'); ?></option>
             </select>
@@ -668,34 +676,34 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
 
             <div id="broadcast-details" style="display: <?php echo $anime['status'] == 'Yayın Devam Ediyor' ? 'block' : 'none'; ?>">
                 <div class="form-group">
-                    <label for="episode_interval"><?php echo htmlspecialchars(t('edit_anime.label.episode_interval'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <label for="episode_interval"><?php echo htmlspecialchars(t('add_anime.label.episode_interval'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <div class="input-area">
                         <input type="number" name="episode_interval" value="<?php echo htmlspecialchars($anime['episode_interval'] ?? 7); ?>" min="1">
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="broadcast_day"><?php echo htmlspecialchars(t('edit_anime.label.broadcast_day'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <label for="broadcast_day"><?php echo htmlspecialchars(t('add_anime.label.broadcast_day'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <div class="input-area">
                         <select name="broadcast_day">
-                            <option value="" <?php echo empty($anime['broadcast_day']) ? 'selected' : ''; ?>><?php echo htmlspecialchars(t('edit_anime.option.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
+                            <option value="" <?php echo empty($anime['broadcast_day']) ? 'selected' : ''; ?>><?php echo htmlspecialchars(t('add_anime.option.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
                             <?php
-                            // The DB stores broadcast_day as a Turkish string
-                            // ('Pazartesi', 'Sali', ...) so the option VALUE
-                            // stays Turkish for compatibility. Only the LABEL
-                            // shown to the user is translated via t().
+                            // DB enum legacy: broadcast_day kolonu Turkce string olarak
+                            // tutulur (Pazartesi, Sali, ...). UI label'i t() ile cevirilir
+                            // ama value DB ile esleshik kalir - eski kayitlar bozulmaz.
                             $days = [
-                                'Pazartesi' => t('edit_anime.day.monday'),
-                                'Salı'      => t('edit_anime.day.tuesday'),
-                                'Çarşamba'  => t('edit_anime.day.wednesday'),
-                                'Perşembe'  => t('edit_anime.day.thursday'),
-                                'Cuma'      => t('edit_anime.day.friday'),
-                                'Cumartesi' => t('edit_anime.day.saturday'),
-                                'Pazar'     => t('edit_anime.day.sunday'),
+                                'Pazartesi' => 'add_anime.day.monday',
+                                'Salı'      => 'add_anime.day.tuesday',
+                                'Çarşamba'  => 'add_anime.day.wednesday',
+                                'Perşembe'  => 'add_anime.day.thursday',
+                                'Cuma'      => 'add_anime.day.friday',
+                                'Cumartesi' => 'add_anime.day.saturday',
+                                'Pazar'     => 'add_anime.day.sunday',
                             ];
-                            foreach ($days as $dayValue => $dayLabel) {
+                            foreach ($days as $dayValue => $dayKey) {
                                 $selected = ($anime['broadcast_day'] == $dayValue) ? 'selected' : '';
-                                echo '<option value="' . htmlspecialchars($dayValue, ENT_QUOTES, 'UTF-8') . '" ' . $selected . '>' . htmlspecialchars($dayLabel, ENT_QUOTES, 'UTF-8') . '</option>';
+                                echo '<option value="' . htmlspecialchars($dayValue, ENT_QUOTES, 'UTF-8') . '" ' . $selected . '>'
+                                   . htmlspecialchars(t($dayKey), ENT_QUOTES, 'UTF-8') . '</option>';
                             }
                             ?>
                         </select>
@@ -703,32 +711,30 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                 </div>
 
                 <div class="form-group">
-                    <label for="broadcast_time"><?php echo htmlspecialchars(t('edit_anime.label.broadcast_time'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <label for="broadcast_time"><?php echo htmlspecialchars(t('add_anime.label.broadcast_time'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <div class="input-area">
                         <input type="time" name="broadcast_time" value="<?php echo htmlspecialchars($anime['broadcast_time'] ?? ''); ?>">
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="broadcast_timezone"><?php echo htmlspecialchars(t('edit_anime.label.broadcast_timezone'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <label for="broadcast_timezone"><?php echo htmlspecialchars(t('add_anime.label.broadcast_timezone'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <div class="input-area">
                         <?php
-                        // Timezone option VALUE is the IANA code (Asia/Tokyo,
-                        // Europe/Istanbul, ...) and stays language-independent;
-                        // only the human-readable LABEL is translated.
                         $current_tz = $anime['broadcast_timezone'] ?? 'Asia/Tokyo';
+                        // TZ value sabit IANA timezone ID, label sozlukten cekilir.
                         $tz_options = [
-                            'Asia/Tokyo'         => t('edit_anime.tz.jp'),
-                            'Europe/Istanbul'    => t('edit_anime.tz.tr'),
-                            'UTC'                => t('edit_anime.tz.utc'),
-                            'America/New_York'   => t('edit_anime.tz.us_east'),
-                            'America/Los_Angeles'=> t('edit_anime.tz.us_west'),
-                            'Europe/London'      => t('edit_anime.tz.uk'),
+                            'Asia/Tokyo'          => 'add_anime.tz.tokyo',
+                            'Europe/Istanbul'     => 'add_anime.tz.istanbul',
+                            'UTC'                 => 'add_anime.tz.utc',
+                            'America/New_York'    => 'add_anime.tz.new_york',
+                            'America/Los_Angeles' => 'add_anime.tz.los_angeles',
+                            'Europe/London'       => 'add_anime.tz.london',
                         ];
                         ?>
                         <select name="broadcast_timezone">
-                            <?php foreach ($tz_options as $tz_val => $tz_label): ?>
-                                <option value="<?php echo $tz_val; ?>" <?php echo ($current_tz === $tz_val) ? 'selected' : ''; ?>><?php echo htmlspecialchars($tz_label, ENT_QUOTES, 'UTF-8'); ?></option>
+                            <?php foreach ($tz_options as $tz_val => $tz_key): ?>
+                                <option value="<?php echo $tz_val; ?>" <?php echo ($current_tz === $tz_val) ? 'selected' : ''; ?>><?php echo htmlspecialchars(t($tz_key), ENT_QUOTES, 'UTF-8'); ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -736,10 +742,10 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
             </div>
 
             <div class="form-group">
-                <label for="watch_status"><?php echo htmlspecialchars(t('edit_anime.label.watch_status'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <label for="watch_status"><?php echo htmlspecialchars(t('add_anime.label.watch_status'), ENT_QUOTES, 'UTF-8'); ?></label>
                 <div class="input-area">
                     <select name="watch_status" onchange="toggleWatchedEpisodes()" required>
-                        <option value=""><?php echo htmlspecialchars(t('edit_anime.option.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
+                        <option value=""><?php echo htmlspecialchars(t('add_anime.option.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
                         <?php foreach (watch_status_options() as $ws_value => $ws_label): ?>
                             <option value="<?php echo htmlspecialchars($ws_value); ?>" <?php echo $anime['watch_status'] === $ws_value ? 'selected' : ''; ?>><?php echo htmlspecialchars($ws_label); ?></option>
                         <?php endforeach; ?>
@@ -749,7 +755,7 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
 
             <div id="watched-episodes-section" style="display: <?php echo in_array($anime['watch_status'], ['Watching', 'OnHold'], true) ? 'block' : 'none'; ?>">
                 <div class="form-group">
-                    <label for="watched_episodes"><?php echo htmlspecialchars(t('edit_anime.label.watched_episodes'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <label for="watched_episodes"><?php echo htmlspecialchars(t('add_anime.label.watched_episodes'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <div class="input-area">
                         <input type="number" name="watched_episodes" value="<?php echo htmlspecialchars($anime['watched_episodes']); ?>" min="0">
                     </div>
@@ -757,38 +763,38 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
             </div>
 
             <div class="form-group">
-                <label><?php echo htmlspecialchars(t('edit_anime.label.genres'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <label><?php echo htmlspecialchars(t('add_anime.label.genres'), ENT_QUOTES, 'UTF-8'); ?></label>
                 <div class="input-area">
                     <div class="genre-selection-container">
                         <select id="genre-select" onchange="addSelectedGenre(this)">
-                            <option value=""><?php echo htmlspecialchars(t('edit_anime.option.pick_existing_genre'), ENT_QUOTES, 'UTF-8'); ?></option>
+                            <option value=""><?php echo htmlspecialchars(t('add_anime.option.choose_from_existing'), ENT_QUOTES, 'UTF-8'); ?></option>
                             <?php foreach ($genres as $genre): ?>
                                 <option value="<?php echo htmlspecialchars($genre['name']); ?>">
                                     <?php echo htmlspecialchars($genre['name']); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
-                        
+
                         <div class="new-genre-input">
-                            <input type="text" id="new-genre" placeholder="<?php echo htmlspecialchars(t('edit_anime.placeholder.new_genre'), ENT_QUOTES, 'UTF-8'); ?>">
+                            <input type="text" id="new-genre" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.new_genre'), ENT_QUOTES, 'UTF-8'); ?>">
                             <button type="button" class="add-button" onclick="addNewGenre()">
-                                <i class="fas fa-plus"></i> <?php echo htmlspecialchars(t('edit_anime.btn.add'), ENT_QUOTES, 'UTF-8'); ?>
+                                <i class="fas fa-plus"></i> <?php echo htmlspecialchars(t('add_anime.btn.add_genre'), ENT_QUOTES, 'UTF-8'); ?>
                             </button>
                         </div>
                     </div>
                     <div id="genre-tags" class="genre-tags">
-                        <!-- Seçilen tür etiketleri JavaScript ile doldurulacak -->
+                        <!-- Secilen tur etiketleri JavaScript ile doldurulacak -->
                     </div>
                     <input type="hidden" name="genres" id="genres-input" value="<?php echo htmlspecialchars(implode(',', $selected_genres)); ?>">
                 </div>
             </div>
 
             <div class="form-group">
-                <label><?php echo htmlspecialchars(t('edit_anime.label.tags'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <label><?php echo htmlspecialchars(t('add_anime.label.tags'), ENT_QUOTES, 'UTF-8'); ?></label>
                 <div class="input-area">
                     <div class="tag-input-wrapper" style="position: relative;">
                         <input type="text" id="tag-input" autocomplete="off" maxlength="150"
-                               placeholder="<?php echo htmlspecialchars(t('edit_anime.placeholder.tag'), ENT_QUOTES, 'UTF-8'); ?>"
+                               placeholder="<?php echo htmlspecialchars(t('add_anime.ph.tag_input'), ENT_QUOTES, 'UTF-8'); ?>"
                                style="width: 100%; padding: 8px;">
                         <div id="tag-suggestions" class="tag-suggestions"
                              style="display: none; position: absolute; top: 100%; left: 0; right: 0;
@@ -800,38 +806,38 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                     </div>
                     <input type="hidden" name="tags" id="tags-input" value="<?php echo htmlspecialchars(implode(',', $selected_tag_names)); ?>">
                     <small class="form-text text-muted">
-                        <?php echo htmlspecialchars(t('edit_anime.help.tags'), ENT_QUOTES, 'UTF-8'); ?>
-                        <a href="manage_tags.php"><?php echo htmlspecialchars(t('edit_anime.link.manage_tags'), ENT_QUOTES, 'UTF-8'); ?></a>
+                        <?php echo htmlspecialchars(t('add_anime.hint.tags'), ENT_QUOTES, 'UTF-8'); ?>
+                        <a href="manage_tags.php"><?php echo htmlspecialchars(t('add_anime.link.manage_tags'), ENT_QUOTES, 'UTF-8'); ?></a>
                     </small>
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="notes"><?php echo htmlspecialchars(t('edit_anime.label.notes'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <label for="notes"><?php echo htmlspecialchars(t('add_anime.label.notes'), ENT_QUOTES, 'UTF-8'); ?></label>
                 <div class="input-area">
                     <textarea name="notes" rows="4"><?php echo htmlspecialchars($anime['notes']); ?></textarea>
-                    <small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.help.notes'), ENT_QUOTES, 'UTF-8'); ?></small>
+                    <small class="form-text text-muted"><?php echo htmlspecialchars(t('add_anime.hint.notes'), ENT_QUOTES, 'UTF-8'); ?></small>
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="series_name"><?php echo htmlspecialchars(t('edit_anime.label.series_name'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <label for="series_name"><?php echo htmlspecialchars(t('add_anime.label.series_name'), ENT_QUOTES, 'UTF-8'); ?></label>
                 <div class="input-area">
-                    <input type="text" name="series_name" id="series_name" list="series-name-list" value="<?php echo htmlspecialchars($anime['series_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" placeholder="<?php echo htmlspecialchars(t('edit_anime.placeholder.series_name'), ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="text" name="series_name" id="series_name" list="series-name-list" value="<?php echo htmlspecialchars($anime['series_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.series_name'), ENT_QUOTES, 'UTF-8'); ?>">
                     <datalist id="series-name-list">
                         <?php foreach ($seriesNames as $sn): ?>
                             <option value="<?php echo htmlspecialchars($sn, ENT_QUOTES, 'UTF-8'); ?>">
                         <?php endforeach; ?>
                     </datalist>
-                    <small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.help.series_name'), ENT_QUOTES, 'UTF-8'); ?></small>
+                    <small class="form-text text-muted"><?php echo htmlspecialchars(t('add_anime.hint.series_name'), ENT_QUOTES, 'UTF-8'); ?></small>
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="media_type"><?php echo htmlspecialchars(t('edit_anime.label.media_type'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <label for="media_type"><?php echo htmlspecialchars(t('add_anime.label.media_type'), ENT_QUOTES, 'UTF-8'); ?></label>
                 <div class="input-area">
                     <select name="media_type" id="media_type">
-                        <option value=""><?php echo htmlspecialchars(t('edit_anime.option.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
+                        <option value=""><?php echo htmlspecialchars(t('add_anime.option.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
                         <option value="TV" <?php echo ($anime['media_type'] ?? '') === 'TV' ? 'selected' : ''; ?>>TV</option>
                         <option value="Film" <?php echo ($anime['media_type'] ?? '') === 'Film' ? 'selected' : ''; ?>>Film</option>
                         <option value="OVA" <?php echo ($anime['media_type'] ?? '') === 'OVA' ? 'selected' : ''; ?>>OVA</option>
@@ -845,7 +851,7 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                 <label for="next_in_series"><?php echo htmlspecialchars(t('edit_anime.label.next_in_series'), ENT_QUOTES, 'UTF-8'); ?></label>
                 <div class="input-area">
                     <select name="next_in_series" id="next_in_series">
-                        <option value=""><?php echo htmlspecialchars(t('edit_anime.option.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
+                        <option value=""><?php echo htmlspecialchars(t('add_anime.option.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
                         <?php foreach ($allAnimes as $a): ?>
                             <option value="<?php echo (int)$a['id']; ?>" <?php echo ((int)($anime['next_in_series'] ?? 0)) === (int)$a['id'] ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($a['title'], ENT_QUOTES, 'UTF-8'); ?>
@@ -854,41 +860,41 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                             </option>
                         <?php endforeach; ?>
                     </select>
-                    <small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.help.next_in_series'), ENT_QUOTES, 'UTF-8'); ?></small>
+                    <small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.hint.next_in_series'), ENT_QUOTES, 'UTF-8'); ?></small>
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="anidb_link"><?php echo htmlspecialchars(t('edit_anime.label.anidb_link'), ENT_QUOTES, 'UTF-8'); ?> <span style="color:#d32f2f;">*</span></label>
+                <label for="anidb_link"><?php echo htmlspecialchars(t('add_anime.label.anidb_link'), ENT_QUOTES, 'UTF-8'); ?> <span style="color:#d32f2f;">*</span></label>
                 <div class="input-area">
-                    <input type="url" name="anidb_link" required placeholder="<?php echo htmlspecialchars(t('edit_anime.placeholder.anidb_link'), ENT_QUOTES, 'UTF-8'); ?>" value="<?php echo htmlspecialchars($anime['anidb_link'] ?? ''); ?>">
+                    <input type="url" name="anidb_link" required placeholder="<?php echo htmlspecialchars(t('add_anime.ph.anidb_link'), ENT_QUOTES, 'UTF-8'); ?>" value="<?php echo htmlspecialchars($anime['anidb_link'] ?? ''); ?>">
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="mal_link"><?php echo htmlspecialchars(t('edit_anime.label.mal_link'), ENT_QUOTES, 'UTF-8'); ?> <span style="color:#d32f2f;">*</span></label>
+                <label for="mal_link"><?php echo htmlspecialchars(t('add_anime.label.mal_link'), ENT_QUOTES, 'UTF-8'); ?> <span style="color:#d32f2f;">*</span></label>
                 <div class="input-area">
-                    <input type="url" name="mal_link" required placeholder="<?php echo htmlspecialchars(t('edit_anime.placeholder.mal_link'), ENT_QUOTES, 'UTF-8'); ?>" value="<?php echo htmlspecialchars($anime['mal_link'] ?? ''); ?>">
+                    <input type="url" name="mal_link" required placeholder="<?php echo htmlspecialchars(t('add_anime.ph.mal_link'), ENT_QUOTES, 'UTF-8'); ?>" value="<?php echo htmlspecialchars($anime['mal_link'] ?? ''); ?>">
                 </div>
             </div>
-			<div class="form-group">
-                <label for="anime_schedule_link"><?php echo htmlspecialchars(t('edit_anime.label.schedule_link'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <div class="form-group">
+                <label for="anime_schedule_link"><?php echo htmlspecialchars(t('add_anime.label.animeschedule_link'), ENT_QUOTES, 'UTF-8'); ?></label>
                 <div class="input-area">
-                    <input type="url" name="anime_schedule_link" id="anime_schedule_link" value="<?php echo htmlspecialchars($anime['anime_schedule_link'] ?? ''); ?>" placeholder="<?php echo htmlspecialchars(t('edit_anime.placeholder.schedule_link'), ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="url" name="anime_schedule_link" id="anime_schedule_link" value="<?php echo htmlspecialchars($anime['anime_schedule_link'] ?? ''); ?>" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.animeschedule_link'), ENT_QUOTES, 'UTF-8'); ?>">
                     <button type="button" id="animeschedule-fetch-btn" onclick="fetchAnimeScheduleData()" style="margin-top:8px; padding:8px 14px; background:#5a4ed1; color:#fff; border:none; border-radius:4px; cursor:pointer;">
-                        <i class="fas fa-magic"></i> <?php echo htmlspecialchars(t('edit_anime.btn.auto_fill'), ENT_QUOTES, 'UTF-8'); ?>
+                        <i class="fas fa-magic"></i> <?php echo htmlspecialchars(t('add_anime.btn.animeschedule_fetch'), ENT_QUOTES, 'UTF-8'); ?>
                     </button>
                     <div id="animeschedule-status" style="margin-top:8px; font-size:13px;"></div>
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="image"><?php echo htmlspecialchars(t('edit_anime.label.upload_image'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <label for="image"><?php echo htmlspecialchars(t('add_anime.label.image'), ENT_QUOTES, 'UTF-8'); ?></label>
                 <div class="input-area">
                     <div class="file-upload">
                         <input type="file" name="image" id="image" accept="image/*" onchange="updateFileName(this)">
                         <label for="image" class="file-upload-label">
-                            <i class="fas fa-upload"></i> <?php echo htmlspecialchars(t('edit_anime.btn.choose_file'), ENT_QUOTES, 'UTF-8'); ?>
+                            <i class="fas fa-upload"></i> <?php echo htmlspecialchars(t('add_anime.btn.choose_file'), ENT_QUOTES, 'UTF-8'); ?>
                         </label>
                         <span class="file-name-display" id="file-name">
                             <?php echo basename($anime['image_path']); ?>
@@ -899,27 +905,39 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
 
             <div class="button-group">
                 <input type="submit" value="<?php echo htmlspecialchars(t('edit_anime.btn.submit'), ENT_QUOTES, 'UTF-8'); ?>" class="submit-button">
-                <a href="index.php" class="cancel-button"><?php echo htmlspecialchars(t('edit_anime.btn.cancel'), ENT_QUOTES, 'UTF-8'); ?></a>
+                <a href="index.php" class="cancel-button"><?php echo htmlspecialchars(t('add_anime.btn.cancel'), ENT_QUOTES, 'UTF-8'); ?></a>
             </div>
         </form>
     </div>
 
     <script>
-        // Tiny PHP-style format helper used by the i18n-translated alerts
-        // and status messages. Walks the string and replaces %s/%d markers
-        // with the provided arguments in order. Mirrors the PHP sprintf()
-        // calls our translation strings were designed around (same %s/%d
-        // tokens, same ordering) so PHP and JS can share dictionary keys.
-        function _fmt(s) {
-            var args = Array.prototype.slice.call(arguments, 1);
-            return String(s).replace(/%[sd]/g, function() {
-                return args.length ? String(args.shift()) : '';
-            });
-        }
+        // JS-side translations - PHP json_encode'dan dolu sabit.
+        // add_anime ile paralel pattern (KARARLAR Bolum 7 JS LANG bloku).
+        // Anahtarlar add_anime.* uzerinden yeniden kullanilir, sadece
+        // aired_sync edit_anime'a ozgu.
+        const LANG = <?php echo json_encode([
+            'no_file'                       => t('add_anime.file.no_file'),
+            'alternative_title_placeholder' => t('add_anime.ph.alternative_title'),
+            'genre_add_failed'              => t('add_anime.js.genre_add_failed'),
+            'create_new_tag_prefix'         => t('add_anime.js.create_new_tag_prefix'),
+            'enter_animeschedule_url'       => t('add_anime.js.enter_animeschedule_url'),
+            'fetching'                      => t('add_anime.js.fetching'),
+            'unknown_error'                 => t('add_anime.js.unknown_error'),
+            'field_not_found_suffix'        => t('add_anime.js.field_not_found_suffix'),
+            'no_empty_fields'               => t('add_anime.js.no_empty_fields'),
+            'fields_filled_prefix'          => t('add_anime.js.fields_filled_prefix'),
+            'request_failed_prefix'         => t('add_anime.js.request_failed_prefix'),
+            'aired_sync_fetching'           => t('edit_anime.js.aired_sync.fetching'),
+            'aired_sync_this_week'          => t('edit_anime.js.aired_sync.this_week'),
+            'aired_sync_last_week'          => t('edit_anime.js.aired_sync.last_week'),
+            'aired_sync_weeks_ago_fmt'      => t('edit_anime.js.aired_sync.weeks_ago_fmt'),
+            'aired_sync_updated_prefix'     => t('edit_anime.js.aired_sync.updated_prefix'),
+            'aired_sync_no_change_prefix'   => t('edit_anime.js.aired_sync.no_change_prefix'),
+        ], JSON_UNESCAPED_UNICODE); ?>;
 
         function updateFileName(input) {
             const fileName = input.files[0]?.name;
-            document.getElementById('file-name').textContent = fileName || <?php echo json_encode(t('edit_anime.placeholder.no_file'), JSON_UNESCAPED_UNICODE); ?>;
+            document.getElementById('file-name').textContent = fileName || LANG.no_file;
         }
 
         function addAlternativeTitle() {
@@ -927,7 +945,7 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
             const newField = document.createElement('div');
             newField.className = 'field-group';
             newField.innerHTML = `
-                <input type="text" name="alternative_titles[]" placeholder="<?php echo htmlspecialchars(t('edit_anime.placeholder.alt_title'), ENT_QUOTES, 'UTF-8'); ?>">
+                <input type="text" name="alternative_titles[]" placeholder="${LANG.alternative_title_placeholder}">
                 <button type="button" class="remove-button" onclick="removeField(this)">
                     <i class="fas fa-times"></i>
                 </button>
@@ -1020,7 +1038,7 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
             }
         }
 
-        // Tür yönetimi için değişkenler ve fonksiyonlar
+        // Tur yonetimi icin degiskenler ve fonksiyonlar
         let selectedGenres = <?php echo json_encode($selected_genres); ?>;
 
         function addSelectedGenre(select) {
@@ -1035,7 +1053,7 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
         function addNewGenre() {
             const newGenreInput = document.getElementById('new-genre');
             const genre = newGenreInput.value.trim();
-            
+
             if (genre && !selectedGenres.includes(genre)) {
                 // CSRF token formdaki gizli input'tan al, fetch body'sine ekle.
                 // add_genre.php server tarafinda dogruluyor.
@@ -1054,13 +1072,13 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                         const select = document.getElementById('genre-select');
                         const option = new Option(genre, genre);
                         select.add(option);
-                        
+
                         selectedGenres.push(genre);
                         updateGenreTags();
-                        
+
                         newGenreInput.value = '';
                     } else {
-                        alert(<?php echo json_encode(t('edit_anime.js.genre_add_failed'), JSON_UNESCAPED_UNICODE); ?>);
+                        alert(LANG.genre_add_failed);
                     }
                 });
             }
@@ -1074,7 +1092,7 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
         function updateGenreTags() {
             const container = document.getElementById('genre-tags');
             const input = document.getElementById('genres-input');
-            
+
             container.innerHTML = selectedGenres.map(genre => `
                 <div class="genre-tag">
                     ${genre}
@@ -1083,7 +1101,7 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                     </button>
                 </div>
             `).join('');
-            
+
             input.value = selectedGenres.join(',');
         }
 
@@ -1127,7 +1145,7 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
             if (!exact && !alreadySelected) {
                 html += `<div class="tag-suggestion-item tag-suggestion-new" data-name="${escapeHtml(query)}"
                               style="padding: 6px 10px; cursor: pointer; background: #f0f8ff; font-style: italic;">
-                              + Yeni cumle olustur: "${escapeHtml(query)}"</div>`;
+                              ${LANG.create_new_tag_prefix} "${escapeHtml(query)}"</div>`;
             }
 
             if (html === '') {
@@ -1204,20 +1222,20 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
             }
         });
 
-        // Sayfa yüklendiğinde tür etiketlerini göster
+        // Sayfa yuklendiginde tur etiketlerini goster
         document.addEventListener('DOMContentLoaded', function() {
             updateGenreTags();
             updateSelectedTags();
         });
 
-        // Sayfa yüklendiğinde çalışacak fonksiyonlar
+        // Sayfa yuklendiginde calisacak fonksiyonlar
 document.addEventListener('DOMContentLoaded', function() {
     updateGenreTags();
-    
-    // Yayın durumu "Yayın Tamamlandı" ise, ilgili alanları devre dışı bırak
+
+    // Yayin durumu "Yayin Tamamlandi" ise, ilgili alanlari devre disi birak
     const status = "<?php echo $anime['status']; ?>";
     if (status === 'Yayın Tamamlandı') {
-        // Yayın detayları bölümünü gizle
+        // Yayin detaylari bolumunu gizle
         document.getElementById('broadcast-details').style.display = 'none';
     }
 });
@@ -1236,7 +1254,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // new install. If the user explicitly picked a different timezone
     // (Europe/Istanbul, UTC, etc.) we leave it alone.
     //
-    // status: if the anime is locked as "Yayın Tamamlandı" the form
+    // status: if the anime is locked as "Yayin Tamamlandi" the form
     // uses a readonly text input + a hidden input both named "status".
     // querySelector picks the first one (the readonly text), and
     // assigning to its .value does not change what the form submits
@@ -1251,7 +1269,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const url = (urlInput.value || '').trim();
         if (url === '') {
             statusDiv.style.color = '#c0392b';
-            statusDiv.textContent = <?php echo json_encode(t('edit_anime.js.url_required'), JSON_UNESCAPED_UNICODE); ?>;
+            statusDiv.textContent = LANG.enter_animeschedule_url;
             return;
         }
 
@@ -1260,7 +1278,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         btn.disabled = true;
         statusDiv.style.color = '#555';
-        statusDiv.textContent = <?php echo json_encode(t('edit_anime.js.fetching_schedule'), JSON_UNESCAPED_UNICODE); ?>;
+        statusDiv.textContent = LANG.fetching;
 
         const formData = new FormData();
         formData.append('csrf_token', csrfToken);
@@ -1274,7 +1292,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (!data.success) {
                 statusDiv.style.color = '#c0392b';
-                statusDiv.textContent = data.error || <?php echo json_encode(t('edit_anime.js.unknown_error'), JSON_UNESCAPED_UNICODE); ?>;
+                statusDiv.textContent = data.error || LANG.unknown_error;
                 return;
             }
 
@@ -1287,7 +1305,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const value = fields[fieldName];
                 const el = document.querySelector('[name="' + fieldName + '"]');
                 if (!el) {
-                    skipped.push(_fmt(<?php echo json_encode(t('edit_anime.js.field_not_found'), JSON_UNESCAPED_UNICODE); ?>, fieldName));
+                    skipped.push(fieldName + ' ' + LANG.field_not_found_suffix);
                     continue;
                 }
 
@@ -1313,15 +1331,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (filled.length === 0) {
                 statusDiv.style.color = '#888';
-                statusDiv.textContent = <?php echo json_encode(t('edit_anime.js.no_empty_fields'), JSON_UNESCAPED_UNICODE); ?>;
+                statusDiv.textContent = LANG.no_empty_fields;
             } else {
                 statusDiv.style.color = '#27ae60';
-                statusDiv.textContent = _fmt(<?php echo json_encode(t('edit_anime.js.fields_filled'), JSON_UNESCAPED_UNICODE); ?>, filled.length, filled.join(', '));
+                statusDiv.textContent = LANG.fields_filled_prefix + ' ' + filled.join(', ') + '.';
             }
         })
         .catch(err => {
             statusDiv.style.color = '#c0392b';
-            statusDiv.textContent = _fmt(<?php echo json_encode(t('edit_anime.js.request_failed'), JSON_UNESCAPED_UNICODE); ?>, err.message);
+            statusDiv.textContent = LANG.request_failed_prefix + ' ' + err.message;
         })
         .finally(() => {
             btn.disabled = false;
@@ -1354,7 +1372,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         btn.disabled = true;
         statusDiv.style.color = '#555';
-        statusDiv.textContent = <?php echo json_encode(t('edit_anime.js.fetching_aired'), JSON_UNESCAPED_UNICODE); ?>;
+        statusDiv.textContent = LANG.aired_sync_fetching;
 
         const formData = new FormData();
         formData.append('csrf_token', csrfToken);
@@ -1368,7 +1386,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (!data.success) {
                 statusDiv.style.color = '#c0392b';
-                statusDiv.textContent = data.error || <?php echo json_encode(t('edit_anime.js.unknown_error'), JSON_UNESCAPED_UNICODE); ?>;
+                statusDiv.textContent = data.error || LANG.unknown_error;
                 return;
             }
 
@@ -1384,23 +1402,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
             let weekNote = '';
             if (offset === 0) {
-                weekNote = <?php echo json_encode(t('edit_anime.js.this_week'), JSON_UNESCAPED_UNICODE); ?>;
+                weekNote = LANG.aired_sync_this_week;
             } else if (offset === 1) {
-                weekNote = <?php echo json_encode(t('edit_anime.js.last_week'), JSON_UNESCAPED_UNICODE); ?>;
+                weekNote = LANG.aired_sync_last_week;
             } else {
-                weekNote = _fmt(<?php echo json_encode(t('edit_anime.js.weeks_ago'), JSON_UNESCAPED_UNICODE); ?>, offset);
+                weekNote = LANG.aired_sync_weeks_ago_fmt.replace('%d', offset);
             }
 
             statusDiv.style.color = '#27ae60';
             if (data.changed) {
-                statusDiv.textContent = _fmt(<?php echo json_encode(t('edit_anime.js.updated_value'), JSON_UNESCAPED_UNICODE); ?>, (oldVal === null ? '?' : oldVal), newVal, weekNote);
+                statusDiv.textContent = LANG.aired_sync_updated_prefix + ' ' + (oldVal === null ? '?' : oldVal) + ' -> ' + newVal + weekNote;
             } else {
-                statusDiv.textContent = _fmt(<?php echo json_encode(t('edit_anime.js.already_up_to_date'), JSON_UNESCAPED_UNICODE); ?>, newVal, weekNote);
+                statusDiv.textContent = LANG.aired_sync_no_change_prefix + ' ' + newVal + weekNote;
             }
         })
         .catch(err => {
             statusDiv.style.color = '#c0392b';
-            statusDiv.textContent = _fmt(<?php echo json_encode(t('edit_anime.js.request_failed'), JSON_UNESCAPED_UNICODE); ?>, err.message);
+            statusDiv.textContent = LANG.request_failed_prefix + ' ' + err.message;
         })
         .finally(() => {
             btn.disabled = false;
