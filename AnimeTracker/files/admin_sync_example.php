@@ -45,8 +45,8 @@ require_once __DIR__ . '/functions.php';
 // --- Configuration -------------------------------------------------------
 
 // CHANGE THIS: Your server's admin_push.php URL.
-// Example: 'https://animetracker.yourdomain.com/admin_push.php'
-const ADMIN_PUSH_URL = 'https://animetracker.yourdomain.com/admin_push.php';
+// Example: 'https://www.yourdomain.com/admin_push.php' or subdomain
+const ADMIN_PUSH_URL = 'https://wwww.yourdomain.com/admin_push.php'
 
 // Local-only: refuse requests that don't come from the loopback interface.
 // This is an admin tool - nobody remote should be able to reach it.
@@ -107,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['do_push'])) {
             $animeRows = $pdo->query("
                 SELECT id, title, alternative_titles, status,
                        total_episodes, aired_episodes,
-                       synopsis, release_date,
+                       synopsis, release_date, end_date,
                        anidb_link, mal_link, anime_schedule_link,
                        episode_interval, broadcast_day, broadcast_time, broadcast_timezone,
                        series_name, media_type,

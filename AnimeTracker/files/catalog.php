@@ -19,9 +19,9 @@
  *   }
  *
  * Personal columns (watched_episodes, watch_status, notes,
- * next_episode_date) are explicitly EXCLUDED from the SELECT -
- * they would be meaningless to other users and including them
- * would leak the admin's private watching data.
+ * next_episode_date, user_synopsis) are explicitly EXCLUDED from
+ * the SELECT - they would be meaningless to other users and
+ * including them would leak the admin's private watching data.
  *
  * image_filename is a derived field - it's the basename of the
  * admin's image_path, sent so that clients can fetch the poster
@@ -31,6 +31,13 @@
  * Cached aggressively: catalog_cache.json is written on first
  * request and served as-is for 1 hour. This is fine because the
  * catalog changes rarely (new animes added manually by the admin).
+ *
+ * 0.6.2 schema update (26 May 2026):
+ *   - 'genres' text column removed from animes - now backed by
+ *     anime_genres join table + master genres table. We rebuild
+ *     the CSV wire format from that join, same pattern as tags.
+ *   - 'end_date' DATE column added (last episode air date). Sent
+ *     to clients as a regular field.
  */
 
 // --- Config -------------------------------------------------------------
@@ -82,6 +89,11 @@ try {
     // with image_filename (basename only) so clients can fetch posters
     // from the public /uploads/ directory without knowing our filesystem
     // layout.
+    //
+    // 0.6.2: 'genres' column removed from this SELECT - it no longer
+    // exists in animes. Built separately from anime_genres + genres
+    // join below and attached as CSV per anime (wire format unchanged).
+    // 'end_date' column added.
     $sql = "
         SELECT
             id,
@@ -90,9 +102,9 @@ try {
             status,
             total_episodes,
             aired_episodes,
-            genres,
             synopsis,
             release_date,
+            end_date,
             anidb_link,
             mal_link,
             anime_schedule_link,
@@ -157,6 +169,34 @@ try {
     foreach ($animes as &$a) {
         $aid = (int)$a['id'];
         $a['tags'] = $tagsByAnime[$aid] ?? [];
+    }
+    unset($a);
+
+    // Genres (canonical taxonomy).
+    //
+    // 0.6.2 schema: genres live in anime_genres + master genres tables.
+    // Build a single in-memory map of anime_id -> [name, name, ...]
+    // by JOINing once, then attach each anime's genres as a
+    // comma-separated string. CSV format is the wire format clients
+    // still expect (catalog_import.php parses CSV). Mirror of the
+    // admin_sync.php pre-payload logic.
+    $genreLinkRows = $pdo->query("
+        SELECT ag.anime_id, g.name
+        FROM anime_genres ag
+        INNER JOIN genres g ON g.id = ag.genre_id
+        ORDER BY ag.anime_id, g.name
+    ")->fetchAll(PDO::FETCH_ASSOC);
+
+    $genresByAnime = [];
+    foreach ($genreLinkRows as $row) {
+        $aid = (int)$row['anime_id'];
+        $genresByAnime[$aid][] = $row['name'];
+    }
+
+    foreach ($animes as &$a) {
+        $aid = (int)$a['id'];
+        $names = $genresByAnime[$aid] ?? [];
+        $a['genres'] = implode(',', $names);
     }
     unset($a);
 

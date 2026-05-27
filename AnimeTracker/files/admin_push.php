@@ -34,8 +34,17 @@
  *   X-Admin-Signature: <hex HMAC-SHA256 of timestamp + "|" + raw body>
  *
  * Response format (JSON):
- *   success: { status: "ok", inserted: N, updated: N, markers: N }
+ *   success: { status: "ok", inserted: N, updated: N, markers: N,
+ *              tags: N, genres: N }
  *   error:   { status: "error", message: "..." }
+ *
+ * 0.6.2 update (26 May 2026):
+ *   Old schema had a text column animes.genres (CSV string). New schema
+ *   (since 0.5.4 / canonicalized 26 May 2026) uses an anime_genres join
+ *   table with FK to a master genres table. This endpoint now resolves
+ *   the incoming CSV from $a['genres'] into rows in genres + anime_genres,
+ *   mirroring the tag pattern. The wire format from admin_sync.php is
+ *   still CSV - kept stable for backwards compatibility.
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -195,11 +204,14 @@ try {
 //   inserted  - new animes added to server
 //   updated   - existing animes whose metadata changed
 //   markers   - chronology markers inserted
+//   tags      - anime_tags link rows inserted (recommendation sentences)
+//   genres    - anime_genres link rows inserted (canonical taxonomy)
 $stats = [
     'inserted' => 0,
     'updated'  => 0,
     'markers'  => 0,
     'tags'     => 0,
+    'genres'   => 0,
 ];
 
 // Map: local admin ID -> server ID (needed to translate chronology markers)
@@ -221,6 +233,10 @@ try {
     // private even on their own server. image_path is kept locally because
     // the filesystem path means nothing on another machine (the actual files
     // have to be uploaded via FTP to the server uploads/ dir separately).
+    //
+    // 0.6.2 schema update: 'genres' text column removed (now in
+    // anime_genres join table - handled separately below, same pattern
+    // as tags).
     $updateSql = "
         UPDATE animes SET
             title = :title,
@@ -228,9 +244,9 @@ try {
             status = :status,
             total_episodes = :total_episodes,
             aired_episodes = :aired_episodes,
-            genres = :genres,
             synopsis = :synopsis,
             release_date = :release_date,
+            end_date = :end_date,
             anidb_link = :anidb_link,
             mal_link = :mal_link,
             anime_schedule_link = :anime_schedule_link,
@@ -254,20 +270,20 @@ try {
     $insertSql = "
         INSERT INTO animes (
             title, alternative_titles, status, total_episodes, aired_episodes,
-            watched_episodes, notes, genres, image_path,
+            watched_episodes, notes, image_path,
             watch_status, next_episode_date,
             anidb_link, mal_link, anime_schedule_link,
             episode_interval, broadcast_day, broadcast_time, broadcast_timezone,
-            synopsis, release_date,
+            synopsis, release_date, end_date,
             series_name, media_type,
             mal_id, anidb_id, catalog_uuid, source
         ) VALUES (
             :title, :alternative_titles, :status, :total_episodes, :aired_episodes,
-            0, NULL, :genres, :image_path,
+            0, NULL, :image_path,
             'PlanToWatch', NULL,
             :anidb_link, :mal_link, :anime_schedule_link,
             :episode_interval, :broadcast_day, :broadcast_time, :broadcast_timezone,
-            :synopsis, :release_date,
+            :synopsis, :release_date, :end_date,
             :series_name, :media_type,
             :mal_id, :anidb_id, :catalog_uuid, 'catalog'
         )
@@ -301,9 +317,9 @@ try {
             ':status'              => $a['status']              ?? 'Yayin Tamamlandi',
             ':total_episodes'      => $a['total_episodes']      ?? null,
             ':aired_episodes'      => $a['aired_episodes']      ?? null,
-            ':genres'              => $a['genres']              ?? null,
             ':synopsis'            => $a['synopsis']            ?? null,
             ':release_date'        => $a['release_date']        ?? null,
+            ':end_date'            => $a['end_date']            ?? null,
             ':anidb_link'          => $a['anidb_link']          ?? null,
             ':mal_link'            => $a['mal_link']            ?? null,
             ':anime_schedule_link' => $a['anime_schedule_link'] ?? null,
@@ -464,6 +480,81 @@ try {
         }
     }
 
+    // Genres (canonical taxonomy).
+    //
+    // 0.6.2 update (26 May 2026): server schema migrated from a text
+    // column animes.genres (CSV string) to an anime_genres join table
+    // backed by a master genres table. The wire format from admin_sync
+    // is still CSV in $a['genres'] (kept stable for backwards
+    // compatibility). Here we parse the CSV, resolve each name to a
+    // genre.id (creating new master rows on demand), and rewrite the
+    // anime's anime_genres links from scratch - same pattern as tags.
+    //
+    // Two-step process:
+    //   1. Resolve each genre name to a server-side genres.id via
+    //      findOrCreate logic (race-safe via UNIQUE on genres.name).
+    //   2. For every anime synced this round, DELETE its current
+    //      anime_genres rows and INSERT the fresh set.
+    $findGenreStmt    = $pdo->prepare("SELECT id FROM genres WHERE name = ? LIMIT 1");
+    $insertGenreStmt  = $pdo->prepare("INSERT INTO genres (name) VALUES (?)");
+    $deleteGenreLinkStmt = $pdo->prepare("DELETE FROM anime_genres WHERE anime_id = ?");
+    $insertGenreLinkStmt = $pdo->prepare("INSERT INTO anime_genres (anime_id, genre_id) VALUES (?, ?)");
+
+    $resolveGenreId = function($name) use ($findGenreStmt, $insertGenreStmt, $pdo) {
+        $name = trim((string)$name);
+        if ($name === '') return 0;
+        if (mb_strlen($name) > 100) {
+            $name = mb_substr($name, 0, 100);
+        }
+        $findGenreStmt->execute([$name]);
+        $id = $findGenreStmt->fetchColumn();
+        $findGenreStmt->closeCursor();
+        if ($id !== false) {
+            return (int)$id;
+        }
+        try {
+            $insertGenreStmt->execute([$name]);
+            return (int)$pdo->lastInsertId();
+        } catch (PDOException $e) {
+            if ($e->getCode() === '23000') {
+                $findGenreStmt->execute([$name]);
+                $existingId = $findGenreStmt->fetchColumn();
+                $findGenreStmt->closeCursor();
+                if ($existingId !== false) {
+                    return (int)$existingId;
+                }
+            }
+            throw $e;
+        }
+    };
+
+    foreach ($animes as $a) {
+        $adminId = isset($a['id']) ? (int)$a['id'] : null;
+        if ($adminId === null) continue;
+        $serverAnimeId = $adminIdToServerId[$adminId] ?? null;
+        if ($serverAnimeId === null) continue;
+
+        // Wire format: CSV string. Empty/missing -> no genres for this anime.
+        $genresCsv = $a['genres'] ?? '';
+        $genreNames = [];
+        if (is_string($genresCsv) && $genresCsv !== '') {
+            $genreNames = array_map('trim', explode(',', $genresCsv));
+            $genreNames = array_filter($genreNames, function($n) { return $n !== ''; });
+        }
+
+        // Replace this anime's genre set
+        $deleteGenreLinkStmt->execute([$serverAnimeId]);
+        $seenGenre = [];
+        foreach ($genreNames as $gn) {
+            $genreId = $resolveGenreId($gn);
+            if ($genreId <= 0) continue;
+            if (isset($seenGenre[$genreId])) continue;  // dedup within payload
+            $seenGenre[$genreId] = true;
+            $insertGenreLinkStmt->execute([$serverAnimeId, $genreId]);
+            $stats['genres']++;
+        }
+    }
+
     $pdo->commit();
 
     // Invalidate the catalog cache so next client sync sees fresh data
@@ -486,4 +577,5 @@ echo json_encode([
     'updated'  => $stats['updated'],
     'markers'  => $stats['markers'],
     'tags'     => $stats['tags'],
+    'genres'   => $stats['genres'],
 ]);
