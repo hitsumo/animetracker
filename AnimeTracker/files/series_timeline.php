@@ -18,6 +18,8 @@
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
 
+lang_init($pdo);
+
 $id = (int)($_GET['id'] ?? 0);
 if ($id <= 0) {
     header('Location: index.php');
@@ -92,10 +94,10 @@ function seriesMediaIcon($type) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="<?php echo current_lang(); ?>">
 <head>
     <meta charset="UTF-8">
-    <title><?php echo htmlspecialchars($seriesName); ?> - Seri Kronolojisi</title>
+    <title><?php echo htmlspecialchars($seriesName); ?> - <?php echo htmlspecialchars(t('series_timeline.title_suffix'), ENT_QUOTES, 'UTF-8'); ?></title>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
@@ -294,8 +296,8 @@ function seriesMediaIcon($type) {
 <div class="st-container">
     <div class="st-header">
         <h1><?php echo htmlspecialchars($seriesName); ?></h1>
-        <div class="subtitle">Seri Kronolojisi</div>
-        <div class="count"><?php echo count($chain); ?> anime</div>
+        <div class="subtitle"><?php echo htmlspecialchars(t('series_timeline.subtitle'), ENT_QUOTES, 'UTF-8'); ?></div>
+        <div class="count"><?php echo htmlspecialchars(sprintf(t('series_timeline.count'), count($chain)), ENT_QUOTES, 'UTF-8'); ?></div>
     </div>
 
     <div class="st-timeline">
@@ -352,7 +354,7 @@ function seriesMediaIcon($type) {
 
     <div class="st-back">
         <a href="anime_details.php?id=<?php echo $currentAnimeId; ?>">
-            <i class="fas fa-arrow-left"></i> Detaya Don
+            <i class="fas fa-arrow-left"></i> <?php echo htmlspecialchars(t('series_timeline.back_to_details'), ENT_QUOTES, 'UTF-8'); ?>
         </a>
     </div>
 </div>

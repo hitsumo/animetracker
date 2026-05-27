@@ -21,6 +21,8 @@
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
 
+lang_init($pdo);
+
 $id = (int)($_GET['id'] ?? 0);
 if ($id <= 0) {
     header('Location: index.php');
@@ -125,10 +127,10 @@ function getMediaTypeIcon($type) {
 ?>
 
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="<?php echo current_lang(); ?>">
 <head>
     <meta charset="UTF-8">
-    <title><?php echo htmlspecialchars($anime['title']); ?> - Kronoloji</title>
+    <title><?php echo htmlspecialchars($anime['title']); ?> - <?php echo htmlspecialchars(t('chronology.title_suffix'), ENT_QUOTES, 'UTF-8'); ?></title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
@@ -138,7 +140,7 @@ function getMediaTypeIcon($type) {
     <div class="chronology-container">
         <h1 class="chronology-title">
             <?php echo htmlspecialchars($anime['title']); ?>
-            <small>Kronolojik İzleme Sırası</small>
+            <small><?php echo htmlspecialchars(t('chronology.subtitle'), ENT_QUOTES, 'UTF-8'); ?></small>
         </h1>
 
         <div class="chronology-timeline">
@@ -150,13 +152,13 @@ function getMediaTypeIcon($type) {
                     $statusClass = $status;
                     
                     if ($status === 'watched') {
-                        $statusText = 'Izlendi';
+                        $statusText = t('chronology.status.watched');
                         $statusCss = 'done';
                     } elseif ($status === 'watching') {
-                        $statusText = 'Izleniyor (' . $watched . '/' . $endLabel . ')';
+                        $statusText = sprintf(t('chronology.episode.range.watching'), $watched, $endLabel);
                         $statusCss = 'active';
                     } else {
-                        $statusText = 'Sirada';
+                        $statusText = t('chronology.status.upcoming');
                         $statusCss = 'pending';
                     }
                     ?>
@@ -165,11 +167,11 @@ function getMediaTypeIcon($type) {
                         <span class="chrono-type-icon">&#128250;</span>
                         <span class="chrono-label">
                             <?php if ($item['end'] === null): ?>
-                                Bolum <?php echo $item['start']; ?>
+                                <?php echo htmlspecialchars(sprintf(t('chronology.episode.range.single'), $item['start']), ENT_QUOTES, 'UTF-8'); ?>
                             <?php elseif ($item['start'] == $item['end']): ?>
-                                Bolum <?php echo $item['start']; ?>
+                                <?php echo htmlspecialchars(sprintf(t('chronology.episode.range.single'), $item['start']), ENT_QUOTES, 'UTF-8'); ?>
                             <?php else: ?>
-                                Bolum <?php echo $item['start']; ?> - <?php echo $item['end']; ?>
+                                <?php echo htmlspecialchars(sprintf(t('chronology.episode.range.multi'), $item['start'], $item['end']), ENT_QUOTES, 'UTF-8'); ?>
                             <?php endif; ?>
                         </span>
                         <?php if ($status === 'watching'): ?>
@@ -177,7 +179,7 @@ function getMediaTypeIcon($type) {
                                 <?php
                                 $rangeTotal = ($item['end'] !== null) ? ($item['end'] - $item['start'] + 1) : '?';
                                 $rangeDone = $watched - $item['start'] + 1;
-                                echo $rangeDone . ' / ' . $rangeTotal . ' bolum izlendi';
+                                echo htmlspecialchars(sprintf(t('chronology.episode.progress'), $rangeDone, (string)$rangeTotal), ENT_QUOTES, 'UTF-8');
                                 ?>
                             </div>
                         <?php endif; ?>
@@ -192,11 +194,11 @@ function getMediaTypeIcon($type) {
                     // disinda "kesin TR enum karsilastirma" da arananacak.
                     if ($item['watch_status'] === 'Watched') {
                         $statusClass = 'watched';
-                        $statusText = 'Izlendi';
+                        $statusText = htmlspecialchars(t('chronology.status.watched'));
                         $statusCss = 'done';
                     } elseif ($item['watch_status'] === 'Watching') {
                         $statusClass = 'watching';
-                        $statusText = 'Izleniyor';
+                        $statusText = htmlspecialchars(t('chronology.status.watching'));
                         $statusCss = 'active';
                     } else {
                         $statusClass = 'upcoming';
@@ -225,7 +227,7 @@ function getMediaTypeIcon($type) {
 
         <div class="chronology-back">
             <a href="anime_details.php?id=<?php echo (int)$anime['id']; ?>" class="back-button">
-                <i class="fas fa-arrow-left"></i> Detaya Don
+                <i class="fas fa-arrow-left"></i> <?php echo htmlspecialchars(t('chronology.back_to_details'), ENT_QUOTES, 'UTF-8'); ?>
             </a>
         </div>
     </div>

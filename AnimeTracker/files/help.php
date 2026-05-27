@@ -26,15 +26,20 @@
  * sync davranisi, kisisel alanlar (Notlar / Kisisel Konu), oneri
  * sistemi ve veri guvenligi konularinda kullaniciyi bilgilendirir.
  *
- * Statik icerik - ne DB baglantisi ne PHP mantigi gerektirir.
+ * Statik icerik - 0.6.3 sonrasi i18n icin db.php + functions.php
+ * yuklenir, lang_init() ile dil baslatilir. Aksi halde statik.
  * Menuden veya Hakkinda sayfasindan linklenebilir.
  */
+
+require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/functions.php';
+lang_init($pdo);
 ?>
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="<?php echo current_lang(); ?>">
 <head>
     <meta charset="UTF-8">
-    <title>Yardım - Anime Tracker</title>
+    <title><?php echo htmlspecialchars(t('help.page_title'), ENT_QUOTES, 'UTF-8'); ?></title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
@@ -156,520 +161,361 @@
 </head>
 <body>
 <div class="help-container">
-    <a href="index.php" class="back-link">&larr; Ana Sayfaya Dön</a>
+    <a href="index.php" class="back-link"><?php echo t('help.back_to_home'); ?></a>
 
-    <h1><i class="fas fa-question-circle icon-inline"></i> Yardım</h1>
+    <h1><i class="fas fa-question-circle icon-inline"></i> <?php echo htmlspecialchars(t('help.heading'), ENT_QUOTES, 'UTF-8'); ?></h1>
 
     <p>
-        Anime Tracker'in nasil calistigi, hangi alanlarin neye yaradigi ve
-        neye dikkat etmeniz gerektigi burada. Bir ozelligi merak
-        ediyorsaniz ilgili bolumu okuyun.
+        <?php echo t('help.intro'); ?>
     </p>
 
     <div class="toc">
-        <strong>Icindekiler:</strong>
+        <strong><?php echo htmlspecialchars(t('help.toc.heading'), ENT_QUOTES, 'UTF-8'); ?></strong>
         <ul style="margin: 8px 0 0;">
-            <li><a href="#alanlar">Anime Alanlari — Hangisi Ne Yapar?</a></li>
-            <li><a href="#izleme-durumlari">Izleme Durumlari — Dort Secenek</a></li>
-            <li><a href="#hizli-butonlar">Hizli Izleme Butonlari (+/-)</a></li>
-            <li><a href="#sync">Katalog Sync — Nasil Calisir?</a></li>
-            <li><a href="#kisisel-alanlar">Kisisel Alanlar — Notlar ve Kisisel Konu</a></li>
-            <li><a href="#oneri">Ne İzlesem? — Öneri Sistemi</a></li>
-            <li><a href="#kronoloji">Seriler ve Kronoloji</a></li>
-            <li><a href="#silme-uyarilari">Silme Uyarilari</a></li>
-            <li><a href="#guncelleme">Guncelleme Sistemi</a></li>
-            <li><a href="#saat-dilimi">Saat Dilimi (TZ)</a></li>
+            <li><a href="#alanlar"><?php echo htmlspecialchars(t('help.toc.fields'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+            <li><a href="#izleme-durumlari"><?php echo htmlspecialchars(t('help.toc.statuses'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+            <li><a href="#hizli-butonlar"><?php echo htmlspecialchars(t('help.toc.quick_buttons'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+            <li><a href="#sync"><?php echo htmlspecialchars(t('help.toc.sync'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+            <li><a href="#kisisel-alanlar"><?php echo htmlspecialchars(t('help.toc.personal'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+            <li><a href="#oneri"><?php echo htmlspecialchars(t('help.toc.recommendations'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+            <li><a href="#kronoloji"><?php echo htmlspecialchars(t('help.toc.chronology'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+            <li><a href="#silme-uyarilari"><?php echo htmlspecialchars(t('help.toc.deletion'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+            <li><a href="#guncelleme"><?php echo htmlspecialchars(t('help.toc.updates'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+            <li><a href="#saat-dilimi"><?php echo htmlspecialchars(t('help.toc.timezone'), ENT_QUOTES, 'UTF-8'); ?></a></li>
         </ul>
     </div>
 
     <!-- =============================================================== -->
-    <h2 id="alanlar">Anime Alanlari — Hangisi Ne Yapar?</h2>
+    <h2 id="alanlar"><?php echo htmlspecialchars(t('help.fields.h2'), ENT_QUOTES, 'UTF-8'); ?></h2>
 
     <p>
-        Anime ekleme ve duzenleme ekranindaki alanlar iki gruba ayrilir:
-        <strong>katalog alanlari</strong> (sunucudan gelir, sync ile
-        guncellenir) ve <strong>kisisel alanlar</strong> (size ozel,
-        hicbir zaman sunucuya gitmez).
+        <?php echo t('help.fields.intro'); ?>
     </p>
 
-    <h3><i class="fas fa-cloud icon-inline"></i> Katalog Alanlari (sync edilir)</h3>
+    <h3><?php echo t('help.fields.catalog.h3'); ?></h3>
     <ul>
-        <li><strong>Anime Ismi, Alternatif Isimler</strong></li>
-        <li><strong>Konu</strong> — Animenin resmi ozeti</li>
-        <li><strong>Turler</strong> — Aksiyon, Komedi, vb.</li>
-        <li><strong>Cumleler (Etiketler)</strong> — "Ne İzlesem?" sistemi icin</li>
-        <li><strong>Yayin durumu, bolum sayisi, yayin gun/saati</strong></li>
-        <li><strong>MAL / AniDB / AnimeSchedule linkleri</strong></li>
-        <li><strong>Seri bilgileri</strong> (seri adi, medya turu, sonraki seri)</li>
+        <?php echo t('help.fields.catalog.list'); ?>
     </ul>
     <p>
-        Bu alanlari elle degistirirseniz, bir sonraki sync'te
-        <strong>uzerine yazilir</strong> (sunucunun dedigi gecer).
+        <?php echo t('help.fields.catalog.note'); ?>
     </p>
 
-    <h3><i class="fas fa-user icon-inline"></i> Kisisel Alanlar (sync edilmez)</h3>
+    <h3><?php echo t('help.fields.personal.h3'); ?></h3>
     <ul>
-        <li><strong>Izlenen Bolum sayisi</strong></li>
-        <li><strong>Izleme Durumu</strong> (Izlendi / Izleniyor / Izlenme Planlandi / Izleme Ertelendi) — listedeki <a href="#hizli-butonlar"><code>+/-</code> butonlariyla otomatik degisebilir</a></li>
-        <li><strong>Notlar</strong> — Size ozel hatirlatmalar, yorumlar</li>
-        <li><strong>Kisisel Konu</strong> — Kendi yorumunuz / aciklamaniz</li>
-        <li><strong>Poster (kendi yuklediyseniz)</strong></li>
-        <li><strong>Sonraki bolum tarihi</strong> (lokal hesap)</li>
+        <?php echo t('help.fields.personal.list'); ?>
     </ul>
     <p>
-        Bu alanlara sunucu <strong>dokunmaz</strong>. Istediginiz kadar
-        yazabilir, degistirebilirsiniz.
+        <?php echo t('help.fields.personal.note'); ?>
     </p>
 
     <!-- =============================================================== -->
-    <h2 id="izleme-durumlari">Izleme Durumlari</h2>
+    <h2 id="izleme-durumlari"><?php echo htmlspecialchars(t('help.statuses.h2'), ENT_QUOTES, 'UTF-8'); ?></h2>
 
     <p>
-        Her animenin bir <strong>Izleme Durumu</strong> vardir. Dort secenek
-        farkli izleme asamalarini karsilar:
+        <?php echo t('help.statuses.intro'); ?>
     </p>
 
     <ul>
-        <li><strong>Izlenme Planlandi</strong> — Henuz baslamadiniz, ileride
-        izlemek istiyorsunuz. Izlenen bolum: 0.</strong></li>
-        <li><strong>Izleniyor</strong> — Aktif olarak izliyorsunuz. Izlenen
-        bolum tavan ile sifir arasinda bir yerde.</li>
-        <li><strong>Izlendi</strong> — Bittirdiginiz animeler. Izlenen
-        bolum = toplam bolum.</li>
-        <li><strong>Izleme Ertelendi</strong> — Izlemeye basladiniz ama ara
-        verdiniz, ilerlemeniz korunsun. <em>Planlandi'dan farki:</em>
-        Planlandi "henuz baslamadim" demektir (izlenen=0), Ertelendi
-        "biraz izledim, suanda ara veriyorum" demektir (izlenen>0).</li>
+        <?php echo t('help.statuses.list'); ?>
     </ul>
 
     <p>
-        <strong>Ne zaman Ertelendi kullanmali?</strong> Bir animeyi 6 ay
-        sonra geri donmek uzere yarida birakirsaniz, durumu Ertelendi
-        yapin. Boylece "Izleniyor" listenizdeki aktif izleme akisi
-        kalabaliklasmaz, ama Planlandi'ya da dusmez (cunku ilerlemeniz
-        var). Hazir oldugunuzda <code>+</code> basarsiniz, sistem otomatik
-        olarak Izleniyor'a geri ceker.
+        <?php echo t('help.statuses.when_postponed'); ?>
     </p>
 
     <!-- =============================================================== -->
-    <h2 id="hizli-butonlar">Hizli Izleme Butonlari (+/-)</h2>
+    <h2 id="hizli-butonlar"><?php echo htmlspecialchars(t('help.buttons.h2'), ENT_QUOTES, 'UTF-8'); ?></h2>
 
     <p>
-        Listede her animenin yaninda <code>+</code> ve <code>-</code>
-        butonlari var. Bu butonlarla "Duzenle" ekranina gitmeden Izlenen
-        Bolum sayisini bir artirip azaltabilirsiniz. Sayim degisirken
-        belirli kosullarda <strong>Izleme Durumu da otomatik olarak
-        guncellenir</strong>.
+        <?php echo t('help.buttons.intro'); ?>
     </p>
 
-    <h3>Otomatik Durum Gecisleri</h3>
+    <h3><?php echo htmlspecialchars(t('help.buttons.transitions.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
 
     <p>
-        Asagidaki tablo bes temel durumu ozetler:
+        <?php echo t('help.buttons.transitions.intro'); ?>
     </p>
 
     <table>
         <tr>
-            <th>Su anki durum</th>
-            <th>Aksiyon</th>
-            <th>Yeni durum</th>
+            <th><?php echo htmlspecialchars(t('help.buttons.transitions.col_current'), ENT_QUOTES, 'UTF-8'); ?></th>
+            <th><?php echo htmlspecialchars(t('help.buttons.transitions.col_action'), ENT_QUOTES, 'UTF-8'); ?></th>
+            <th><?php echo htmlspecialchars(t('help.buttons.transitions.col_new'), ENT_QUOTES, 'UTF-8'); ?></th>
         </tr>
         <tr>
-            <td>Izlenme Planlandi + 0/12</td>
+            <td><?php echo htmlspecialchars(t('help.buttons.transitions.row1_curr'), ENT_QUOTES, 'UTF-8'); ?></td>
             <td><code>+</code></td>
-            <td>Izleniyor + 1/12</td>
+            <td><?php echo htmlspecialchars(t('help.buttons.transitions.row1_new'), ENT_QUOTES, 'UTF-8'); ?></td>
         </tr>
         <tr>
-            <td>Izleniyor + 11/12</td>
+            <td><?php echo htmlspecialchars(t('help.buttons.transitions.row2_curr'), ENT_QUOTES, 'UTF-8'); ?></td>
             <td><code>+</code></td>
-            <td>Izlendi + 12/12</td>
+            <td><?php echo htmlspecialchars(t('help.buttons.transitions.row2_new'), ENT_QUOTES, 'UTF-8'); ?></td>
         </tr>
         <tr>
-            <td>Izlendi + 12/12</td>
+            <td><?php echo htmlspecialchars(t('help.buttons.transitions.row3_curr'), ENT_QUOTES, 'UTF-8'); ?></td>
             <td><code>-</code></td>
-            <td>Izleniyor + 11/12</td>
+            <td><?php echo htmlspecialchars(t('help.buttons.transitions.row3_new'), ENT_QUOTES, 'UTF-8'); ?></td>
         </tr>
         <tr>
-            <td>Izleniyor + 1/12</td>
+            <td><?php echo htmlspecialchars(t('help.buttons.transitions.row4_curr'), ENT_QUOTES, 'UTF-8'); ?></td>
             <td><code>-</code></td>
-            <td>Izlenme Planlandi + 0/12</td>
+            <td><?php echo htmlspecialchars(t('help.buttons.transitions.row4_new'), ENT_QUOTES, 'UTF-8'); ?></td>
         </tr>
         <tr>
-            <td>Izleme Ertelendi + 5/12</td>
+            <td><?php echo htmlspecialchars(t('help.buttons.transitions.row5_curr'), ENT_QUOTES, 'UTF-8'); ?></td>
             <td><code>+</code></td>
-            <td>Izleniyor + 6/12</td>
+            <td><?php echo htmlspecialchars(t('help.buttons.transitions.row5_new'), ENT_QUOTES, 'UTF-8'); ?></td>
         </tr>
     </table>
 
     <p>
-        Mantik basit: durum sinir gecislerinde (basa donus, sona ulasma)
-        otomatik degisir, ara degerlerde dokunulmaz.
+        <?php echo t('help.buttons.transitions.note'); ?>
     </p>
 
-    <h3>Tek Tikla Iki Adim</h3>
+    <h3><?php echo htmlspecialchars(t('help.buttons.two_step.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
 
     <p>
-        Bazen tek bir <code>+</code> veya <code>-</code> basisi iki gecisi
-        birden tetikleyebilir:
+        <?php echo t('help.buttons.two_step.intro'); ?>
     </p>
 
     <ul>
-        <li><strong>Planlandi + 11/12 → <code>+</code> → Izlendi + 12/12.</strong>
-        Once Planlandi'dan Izleniyor'a, sonra tavana ulastigi icin
-        Izleniyor'dan Izlendi'ye tek tikla gecer.</li>
-        <li><strong>Izlendi + 1/12 → <code>-</code> → Izlenme Planlandi + 0/12.</strong>
-        Yukaridakinin aynadaki yansimasi: once Izleniyor'a, sonra 0'a indigi
-        icin Planlandi'ya tek tikla doner.</li>
-        <li><strong>Izleme Ertelendi + 11/12 → <code>+</code> → Izlendi + 12/12.</strong>
-        Ertelendigin animede son bolume varinca, ayni mantik calisir: once
-        Izleniyor'a, sonra tavana ulastigi icin Izlendi'ye tek tikla gecer.</li>
+        <?php echo t('help.buttons.two_step.list'); ?>
     </ul>
 
-    <h3>Ne Zaman Tetiklenmez?</h3>
+    <h3><?php echo htmlspecialchars(t('help.buttons.untouched.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
 
     <div class="box safe">
-        <strong><i class="fas fa-info-circle"></i> Otomasyon dokunmaz:</strong>
+        <strong><?php echo t('help.buttons.untouched.box_title'); ?></strong>
         <ul style="margin: 8px 0 0;">
-            <li><strong>Izleniyor + ara deger</strong> (ornek: 7/12) —
-            <code>+</code> veya <code>-</code> basildiginda durum Izleniyor
-            olarak kalir, sadece sayim degisir.</li>
-            <li><strong>Izlenme Planlandi + <code>-</code></strong> —
-            Planlandi durumunda <code>-</code> basmak ne sayimi ne durumu
-            degistirir (zaten 0).</li>
-            <li><strong>Izlendi + tavan altinda + <code>+</code></strong> —
-            manuel olarak anormal duruma getirilmis bir kayda <code>+</code>
-            basinca durum Izlendi olarak kalir; otomasyon zorla duzeltmez,
-            manuel niyetiniz korunur.</li>
-            <li><strong>Izleme Ertelendi + <code>-</code></strong> —
-            Ertelenmis bir animede <code>-</code> basildiginda durum
-            Izleme Ertelendi olarak kalir, sadece sayim 1 azalir. "Ara
-            verdim ama bir bolumu unutmustum" gibi nadir durumlar icindir.
-            Devam etmek istediginizde <code>+</code> basin (yukaridaki
-            5. kural devreye girer) veya Duzenle'den durumu manuel
-            degistirin.</li>
+            <?php echo t('help.buttons.untouched.list'); ?>
         </ul>
     </div>
 
-    <h3>Bolum Sayisi Bilinmeyen Animeler</h3>
+    <h3><?php echo htmlspecialchars(t('help.buttons.unknown_count.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
 
     <p>
-        Toplam veya yayinlanan bolum sayisi bilinmiyorsa (tavansiz eski
-        OVA'lar, programi belirsiz seriler gibi):
+        <?php echo t('help.buttons.unknown_count.intro'); ?>
     </p>
 
     <ul>
-        <li><strong>Tavana ulasma kontrolu yapilamaz</strong> — bu yuzden
-        <code>+</code> ile otomatik "Izlendi" gecisi calismaz. Manuel
-        olarak Duzenle'den isaretlemeniz gerekir.</li>
-        <li><strong>0'a inis kontrolu tavandan bagimsiz calisir</strong> —
-        Izleniyor + 1/? uzerinde <code>-</code> basildiginda durum yine
-        Izlenme Planlandi + 0/?'e otomatik doner.</li>
-        <li><strong>Manuel Izlendi yapilmis tavansiz animede <code>-</code></strong>
-        basildiginda durum Izlendi olarak kalir — sistem guvenli bir gecis
-        yapamadigi icin manuel duruma karismaz.</li>
+        <?php echo t('help.buttons.unknown_count.list'); ?>
     </ul>
 
-    <h3>Manuel Duzenleme Her Zaman Serbest</h3>
+    <h3><?php echo htmlspecialchars(t('help.buttons.manual.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
 
     <p>
-        Otomatik durum gecisleri sadece <code>+</code> ve <code>-</code>
-        butonlarina basarken devreye girer. "Duzenle" formundan istediginiz
-        durumu manuel olarak <strong>her zaman</strong> secebilirsiniz;
-        otomasyon ona karismaz.
+        <?php echo t('help.buttons.manual.text'); ?>
     </p>
 
     <!-- =============================================================== -->
-    <h2 id="sync">Katalog Sync — Nasil Calisir?</h2>
+    <h2 id="sync"><?php echo htmlspecialchars(t('help.sync.h2'), ENT_QUOTES, 'UTF-8'); ?></h2>
 
     <p>
-        Liste Ayarlari sayfasinda "Katalogdan Ice Aktar" dugmesine
-        bastiginizda, sunucudaki katalog lokal veritabaninizla
-        birlestirilir.
+        <?php echo t('help.sync.intro'); ?>
     </p>
 
     <div class="box safe">
-        <strong><i class="fas fa-shield-alt"></i> Kaybolmaz:</strong>
-        Izleme verileriniz, notlariniz, Kisisel Konu, kendi yukleginiz
-        poster — bunlar size ozeldir ve sync'te asla dokunulmaz.
+        <strong><?php echo t('help.sync.safe_title'); ?></strong>
+        <?php echo t('help.sync.safe_body'); ?>
     </div>
 
     <div class="box warning">
-        <strong><i class="fas fa-exclamation-triangle"></i> Uzerine Yazilir:</strong>
-        Anime ismi, konu, turler, yayin bilgileri gibi katalog alanlari
-        her sync'te sunucunun son haline gore guncellenir. Elle
-        degistirdiyseniz kaybolur.
+        <strong><?php echo t('help.sync.warning_title'); ?></strong>
+        <?php echo t('help.sync.warning_body'); ?>
     </div>
 
-    <h3>Kendi Ekledigim Animeler Ne Olur?</h3>
+    <h3><?php echo htmlspecialchars(t('help.sync.own_added.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
     <p>
-        Siz bir anime ekledikten sonra admin tarafindan kataloga alinmamissa
-        (yani sizin ozel kayitlariniz), bu animeler sync'te <strong>hic
-        dokunulmaz</strong>. Tum alanlari korunur.
+        <?php echo t('help.sync.own_added.text'); ?>
     </p>
 
-    <h3>Sync Ne Zaman Calisir?</h3>
+    <h3><?php echo htmlspecialchars(t('help.sync.when.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
     <p>
-        Otomatik degil — sadece siz istedikce. Liste Ayarlari → "Katalogdan
-        Ice Aktar" dugmesine basinca bir defa calisir.
+        <?php echo t('help.sync.when.text'); ?>
     </p>
 
     <!-- =============================================================== -->
-    <h2 id="kisisel-alanlar">Kisisel Alanlar — Notlar ve Kisisel Konu</h2>
+    <h2 id="kisisel-alanlar"><?php echo htmlspecialchars(t('help.personal.h2'), ENT_QUOTES, 'UTF-8'); ?></h2>
 
     <p>
-        Iki farkli kisisel metin alaniniz var. Farklari:
+        <?php echo t('help.personal.intro'); ?>
     </p>
 
     <table>
         <tr>
-            <th>Alan</th>
-            <th>Amac</th>
-            <th>Ornek</th>
+            <th><?php echo htmlspecialchars(t('help.personal.table.col_field'), ENT_QUOTES, 'UTF-8'); ?></th>
+            <th><?php echo htmlspecialchars(t('help.personal.table.col_purpose'), ENT_QUOTES, 'UTF-8'); ?></th>
+            <th><?php echo htmlspecialchars(t('help.personal.table.col_example'), ENT_QUOTES, 'UTF-8'); ?></th>
         </tr>
         <tr>
-            <td><strong>Notlar</strong></td>
-            <td>Kisa hatirlatmalar</td>
-            <td>"Arkadasla beraber izle", "ilk 3 bolumden sonra hizli izle"</td>
+            <td><strong><?php echo htmlspecialchars(t('help.personal.table.row_notes_field'), ENT_QUOTES, 'UTF-8'); ?></strong></td>
+            <td><?php echo htmlspecialchars(t('help.personal.table.row_notes_purpose'), ENT_QUOTES, 'UTF-8'); ?></td>
+            <td><?php echo htmlspecialchars(t('help.personal.table.row_notes_example'), ENT_QUOTES, 'UTF-8'); ?></td>
         </tr>
         <tr>
-            <td><strong>Kisisel Konu</strong></td>
-            <td>Uzun yorumlar, kendi ozetiniz</td>
-            <td>Kendi cevirisiniz, kendi yorumunuz, kendi ozetiniz</td>
+            <td><strong><?php echo htmlspecialchars(t('help.personal.table.row_synopsis_field'), ENT_QUOTES, 'UTF-8'); ?></strong></td>
+            <td><?php echo htmlspecialchars(t('help.personal.table.row_synopsis_purpose'), ENT_QUOTES, 'UTF-8'); ?></td>
+            <td><?php echo htmlspecialchars(t('help.personal.table.row_synopsis_example'), ENT_QUOTES, 'UTF-8'); ?></td>
         </tr>
     </table>
 
-    <h3><i class="fas fa-sync icon-inline"></i> Kisisel Konu Nasil Olusur?</h3>
+    <h3><?php echo t('help.personal.howto.h3'); ?></h3>
     <p>
-        <strong>Ilk durumda tek "Konu" alani vardir.</strong> Kendiniz
-        yazarsaniz veya sunucudan gelen konu orada durur. Eger katalogdan
-        gelen yeni bir sey varsa ve siz o alana kendi yazinizi yazmissaniz,
-        ilk sync sirasinda:
+        <?php echo t('help.personal.howto.intro'); ?>
     </p>
     <ul>
-        <li>Sizin yazdiginiz metin otomatik olarak <strong>"Kisisel Konu"</strong> alanina tasinir</li>
-        <li>Sunucudan gelen metin "Konu" alanina yazilir (duzenleyemezsiniz, salt okunur olur)</li>
-        <li>Artik iki alan goreceksiniz, duzenlediginiz her sey "Kisisel Konu"ya gider</li>
+        <?php echo t('help.personal.howto.list'); ?>
     </ul>
 
     <div class="box warning">
-        <strong><i class="fas fa-exclamation-triangle"></i> Dikkat:</strong>
-        Kisisel Konu'yu silerseniz <strong>sync ile geri gelmez</strong>.
-        Ayni sekilde Notlar alanini silerseniz o da geri gelmez. Bu iki
-        alan size ozel ve kalici olarak sizin kontrolunuzde.
+        <strong><?php echo t('help.personal.warning_title'); ?></strong>
+        <?php echo t('help.personal.warning_body'); ?>
     </div>
 
     <!-- =============================================================== -->
-    <h2 id="oneri">Ne İzlesem? — Öneri Sistemi</h2>
+    <h2 id="oneri"><?php echo htmlspecialchars(t('help.recom.h2'), ENT_QUOTES, 'UTF-8'); ?></h2>
 
     <p>
-        Menudeki "Ne İzlesem?" linki, listenizden size uygun anime
-        onermesi icin tasarlanmis bir aractir.
+        <?php echo t('help.recom.intro'); ?>
     </p>
 
-    <h3>Nasil Calisir?</h3>
+    <h3><?php echo htmlspecialchars(t('help.recom.howto.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
     <p>
-        Yonetici (admin) her animeye birkac <strong>cumle etiketi</strong>
-        atar: "Okulda gecsin", "Spor olsun", "Buyu olsun" gibi. Siz bu
-        cumlelerden istediginizi sec, "Oner" butonuna basin.
+        <?php echo t('help.recom.howto.text'); ?>
     </p>
 
-    <h3>Kepce Mantigi</h3>
+    <h3><?php echo htmlspecialchars(t('help.recom.scoop.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
     <p>
-        Her secilen cumle bir kepce gibi dusunun. Kepce kendi eslesmesini
-        listeden ceker. Birden fazla kepce secerseniz, en cok kepceye
-        uyan anime ust sirada gozukur.
+        <?php echo t('help.recom.scoop.text'); ?>
     </p>
 
     <div class="box safe">
-        <strong><i class="fas fa-check"></i> Onemli:</strong>
-        Cok cumle secerseniz sonuclar azalmaz, aksine siralama
-        netlesir. Sistem AND yerine OR + puan mantigi kullanir.
+        <strong><?php echo t('help.recom.scoop.box_title'); ?></strong>
+        <?php echo t('help.recom.scoop.box_body'); ?>
     </div>
 
-    <h3>Surpriz Sec</h3>
+    <h3><?php echo htmlspecialchars(t('help.recom.surprise.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
     <p>
-        Hic cumle secmeden "Surpriz Sec" derseniz, sistem size
-        izlememis oldugunuz bir anime rastgele secer. Kararsiz
-        kaldiginizda hizli bir cozum.
+        <?php echo t('help.recom.surprise.text'); ?>
     </p>
 
-    <h3>Arama Kutusu</h3>
+    <h3><?php echo htmlspecialchars(t('help.recom.search.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
     <p>
-        Cumle listesi uzadiginda arama kutusuna yazabilirsiniz. Yazdiginiz
-        harflerle <strong>baslayan</strong> cumleler liste halinde
-        gorulur. Turkce karakterler ayirt edilir — "u" yazarsaniz "U" ile
-        baslayanlar, "ü" yazarsaniz "Ü" ile baslayanlar gelir.
+        <?php echo t('help.recom.search.text'); ?>
     </p>
 
     <!-- =============================================================== -->
-    <h2 id="kronoloji">Seriler ve Kronoloji</h2>
+    <h2 id="kronoloji"><?php echo htmlspecialchars(t('help.chrono.h2'), ENT_QUOTES, 'UTF-8'); ?></h2>
 
     <p>
-        Birbirine bagli animeler icin iki tur iliski sistemi var:
+        <?php echo t('help.chrono.intro'); ?>
     </p>
 
-    <h3>Seri Bilgisi</h3>
+    <h3><?php echo htmlspecialchars(t('help.chrono.series.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
     <p>
-        Bir anime'nin hangi seriye ait oldugu <strong>seri adi</strong> ve
-        <strong>medya turu</strong> (TV / Film / OVA / Special / ONA) ile
-        belirlenir. Ayni seri adini paylasan animeler anime detayinda
-        "Bagli Animeler" bolumunde gozukur.
+        <?php echo t('help.chrono.series.text'); ?>
     </p>
 
-    <h3>Sonraki Seri (next_in_series)</h3>
+    <h3><?php echo htmlspecialchars(t('help.chrono.next.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
     <p>
-        Bir animeyi bitirince hangi animeyi izlemeniz gerektigi. Detay
-        sayfasinda "Sirada" kutusunda gozukur.
+        <?php echo t('help.chrono.next.text'); ?>
     </p>
 
-    <h3>Kronoloji Isaretleri</h3>
+    <h3><?php echo htmlspecialchars(t('help.chrono.markers.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
     <p>
-        Detective Conan gibi seriler icin: "54. bolumden sonra 1. filmi
-        izle" gibi bolum seviyesinde isaretler tutulur. Detay sayfasinda
-        aktif uyari olarak gorulur, ayri bir "Kronoloji" sayfasinda da
-        timeline halinde listelenir.
+        <?php echo t('help.chrono.markers.text'); ?>
     </p>
 
     <div class="box warning">
-        <strong><i class="fas fa-exclamation-triangle"></i> Dikkat:</strong>
-        Kronoloji isaretleri de sync'te katalog otoritedir. Kendiniz
-        marker eklediyseniz sync sonrasi kaybolur.
+        <strong><?php echo t('help.chrono.warning_title'); ?></strong>
+        <?php echo t('help.chrono.warning_body'); ?>
     </div>
 
     <!-- =============================================================== -->
-    <h2 id="silme-uyarilari">Silme Uyarilari</h2>
+    <h2 id="silme-uyarilari"><?php echo htmlspecialchars(t('help.delete.h2'), ENT_QUOTES, 'UTF-8'); ?></h2>
 
     <div class="box danger">
-        <strong><i class="fas fa-trash-alt"></i> Geri Alinamaz Silmeler:</strong>
+        <strong><?php echo t('help.delete.danger_title'); ?></strong>
         <ul style="margin: 8px 0 0;">
-            <li><strong>Notlar</strong> alanini bossaltmak → sync geri getirmez</li>
-            <li><strong>Kisisel Konu</strong> alanini bossaltmak → sync geri getirmez</li>
-            <li>Anime silmek → kalici, izleme verisi dahil her sey gider</li>
-            <li>Poster dosyasi silmek → sync sirasinda katalog posteri tekrar indirilir
-                (ancak kendi yuklediginiz poster geri gelmez)</li>
+            <?php echo t('help.delete.danger_list'); ?>
         </ul>
     </div>
 
     <div class="box safe">
-        <strong><i class="fas fa-undo"></i> Geri Alinabilir (sync ile):</strong>
+        <strong><?php echo t('help.delete.safe_title'); ?></strong>
         <ul style="margin: 8px 0 0;">
-            <li>Konu alanini degistirmek / bossaltmak → bir sonraki sync'te katalog konusu geri gelir</li>
-            <li>Anime ismi degistirmek → sync'te duzelir</li>
-            <li>Tur listesi / yayin bilgisi degistirmek → sync'te duzelir</li>
+            <?php echo t('help.delete.safe_list'); ?>
         </ul>
     </div>
 
     <!-- =============================================================== -->
-    <h2 id="guncelleme">Guncelleme Sistemi</h2>
+    <h2 id="guncelleme"><?php echo htmlspecialchars(t('help.update.h2'), ENT_QUOTES, 'UTF-8'); ?></h2>
 
     <p>
-        Anime Tracker'in kendisi zaman zaman yeni surumlerle gelir. Liste
-        Ayarlari → "Guncelleme Kontrolu" dugmesi ile yeni sürüm olup
-        olmadigini kontrol edebilirsiniz.
+        <?php echo t('help.update.intro'); ?>
     </p>
 
     <p>
-        Yeni surum varsa, tek tikla otomatik guncelleme yapilir:
+        <?php echo t('help.update.flow_intro'); ?>
     </p>
     <ul>
-        <li>Sunucudan yeni surum indirilir</li>
-        <li>Dosyalar yerinde guncellenir (<code>config.php</code>, <code>uploads/</code> ve izleme verileriniz korunur)</li>
-        <li>Veritabani gerekirse otomatik guncellenir</li>
-        <li>Sayfa yenilenir, yeni surum aktif</li>
+        <?php echo t('help.update.flow_list'); ?>
     </ul>
 
     <div class="box safe">
-        <strong><i class="fas fa-shield-alt"></i> Guncelleme Sirasinda Kaybolmaz:</strong>
-        Animeleriniz, izleme verileriniz, notlariniz, poster'leriniz,
-        DB kimlik bilgileriniz — hic biri etkilenmez.
+        <strong><?php echo t('help.update.safe_title'); ?></strong>
+        <?php echo t('help.update.safe_body'); ?>
     </div>
 
     <!-- =============================================================== -->
-    <h2 id="saat-dilimi">Saat Dilimi — Yayin Saati Nasil Gosterilir?</h2>
+    <h2 id="saat-dilimi"><?php echo htmlspecialchars(t('help.tz.h2'), ENT_QUOTES, 'UTF-8'); ?></h2>
 
     <p>
-        Anime Tracker tum tarih ve saatleri veritabaninda <strong>UTC</strong>
-        olarak saklar. Gosterirken her animenin kendi yayin saat dilimine
-        cevirir.
+        <?php echo t('help.tz.intro'); ?>
     </p>
 
-    <h3>Yayin Saat Dilimi (animenin TZ'i)</h3>
+    <h3><?php echo t('help.tz.bc_tz.h3'); ?></h3>
     <p>
-        Anime ekleme/duzenleme formundaki "Yayin Saat Dilimi" alani.
-        Listede 6 sabit secenek var: Asia/Tokyo (JST), Europe/Istanbul
-        (TRT), UTC, America/New_York (ET), America/Los_Angeles (PT),
-        Europe/London. Cogu Japon animesi icin <code>Asia/Tokyo</code>
-        dogru secimdir.
+        <?php echo t('help.tz.bc_tz.text'); ?>
     </p>
 
     <div class="box safe">
-        <strong><i class="fas fa-magic"></i> Hizli Yol — Otomatik Doldur:</strong>
-        AnimeSchedule URL'sini girip "Otomatik Doldur" (Senkronize Et)
-        butonuna basarsaniz <strong>broadcast_day, broadcast_time ve
-        broadcast_timezone alanlari otomatik olarak Asia/Tokyo + Tokyo
-        saati ile dolar</strong>. AnimeSchedule API'si Japon animesi
-        verilerini dogru sekilde Tokyo TZ'de donderir. Elle giris
-        yapmaniza gerek kalmaz.
+        <strong><?php echo t('help.tz.autofill_title'); ?></strong>
+        <?php echo t('help.tz.autofill_body'); ?>
     </div>
 
-    <h3>Iki Gecerli Workflow</h3>
+    <h3><?php echo htmlspecialchars(t('help.tz.workflows.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
     <p>
-        TZ alani ve saat alani ayni saat dilimini yansitmali. Iki yol
-        da gecerli:
+        <?php echo t('help.tz.workflows.intro'); ?>
     </p>
     <ul>
-        <li><strong>Animenin yayin yeri:</strong> "JST" sec + Tokyo
-        saatini gir (orn. 23:30). Anime detay sayfasi "23:30 (JST)"
-        gosterir, kendi saatinizi manuel hesaplarsiniz. AnimeSchedule
-        Otomatik Doldur bu yontemi kullanir.</li>
-        <li><strong>Kendi yerel saatiniz:</strong> "TRT" sec + Turkiye
-        saatini 24 saat formatinda gir (orn. 17:30). Anime detay sayfasi
-        "17:30 (TRT)" gosterir, dogrudan okunabilir. AnimeSchedule
-        sitesinden manuel okuyorsaniz site zaten Turkiye saatini
-        gosteriyor; sadece am/pm'i 24 saate cevirip yazin.</li>
+        <?php echo t('help.tz.workflows.list'); ?>
     </ul>
     <p>
-        Onemli: TZ secimi ile saat alani <strong>tutarli</strong> olmali.
-        "JST" secip Turkiye saatini girerseniz veya "TRT" secip Tokyo
-        saatini girerseniz, "sonraki bolum ne zaman" hesabi yanlis olur.
+        <?php echo t('help.tz.consistency'); ?>
     </p>
 
     <div class="box info">
-        <strong><i class="fas fa-info-circle"></i> AnimeSchedule sitesi
-        ne gosterir:</strong>
-        AnimeSchedule sitesini tarayicidan acarsaniz saatleri
-        <strong>am/pm (12 saat) formatinda</strong>, <strong>sizin
-        lokal TZ'inizde</strong> gosterir (Turkiye'den ziyaret edenlere
-        Turkiye saati, baska ulkeden ziyaret edenlere o ulkenin saati).
-        Manuel doldurma yapiyorsaniz: formda lokal TZ'inizi secin
-        (Turkiye icin TRT), am/pm'i 24 saat formatina cevirin (orn.
-        "5:30 PM" -> 17:30), "Yayin Saati" alanina yazin. Site Tokyo
-        TZ'ini gostermez — Tokyo TZ verisi sadece "Otomatik Doldur"
-        butonu ile AnimeSchedule API'sinden dogrudan cekilir.
+        <strong><?php echo t('help.tz.box_animeschedule_title'); ?></strong>
+        <?php echo t('help.tz.box_animeschedule_body'); ?>
     </div>
 
     <div class="box info">
-        <strong><i class="fas fa-info-circle"></i> Yaz/Kis Saati (DST):</strong>
-        Animenin yayinlandigi TZ yaz/kis saati kullaniyorsa (Avrupa, ABD
-        gibi), yayin saati yilda 2 kez 1 saat kayar (Mart sonu ve Ekim
-        sonu). Asia/Tokyo DST kullanmadigi icin Japon anime saatleri yil
-        boyu sabittir.
+        <strong><?php echo t('help.tz.box_dst_title'); ?></strong>
+        <?php echo t('help.tz.box_dst_body'); ?>
     </div>
 
-    <h3>Eski v0.5 Kurulumlardan Yukseltme</h3>
+    <h3><?php echo htmlspecialchars(t('help.tz.upgrade.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
     <p>
-        v0.5.1'e gectikten sonra hicbir veriniz kaybolmaz. Yayin saatleri
-        ayni gorunur (Asia/Tokyo varsayilan TZ'de eklenmis kayitlar hala
-        Asia/Tokyo'da). Anime detay sayfasinda yayin saatinin yaninda TZ
-        etiketi (JST, vs.) gozukur.
+        <?php echo t('help.tz.upgrade.text'); ?>
     </p>
 
     <p style="margin-top: 40px; color: #888; font-size: 0.9em;">
-        Daha fazla sorunuz icin: daha fazla ayrintili teknik bilgi
-        proje GitHub sayfasinda bulunur.
+        <?php echo t('help.footer'); ?>
     </p>
 
-    <a href="index.php" class="back-link">&larr; Ana Sayfaya Dön</a>
+    <a href="index.php" class="back-link"><?php echo t('help.back_to_home'); ?></a>
 </div>
 </body>
 </html>

@@ -6,6 +6,9 @@
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
 
+// Sayfa dilini baslat
+lang_init($pdo);
+
 // Toplam anime sayisi
 $total = $pdo->query("SELECT COUNT(*) FROM animes")->fetchColumn();
 
@@ -43,10 +46,10 @@ foreach (watch_status_options() as $ws_value => $ws_label) {
 $total_watched = (int)$pdo->query("SELECT COALESCE(SUM(watched_episodes),0) FROM animes")->fetchColumn();
 ?>
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="<?php echo current_lang(); ?>">
 <head>
     <meta charset="UTF-8">
-    <title>İstatistikler - Anime Tracker</title>
+    <title><?php echo htmlspecialchars(t('statistics.page_title'), ENT_QUOTES, 'UTF-8'); ?></title>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <style>
@@ -68,41 +71,56 @@ $total_watched = (int)$pdo->query("SELECT COALESCE(SUM(watched_episodes),0) FROM
 </head>
 <body>
 <div class="stats-container">
-    <a href="index.php" class="back-link">&larr; Ana Sayfaya Dön</a>
-    <h1>İstatistikler</h1>
+    <a href="index.php" class="back-link"><?php echo t('help.back_to_home'); ?></a>
+    <h1><?php echo htmlspecialchars(t('statistics.heading'), ENT_QUOTES, 'UTF-8'); ?></h1>
 
     <div class="stats-card">
         <div class="stats-big"><?php echo $total; ?></div>
-        <div class="stats-label">Toplam Anime</div>
+        <div class="stats-label"><?php echo htmlspecialchars(t('statistics.label.total_anime'), ENT_QUOTES, 'UTF-8'); ?></div>
         <div class="stats-big" style="margin-top:20px;"><?php echo $total_watched; ?></div>
-        <div class="stats-label">Toplam İzlenen Bölüm</div>
+        <div class="stats-label"><?php echo htmlspecialchars(t('statistics.label.total_watched'), ENT_QUOTES, 'UTF-8'); ?></div>
     </div>
 
     <div class="stats-grid">
     <div class="stats-card">
-        <h2>Medya Türüne Göre</h2>
+        <h2><?php echo htmlspecialchars(t('statistics.section.by_media'), ENT_QUOTES, 'UTF-8'); ?></h2>
         <table class="stats-table">
-            <tr><th>Tür</th><th>Adet</th></tr>
+            <tr><th><?php echo htmlspecialchars(t('statistics.col.type'), ENT_QUOTES, 'UTF-8'); ?></th><th><?php echo htmlspecialchars(t('statistics.col.count'), ENT_QUOTES, 'UTF-8'); ?></th></tr>
             <?php foreach ($by_media as $row): ?>
-                <tr><td><?php echo htmlspecialchars($row['media_type']); ?></td><td><?php echo $row['cnt']; ?></td></tr>
+                <tr><td><?php
+                    $mt = $row['media_type'];
+                    echo htmlspecialchars($mt === 'Belirtilmemis' ? t('statistics.value.unspecified') : $mt);
+                ?></td><td><?php echo $row['cnt']; ?></td></tr>
             <?php endforeach; ?>
         </table>
     </div>
 
     <div class="stats-card">
-        <h2>Yayın Durumuna Göre</h2>
+        <h2><?php echo htmlspecialchars(t('statistics.section.by_broadcast'), ENT_QUOTES, 'UTF-8'); ?></h2>
         <table class="stats-table">
-            <tr><th>Durum</th><th>Adet</th></tr>
+            <tr><th><?php echo htmlspecialchars(t('statistics.col.status'), ENT_QUOTES, 'UTF-8'); ?></th><th><?php echo htmlspecialchars(t('statistics.col.count'), ENT_QUOTES, 'UTF-8'); ?></th></tr>
             <?php foreach ($by_status as $row): ?>
-                <tr><td><?php echo htmlspecialchars($row['status']); ?></td><td><?php echo $row['cnt']; ?></td></tr>
+                <tr><td><?php
+                    // animes.status DB enum: Yayin Tamamlandi / Yayin Devam Ediyor (TR)
+                    // Index sayfasinin broadcast.* anahtarlarini yeniden kullaniriz.
+                    $s = $row['status'];
+                    if ($s === 'Yayın Tamamlandı') {
+                        $sLabel = t('index.broadcast.finished');
+                    } elseif ($s === 'Yayın Devam Ediyor') {
+                        $sLabel = t('index.broadcast.ongoing');
+                    } else {
+                        $sLabel = $s; // bilinmeyen deger ham gosterilir
+                    }
+                    echo htmlspecialchars($sLabel);
+                ?></td><td><?php echo $row['cnt']; ?></td></tr>
             <?php endforeach; ?>
         </table>
     </div>
 
     <div class="stats-card">
-        <h2>İzleme Durumuna Göre</h2>
+        <h2><?php echo htmlspecialchars(t('statistics.section.by_watch'), ENT_QUOTES, 'UTF-8'); ?></h2>
         <table class="stats-table">
-            <tr><th>Durum</th><th>Adet</th></tr>
+            <tr><th><?php echo htmlspecialchars(t('statistics.col.status'), ENT_QUOTES, 'UTF-8'); ?></th><th><?php echo htmlspecialchars(t('statistics.col.count'), ENT_QUOTES, 'UTF-8'); ?></th></tr>
             <?php foreach ($by_watch as $row): ?>
                 <tr><td><?php echo htmlspecialchars($row['label']); ?></td><td><?php echo $row['cnt']; ?></td></tr>
             <?php endforeach; ?>

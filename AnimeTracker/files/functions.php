@@ -483,6 +483,63 @@ function t($key) {
 }
 
 /**
+ * Initialise the language dictionary for an ADMIN page.
+ *
+ * Loads the user dictionary first (lang/tr.php or lang/en.php) so
+ * shared keys like nav.about, lang.tr_label, etc. work as usual,
+ * then merges the admin-only dictionary (lang/admin_tr.php or
+ * lang/admin_en.php) on top.
+ *
+ * This split keeps the user-side dictionary lean - admin keys
+ * (admin.*, admin_pending.*, admin_sync.*) are never loaded for
+ * regular users.
+ *
+ * Should be called once at the top of each admin page (admin.php,
+ * admin_pending.php, admin_sync.php), right after the db.php /
+ * functions.php requires.
+ *
+ * @param PDO $pdo
+ * @return void
+ */
+function lang_init_admin($pdo) {
+    // Load user dictionary first (idempotent - sets dict + fallback)
+    lang_init($pdo);
+
+    // Merge admin dictionary on top
+    $cache = _lang_cache();
+    $lang = $cache['lang'];
+
+    $adminDict     = _lang_load_admin($lang);
+    $adminFallback = ($lang === 'tr') ? $adminDict : _lang_load_admin('tr');
+
+    $cache['dict']     = array_merge($cache['dict'],     $adminDict);
+    $cache['fallback'] = array_merge($cache['fallback'], $adminFallback);
+    _lang_cache($cache);
+}
+
+/**
+ * Load an admin translation dictionary from disk.
+ *
+ * Mirror of _lang_load() but for the admin-side dictionary file
+ * (lang/admin_<code>.php). Returns an empty array if the file is
+ * missing - the t() helper will then fall back to Turkish or to
+ * the raw key, so a missing admin file degrades gracefully.
+ *
+ * @param string $lang
+ * @return array
+ */
+function _lang_load_admin($lang) {
+    $path = __DIR__ . '/lang/admin_' . $lang . '.php';
+    if (!is_file($path)) {
+        error_log('[anime_tracker] admin lang file missing: ' . $path);
+        return [];
+    }
+    $data = include $path;
+    return is_array($data) ? $data : [];
+}
+
+
+/**
  * Extract the numeric MyAnimeList ID from a MAL URL.
  *
  * Accepts:

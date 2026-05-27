@@ -12,6 +12,9 @@
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
 
+// Sayfa dilini baslat
+lang_init($pdo);
+
 $stmt = $pdo->query("
     SELECT id, title, image_path, watch_status, status,
            watched_episodes, total_episodes, aired_episodes,
@@ -23,10 +26,10 @@ $stmt = $pdo->query("
 $recent = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="<?php echo current_lang(); ?>">
 <head>
     <meta charset="UTF-8">
-    <title>Son Duzenlenenler - Anime Tracker</title>
+    <title><?php echo htmlspecialchars(t('recent.page_title'), ENT_QUOTES, 'UTF-8'); ?></title>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
@@ -149,14 +152,14 @@ $recent = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <body>
 <div class="recent-container">
     <div class="recent-header">
-        <h1><i class="fas fa-clock"></i> Son Duzenlenenler</h1>
-        <a href="index.php" class="back-btn"><i class="fas fa-arrow-left"></i> Listeye Don</a>
+        <h1><i class="fas fa-clock"></i> <?php echo htmlspecialchars(t('recent.heading'), ENT_QUOTES, 'UTF-8'); ?></h1>
+        <a href="index.php" class="back-btn"><i class="fas fa-arrow-left"></i> <?php echo htmlspecialchars(t('recent.back_to_list'), ENT_QUOTES, 'UTF-8'); ?></a>
     </div>
 
     <?php if (empty($recent)): ?>
         <div class="empty-state">
             <i class="fas fa-inbox" style="font-size: 2em; margin-bottom: 10px;"></i>
-            <p>Henuz anime eklenmemis.</p>
+            <p><?php echo htmlspecialchars(t('recent.empty_state'), ENT_QUOTES, 'UTF-8'); ?></p>
         </div>
     <?php else: ?>
         <?php foreach ($recent as $anime): ?>
@@ -166,7 +169,7 @@ $recent = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 if ($anime['total_episodes']) {
                     $epDisplay = $ep . '/' . $anime['total_episodes'];
                 } elseif ($anime['aired_episodes']) {
-                    $epDisplay = $ep . '/' . $anime['aired_episodes'] . ' (yayinda)';
+                    $epDisplay = $ep . '/' . $anime['aired_episodes'] . ' ' . t('index.row.ep_aired_badge');
                 } else {
                     $epDisplay = $ep . '/?';
                 }
@@ -182,13 +185,13 @@ $recent = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 $updatedTs = strtotime($anime['updated_at']);
                 $diff = time() - $updatedTs;
                 if ($diff < 60) {
-                    $timeAgo = 'Az once';
+                    $timeAgo = t('recent.time.now');
                 } elseif ($diff < 3600) {
-                    $timeAgo = floor($diff / 60) . ' dk once';
+                    $timeAgo = sprintf(t('recent.time.minutes_ago'), floor($diff / 60));
                 } elseif ($diff < 86400) {
-                    $timeAgo = floor($diff / 3600) . ' saat once';
+                    $timeAgo = sprintf(t('recent.time.hours_ago'), floor($diff / 3600));
                 } else {
-                    $timeAgo = floor($diff / 86400) . ' gun once';
+                    $timeAgo = sprintf(t('recent.time.days_ago'), floor($diff / 86400));
                 }
             ?>
             <div class="recent-card">
@@ -208,7 +211,16 @@ $recent = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <?php echo htmlspecialchars(watch_status_label($ws)); ?>
                         </span>
                         <span><i class="fas fa-play-circle"></i> <?php echo $epDisplay; ?></span>
-                        <span><i class="fas fa-broadcast-tower"></i> <?php echo htmlspecialchars($anime['status']); ?></span>
+                        <span><i class="fas fa-broadcast-tower"></i> <?php
+                            $s = $anime['status'];
+                            if ($s === 'Yayın Tamamlandı') {
+                                echo htmlspecialchars(t('index.broadcast.finished'));
+                            } elseif ($s === 'Yayın Devam Ediyor') {
+                                echo htmlspecialchars(t('index.broadcast.ongoing'));
+                            } else {
+                                echo htmlspecialchars($s);
+                            }
+                        ?></span>
                     </div>
                 </div>
 

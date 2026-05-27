@@ -42,6 +42,9 @@
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
 
+// Sayfa dilini baslat (i18n)
+lang_init($pdo);
+
 // --------------------------------------------------------
 // Load every available sentence so the form can render checkboxes.
 // --------------------------------------------------------
@@ -153,10 +156,10 @@ function watch_status_badge($status) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="<?php echo current_lang(); ?>">
 <head>
     <meta charset="UTF-8">
-    <title>Ne İzlesem? - Anime Tracker</title>
+    <title><?php echo htmlspecialchars(t('recommendations.page_title'), ENT_QUOTES, 'UTF-8'); ?></title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -287,12 +290,27 @@ function watch_status_badge($status) {
 <body>
 <div class="container">
     <div class="header-section">
-        <a href="about.php" class="about-link">Hakkinda</a>
+        <a href="about.php" class="about-link"><?php echo htmlspecialchars(t('nav.about'), ENT_QUOTES, 'UTF-8'); ?></a>
+
+        <div class="lang-switcher" role="group" aria-label="<?php echo htmlspecialchars(t('lang.aria_label'), ENT_QUOTES, 'UTF-8'); ?>">
+            <form method="POST" action="set_language.php" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+                <input type="hidden" name="lang" value="tr">
+                <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($_SERVER['REQUEST_URI'] ?? 'recommendations.php', ENT_QUOTES, 'UTF-8'); ?>">
+                <button type="submit" class="lang-switch<?php echo current_lang() === 'tr' ? ' lang-switch-active' : ''; ?>"><?php echo htmlspecialchars(t('lang.tr_label'), ENT_QUOTES, 'UTF-8'); ?></button>
+            </form>
+            <form method="POST" action="set_language.php" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+                <input type="hidden" name="lang" value="en">
+                <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($_SERVER['REQUEST_URI'] ?? 'recommendations.php', ENT_QUOTES, 'UTF-8'); ?>">
+                <button type="submit" class="lang-switch<?php echo current_lang() === 'en' ? ' lang-switch-active' : ''; ?>"><?php echo htmlspecialchars(t('lang.en_label'), ENT_QUOTES, 'UTF-8'); ?></button>
+            </form>
+        </div>
     </div>
-    <div class="page-title">Ne İzlesem?</div>
+    <div class="page-title"><?php echo htmlspecialchars(t('recommendations.heading'), ENT_QUOTES, 'UTF-8'); ?></div>
 
     <div class="button-container">
-        <a class="anime-list-button" href="index.php">Anime Izleme Listesi</a>
+        <a class="anime-list-button" href="index.php"><?php echo htmlspecialchars(t('index.list_title'), ENT_QUOTES, 'UTF-8'); ?></a>
     </div>
     <div class="button-spacing"></div>
     <div class="section-spacing"></div>
@@ -302,7 +320,7 @@ function watch_status_badge($status) {
              Surprise mode: a single random unwatched anime
              ============================================================ -->
         <div class="rec-surprise-card">
-            <h2>Bugun bunu deneyelim:</h2>
+            <h2><?php echo htmlspecialchars(t('recommendations.surprise.heading'), ENT_QUOTES, 'UTF-8'); ?></h2>
             <?php if (!empty($surpriseAnime['image_path'])): ?>
                 <img class="rec-anime-cover"
                      src="<?php echo htmlspecialchars($surpriseAnime['image_path']); ?>"
@@ -327,10 +345,10 @@ function watch_status_badge($status) {
             </p>
             <div class="rec-actions">
                 <a href="recommendations.php?mode=surprise" class="anime-list-button">
-                    <i class="fas fa-dice"></i> Baska Bir Tane
+                    <i class="fas fa-dice"></i> <?php echo htmlspecialchars(t('recommendations.surprise.try_another'), ENT_QUOTES, 'UTF-8'); ?>
                 </a>
                 <a href="recommendations.php" class="anime-list-button">
-                    <i class="fas fa-list"></i> Cumlelerden Sec
+                    <i class="fas fa-list"></i> <?php echo htmlspecialchars(t('recommendations.surprise.choose_sentences'), ENT_QUOTES, 'UTF-8'); ?>
                 </a>
             </div>
         </div>
@@ -340,18 +358,12 @@ function watch_status_badge($status) {
              Sentence mode: form + (optional) ranked results
              ============================================================ -->
         <p class="rec-intro">
-            Sana uygun olabilecek cumleleri secip <strong>Oner</strong>'e bas.
-            Cok cumle secersin diye sonuc daralmaz - her cumle bir kepce gibi
-            kendi eslesmesini cekiyor, en cok kepceye dusen anime ust sirada.
+            <?php echo t('recommendations.intro'); ?>
         </p>
 
         <?php if (empty($allTags)): ?>
             <div class="rec-empty">
-                Henuz cumle tanimlanmamis. Once
-                <a href="manage_tags.php">cumleleri yonet</a> sayfasindan
-                birkac cumle ekle, sonra anime'lere atamak icin
-                <a href="add_anime.php">anime ekleme</a> veya duzenleme
-                ekranini kullan.
+                <?php echo t('recommendations.no_tags_empty'); ?>
             </div>
         <?php else: ?>
             <form method="get" action="recommendations.php">
@@ -364,7 +376,7 @@ function watch_status_badge($status) {
                      the user can see what they are filtering. -->
                 <div style="text-align: center; margin: 0 auto 12px; max-width: 500px;">
                     <input type="text" id="rec-search" autocomplete="off"
-                           placeholder="Cumle ara (yazinca daralir)..."
+                           placeholder="<?php echo htmlspecialchars(t('recommendations.search.placeholder'), ENT_QUOTES, 'UTF-8'); ?>"
                            style="width: 100%; padding: 8px 12px; font-size: 1em;
                                   border: 1px solid #ccc; border-radius: 6px;">
                 </div>
@@ -382,12 +394,12 @@ function watch_status_badge($status) {
                         <i class="fas fa-chevron-<?php echo $panelOpen ? 'up' : 'down'; ?>"
                            id="rec-toggle-icon"></i>
                         <span id="rec-toggle-label">
-                            <?php echo $panelOpen ? 'Cumleleri Gizle' : 'Cumleleri Goster'; ?>
+                            <?php echo htmlspecialchars($panelOpen ? t('recommendations.toggle.hide') : t('recommendations.toggle.show'), ENT_QUOTES, 'UTF-8'); ?>
                         </span>
                         <span id="rec-toggle-count"
                               style="margin-left: 6px; opacity: 0.85;
                                      <?php echo empty($selectedTagIds) ? 'display:none;' : ''; ?>">
-                            (<?php echo count($selectedTagIds); ?> secili)
+                            <?php echo htmlspecialchars(sprintf(t('recommendations.toggle.count_selected'), count($selectedTagIds)), ENT_QUOTES, 'UTF-8'); ?>
                         </span>
                     </button>
                 </div>
@@ -408,25 +420,32 @@ function watch_status_badge($status) {
 
                 <p id="rec-search-empty" style="display: none; text-align: center;
                         color: #888; font-style: italic; margin: 10px 0;">
-                    Bu metinle baslayan cumle bulunamadi.
+                    <?php echo htmlspecialchars(t('recommendations.search.empty_state'), ENT_QUOTES, 'UTF-8'); ?>
                 </p>
 
                 <div class="rec-actions">
                     <button type="submit" class="anime-list-button">
-                        <i class="fas fa-search"></i> Oner
+                        <i class="fas fa-search"></i> <?php echo htmlspecialchars(t('recommendations.btn.recommend'), ENT_QUOTES, 'UTF-8'); ?>
                     </button>
                     <a href="recommendations.php?mode=surprise" class="anime-list-button">
-                        <i class="fas fa-dice"></i> Surpriz Sec
+                        <i class="fas fa-dice"></i> <?php echo htmlspecialchars(t('recommendations.btn.surprise'), ENT_QUOTES, 'UTF-8'); ?>
                     </a>
                     <?php if (!empty($selectedTagIds)): ?>
                         <a href="recommendations.php" class="anime-list-button">
-                            <i class="fas fa-times"></i> Temizle
+                            <i class="fas fa-times"></i> <?php echo htmlspecialchars(t('recommendations.btn.clear'), ENT_QUOTES, 'UTF-8'); ?>
                         </a>
                     <?php endif; ?>
                 </div>
             </form>
 
             <script>
+                /* PHP-side strings exposed to JS (i18n) */
+                const LANG = <?php echo json_encode([
+                    'toggle_show'             => t('recommendations.toggle.show'),
+                    'toggle_hide'             => t('recommendations.toggle.hide'),
+                    'count_selected_template' => t('recommendations.toggle.count_selected'),
+                ], JSON_UNESCAPED_UNICODE); ?>;
+
                 /* Recommendation page client-side behaviour:
                  *   - Toggle the sentence panel (default state set by PHP).
                  *   - Live filter the panel as the user types in the
@@ -456,7 +475,7 @@ function watch_status_badge($status) {
                         list.style.display = open ? '' : 'none';
                         toggleIco.classList.toggle('fa-chevron-up',   open);
                         toggleIco.classList.toggle('fa-chevron-down', !open);
-                        toggleLbl.textContent = open ? 'Cumleleri Gizle' : 'Cumleleri Goster';
+                        toggleLbl.textContent = open ? LANG.toggle_hide : LANG.toggle_show;
                         // Re-apply the search filter when reopening so the
                         // user does not see hidden items popping back in.
                         if (open) applyFilter();
@@ -479,7 +498,7 @@ function watch_status_badge($status) {
                     function updateCount() {
                         const n = list.querySelectorAll('input[type=checkbox]:checked').length;
                         if (n > 0) {
-                            toggleCnt.textContent = '(' + n + ' secili)';
+                            toggleCnt.textContent = LANG.count_selected_template.replace('%d', n);
                             toggleCnt.style.display = '';
                         } else {
                             toggleCnt.style.display = 'none';
@@ -510,9 +529,7 @@ function watch_status_badge($status) {
 
         <?php if (!empty($selectedTagIds) && empty($results)): ?>
             <div class="rec-empty">
-                Sectigin cumlelerle eslesen anime bulunamadi.
-                Henuz hicbir animeye bu cumleler atanmamis olabilir -
-                anime duzenleme ekranindan cumle eklemeyi unutma.
+                <?php echo t('recommendations.no_match'); ?>
             </div>
         <?php endif; ?>
 
@@ -528,16 +545,15 @@ function watch_status_badge($status) {
             $totalSelected = count($selectedTagIds);
         ?>
             <p class="rec-intro" style="margin-top: 30px;">
-                <strong><?php echo count($results); ?></strong> anime bulundu
-                (<?php echo $totalSelected; ?> cumle secildi).
+                <?php echo sprintf(t('recommendations.result.count'), count($results), $totalSelected); ?>
             </p>
 
             <?php foreach ($byScore as $score => $group): ?>
                 <div class="rec-result-group">
                     <h3>
-                        <?php echo $score; ?> / <?php echo $totalSelected; ?> cumle eslesti
+                        <?php echo htmlspecialchars(sprintf(t('recommendations.group.matched'), $score, $totalSelected), ENT_QUOTES, 'UTF-8'); ?>
                         <span style="font-weight: normal; color: #888; font-size: 0.85em;">
-                            (<?php echo count($group); ?> anime)
+                            <?php echo htmlspecialchars(sprintf(t('recommendations.group.count_suffix'), count($group)), ENT_QUOTES, 'UTF-8'); ?>
                         </span>
                     </h3>
                     <?php foreach ($group as $r):

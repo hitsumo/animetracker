@@ -24,6 +24,9 @@
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
 
+// i18n - sayfa dilini baslat
+lang_init($pdo);
+
 // Mevcut surumu settings tablosundan al. Bu deger migration_manager tarafindan
 // her sayfa yuklemesinde guncel tutuluyor. "Guncelleme Kontrolu" bolumunde
 // kullaniciya hangi surumde oldugu gosterilecek.
@@ -35,7 +38,7 @@ try {
     // Sessizce gec - UI'da "bilinmiyor" gosterilecek
 }
 if (!$currentVersion) {
-    $currentVersion = 'bilinmiyor';
+    $currentVersion = t('list_settings.version.unknown');
 }
 
 // Son katalog senkronizasyonu zamani. settings tablosunda satir yoksa
@@ -94,7 +97,7 @@ if (isset($_GET['aired_msg'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? '')) {
         http_response_code(403);
-        die('CSRF token gecersiz. Sayfayi yenileyip tekrar deneyin.');
+        die(htmlspecialchars(t('list_settings.csrf.invalid'), ENT_QUOTES, 'UTF-8'));
     }
 }
 
@@ -107,22 +110,28 @@ if (isset($_POST['sync_aired'])) {
     $stats = syncAllOngoingAiredEpisodes($pdo, 3);
 
     if (isset($stats['global_error'])) {
-        $msg = 'Senkronizasyon iptal edildi: ' . $stats['global_error'];
+        $msg = t('list_settings.aired.cancelled_prefix') . ' ' . $stats['global_error'];
         if ($stats['global_error'] === 'no_key') {
-            $msg = 'AnimeSchedule API anahtari config.php icinde tanimli degil.';
+            $msg = t('list_settings.aired.no_api_key');
         } elseif ($stats['global_error'] === 'http_429') {
-            $msg = 'API istek limiti asildi. Birkac dakika sonra tekrar deneyin.';
+            $msg = t('list_settings.aired.rate_limit');
         } elseif ($stats['global_error'] === 'http_401') {
-            $msg = 'API anahtari gecersiz. config.php yi kontrol edin.';
+            $msg = t('list_settings.aired.invalid_key');
         }
         header('Location: list_settings.php?aired_msg=' . urlencode($msg));
     } else {
-        $msg = $stats['updated'] . ' anime guncellendi, '
-             . $stats['unchanged'] . ' degismedi, '
-             . $stats['not_in_table'] . ' takvimde bulunamadi'
-             . ($stats['no_slug']  > 0 ? ', ' . $stats['no_slug']  . ' AnimeSchedule URL si yok' : '')
-             . ($stats['errors']   > 0 ? ', ' . $stats['errors']   . ' hata' : '')
-             . '.';
+        $parts = [
+            sprintf(t('list_settings.aired.result.updated'), $stats['updated']),
+            sprintf(t('list_settings.aired.result.unchanged'), $stats['unchanged']),
+            sprintf(t('list_settings.aired.result.not_in_table'), $stats['not_in_table']),
+        ];
+        if ($stats['no_slug'] > 0) {
+            $parts[] = sprintf(t('list_settings.aired.result.no_slug'), $stats['no_slug']);
+        }
+        if ($stats['errors'] > 0) {
+            $parts[] = sprintf(t('list_settings.aired.result.errors'), $stats['errors']);
+        }
+        $msg = implode(', ', $parts) . '.';
         header('Location: list_settings.php?aired_msg=' . urlencode($msg));
     }
     exit;
@@ -216,10 +225,10 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                     $anime['release_date']
                 ]);
             }
-            $success_message = "Liste başarıyla içe aktarıldı!";
+            $success_message = t('list_settings.import.success');
         }
     } else {
-        $error_message = "Lütfen geçerli bir JSON dosyası yükleyin!";
+        $error_message = t('list_settings.import.invalid_format');
     }
 }
 
@@ -227,7 +236,7 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
 if (isset($_POST['clear'])) {
     if (isset($_POST['confirm_clear']) && $_POST['confirm_clear'] === 'yes') {
         $pdo->exec("TRUNCATE TABLE animes");
-        $success_message = "Liste başarıyla temizlendi!";
+        $success_message = t('list_settings.clear.success');
     }
 }
 
@@ -235,10 +244,10 @@ if (isset($_POST['clear'])) {
 ?>
 
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="<?php echo current_lang(); ?>">
 <head>
     <meta charset="UTF-8">
-    <title>Liste Ayarları - Anime Tracker</title>
+    <title><?php echo htmlspecialchars(t('list_settings.page_title'), ENT_QUOTES, 'UTF-8'); ?></title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
@@ -247,10 +256,25 @@ if (isset($_POST['clear'])) {
 <body>
     <div class="container">
         <div class="header-section">
-            <a href="about.php" class="about-link">Hakkında</a>
+            <a href="about.php" class="about-link"><?php echo htmlspecialchars(t('nav.about'), ENT_QUOTES, 'UTF-8'); ?></a>
+
+            <div class="lang-switcher" role="group" aria-label="<?php echo htmlspecialchars(t('lang.aria_label'), ENT_QUOTES, 'UTF-8'); ?>">
+                <form method="POST" action="set_language.php" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+                    <input type="hidden" name="lang" value="tr">
+                    <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($_SERVER['REQUEST_URI'] ?? 'list_settings.php', ENT_QUOTES, 'UTF-8'); ?>">
+                    <button type="submit" class="lang-switch<?php echo current_lang() === 'tr' ? ' lang-switch-active' : ''; ?>"><?php echo htmlspecialchars(t('lang.tr_label'), ENT_QUOTES, 'UTF-8'); ?></button>
+                </form>
+                <form method="POST" action="set_language.php" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+                    <input type="hidden" name="lang" value="en">
+                    <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($_SERVER['REQUEST_URI'] ?? 'list_settings.php', ENT_QUOTES, 'UTF-8'); ?>">
+                    <button type="submit" class="lang-switch<?php echo current_lang() === 'en' ? ' lang-switch-active' : ''; ?>"><?php echo htmlspecialchars(t('lang.en_label'), ENT_QUOTES, 'UTF-8'); ?></button>
+                </form>
+            </div>
         </div>
         
-        <div class="page-title">Liste Ayarları</div>
+        <div class="page-title"><?php echo htmlspecialchars(t('list_settings.heading'), ENT_QUOTES, 'UTF-8'); ?></div>
 
         <?php if (isset($success_message)): ?>
             <div class="alert alert-success"><?php echo htmlspecialchars($success_message, ENT_QUOTES, 'UTF-8'); ?></div>
@@ -263,43 +287,43 @@ if (isset($_POST['clear'])) {
         <div class="settings-container">
             <!-- Dışa Aktarma Formu -->
             <div class="settings-section">
-                <h3>Listeyi Dışa Aktar</h3>
-                <p>Mevcut anime listenizi JSON formatında dışa aktarın.</p>
+                <h3><?php echo htmlspecialchars(t('list_settings.section.export'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                <p><?php echo htmlspecialchars(t('list_settings.section.export.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
                 <form method="post">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
                     <button type="submit" name="export" class="settings-button">
-                        <i class="fas fa-download"></i> Listeyi Dışa Aktar
+                        <i class="fas fa-download"></i> <?php echo htmlspecialchars(t('list_settings.btn.export'), ENT_QUOTES, 'UTF-8'); ?>
                     </button>
                 </form>
             </div>
 
             <!-- İçe Aktarma Formu -->
             <div class="settings-section">
-                <h3>Listeyi İçe Aktar</h3>
-                <p>Önceden dışa aktarılmış bir listeyi içe aktarın.</p>
+                <h3><?php echo htmlspecialchars(t('list_settings.section.import'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                <p><?php echo htmlspecialchars(t('list_settings.section.import.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
                 <form method="post" enctype="multipart/form-data">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
                     <div class="file-upload">
                         <input type="file" name="import_file" id="import_file" accept=".json" required>
                         <label for="import_file" class="file-upload-label">
-                            <i class="fas fa-upload"></i> Dosya Seç
+                            <i class="fas fa-upload"></i> <?php echo htmlspecialchars(t('list_settings.btn.choose_file'), ENT_QUOTES, 'UTF-8'); ?>
                         </label>
                     </div>
                     <button type="submit" name="import" class="settings-button">
-                        <i class="fas fa-upload"></i> Listeyi İçe Aktar
+                        <i class="fas fa-upload"></i> <?php echo htmlspecialchars(t('list_settings.btn.import'), ENT_QUOTES, 'UTF-8'); ?>
                     </button>
                 </form>
             </div>
 
             <!-- Liste Temizleme Formu -->
             <div class="settings-section">
-                <h3>Listeyi Temizle</h3>
-                <p>DİKKAT: Bu işlem geri alınamaz!</p>
+                <h3><?php echo htmlspecialchars(t('list_settings.section.clear'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                <p><?php echo htmlspecialchars(t('list_settings.section.clear.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
                 <form method="post" onsubmit="return confirmClear()">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
                     <input type="hidden" name="confirm_clear" value="yes">
                     <button type="submit" name="clear" class="settings-button danger">
-                        <i class="fas fa-trash-alt"></i> Listeyi Temizle
+                        <i class="fas fa-trash-alt"></i> <?php echo htmlspecialchars(t('list_settings.btn.clear'), ENT_QUOTES, 'UTF-8'); ?>
                     </button>
                 </form>
             </div>
@@ -307,68 +331,65 @@ if (isset($_POST['clear'])) {
 			
 
             <div class="settings-section">
-    <h3>Tür Yönetimi</h3>
-    <p>Yanlış yazılan veya kullanılmayan türleri yönetin.</p>
+    <h3><?php echo htmlspecialchars(t('list_settings.section.genres'), ENT_QUOTES, 'UTF-8'); ?></h3>
+    <p><?php echo htmlspecialchars(t('list_settings.section.genres.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
     <a href="manage_genres.php" class="settings-button">
-        <i class="fas fa-tags"></i> Türleri Yönet
+        <i class="fas fa-tags"></i> <?php echo htmlspecialchars(t('list_settings.btn.manage_genres'), ENT_QUOTES, 'UTF-8'); ?>
     </a>
 	
 		</div>
 		
 				<!-- Katalog Senkronizasyonu -->
 <div class="settings-section">
-    <h3>Katalog Senkronizasyonu</h3>
-    <p>Merkezi katalogdan en son anime bilgilerini cekin. Kendi izleme durumlariniz ve notlariniz korunur.</p>
+    <h3><?php echo htmlspecialchars(t('list_settings.section.catalog'), ENT_QUOTES, 'UTF-8'); ?></h3>
+    <p><?php echo htmlspecialchars(t('list_settings.section.catalog.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
     <div id="catalog-status">
         <?php if ($lastCatalogSync): ?>
-            Son senkronizasyon: <strong><?php echo htmlspecialchars($lastCatalogSync, ENT_QUOTES, 'UTF-8'); ?> UTC</strong>
+            <?php echo htmlspecialchars(t('list_settings.catalog.last_sync_prefix'), ENT_QUOTES, 'UTF-8'); ?> <strong><?php echo htmlspecialchars($lastCatalogSync, ENT_QUOTES, 'UTF-8'); ?> UTC</strong>
         <?php else: ?>
-            <em>Henuz senkronize edilmedi.</em>
+            <em><?php echo htmlspecialchars(t('list_settings.catalog.never_synced'), ENT_QUOTES, 'UTF-8'); ?></em>
         <?php endif; ?>
     </div>
     <?php if ($unpushedUserMarkers > 0): ?>
     <div style="margin-top: 10px; padding: 10px; border-left: 4px solid #e6a700; background: #fff8e1; color: #5a4500; font-size: 0.92em;">
-        Katalog ile senkronize olmayan <strong><?php echo (int)$unpushedUserMarkers; ?></strong> kronoloji
-        isareti var. Ice aktarma bunlari <strong>silmez</strong> &mdash; kendi ekledikleriniz korunur,
-        katalogdan gelenler otomatik eslestirilir. Evrensel kronolojinin eksiksiz kalmasi icin
-        bunlari admin push ile kataloga gondermeniz onerilir.
+        <?php echo sprintf(t('list_settings.catalog.unpushed_warning'), (int)$unpushedUserMarkers); ?>
     </div>
     <?php endif; ?>
     <form method="post" action="catalog_import.php" onsubmit="return confirmCatalogSync()" style="margin-top: 10px;">
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
         <button type="submit" class="settings-button">
-            <i class="fas fa-cloud-download-alt"></i> Katalogdan Ice Aktar
+            <i class="fas fa-cloud-download-alt"></i> <?php echo htmlspecialchars(t('list_settings.btn.catalog_import'), ENT_QUOTES, 'UTF-8'); ?>
         </button>
     </form>
 </div>
 
 	<!-- Bolum Sayisi Senkronizasyonu (Madde C) -->
 <div class="settings-section">
-    <h3>Bolum Sayisi Senkronizasyonu</h3>
-    <p>Yayini devam eden animelerin "yayinlanan bolum sayisi" bilgisi AnimeSchedule den otomatik olarak guncellenir. Bu sayfa her acildiginda gunde bir kez arka planda calisir; manuel calistirmak icin asagidaki butonu kullanabilirsiniz.</p>
+    <h3><?php echo htmlspecialchars(t('list_settings.section.aired'), ENT_QUOTES, 'UTF-8'); ?></h3>
+    <p><?php echo htmlspecialchars(t('list_settings.section.aired.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
     <div id="aired-status">
         <?php if ($lastAiredSync): ?>
-            Son senkronizasyon: <strong><?php echo htmlspecialchars($lastAiredSync, ENT_QUOTES, 'UTF-8'); ?> UTC</strong>
+            <?php echo htmlspecialchars(t('list_settings.catalog.last_sync_prefix'), ENT_QUOTES, 'UTF-8'); ?> <strong><?php echo htmlspecialchars($lastAiredSync, ENT_QUOTES, 'UTF-8'); ?> UTC</strong>
         <?php else: ?>
-            <em>Henuz senkronize edilmedi.</em>
+            <em><?php echo htmlspecialchars(t('list_settings.catalog.never_synced'), ENT_QUOTES, 'UTF-8'); ?></em>
         <?php endif; ?>
     </div>
     <form method="post" action="list_settings.php" style="margin-top: 10px;">
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
         <input type="hidden" name="sync_aired" value="1">
         <button type="submit" class="settings-button">
-            <i class="fas fa-sync"></i> Simdi Senkronize Et
+            <i class="fas fa-sync"></i> <?php echo htmlspecialchars(t('list_settings.btn.sync_now'), ENT_QUOTES, 'UTF-8'); ?>
         </button>
     </form>
 </div>
 
 	<!-- list_settings.php içindeki settings-container div'ine ekleyin -->
 <div class="settings-section">
-    <h3>Güncelleme Kontrolü</h3>
-    <p>Yeni versiyon kontrolü yapın.</p>
-    <div id="update-status">Mevcut versiyon: <?php echo htmlspecialchars($currentVersion, ENT_QUOTES, 'UTF-8'); ?></div>
+    <h3><?php echo htmlspecialchars(t('list_settings.section.update'), ENT_QUOTES, 'UTF-8'); ?></h3>
+    <p><?php echo htmlspecialchars(t('list_settings.section.update.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
+    <div id="update-status"><?php echo htmlspecialchars(t('list_settings.update.current_version'), ENT_QUOTES, 'UTF-8'); ?> <?php echo htmlspecialchars($currentVersion, ENT_QUOTES, 'UTF-8'); ?></div>
     <button onclick="checkUpdate()" class="settings-button">
-        <i class="fas fa-sync"></i> Güncelleme Kontrolü
+        <i class="fas fa-sync"></i> <?php echo htmlspecialchars(t('list_settings.btn.check_update'), ENT_QUOTES, 'UTF-8'); ?>
     </button>
     <input type="hidden" id="update-csrf-token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
 </div>
@@ -376,13 +397,40 @@ if (isset($_POST['clear'])) {
 
 
         <div class="button-container">
-            <a href="index.php" class="anime-list-button">Anime Listesine Dön</a>
+            <a href="index.php" class="anime-list-button"><?php echo htmlspecialchars(t('list_settings.back_to_list'), ENT_QUOTES, 'UTF-8'); ?></a>
         </div>
     </div>
 
     <script>
+    const LANG = <?php echo json_encode([
+        'confirm_clear'              => t('list_settings.js.confirm_clear'),
+        'confirm_sync_intro'         => t('list_settings.js.confirm_sync_intro'),
+        'confirm_sync_safe'          => t('list_settings.js.confirm_sync_safe'),
+        'confirm_sync_overwrite'     => t('list_settings.js.confirm_sync_overwrite'),
+        'confirm_sync_unpushed'      => t('list_settings.js.confirm_sync_unpushed'),
+        'confirm_continue'           => t('list_settings.js.confirm_continue'),
+        'checking'                   => t('list_settings.js.checking'),
+        'update_error'               => t('list_settings.js.update_error'),
+        'current_version'            => t('list_settings.update.current_version'),
+        'new_version_label'          => t('list_settings.js.new_version_label'),
+        'up_to_date_suffix'          => t('list_settings.js.up_to_date_suffix'),
+        'confirm_install'            => t('list_settings.js.confirm_install'),
+        'network_error'              => t('list_settings.js.network_error'),
+        'installing'                 => t('list_settings.js.installing'),
+        'installing_note'            => t('list_settings.js.installing_note'),
+        'install_failed'             => t('list_settings.js.install_failed'),
+        'install_failed_alert'       => t('list_settings.js.install_failed_alert'),
+        'unknown_error'              => t('list_settings.js.unknown_error'),
+        'install_success'            => t('list_settings.js.install_success'),
+        'install_previous'           => t('list_settings.js.install_previous'),
+        'install_new'                => t('list_settings.js.install_new'),
+        'reloading'                  => t('list_settings.js.reloading'),
+        'install_network_error'      => t('list_settings.js.install_network_error'),
+        'install_network_error_alert' => t('list_settings.js.install_network_error_alert'),
+    ], JSON_UNESCAPED_UNICODE); ?>;
+
     function confirmClear() {
-        return confirm("Tüm liste silinecek. Bu işlem geri alınamaz! Devam etmek istiyor musunuz?");
+        return confirm(LANG.confirm_clear);
 		
 		
 		
@@ -391,54 +439,50 @@ if (isset($_POST['clear'])) {
     function confirmCatalogSync() {
         var unpushedMarkers = <?php echo (int)$unpushedUserMarkers; ?>;
         var msg =
-            "Katalogdan ice aktarilacak.\n\n" +
-            "Kendi izleme durumlariniz ve notlariniz KORUNUR.\n" +
-            "Sadece anime bilgileri (baslik, synopsis, bolum sayisi vs.) guncellenir.\n\n";
+            LANG.confirm_sync_intro + "\n\n" +
+            LANG.confirm_sync_safe + "\n" +
+            LANG.confirm_sync_overwrite + "\n\n";
         if (unpushedMarkers > 0) {
-            msg +=
-                "NOT: Katalog ile senkronize olmayan " + unpushedMarkers +
-                " kronoloji isareti var.\n" +
-                "Ice aktarma bunlari SILMEZ. Kendi ekledikleriniz korunur,\n" +
-                "katalogdan gelenler otomatik eslestirilir.\n\n";
+            msg += LANG.confirm_sync_unpushed.replace('%d', unpushedMarkers) + "\n\n";
         }
-        msg += "Devam etmek istiyor musunuz?";
+        msg += LANG.confirm_continue;
         return confirm(msg);
     }
 	
 function checkUpdate() {
     const statusDiv = document.getElementById('update-status');
     const originalText = statusDiv.innerHTML;
-    statusDiv.innerHTML = '<em>Kontrol ediliyor...</em>';
+    statusDiv.innerHTML = '<em>' + LANG.checking + '</em>';
 
     fetch('check_update.php')
         .then(response => response.json())
         .then(data => {
             if (data.error) {
                 statusDiv.innerHTML = originalText;
-                alert(data.message || 'Guncelleme kontrolu sirasinda bir hata olustu.');
+                alert(data.message || LANG.update_error);
                 return;
             }
 
             if (data.needs_update) {
                 // Yeni versiyon var - bilgi goster
                 statusDiv.innerHTML =
-                    'Mevcut versiyon: <strong>' + data.current_version + '</strong><br>' +
-                    'Yeni versiyon: <strong>' + data.latest_version + '</strong>';
+                    LANG.current_version + ' <strong>' + data.current_version + '</strong><br>' +
+                    LANG.new_version_label + ' <strong>' + data.latest_version + '</strong>';
 
                 // Kullaniciya onay sor. Onaylarsa runUpdate() WordPress tarzi
                 // in-place update yapiyor - hicbir .exe indirmeye veya manuel
                 // adima gerek yok.
-                if (confirm('Yeni versiyon mevcut: ' + data.latest_version + '\n\nHemen guncellemek ister misiniz?')) {
+                if (confirm(LANG.confirm_install.replace('%s', data.latest_version))) {
                     runUpdate();
                 }
             } else {
                 // Sistem guncel
-                statusDiv.innerHTML = 'Mevcut versiyon: <strong>' + data.current_version + '</strong> (güncel)';
+                statusDiv.innerHTML = LANG.current_version + ' <strong>' + data.current_version + '</strong> ' + LANG.up_to_date_suffix;
             }
         })
         .catch(error => {
             statusDiv.innerHTML = originalText;
-            alert('Güncelleme kontrolü sırasında bir hata oluştu: ' + error);
+            alert(LANG.network_error + ' ' + error);
         });
 }
 
@@ -449,8 +493,8 @@ function runUpdate() {
     // Kullaniciyi bilgilendirerek sureci belirginlestir. Guncelleme birkac
     // saniye surebilir (indirme + extract + kopyalama + migration).
     statusDiv.innerHTML =
-        '<em>Guncelleme indiriliyor ve uygulaniyor...</em><br>' +
-        '<small>Bu islem birkac saniye surebilir. Sayfayi kapatmayin.</small>';
+        '<em>' + LANG.installing + '</em><br>' +
+        '<small>' + LANG.installing_note + '</small>';
 
     // POST istegi ile update.php cagriliyor. CSRF token gerekli.
     const formData = new URLSearchParams();
@@ -467,23 +511,23 @@ function runUpdate() {
     .then(data => {
         if (!data.success) {
             // Update basarisiz - hatayi goster, sayfayi yenileme
-            statusDiv.innerHTML = '<strong style="color:#d32f2f;">Guncelleme basarisiz</strong>';
-            alert('Guncelleme basarisiz: ' + (data.message || 'Bilinmeyen hata'));
+            statusDiv.innerHTML = '<strong style="color:#d32f2f;">' + LANG.install_failed + '</strong>';
+            alert(LANG.install_failed_alert + ' ' + (data.message || LANG.unknown_error));
             return;
         }
 
         if (data.already_latest) {
             // Arada biri baska bir sekmeden zaten guncellemis olabilir
-            statusDiv.innerHTML = 'Mevcut versiyon: <strong>' + data.message + '</strong>';
+            statusDiv.innerHTML = LANG.current_version + ' <strong>' + data.message + '</strong>';
             return;
         }
 
         // Basarili - yeni versiyon bilgisini goster ve sayfayi yenile
         statusDiv.innerHTML =
-            '<strong style="color:#2e7d32;">Guncelleme tamamlandi!</strong><br>' +
-            'Eski versiyon: ' + data.previous_version + '<br>' +
-            'Yeni versiyon: <strong>' + data.new_version + '</strong><br>' +
-            '<small>Sayfa yenileniyor...</small>';
+            '<strong style="color:#2e7d32;">' + LANG.install_success + '</strong><br>' +
+            LANG.install_previous + ' ' + data.previous_version + '<br>' +
+            LANG.install_new + ' <strong>' + data.new_version + '</strong><br>' +
+            '<small>' + LANG.reloading + '</small>';
 
         // Kisa bir gecikme ile sayfayi yenile ki kullanici basari
         // mesajini gorebilsin
@@ -492,8 +536,8 @@ function runUpdate() {
         }, 2000);
     })
     .catch(error => {
-        statusDiv.innerHTML = '<strong style="color:#d32f2f;">Ag hatasi</strong>';
-        alert('Guncelleme sirasinda bir hata olustu: ' + error);
+        statusDiv.innerHTML = '<strong style="color:#d32f2f;">' + LANG.install_network_error + '</strong>';
+        alert(LANG.install_network_error_alert + ' ' + error);
     });
 }
     </script>

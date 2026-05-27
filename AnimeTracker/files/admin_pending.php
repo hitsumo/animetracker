@@ -28,13 +28,15 @@
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
 
+lang_init_admin($pdo);
+
 // --- Access control ----------------------------------------------------
 
 $clientIp = $_SERVER['REMOTE_ADDR'] ?? '';
 $isLocal = in_array($clientIp, ['127.0.0.1', '::1', 'localhost'], true);
 if (!$isLocal) {
     http_response_code(403);
-    die('Bu sayfa sadece localhost uzerinden erisilebilir.');
+    die(htmlspecialchars(t('admin_pending.localhost_only'), ENT_QUOTES, 'UTF-8'));
 }
 
 $message = null;
@@ -45,7 +47,7 @@ $messageType = null; // 'success' or 'error'
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? '')) {
         http_response_code(400);
-        die('Gecersiz CSRF tokeni.');
+        die(htmlspecialchars(t('admin_pending.error.csrf'), ENT_QUOTES, 'UTF-8'));
     }
 
     $action = $_POST['action'] ?? '';
@@ -61,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $clean = array_keys($clean);
 
             if (empty($clean)) {
-                throw new Exception('Hic anime secilmedi.');
+                throw new Exception(t('admin_pending.error.no_selection'));
             }
 
             // Only flip rows that are currently 'local' - never accidentally
@@ -73,14 +75,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute($clean);
             $affected = $stmt->rowCount();
 
-            $message = $affected . ' anime kataloga alindi. '
-                     . 'Sunucuya gondermek icin admin_sync.php sayfasini kullan.';
+            $message = sprintf(t('admin_pending.success.promoted_some'), $affected);
             $messageType = 'success';
 
         } elseif ($action === 'promote_all') {
             $stmt = $pdo->query("UPDATE animes SET source = 'catalog' WHERE source = 'local'");
             $affected = $stmt->rowCount();
-            $message = $affected . ' anime kataloga alindi.';
+            $message = sprintf(t('admin_pending.success.promoted_all'), $affected);
             $messageType = 'success';
 
         } elseif ($action === 'demote') {
@@ -89,15 +90,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // before the next sync.
             $id = (int)($_POST['id'] ?? 0);
             if ($id <= 0) {
-                throw new Exception('Gecersiz anime ID.');
+                throw new Exception(t('admin_pending.error.invalid_id'));
             }
             $stmt = $pdo->prepare("UPDATE animes SET source = 'local'
                                    WHERE source = 'catalog' AND id = ?");
             $stmt->execute([$id]);
-            $message = 'Anime katalogdan cikarildi (local yapildi).';
+            $message = t('admin_pending.success.demoted');
             $messageType = 'success';
         } else {
-            throw new Exception('Bilinmeyen islem.');
+            throw new Exception(t('admin_pending.error.unknown_action'));
         }
     } catch (Exception $e) {
         $message = $e->getMessage();
@@ -123,10 +124,10 @@ $catalogCount = (int)($totals['catalog'] ?? 0);
 $localCount   = (int)($totals['local']   ?? 0);
 ?>
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="<?php echo current_lang(); ?>">
 <head>
     <meta charset="UTF-8">
-    <title>Admin: Bekleyen Animeler - Anime Tracker</title>
+    <title><?php echo htmlspecialchars(t('admin_pending.page_title'), ENT_QUOTES, 'UTF-8'); ?></title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
@@ -215,19 +216,19 @@ $localCount   = (int)($totals['local']   ?? 0);
     <div class="page-heading">
         <i class="fas fa-inbox" style="font-size: 1.6em; color: #007bff;"></i>
         <div>
-            <h1>Bekleyen Animeler</h1>
+            <h1><?php echo htmlspecialchars(t('admin_pending.heading'), ENT_QUOTES, 'UTF-8'); ?></h1>
             <div style="color: #888; font-size: 0.9em;">
-                source='local' - kataloga alinmamis, sunucuya gitmiyor
+                <?php echo htmlspecialchars(t('admin_pending.subtitle'), ENT_QUOTES, 'UTF-8'); ?>
             </div>
         </div>
     </div>
 
     <div class="totals">
         <span class="badge badge-catalog">
-            <i class="fas fa-cloud"></i> Katalog: <?php echo $catalogCount; ?>
+            <i class="fas fa-cloud"></i> <?php echo htmlspecialchars(t('admin_pending.badge.catalog'), ENT_QUOTES, 'UTF-8'); ?> <?php echo $catalogCount; ?>
         </span>
         <span class="badge badge-local">
-            <i class="fas fa-laptop"></i> Local: <?php echo $localCount; ?>
+            <i class="fas fa-laptop"></i> <?php echo htmlspecialchars(t('admin_pending.badge.local'), ENT_QUOTES, 'UTF-8'); ?> <?php echo $localCount; ?>
         </span>
     </div>
 
@@ -239,10 +240,7 @@ $localCount   = (int)($totals['local']   ?? 0);
 
     <?php if (empty($pending)): ?>
         <div class="empty">
-            Bekleyen anime yok. Tum yerel kayitlar zaten katalog durumunda.
-            <br><br>
-            Yeni bir anime ekledikten sonra burada gozukur. Secip "Kataloga Al"
-            dedikten sonra admin_sync.php uzerinden sunucuya push et.
+            <?php echo t('admin_pending.empty'); ?>
         </div>
     <?php else: ?>
         <form method="post" id="promote-form">
@@ -251,19 +249,19 @@ $localCount   = (int)($totals['local']   ?? 0);
 
             <div class="bulk-actions">
                 <button type="button" class="btn-secondary" onclick="toggleAll(true)">
-                    <i class="fas fa-check-square"></i> Tumunu Sec
+                    <i class="fas fa-check-square"></i> <?php echo htmlspecialchars(t('admin_pending.btn.select_all'), ENT_QUOTES, 'UTF-8'); ?>
                 </button>
                 <button type="button" class="btn-secondary" onclick="toggleAll(false)">
-                    <i class="far fa-square"></i> Secimi Temizle
+                    <i class="far fa-square"></i> <?php echo htmlspecialchars(t('admin_pending.btn.clear_selection'), ENT_QUOTES, 'UTF-8'); ?>
                 </button>
                 <button type="submit" class="btn-primary">
-                    <i class="fas fa-cloud-upload-alt"></i> Secilenleri Kataloga Al
+                    <i class="fas fa-cloud-upload-alt"></i> <?php echo htmlspecialchars(t('admin_pending.btn.promote_selected'), ENT_QUOTES, 'UTF-8'); ?>
                 </button>
 
                 <button type="submit" class="btn-warning" formnovalidate
                         onclick="document.querySelector('input[name=action]').value='promote_all';
-                                 return confirm('<?php echo (int)$localCount; ?> animenin TUMUNU kataloga almak istediginize emin misiniz?');">
-                    <i class="fas fa-cloud"></i> Hepsini Kataloga Al
+                                 return confirm('<?php echo htmlspecialchars(sprintf(t('admin_pending.confirm.promote_all'), (int)$localCount), ENT_QUOTES, 'UTF-8'); ?>');">
+                    <i class="fas fa-cloud"></i> <?php echo htmlspecialchars(t('admin_pending.btn.promote_all'), ENT_QUOTES, 'UTF-8'); ?>
                 </button>
             </div>
 
@@ -273,11 +271,11 @@ $localCount   = (int)($totals['local']   ?? 0);
                         <th style="width: 40px;">
                             <input type="checkbox" id="select-all" onchange="toggleAll(this.checked)">
                         </th>
-                        <th>Baslik</th>
-                        <th>Yayin Durumu</th>
-                        <th>Izleme Durumu</th>
-                        <th>MAL / AniDB</th>
-                        <th>Eklenme</th>
+                        <th><?php echo htmlspecialchars(t('admin_pending.col.title'), ENT_QUOTES, 'UTF-8'); ?></th>
+                        <th><?php echo htmlspecialchars(t('admin_pending.col.broadcast_status'), ENT_QUOTES, 'UTF-8'); ?></th>
+                        <th><?php echo htmlspecialchars(t('admin_pending.col.watch_status'), ENT_QUOTES, 'UTF-8'); ?></th>
+                        <th><?php echo htmlspecialchars(t('admin_pending.col.external_ids'), ENT_QUOTES, 'UTF-8'); ?></th>
+                        <th><?php echo htmlspecialchars(t('admin_pending.col.added'), ENT_QUOTES, 'UTF-8'); ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -319,7 +317,7 @@ $localCount   = (int)($totals['local']   ?? 0);
     <?php endif; ?>
 
     <a href="admin.php" class="back-link">
-        <i class="fas fa-arrow-left"></i> Admin dashboard
+        <i class="fas fa-arrow-left"></i> <?php echo htmlspecialchars(t('admin_pending.back_to_dashboard'), ENT_QUOTES, 'UTF-8'); ?>
     </a>
 </div>
 </body>
