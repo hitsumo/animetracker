@@ -600,6 +600,19 @@ return [
     'recommendations.group.matched'          => '%d / %d cümle eşleşti',
     'recommendations.group.count_suffix'     => '(%d anime)',
 
+    // 0.6.5 - emotion filter integration (KARARLAR Bolum 8 devir borc kapanisi).
+    // tag (cumle) + emotion bucket'lari paralel calisir, OR mantigi:
+    // score = tag_score + emo_score. Eski tag-only anahtarlar bozulmaz;
+    // emotion seciliyse alttaki _combined varyantlar devreye girer.
+    'recommendations.emotion.toggle.show'           => 'Duyguları Göster',
+    'recommendations.emotion.toggle.hide'           => 'Duyguları Gizle',
+    'recommendations.emotion.toggle.count_selected' => '(%d duygu seçili)',
+    'recommendations.emotion.empty_marks'           => 'Henüz hiçbir animeye duygu işareti koymamışsın. Anime detay sayfasında duygu butonlarıyla işaret ekleyebilirsin.',
+    'recommendations.matched.emotion_prefix'        => 'Eşleşen duygular:',
+    'recommendations.no_match_combined'             => 'Seçtiğin cümle ve duygularla eşleşen anime bulunamadı. Daha az kriter seçip tekrar dene.',
+    'recommendations.result.count_combined'         => '<strong>%d</strong> anime bulundu (%d cümle, %d duygu seçildi).',
+    'recommendations.group.matched_combined'        => '%d kriter eşleşti',
+
     // -----------------------------------------------------------------
     // about.php
     // -----------------------------------------------------------------

@@ -1,0 +1,6 @@
+-- Anime Tracker 0.6.5 migration
+-- No schema changes in this release.
+-- This file exists only to bump settings.version to 0.6.5.
+-- 0.6.5 adds emotion filter to recommendations.php
+-- (PHP-only change, uses user_anime_emotion table from 0.6.1).
+--today(27.05.2026) again update. i am tired

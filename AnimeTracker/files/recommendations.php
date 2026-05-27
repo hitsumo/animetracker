@@ -24,8 +24,9 @@
  * Recommendation page ("Ne Izlesem?").
  *
  * Bucket metaphor:
- *   - Each sentence (tag) is a bucket.
- *   - When the user picks several sentences, each bucket dips into the
+ *   - Each sentence (tag) is a bucket. Each emotion mark is also a
+ *     bucket (added in 0.6.5).
+ *   - When the user picks several buckets, each bucket dips into the
  *     pool of all anime and pulls out the matching rows.
  *   - The buckets merge into a single result. An anime that was pulled
  *     by 3 buckets ranks above one pulled by only 1 (OR + score, not
@@ -33,10 +34,17 @@
  *   - Within the same score band, anime the user has not finished are
  *     surfaced first (discovery > rewatching).
  *
+ * Tag and emotion buckets are run as two SEPARATE SQL queries and
+ * merged in PHP. Cross-JOINing tags and emotions in a single query
+ * produces a Cartesian-product COUNT inflation that is hard to undo
+ * cleanly; running them apart and adding scores client-side is
+ * straightforward and keeps each query simple.
+ *
  * Two entry points:
- *   - Pick sentences + "Oner" -> ranked list grouped by score
+ *   - Pick sentences and/or emotions + "Oner" -> ranked list grouped
+ *     by combined score
  *   - "Surpriz Sec" -> a single random anime from the unwatched pool
- *     (no sentences required - quick coin flip)
+ *     (no criteria required - quick coin flip)
  */
 
 require_once __DIR__ . '/db.php';
@@ -47,6 +55,8 @@ lang_init($pdo);
 
 // --------------------------------------------------------
 // Load every available sentence so the form can render checkboxes.
+// Emotion options come from emotion_options() helper (functions.php
+// satir 203), no DB fetch needed - the canonical list is hardcoded.
 // --------------------------------------------------------
 $allTags = getAllTags($pdo);
 
@@ -65,12 +75,28 @@ if (!empty($_GET['tags']) && is_array($_GET['tags'])) {
     }
     $selectedTagIds = array_keys($selectedTagIds);
 }
-$mode = $_GET['mode'] ?? 'pick';   // 'pick' (sentence-driven) or 'surprise'
+
+// 0.6.5 - emotion filter input. Validate against canonical
+// emotion_options() keys to reject anything the user might inject
+// via URL manipulation. The keys are ASCII identifiers
+// (Huzunlendirdi, Heyecanlandirdi, ...) - see functions.php.
+$selectedEmotions = [];
+if (!empty($_GET['emotions']) && is_array($_GET['emotions'])) {
+    $canonicalEmotions = emotion_options();
+    foreach ($_GET['emotions'] as $em) {
+        $em = (string)$em;
+        if (array_key_exists($em, $canonicalEmotions) && !in_array($em, $selectedEmotions, true)) {
+            $selectedEmotions[] = $em;
+        }
+    }
+}
+
+$mode = $_GET['mode'] ?? 'pick';   // 'pick' (criterion-driven) or 'surprise'
 
 // --------------------------------------------------------
 // Compute the result set.
 // --------------------------------------------------------
-$results = [];      // list of [anime, score, matched_tag_names]
+$results = [];      // list of [anime, score, matched_tag_names, matched_emotion_names]
 $surpriseAnime = null;
 
 if ($mode === 'surprise') {
@@ -89,51 +115,102 @@ if ($mode === 'surprise') {
         $surpriseAnime = $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-} elseif (!empty($selectedTagIds)) {
-    // Sentence mode: each selected sentence is a bucket. Collect every
-    // anime touched by any of the buckets and count how many buckets
-    // it appeared in - that count is the score.
-    //
-    // We do this in a single SQL pass so the database does the heavy
-    // lifting: GROUP BY anime_id with a COUNT of distinct matching
-    // tags. The IN (?, ?, ?) clause is parameterised dynamically based
-    // on how many sentences were selected.
-    $placeholders = implode(',', array_fill(0, count($selectedTagIds), '?'));
+} elseif (!empty($selectedTagIds) || !empty($selectedEmotions)) {
+    // Two-pass strategy: run tag query and emotion query separately,
+    // accumulate per-anime totals in $byAnimeId, then sort in PHP.
+    // This keeps each SQL simple and avoids COUNT inflation that would
+    // come from a single JOIN over both anime_tags and user_anime_emotion.
+    $byAnimeId = []; // anime_id => entry
 
-    $sql = "
-        SELECT a.*,
-               COUNT(DISTINCT at.tag_id) AS score,
-               GROUP_CONCAT(DISTINCT t.name ORDER BY t.name SEPARATOR '|') AS matched_tags
-        FROM animes a
-        INNER JOIN anime_tags at ON at.anime_id = a.id
-        INNER JOIN tags t ON t.id = at.tag_id
-        WHERE at.tag_id IN ($placeholders)
-        GROUP BY a.id
-        ORDER BY
-            score DESC,
-            CASE WHEN a.watch_status = 'Watched' THEN 1 ELSE 0 END ASC,
-            RAND()
-    ";
-    // Sort priority:
-    //   1) higher score first (more buckets matched = better fit)
-    //   2) within the same score, unwatched anime appear above watched
-    //      ones (discovery beats rewatching)
-    //   3) within the same score AND watch state, randomise so refresh
-    //      gives a fresh-feeling list
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($selectedTagIds);
-    $rawResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    foreach ($rawResults as $row) {
-        $matchedNames = !empty($row['matched_tags'])
-            ? explode('|', $row['matched_tags'])
-            : [];
-        $results[] = [
-            'anime' => $row,
-            'score' => (int)$row['score'],
-            'matched_tag_names' => $matchedNames,
-        ];
+    // ---- Pass 1: tag (cumle) bucket ----
+    if (!empty($selectedTagIds)) {
+        $placeholders = implode(',', array_fill(0, count($selectedTagIds), '?'));
+        $sql = "
+            SELECT a.*,
+                   COUNT(DISTINCT at.tag_id) AS tag_score,
+                   GROUP_CONCAT(DISTINCT t.name ORDER BY t.name SEPARATOR '|') AS matched_tags
+            FROM animes a
+            INNER JOIN anime_tags at ON at.anime_id = a.id
+            INNER JOIN tags t ON t.id = at.tag_id
+            WHERE at.tag_id IN ($placeholders)
+            GROUP BY a.id
+        ";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($selectedTagIds);
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $animeId = (int)$row['id'];
+            $byAnimeId[$animeId] = [
+                'anime'                 => $row,
+                'tag_score'             => (int)$row['tag_score'],
+                'emo_score'             => 0,
+                'matched_tag_names'     => !empty($row['matched_tags']) ? explode('|', $row['matched_tags']) : [],
+                'matched_emotion_names' => [],
+            ];
+        }
     }
+
+    // ---- Pass 2: emotion bucket ----
+    // Single-user mode hardcodes user_id = 1. When 0.8 multi-user comes,
+    // this becomes the session-scoped user id - no schema change required
+    // (user_anime_emotion is already keyed on user_id, see schema.sql).
+    if (!empty($selectedEmotions)) {
+        $eph = implode(',', array_fill(0, count($selectedEmotions), '?'));
+        $sql = "
+            SELECT a.*,
+                   COUNT(DISTINCT uae.emotion) AS emo_score,
+                   GROUP_CONCAT(DISTINCT uae.emotion ORDER BY uae.emotion SEPARATOR '|') AS matched_emos
+            FROM animes a
+            INNER JOIN user_anime_emotion uae ON uae.anime_id = a.id
+            WHERE uae.user_id = 1 AND uae.emotion IN ($eph)
+            GROUP BY a.id
+        ";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($selectedEmotions);
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $animeId = (int)$row['id'];
+            $matchedEmos = !empty($row['matched_emos']) ? explode('|', $row['matched_emos']) : [];
+            if (isset($byAnimeId[$animeId])) {
+                // Already in result set from tag pass - augment with emotion data
+                $byAnimeId[$animeId]['emo_score']             = (int)$row['emo_score'];
+                $byAnimeId[$animeId]['matched_emotion_names'] = $matchedEmos;
+            } else {
+                // Emotion-only match (no tag bucket touched this anime)
+                $byAnimeId[$animeId] = [
+                    'anime'                 => $row,
+                    'tag_score'             => 0,
+                    'emo_score'             => (int)$row['emo_score'],
+                    'matched_tag_names'     => [],
+                    'matched_emotion_names' => $matchedEmos,
+                ];
+            }
+        }
+    }
+
+    // ---- Build $results with combined score + sort ----
+    // Tie-break with a stable random integer attached up front so the
+    // usort comparator stays deterministic during the sort pass (PHP 8
+    // requires comparators to be transitive). Refreshing the page
+    // generates a new random number and a new shuffle.
+    foreach ($byAnimeId as $entry) {
+        $entry['score']    = $entry['tag_score'] + $entry['emo_score'];
+        $entry['_random']  = mt_rand();
+        $results[] = $entry;
+    }
+
+    usort($results, function ($a, $b) {
+        // 1. Higher combined score first
+        if ($a['score'] !== $b['score']) {
+            return $b['score'] - $a['score'];
+        }
+        // 2. Unwatched before watched (discovery beats rewatching)
+        $aw = ($a['anime']['watch_status'] === 'Watched') ? 1 : 0;
+        $bw = ($b['anime']['watch_status'] === 'Watched') ? 1 : 0;
+        if ($aw !== $bw) {
+            return $aw - $bw;
+        }
+        // 3. Random tie-break (precomputed for stable comparator)
+        return $a['_random'] - $b['_random'];
+    });
 }
 
 // Helper to build a watch-status badge consistent with the rest of the
@@ -154,6 +231,19 @@ function watch_status_badge($status) {
         background: ' . $color . '; color: #fff; border-radius: 10px;
         font-size: 12px;">' . htmlspecialchars($label) . '</span>';
 }
+
+// 0.6.5 - check whether the user has marked any anime with any emotion.
+// If not, the emotion filter section would be useless (zero results),
+// so we render a hint instead of the panel. Done with a cheap COUNT
+// query rather than fetching rows.
+$hasAnyEmotionMarks = (int)$pdo->query(
+    "SELECT COUNT(*) FROM user_anime_emotion WHERE user_id = 1"
+)->fetchColumn() > 0;
+
+// Pre-compute selection counts for the result/header templates.
+$totalTagsSelected     = count($selectedTagIds);
+$totalEmotionsSelected = count($selectedEmotions);
+$useCombinedTemplates  = ($totalEmotionsSelected > 0);
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo current_lang(); ?>">
@@ -194,6 +284,45 @@ function watch_status_badge($status) {
         }
         .rec-sentence-item:hover { background: #f0f0f0; }
         .rec-sentence-item input[type=checkbox] { margin: 0; }
+
+        /* 0.6.5 - emotion selection panel. Different layout from the
+           sentence list: 9 fixed items, no search, badge-styled labels
+           that reuse the .emotion-badge-* color classes from
+           style.css (defined in 0.6.1). Checked state increases opacity
+           via :has() - graceful degradation on browsers without :has()
+           leaves the checkbox visible for selection feedback. */
+        .rec-emotion-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 12px;
+            max-width: 700px;
+            margin: 0 auto 16px;
+            padding: 0 20px;
+            justify-content: center;
+        }
+        .rec-emotion-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px;
+            cursor: pointer;
+        }
+        .rec-emotion-item input[type=checkbox] { margin: 0; }
+        .rec-emotion-item:not(:has(:checked)) .emotion-badge {
+            opacity: 0.55;
+        }
+        .rec-emotion-empty-hint {
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto 16px;
+            padding: 10px 14px;
+            background: #f8f9fa;
+            border: 1px dashed #c0c4cc;
+            border-radius: 6px;
+            color: #666;
+            font-size: 0.92em;
+        }
+
         .rec-actions {
             text-align: center;
             margin: 20px 0 30px;
@@ -264,6 +393,20 @@ function watch_status_badge($status) {
             font-size: 0.85em;
             margin-right: 4px;
             margin-bottom: 2px;
+        }
+        /* 0.6.5 - row showing matched emotion badges on result cards.
+           Reuses .emotion-badge-* color classes; only the wrapper is
+           page-local. */
+        .rec-matched-emotions {
+            margin-top: 6px;
+            font-size: 0.9em;
+            color: #555;
+        }
+        .rec-matched-label {
+            color: #777;
+            font-size: 0.82em;
+            display: inline-block;
+            margin-right: 4px;
         }
         .rec-empty {
             text-align: center;
@@ -355,7 +498,7 @@ function watch_status_badge($status) {
 
     <?php else: ?>
         <!-- ============================================================
-             Sentence mode: form + (optional) ranked results
+             Criteria mode: form + (optional) ranked results
              ============================================================ -->
         <p class="rec-intro">
             <?php echo t('recommendations.intro'); ?>
@@ -423,6 +566,53 @@ function watch_status_badge($status) {
                     <?php echo htmlspecialchars(t('recommendations.search.empty_state'), ENT_QUOTES, 'UTF-8'); ?>
                 </p>
 
+                <!-- ====================================================
+                     0.6.5 - Emotion section (parallel to sentence panel).
+                     No search box (only 9 fixed emotions). Same collapse
+                     toggle pattern. Badge-styled labels reuse the 0.6.1
+                     .emotion-badge-* color classes from style.css.
+                     ==================================================== -->
+                <?php if (!$hasAnyEmotionMarks): ?>
+                    <div class="rec-emotion-empty-hint">
+                        <i class="fas fa-info-circle"></i>
+                        <?php echo htmlspecialchars(t('recommendations.emotion.empty_marks'), ENT_QUOTES, 'UTF-8'); ?>
+                    </div>
+                <?php else: ?>
+                    <?php $emotionPanelOpen = !empty($selectedEmotions); ?>
+                    <div style="text-align: center; margin: 0 auto 12px;">
+                        <button type="button" id="rec-emotion-toggle"
+                                class="anime-list-button"
+                                style="display: inline-block;">
+                            <i class="fas fa-chevron-<?php echo $emotionPanelOpen ? 'up' : 'down'; ?>"
+                               id="rec-emotion-toggle-icon"></i>
+                            <span id="rec-emotion-toggle-label">
+                                <?php echo htmlspecialchars($emotionPanelOpen ? t('recommendations.emotion.toggle.hide') : t('recommendations.emotion.toggle.show'), ENT_QUOTES, 'UTF-8'); ?>
+                            </span>
+                            <span id="rec-emotion-toggle-count"
+                                  style="margin-left: 6px; opacity: 0.85;
+                                         <?php echo empty($selectedEmotions) ? 'display:none;' : ''; ?>">
+                                <?php echo htmlspecialchars(sprintf(t('recommendations.emotion.toggle.count_selected'), count($selectedEmotions)), ENT_QUOTES, 'UTF-8'); ?>
+                            </span>
+                        </button>
+                    </div>
+
+                    <div class="rec-emotion-list" id="rec-emotion-list"
+                         style="<?php echo $emotionPanelOpen ? '' : 'display: none;'; ?>">
+                        <?php foreach (emotion_options() as $emoValue => $emoLabel):
+                            $emoChecked = in_array($emoValue, $selectedEmotions, true);
+                        ?>
+                            <label class="rec-emotion-item">
+                                <input type="checkbox" name="emotions[]"
+                                       value="<?php echo htmlspecialchars($emoValue, ENT_QUOTES, 'UTF-8'); ?>"
+                                       <?php echo $emoChecked ? 'checked' : ''; ?>>
+                                <span class="emotion-badge emotion-badge-<?php echo emotion_css_class($emoValue); ?>">
+                                    <?php echo htmlspecialchars($emoLabel); ?>
+                                </span>
+                            </label>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+
                 <div class="rec-actions">
                     <button type="submit" class="anime-list-button">
                         <i class="fas fa-search"></i> <?php echo htmlspecialchars(t('recommendations.btn.recommend'), ENT_QUOTES, 'UTF-8'); ?>
@@ -430,7 +620,7 @@ function watch_status_badge($status) {
                     <a href="recommendations.php?mode=surprise" class="anime-list-button">
                         <i class="fas fa-dice"></i> <?php echo htmlspecialchars(t('recommendations.btn.surprise'), ENT_QUOTES, 'UTF-8'); ?>
                     </a>
-                    <?php if (!empty($selectedTagIds)): ?>
+                    <?php if (!empty($selectedTagIds) || !empty($selectedEmotions)): ?>
                         <a href="recommendations.php" class="anime-list-button">
                             <i class="fas fa-times"></i> <?php echo htmlspecialchars(t('recommendations.btn.clear'), ENT_QUOTES, 'UTF-8'); ?>
                         </a>
@@ -441,9 +631,12 @@ function watch_status_badge($status) {
             <script>
                 /* PHP-side strings exposed to JS (i18n) */
                 const LANG = <?php echo json_encode([
-                    'toggle_show'             => t('recommendations.toggle.show'),
-                    'toggle_hide'             => t('recommendations.toggle.hide'),
-                    'count_selected_template' => t('recommendations.toggle.count_selected'),
+                    'toggle_show'                     => t('recommendations.toggle.show'),
+                    'toggle_hide'                     => t('recommendations.toggle.hide'),
+                    'count_selected_template'         => t('recommendations.toggle.count_selected'),
+                    'emotion_toggle_show'             => t('recommendations.emotion.toggle.show'),
+                    'emotion_toggle_hide'             => t('recommendations.emotion.toggle.hide'),
+                    'emotion_count_selected_template' => t('recommendations.emotion.toggle.count_selected'),
                 ], JSON_UNESCAPED_UNICODE); ?>;
 
                 /* Recommendation page client-side behaviour:
@@ -454,7 +647,9 @@ function watch_status_badge($status) {
                  *     'Kilic' if the user spelled it 'Kilic'.
                  *   - Typing in the search box auto-opens the panel.
                  *   - Keep the "(N secili)" counter in sync as the user
-                 *     toggles checkboxes, even before they submit. */
+                 *     toggles checkboxes, even before they submit.
+                 *   - 0.6.5 - same pattern repeated for the emotion panel
+                 *     (separate IIFE, no search box - only 9 fixed items). */
                 (function() {
                     const search    = document.getElementById('rec-search');
                     const list      = document.getElementById('rec-sentence-list');
@@ -524,34 +719,86 @@ function watch_status_badge($status) {
                     applyFilter();
                     updateCount();
                 })();
+
+                /* 0.6.5 - Emotion panel client-side behaviour. Same toggle
+                 * and counter pattern as the sentence panel; no search box
+                 * (only 9 fixed emotions, search would be useless). */
+                (function() {
+                    const emoList   = document.getElementById('rec-emotion-list');
+                    const emoBtn    = document.getElementById('rec-emotion-toggle');
+                    const emoIco    = document.getElementById('rec-emotion-toggle-icon');
+                    const emoLbl    = document.getElementById('rec-emotion-toggle-label');
+                    const emoCnt    = document.getElementById('rec-emotion-toggle-count');
+                    if (!emoList || !emoBtn) return;
+
+                    function isEmoPanelOpen() {
+                        return emoList.style.display !== 'none';
+                    }
+
+                    function setEmoPanelOpen(open) {
+                        emoList.style.display = open ? '' : 'none';
+                        emoIco.classList.toggle('fa-chevron-up',   open);
+                        emoIco.classList.toggle('fa-chevron-down', !open);
+                        emoLbl.textContent = open ? LANG.emotion_toggle_hide : LANG.emotion_toggle_show;
+                    }
+
+                    function updateEmoCount() {
+                        const n = emoList.querySelectorAll('input[type=checkbox]:checked').length;
+                        if (n > 0) {
+                            emoCnt.textContent = LANG.emotion_count_selected_template.replace('%d', n);
+                            emoCnt.style.display = '';
+                        } else {
+                            emoCnt.style.display = 'none';
+                        }
+                    }
+
+                    emoBtn.addEventListener('click', () => setEmoPanelOpen(!isEmoPanelOpen()));
+
+                    emoList.addEventListener('change', e => {
+                        if (e.target && e.target.type === 'checkbox') updateEmoCount();
+                    });
+
+                    updateEmoCount();
+                })();
             </script>
         <?php endif; ?>
 
-        <?php if (!empty($selectedTagIds) && empty($results)): ?>
+        <?php if ((!empty($selectedTagIds) || !empty($selectedEmotions)) && empty($results)): ?>
             <div class="rec-empty">
-                <?php echo t('recommendations.no_match'); ?>
+                <?php if ($useCombinedTemplates): ?>
+                    <?php echo t('recommendations.no_match_combined'); ?>
+                <?php else: ?>
+                    <?php echo t('recommendations.no_match'); ?>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
 
         <?php if (!empty($results)):
-            // Group results by score so we can show clear "X cumle eslesti"
-            // headers. Within each group anime are already sorted by the SQL
-            // (unwatched first, then random tiebreak).
+            // Group results by combined score so we can show clear
+            // "X criteria matched" headers. Within each group anime are
+            // already sorted by usort (unwatched first, random tiebreak).
             $byScore = [];
             foreach ($results as $r) {
                 $byScore[$r['score']][] = $r;
             }
             krsort($byScore); // highest score first
-            $totalSelected = count($selectedTagIds);
         ?>
             <p class="rec-intro" style="margin-top: 30px;">
-                <?php echo sprintf(t('recommendations.result.count'), count($results), $totalSelected); ?>
+                <?php if ($useCombinedTemplates): ?>
+                    <?php echo sprintf(t('recommendations.result.count_combined'), count($results), $totalTagsSelected, $totalEmotionsSelected); ?>
+                <?php else: ?>
+                    <?php echo sprintf(t('recommendations.result.count'), count($results), $totalTagsSelected); ?>
+                <?php endif; ?>
             </p>
 
             <?php foreach ($byScore as $score => $group): ?>
                 <div class="rec-result-group">
                     <h3>
-                        <?php echo htmlspecialchars(sprintf(t('recommendations.group.matched'), $score, $totalSelected), ENT_QUOTES, 'UTF-8'); ?>
+                        <?php if ($useCombinedTemplates): ?>
+                            <?php echo htmlspecialchars(sprintf(t('recommendations.group.matched_combined'), $score), ENT_QUOTES, 'UTF-8'); ?>
+                        <?php else: ?>
+                            <?php echo htmlspecialchars(sprintf(t('recommendations.group.matched'), $score, $totalTagsSelected), ENT_QUOTES, 'UTF-8'); ?>
+                        <?php endif; ?>
                         <span style="font-weight: normal; color: #888; font-size: 0.85em;">
                             <?php echo htmlspecialchars(sprintf(t('recommendations.group.count_suffix'), count($group)), ENT_QUOTES, 'UTF-8'); ?>
                         </span>
@@ -582,13 +829,32 @@ function watch_status_badge($status) {
                                         </span>
                                     <?php endif; ?>
                                 </div>
-                                <div class="rec-matched-tags">
-                                    <?php foreach ($r['matched_tag_names'] as $tn): ?>
-                                        <span class="rec-matched-tag-pill">
-                                            <?php echo htmlspecialchars($tn); ?>
+                                <?php if (!empty($r['matched_tag_names'])): ?>
+                                    <div class="rec-matched-tags">
+                                        <?php foreach ($r['matched_tag_names'] as $tn): ?>
+                                            <span class="rec-matched-tag-pill">
+                                                <?php echo htmlspecialchars($tn); ?>
+                                            </span>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if (!empty($r['matched_emotion_names'])): ?>
+                                    <!-- 0.6.5 - matched emotion badges. Reuses
+                                         the 0.6.1 .emotion-badge-* color classes.
+                                         emotion_label() applies diacritics for
+                                         display (e.g. Huzunlendirdi -> Huzunlendirdi
+                                         in the current locale). -->
+                                    <div class="rec-matched-emotions">
+                                        <span class="rec-matched-label">
+                                            <?php echo htmlspecialchars(t('recommendations.matched.emotion_prefix'), ENT_QUOTES, 'UTF-8'); ?>
                                         </span>
-                                    <?php endforeach; ?>
-                                </div>
+                                        <?php foreach ($r['matched_emotion_names'] as $em): ?>
+                                            <span class="emotion-badge emotion-badge-<?php echo emotion_css_class($em); ?>">
+                                                <?php echo htmlspecialchars(emotion_label($em)); ?>
+                                            </span>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     <?php endforeach; ?>

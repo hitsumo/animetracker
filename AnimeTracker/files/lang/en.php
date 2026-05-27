@@ -568,6 +568,19 @@ return [
     'recommendations.group.matched'          => '%d / %d sentences matched',
     'recommendations.group.count_suffix'     => '(%d anime)',
 
+    // 0.6.5 - emotion filter integration (KARARLAR Bolum 8 devir borc kapanisi).
+    // tag (cumle) + emotion bucket'lari paralel calisir, OR mantigi:
+    // score = tag_score + emo_score. Eski tag-only anahtarlar bozulmaz;
+    // emotion seciliyse alttaki _combined varyantlar devreye girer.
+    'recommendations.emotion.toggle.show'           => 'Show Emotions',
+    'recommendations.emotion.toggle.hide'           => 'Hide Emotions',
+    'recommendations.emotion.toggle.count_selected' => '(%d emotion(s) selected)',
+    'recommendations.emotion.empty_marks'           => 'You have not marked any anime with emotions yet. Open an anime detail page to add marks via the emotion buttons.',
+    'recommendations.matched.emotion_prefix'        => 'Matched emotions:',
+    'recommendations.no_match_combined'             => 'No anime matched the selected sentences and emotions. Try fewer criteria and submit again.',
+    'recommendations.result.count_combined'         => '<strong>%d</strong> anime found (%d sentence(s), %d emotion(s) selected).',
+    'recommendations.group.matched_combined'        => '%d criteria matched',
+
     // -----------------------------------------------------------------
     // about.php
     // -----------------------------------------------------------------
