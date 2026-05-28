@@ -1,90 +1,141 @@
 # Anime Tracker - .gitignore
+# Yapi: repo koku = meta dosyalar, AnimeTracker/ = paketlenebilir uygulama
 
-# Kullanici'ya ozel konfig - asla commit etme (DB sifreleri icerir)
-files/config.php
+# ============================================================
+# HASSAS KONFIGURASYON - asla commit etme
+# ============================================================
+
+# Kullanici'ya ozel konfig (DB sifreleri icerir)
+AnimeTracker/config.php
 
 # Admin tool dosyalari - hassas veri iceren dosyalar
 # admin_sync.php: hedef sunucu URL'i var, example versiyonu repo'da
 # admin_secret.php: HMAC anahtari, example versiyonu repo'da
 # NOT: admin.php ve admin_pending.php hassas veri icermez,
 #      direkt repo'da yer alir (example gereksiz).
-admin_sync.php
-admin_secret.php
+AnimeTracker/admin_sync.php
+AnimeTracker/admin_secret.php
+
+# Sunucu tarafindaki config dosyalari (sadece server'da olmali)
+# Example versiyonlari (*_example.php) repo'da yer alir.
+AnimeTracker/anime_api_config.php
+AnimeTracker/admin_push_config.php
+
+# Eski 0.5 yapisindan kalma yollar (geriye uyum, repo gecmisinde olabilir)
+files/config.php
+files/admin_sync.php
+files/admin_secret.php
+files/anime_api_config.php
+files/admin_push_config.php
 AnimeTracker-v0.5/files/admin_sync.php
 AnimeTracker-v0.5/files/admin_secret.php
 
-# Sunucu tarafindaki config dosyalari (sadece server'da olmali)
-# Example versiyonlari repo'da yer alir.
-anime_api_config.php
-admin_push_config.php
+# ============================================================
+# RUNTIME / KULLANICI VERISI
+# ============================================================
 
-# Kullanici yukledigi kapak gorselleri (uploads/.htaccess haric)
-files/uploads/*
-!files/uploads/.htaccess
+# Kullanici yukledigi kapak gorselleri (.htaccess haric)
+AnimeTracker/uploads/*
+!AnimeTracker/uploads/.htaccess
 
 # Runtime cache ve gecici dosyalar
+AnimeTracker/temp/
+AnimeTracker/catalog_cache.json
+AnimeTracker/catalog_cache.json.tmp
+
+# Eski yapi (geriye uyum)
+files/uploads/*
+!files/uploads/.htaccess
 files/temp/
 files/catalog_cache.json
 files/catalog_cache.json.tmp
 
-# Build ciktilari
-AnimeTracker.exe
-*.zip
+# ============================================================
+# DOCKER SECRETS
+# ============================================================
 
-# XAMPP installer (150 MB - repoya koyma, release'de dagit)
-xampp-*.exe
-
-# Gelistirme artiklari
-dizin_listesi.txt
-dizin_yapisi.txt
-*.JPG
-*.jpg
-*.png
-!files/img/*.jpg
-!files/img/*.png
-!anime-tracker-icon.ico
-
-# Gelistirme dokumantasyonu (kisisel notlar, projeyle paylasma)
-PROJE_DURUMU.md
-
-# Test dosyalari
-session_test.php
-csrf_test.php
-test.php
-
-# Editor / OS artiklari
-.vscode/
-.idea/
-*.swp
-*.swo
-Thumbs.db
-.DS_Store
-desktop.ini
-
-# Log dosyalari
-*.log
-error_log
-
-# Yedekler
-*.bak
-*.backup
-*_backup.sql
-
-
-# Anime Tracker - .gitignore'a eklenmesi onerilen satirlar
-# (Mevcut .gitignore zaten varsa, asagidaki satirlarin orada
-# bulunup bulunmadigini kontrol et. Yoksa ekle.)
-
-# Docker - ortam degiskenleri (gercek sifreler)
+# Ortam degiskenleri (gercek sifreler)
+# NOT: _env.example commit edilir (ornek dosya, gercek sifre icermez)
 .env
 .env.local
 .env.*.local
 
-# NOT: .env.example commit edilir (ornek dosya, gercek sifre icermez)
-# Sadece ".env" ve "*.local" varyantlari ignore edilir.
-
-# Docker volume verileri (eger lokal bind mount kullaniyorsan)
-# Bizim setup'ta named volume kullaniliyor, bu satirlar genellikle
-# gereksiz - ama emin olmak icin:
+# Docker volume verileri (named volume kullaniyoruz; bind mount kalintilari icin)
 docker-data/
 docker_data/
+
+# ============================================================
+# BUILD CIKTILARI
+# ============================================================
+
+# Installer ve paket dosyalari
+AnimeTracker.exe
+*.zip
+
+# XAMPP installer (150 MB - repoya koyma, release sayfasinda dagit)
+xampp-*.exe
+
+# NSIS build artiklari
+*.nsi.bak
+
+# ============================================================
+# KISISEL GELISTIRME NOTLARI
+# Build/release disiplinine gore ZIP'e GIRMEZ ve repo'ya da GITMEZ
+# (kisisel notlar, ekibe paylasilma odakli ic dokumantasyon)
+# ============================================================
+
+PROJE_DURUMU.md
+proje_durumu_*.md
+KARARLAR.md
+KARARLAR_GECMIS.md
+notes_*.md
+build_release_disiplini.md
+xammp_*_dizin_listesi.txt
+*_dizin_listesi.txt
+*_dizin_yapisi.txt
+dizin_listesi.txt
+dizin_yapisi.txt
+
+# ============================================================
+# GELISTIRME ARTIKLARI / TEST
+# ============================================================
+
+session_test.php
+csrf_test.php
+test.php
+AnimeTracker/test*.php
+
+# Screenshot/img - repodaki gercek asset'leri istisna et
+*.JPG
+*.jpg
+*.png
+!AnimeTracker/img/*.jpg
+!AnimeTracker/img/*.png
+!files/img/*.jpg
+!files/img/*.png
+!anime-tracker-icon.ico
+!screenshots/*.png
+!screenshots/*.jpg
+
+# ============================================================
+# EDITOR / OS ARTIKLARI
+# ============================================================
+
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# ============================================================
+# LOG VE YEDEKLER
+# ============================================================
+
+*.log
+error_log
+*.bak
+*.backup
+*_backup.sql

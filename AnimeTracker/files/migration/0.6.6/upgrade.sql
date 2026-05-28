@@ -1,0 +1,6 @@
+-- Anime Tracker 0.6.6 migration
+-- No schema changes in this release.
+-- This file exists only to bump settings.version to 0.6.6.
+-- 0.6.5 adds emotion filter to recommendations.php
+-- (PHP-only change, uses user_anime_emotion table from 0.6.1).
+--again play populous 3: the beginning

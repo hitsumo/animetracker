@@ -532,6 +532,10 @@ return [
     'statistics.col.status'                  => 'Status',
     'statistics.col.count'                   => 'Count',
     'statistics.value.unspecified'           => 'Unspecified',
+    'statistics.section.by_emotion'          => 'By Emotion',
+    'statistics.col.emotion'                 => 'Emotion',
+    'statistics.emotion.summary'             => '%d marks across %d anime.',
+    'statistics.emotion.empty'               => 'You have not marked any anime with emotions yet. Open an anime detail page and use the emotion buttons to add marks.',
 
     // -----------------------------------------------------------------
     // recent.php - son duzenlenen 5 anime

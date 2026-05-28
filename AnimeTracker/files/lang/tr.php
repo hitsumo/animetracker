@@ -564,6 +564,10 @@ return [
     'statistics.col.status'                  => 'Durum',
     'statistics.col.count'                   => 'Adet',
     'statistics.value.unspecified'           => 'Belirtilmemiş',
+    'statistics.section.by_emotion'          => 'Duygulara Göre',
+    'statistics.col.emotion'                 => 'Duygu',
+    'statistics.emotion.summary'             => 'Toplam %d işaret, %d anime.',
+    'statistics.emotion.empty'               => 'Henüz hiçbir animeye duygu işareti koymamışsın. Anime detay sayfasındaki duygu butonlarıyla işaret ekleyebilirsin.',
 
     // -----------------------------------------------------------------
     // recent.php - son duzenlenen 5 anime

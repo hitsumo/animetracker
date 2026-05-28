@@ -44,6 +44,31 @@ foreach (watch_status_options() as $ws_value => $ws_label) {
 
 // Toplam izlenen bolum sayisi
 $total_watched = (int)$pdo->query("SELECT COALESCE(SUM(watched_episodes),0) FROM animes")->fetchColumn();
+
+// Duygu dagilimi (0.6.1 user_anime_emotion tablosu). Single-user mod:
+// user_id = 1. Faz 2 multi-user'da bu satir session user'a baglanir,
+// tablo zaten user_id keyed - baska sey gerekmez. idx_emotion bu sorgu
+// icin schema.sql'de hazirdi. Sadece isaretlenmis duygular, coktan aza
+// sirali: istatistik amaci "veride ne var", tum palet detay + oneri
+// sayfasinda zaten gorunur.
+$by_emotion = $pdo->query("
+    SELECT emotion, COUNT(*) AS cnt
+    FROM user_anime_emotion
+    WHERE user_id = 1
+    GROUP BY emotion
+    ORDER BY cnt DESC
+")->fetchAll(PDO::FETCH_ASSOC);
+
+// Ozet: toplam isaret sayisi (satirlardan toplanir, ek sorgu yok) +
+// kac farkli anime isaretlenmis (bir anime 3 duyguya kadar alabilir,
+// o yuzden ayri DISTINCT sayim gerekir).
+$emotion_total_marks = 0;
+foreach ($by_emotion as $er) {
+    $emotion_total_marks += (int)$er['cnt'];
+}
+$emotion_anime_count = (int)$pdo->query(
+    "SELECT COUNT(DISTINCT anime_id) FROM user_anime_emotion WHERE user_id = 1"
+)->fetchColumn();
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo current_lang(); ?>">
@@ -67,6 +92,9 @@ $total_watched = (int)$pdo->query("SELECT COALESCE(SUM(watched_episodes),0) FROM
         table.stats-table td:last-child { text-align: right; font-weight: bold; color: #2b6cb0; }
         .back-link { display: inline-block; margin-bottom: 20px; color: #2b6cb0; text-decoration: none; }
         .back-link:hover { text-decoration: underline; }
+        .stats-emotion-summary { color: #4a5568; margin: 0 0 12px; }
+        .stats-emotion-empty { color: #4a5568; margin: 6px 0; }
+        table.stats-table td .emotion-badge { font-size: 0.95em; }
     </style>
 </head>
 <body>
@@ -126,6 +154,25 @@ $total_watched = (int)$pdo->query("SELECT COALESCE(SUM(watched_episodes),0) FROM
             <?php endforeach; ?>
         </table>
     </div>
+
+    <div class="stats-card">
+        <h2><?php echo htmlspecialchars(t('statistics.section.by_emotion'), ENT_QUOTES, 'UTF-8'); ?></h2>
+        <?php if ($emotion_total_marks === 0): ?>
+            <p class="stats-emotion-empty"><?php echo htmlspecialchars(t('statistics.emotion.empty'), ENT_QUOTES, 'UTF-8'); ?></p>
+        <?php else: ?>
+            <p class="stats-emotion-summary"><?php
+                echo htmlspecialchars(sprintf(t('statistics.emotion.summary'), $emotion_total_marks, $emotion_anime_count), ENT_QUOTES, 'UTF-8');
+            ?></p>
+            <table class="stats-table">
+                <tr><th><?php echo htmlspecialchars(t('statistics.col.emotion'), ENT_QUOTES, 'UTF-8'); ?></th><th><?php echo htmlspecialchars(t('statistics.col.count'), ENT_QUOTES, 'UTF-8'); ?></th></tr>
+                <?php foreach ($by_emotion as $row): ?>
+                    <tr>
+                        <td><span class="emotion-badge emotion-badge-<?php echo emotion_css_class($row['emotion']); ?>"><?php echo htmlspecialchars(emotion_label($row['emotion'])); ?></span></td>
+                        <td><?php echo (int)$row['cnt']; ?></td>
+                    </tr>
+                <?php endforeach; ?>
+            </table>
+        <?php endif; ?>
     </div>
 </div>
 </body>

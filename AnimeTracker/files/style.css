@@ -1511,7 +1511,7 @@ tr:hover {
     background: #f7fafc;
 }
 .emotion-btn:disabled {
-    opacity: 0.45;
+    opacity: 0.70;
     cursor: not-allowed;
 }
 .emotion-btn.is-active {
