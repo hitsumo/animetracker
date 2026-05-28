@@ -1,0 +1,305 @@
+/**
+ * Anime Tracker - Filler Episode Tracking (grid editor + summary)
+ * https://www.sicakcikolata.com
+ * Copyright (C) 2025 Okan Sumer
+ * Licensed under GNU General Public License v2
+ *
+ * Added in 0.7. Loaded via the style.css @import loader (after
+ * emotion.css, before lang.css). All selectors are net-new (.filler-*),
+ * so cascade order is non-critical here, but the module is grouped with
+ * the other per-feature module (emotion.css) for readability.
+ */
+/* ======================================================================
+   Filler episode tracking (0.7)
+   ======================================================================
+   Per-episode classification grid (filler_edit.php) plus the read-only
+   compact summary shown on anime_details.php. Class suffixes come from
+   functions.php :: filler_type_css_class(), stable ASCII names matching
+   the canonical list in filler_type_options().
+
+   Traffic-light scheme (KARARLAR Bolum 8): the two canon types render
+   green (two distinct greens so MangaCanon and AnimeCanon stay tellable
+   apart while both read "canon"), Mixed amber, Filler red. An UNMARKED
+   cell stays neutral and reuses the project's established passive-grey
+   palette (#F1EFE8 fill / #B4B2A9 mark, KARARLAR Bolum 4) so "no
+   classification" is visually quiet - most cells are unmarked.
+
+   The amber/red/white-text choices intentionally echo emotion.css active
+   states (#d4a017 with white text) so the two systems feel related but
+   the green canon hues keep filler distinct from the watch-status green
+   (#28a745).
+
+   See also: functions.php filler_type_label/options/css_class;
+             update_filler.php save endpoint; KARARLAR.md Bolum 8. */
+
+/* --- Page container (mirrors .chronology-container) ------------------- */
+.filler-container {
+    max-width: 900px;
+    margin: 30px auto;
+    padding: 30px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+.filler-title {
+    font-size: 22px;
+    font-weight: 600;
+    color: #2c3e50;
+    text-align: center;
+    margin-bottom: 6px;
+}
+.filler-title small {
+    display: block;
+    font-size: 13px;
+    font-weight: 400;
+    color: #6c757d;
+    margin-top: 4px;
+}
+.filler-instructions {
+    text-align: center;
+    font-size: 13px;
+    color: #6c757d;
+    margin: 0 0 18px;
+}
+
+/* --- Legend (traffic-light key) -------------------------------------- */
+.filler-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 14px;
+    margin-bottom: 22px;
+    font-size: 13px;
+    color: #4a5568;
+}
+.filler-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.filler-swatch {
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    padding: 0;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+/* --- Grid + cells ---------------------------------------------------- */
+.filler-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    margin-bottom: 22px;
+}
+/* Base cell = UNMARKED / neutral (passive-grey palette, KARARLAR Bolum 4).
+   Each cell is a clickable button; the swatch span reuses these colours
+   but overrides size via .filler-swatch above. */
+.filler-cell {
+    width: 40px;
+    height: 40px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #B4B2A9;
+    border-radius: 6px;
+    background: #F1EFE8;
+    color: #6c6a60;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s, background 0.1s;
+    user-select: none;
+    padding: 0;
+}
+.filler-cell:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+}
+
+/* --- Per-type fills (traffic light) ---------------------------------- */
+/* Grouped per type for grep. Both canon types are green-family; Mixed
+   amber; Filler red. All marked states use white text for contrast. */
+
+.filler-cell-mangacanon { background: #2e7d32; border-color: #2e7d32; color: #fff; }
+.filler-cell-animecanon { background: #00897b; border-color: #00897b; color: #fff; }
+.filler-cell-mixed      { background: #d4a017; border-color: #d4a017; color: #fff; }
+.filler-cell-filler     { background: #d9534f; border-color: #d9534f; color: #fff; }
+
+/* --- Save row -------------------------------------------------------- */
+.filler-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+.filler-marked-count {
+    font-size: 13px;
+    color: #6c757d;
+}
+/* Scoped to the filler editor so it carries no global footprint - there
+   is no project-wide .btn-primary, this defines the look only here. */
+.filler-actions .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 18px;
+    border: none;
+    border-radius: 6px;
+    background: #2e7d32;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.filler-actions .btn-primary:hover {
+    background: #246627;
+}
+.filler-actions .btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+.filler-save-status {
+    font-size: 13px;
+    min-height: 1em;
+}
+.filler-save-status.is-ok  { color: #1e7e44; }
+.filler-save-status.is-err { color: #b03a2e; }
+
+/* --- Guard (no episode count yet) ------------------------------------ */
+.filler-guard {
+    text-align: center;
+    padding: 24px;
+    background: #fcf3d3;
+    border: 1px solid #f0dca0;
+    border-radius: 8px;
+    color: #8a6a0e;
+    margin-bottom: 22px;
+}
+.filler-guard i {
+    font-size: 28px;
+    margin-bottom: 8px;
+    display: block;
+}
+.filler-guard p {
+    margin: 0 0 14px;
+    font-size: 14px;
+}
+
+/* --- Back link row --------------------------------------------------- */
+.filler-back {
+    text-align: center;
+    margin-top: 10px;
+}
+
+/* --- Read-only summary (anime_details.php) --------------------------- */
+/* filler_summary() returns a plain formatted string ("Dolgu: 5-6, 18 |
+   Karışık: 11"); this just gives it a calm, compact look inside the
+   detail-value span. Hidden entirely when there is nothing to show
+   (empty-state handled in PHP - the row is not rendered). */
+.filler-summary {
+    font-size: 13px;
+    color: #4a5568;
+    line-height: 1.5;
+}
+.filler-summary-empty {
+    color: #6c757d;
+    font-style: italic;
+}
+/* Compact inline "Duzenle" link next to the summary - opens filler_edit.
+   Scoped look, no global footprint; sits inside the detail-value span. */
+.filler-edit-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: 10px;
+    padding: 3px 10px;
+    border: 1px solid #2e7d32;
+    border-radius: 6px;
+    background: #2e7d32;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+}
+.filler-edit-link:hover {
+    background: #246627;
+    color: #fff;
+}
+
+/* --- filler_tracking toggle (add_anime.php / edit_anime.php) ---------- */
+.input-area .filler-toggle {
+    display: block;
+    width: auto;
+    text-align: left;
+    margin-top: 0;
+    padding-right: 0;
+    font-weight: 500;
+    cursor: pointer;
+}
+.filler-toggle input {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    vertical-align: middle;
+}
+.filler-toggle-hint {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #6c757d;
+    line-height: 1.4;
+}
+
+/* --- AnimeFillerList import bar (0.7) ---------------------------------
+   Satir: URL girisi (genisler) + ikincil buton + durum. Proje genelinde
+   .btn-secondary yok; burada scope'lu tanimlanir (yesil birincil Kaydet'ten
+   ayri, projenin pasif gri paletinde notr gorunum). */
+.filler-import {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 0 auto 18px;
+    max-width: 640px;
+}
+.filler-import-url {
+    flex: 1 1 280px;
+    min-width: 0;
+}
+.filler-import .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 16px;
+    border: 1px solid #B4B2A9;
+    border-radius: 6px;
+    background: #F1EFE8;
+    color: #4a4a44;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+.filler-import .btn-secondary:hover {
+    background: #e6e3d8;
+}
+.filler-import .btn-secondary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+.filler-import-status {
+    flex: 1 1 100%;
+    font-size: 13px;
+    min-height: 1em;
+}
+.filler-import-status.is-ok  { color: #1e7e44; }
+.filler-import-status.is-err { color: #b03a2e; }

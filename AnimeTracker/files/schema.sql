@@ -107,6 +107,7 @@ CREATE TABLE IF NOT EXISTS `animes` (
   `anidb_id` int(11) DEFAULT NULL,
   `catalog_uuid` varchar(36) DEFAULT NULL,
   `source` enum('catalog','local') NOT NULL DEFAULT 'local',
+  `filler_tracking` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
@@ -361,6 +362,46 @@ CREATE TABLE IF NOT EXISTS `user_anime_emotion` (
   KEY `idx_anime`   (`anime_id`),
   KEY `idx_emotion` (`emotion`),
   CONSTRAINT `fk_uae_anime`
+    FOREIGN KEY (`anime_id`) REFERENCES `animes` (`id`)
+    ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+-- Table: filler_episodes (0.6.8)
+--
+-- Per-episode filler classification (KARARLAR Bolum 8). One row per
+-- MARKED episode; an unmarked episode (no row) means "assume canon" -
+-- the default - so only exceptions are stored and most episodes leave
+-- no row. Catalog-level data (tied to the anime, curator-maintained),
+-- NOT user-scoped like user_anime_emotion - every user sees the same
+-- filler info.
+--
+--   - PRIMARY KEY (anime_id, episode_no): one classification per episode,
+--     absolute numbering (1..N) on the same axis as total/aired/watched
+--     _episodes. Multi-season series are kept as a single record (the
+--     user does not split seasons - KARARLAR Bolum 8); if season
+--     splitting is introduced the numbering semantics get revisited.
+--   - type enum: the four exception types. Range display ("5-6, 18") is
+--     derived at render time (filler_summary) - the table stays
+--     per-episode.
+--   - FK ON DELETE CASCADE: deleting an anime drops its filler rows.
+--   - Visibility is governed by animes.filler_tracking (a flag), NOT by
+--     the presence of rows. Turning tracking off hides the data; it does
+--     not delete these rows (KARARLAR Bolum 8 - "kapatmak veri SILMEZ").
+--
+-- Catalog sync (admin_push / catalog_import) is intentionally out of
+-- scope for the first cut - filler is local-only until the Faz 2 catalog
+-- wiring lands.
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `filler_episodes` (
+  `anime_id`   int(11) NOT NULL,
+  `episode_no` int(11) NOT NULL,
+  `type`       enum('MangaCanon','AnimeCanon','Mixed','Filler') NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`anime_id`, `episode_no`),
+  KEY `idx_filler_anime` (`anime_id`),
+  CONSTRAINT `fk_filler_anime`
     FOREIGN KEY (`anime_id`) REFERENCES `animes` (`id`)
     ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

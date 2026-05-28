@@ -687,4 +687,42 @@ Update now?',
     'list_settings.js.install_network_error' => 'Network error',
     'list_settings.js.install_network_error_alert' => 'An error occurred during update:',
 
+
+    // -----------------------------------------------------------------
+    // filler_edit.php - per-episode filler / canon grid editor (0.7)
+    // Type labels come from functions.php filler_type_label(), not here.
+    // -----------------------------------------------------------------
+    'filler.title_suffix'      => 'Filler Episodes',
+    'filler.subtitle'          => 'Per-episode filler / canon marking',
+    'filler.instructions'      => 'Click an episode to change its type: unmarked → Manga Canon → Anime Canon → Mixed → Filler. You only need to mark the exceptions; unmarked episodes are treated as canon.',
+    'filler.type.unmarked'     => 'Unmarked',
+    'filler.guard.no_count'    => 'No episode count is set for this anime. Enter a total or aired episode count first to build the grid.',
+    'filler.guard.set_count'   => 'Edit episode count',
+    'filler.save'              => 'Save',
+    'filler.back_to_details'   => 'Back to details',
+    'filler.js.saving'         => 'Saving...',
+    'filler.js.saved'          => 'Saved.',
+    'filler.js.save_error'     => 'Save failed. Please try again.',
+    'filler.js.marked_count'   => '%d episode(s) marked',
+
+    // anime_details.php - filler summary row (0.7)
+    'anime_details.label.filler'    => 'Episode details:',
+    'anime_details.btn.filler_edit' => 'Edit',
+    'anime_details.filler_empty'    => 'No episodes marked yet.',
+
+    // add_anime.php / edit_anime.php - filler tracking toggle (0.7)
+    'add_anime.label.filler_tracking'     => 'Filler episode tracking:',
+    'add_anime.hint.filler_tracking'  => 'Enables per-episode filler/canon marking (you can toggle this later too).',
+
+
+    // Filler import (AnimeFillerList) - 0.7
+    'filler.import.placeholder'  => 'AnimeFillerList show URL (e.g. .../shows/detective-conan)',
+    'filler.import.button'       => 'Import from AnimeFillerList',
+    'filler.js.importing'        => 'Importing...',
+    'filler.js.imported_count'   => '%d episodes loaded.',
+    'filler.js.import_skipped'   => '%d episodes were beyond the episode count (skipped).',
+    'filler.js.import_review'    => 'Review and click Save.',
+    'filler.js.import_need_url'  => 'Please enter an AnimeFillerList URL.',
+    'filler.js.import_error'     => 'Import failed.',
+
 ];

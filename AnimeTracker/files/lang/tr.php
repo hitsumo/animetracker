@@ -719,4 +719,44 @@ Hemen guncellemek ister misiniz?',
     'list_settings.js.install_network_error' => 'Ag hatasi',
     'list_settings.js.install_network_error_alert' => 'Guncelleme sirasinda bir hata olustu:',
 
+
+    // -----------------------------------------------------------------
+    // filler_edit.php - per-episode filler / canon grid editor (0.7)
+    // Type labels (Manga Canon / Anime Canon / Karisik / Dolgu) come from
+    // functions.php filler_type_label(), NOT from here. Only the page
+    // chrome + JS strings live in the dictionary.
+    // -----------------------------------------------------------------
+    'filler.title_suffix'      => 'Dolgu Bölümleri',
+    'filler.subtitle'          => 'Bölüm bazında dolgu / canon işaretleme',
+    'filler.instructions'      => 'Bir bölüme tıklayarak tipini değiştirin: işaretsiz → Manga Canon → Anime Canon → Karışık → Dolgu. Sadece istisnaları işaretlemeniz yeterli; işaretsiz bölümler canon sayılır.',
+    'filler.type.unmarked'     => 'İşaretsiz',
+    'filler.guard.no_count'    => 'Bu anime için bölüm sayısı tanımlı değil. Grid oluşturmak için önce toplam veya yayınlanan bölüm sayısını girin.',
+    'filler.guard.set_count'   => 'Bölüm sayısını düzenle',
+    'filler.save'              => 'Kaydet',
+    'filler.back_to_details'   => 'Detaylara dön',
+    'filler.js.saving'         => 'Kaydediliyor...',
+    'filler.js.saved'          => 'Kaydedildi.',
+    'filler.js.save_error'     => 'Kaydetme başarısız oldu. Lütfen tekrar deneyin.',
+    'filler.js.marked_count'   => '%d bölüm işaretli',
+
+    // anime_details.php - filler ozet satiri (0.7)
+    'anime_details.label.filler'    => 'Bölüm detayları:',
+    'anime_details.btn.filler_edit' => 'Düzenle',
+    'anime_details.filler_empty'    => 'Henüz bölüm işaretlenmedi.',
+
+    // add_anime.php / edit_anime.php - filler izleme toggle (0.7)
+    'add_anime.label.filler_tracking'     => 'Filler bölüm izleme:',
+    'add_anime.hint.filler_tracking'  => 'Bölüm bazında dolgu/canon işaretlemeyi etkinleştirir (sonradan da açıp kapatabilirsiniz).',
+
+
+    // Filler import (AnimeFillerList) - 0.7
+    'filler.import.placeholder'  => 'AnimeFillerList show adresi (ör. .../shows/detective-conan)',
+    'filler.import.button'       => 'AnimeFillerList\'ten içe aktar',
+    'filler.js.importing'        => 'İçe aktarılıyor...',
+    'filler.js.imported_count'   => '%d bölüm yüklendi.',
+    'filler.js.import_skipped'   => '%d bölüm, bölüm sayısı dışında kaldı (atlandı).',
+    'filler.js.import_review'    => 'Gözden geçirip Kaydet\'e basın.',
+    'filler.js.import_need_url'  => 'Lütfen bir AnimeFillerList adresi girin.',
+    'filler.js.import_error'     => 'İçe aktarma başarısız oldu.',
+
 ];

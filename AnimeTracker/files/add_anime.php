@@ -51,6 +51,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $status = $_POST['status'];
     $total_episodes = $_POST['total_episodes'] ?? null;
     $aired_episodes = $_POST['aired_episodes'] ?? null;
+    // 0.7 - filler bolum izleme gorunurluk bayragi (checkbox). Isaretli
+    // degilse 0. Salt gorunurluk; kapali olmasi filler kayitlarini silmez.
+    $filler_tracking = isset($_POST['filler_tracking']) ? 1 : 0;
     $watched_episodes = $_POST['watched_episodes'] ?? 0;
     if ($watched_episodes === '') { $watched_episodes = 0; }
     $notes = $_POST['notes'];
@@ -213,7 +216,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Genres no longer live on this row - they are written to the
     // anime_genres join table after the INSERT, using the new anime's
     // lastInsertId(). See setAnimeGenresByNames() below.
-    $sql = "INSERT INTO animes (title, alternative_titles, status, total_episodes, aired_episodes, watched_episodes, notes, image_path, watch_status, next_episode_date, anidb_link, mal_link, anime_schedule_link, episode_interval, broadcast_day, broadcast_time, broadcast_timezone, synopsis, release_date, end_date, series_name, media_type, next_in_series, mal_id, anidb_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO animes (title, alternative_titles, status, total_episodes, aired_episodes, watched_episodes, notes, image_path, watch_status, next_episode_date, anidb_link, mal_link, anime_schedule_link, episode_interval, broadcast_day, broadcast_time, broadcast_timezone, synopsis, release_date, end_date, series_name, media_type, next_in_series, mal_id, anidb_id, filler_tracking) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     $stmt = $pdo->prepare($sql);
 
@@ -247,7 +250,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $media_type,
             $next_in_series,
             $mal_id,
-            $anidb_id
+            $anidb_id,
+            $filler_tracking
         ]);
     } catch (PDOException $e) {
         // 23000 = integrity constraint violation. Anime UNIQUE alanlari:
@@ -471,6 +475,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <div class="input-area">
                     <input type="number" name="aired_episodes" min="0" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.aired_episodes'), ENT_QUOTES, 'UTF-8'); ?>">
                 </div>
+            </div>
+        </div>
+
+        <?php // 0.7 - filler bolum izleme gorunurluk toggle'i. Default
+              // kapali; acilinca anime_details.php'de filler ozeti + Duzenle
+              // linki gorunur. Standart form-group deseni: label sol +
+              // input-area sag. KARARLAR Bolum 8. ?>
+        <div class="form-group">
+            <label for="filler_tracking_chk"><?php echo htmlspecialchars(t('add_anime.label.filler_tracking'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <div class="input-area">
+                <label class="filler-toggle">
+                    <input type="checkbox" name="filler_tracking" id="filler_tracking_chk" value="1">
+                    <span class="filler-toggle-hint"><?php echo htmlspecialchars(t('add_anime.hint.filler_tracking'), ENT_QUOTES, 'UTF-8'); ?></span>
+                </label>
             </div>
         </div>
 

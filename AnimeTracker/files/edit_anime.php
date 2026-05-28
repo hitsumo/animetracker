@@ -85,6 +85,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $status = $_POST['status'];
     $total_episodes = $_POST['total_episodes'] ?? null;
     $aired_episodes = $_POST['aired_episodes'] ?? null;
+    // 0.7 - filler bolum izleme gorunurluk bayragi (checkbox). Isaretli
+    // degilse 0. Salt gorunurluk; kapatmak filler kayitlarini silmez.
+    $filler_tracking = isset($_POST['filler_tracking']) ? 1 : 0;
     $watched_episodes = $_POST['watched_episodes'] ?? 0;
     if ($watched_episodes === '') { $watched_episodes = 0; }
     $notes = $_POST['notes'];
@@ -320,7 +323,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             media_type = ?,
             next_in_series = ?,
             mal_id = ?,
-            anidb_id = ?
+            anidb_id = ?,
+            filler_tracking = ?
             WHERE id = ?";
 
     $stmt = $pdo->prepare($sql);
@@ -362,6 +366,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $next_in_series,
             $mal_id,
             $anidb_id,
+            $filler_tracking,
             $id
         ]);
 
@@ -627,6 +632,22 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                         <div id="aired-sync-status" style="margin-top:8px; font-size:13px;"></div>
                         <?php endif; ?>
                     </div>
+                </div>
+            </div>
+
+            <?php // 0.7 - filler bolum izleme gorunurluk toggle'i. Mevcut
+                  // deger ($anime['filler_tracking']) ile on-isaretli. Acilinca
+                  // anime_details.php'de filler ozeti + Duzenle linki gorunur;
+                  // kapatmak filler kayitlarini SILMEZ, gizler. Standart
+                  // form-group deseni: label sol + input-area sag. KARARLAR
+                  // Bolum 8. ?>
+            <div class="form-group">
+                <label for="filler_tracking_chk"><?php echo htmlspecialchars(t('add_anime.label.filler_tracking'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <div class="input-area">
+                    <label class="filler-toggle">
+                        <input type="checkbox" name="filler_tracking" id="filler_tracking_chk" value="1"<?php echo !empty($anime['filler_tracking']) ? ' checked' : ''; ?>>
+                        <span class="filler-toggle-hint"><?php echo htmlspecialchars(t('add_anime.hint.filler_tracking'), ENT_QUOTES, 'UTF-8'); ?></span>
+                    </label>
                 </div>
             </div>
 

@@ -94,6 +94,25 @@ $emoStmt = $pdo->prepare(
 $emoStmt->execute([(int)$anime['id']]);
 $currentEmotions = $emoStmt->fetchAll(PDO::FETCH_COLUMN, 0);
 $emoStmt->closeCursor();
+
+// 0.7 - Filler bolum izleme (salt-okunur ozet).
+// filler_tracking acik ise bu anime'nin filler kayitlarini yukle ve
+// kompakt ozet uret (filler_summary). Kapali ise hic yukleme yapma -
+// detay sayfasinda filler satiri da gosterilmez. Filler katalog-seviyesi
+// veri (anime'ye bagli), user-scope DEGIL - emotion'dan farkli olarak
+// burada user_id yoktur. KARARLAR Bolum 8.
+$fillerTracking = !empty($anime['filler_tracking']);
+$fillerSummary = '';
+if ($fillerTracking) {
+    $flStmt = $pdo->prepare(
+        "SELECT episode_no, type FROM filler_episodes
+          WHERE anime_id = ? ORDER BY episode_no"
+    );
+    $flStmt->execute([(int)$anime['id']]);
+    $fillerRows = $flStmt->fetchAll(PDO::FETCH_ASSOC);
+    $flStmt->closeCursor();
+    $fillerSummary = filler_count_summary($fillerRows);
+}
 ?>
 
 <!DOCTYPE html>
@@ -286,6 +305,28 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                         </div>
                     </div>
                 </div>
+
+                <?php // 0.7 - Filler ozet satiri. filler_tracking acikken
+                      // gosterilir; ozet metni sadece veri varsa (empty-state:
+                      // hic isaret yoksa metin yerine "henuz isaretlenmedi",
+                      // ama Duzenle butonu editore girisi her zaman acik
+                      // tutar). filler_tracking kapaliysa satir hic cikmaz.
+                      // KARARLAR Bolum 8. ?>
+                <?php if ($fillerTracking): ?>
+                <div class="detail-row">
+                    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.filler'), ENT_QUOTES, 'UTF-8'); ?></span>
+                    <span class="detail-value">
+                        <?php if ($fillerSummary !== ''): ?>
+                            <span class="filler-summary"><?php echo htmlspecialchars($fillerSummary, ENT_QUOTES, 'UTF-8'); ?></span>
+                        <?php else: ?>
+                            <span class="filler-summary filler-summary-empty"><?php echo htmlspecialchars(t('anime_details.filler_empty'), ENT_QUOTES, 'UTF-8'); ?></span>
+                        <?php endif; ?>
+                        <a href="filler_edit.php?id=<?php echo (int)$anime['id']; ?>" class="filler-edit-link">
+                            <i class="fas fa-edit"></i> <?php echo htmlspecialchars(t('anime_details.btn.filler_edit'), ENT_QUOTES, 'UTF-8'); ?>
+                        </a>
+                    </span>
+                </div>
+                <?php endif; ?>
 
                 <?php if ($anime['status'] == 'Yayın Devam Ediyor'): ?>
                 <div class="broadcast-info">
