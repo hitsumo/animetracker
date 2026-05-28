@@ -1,0 +1,66 @@
+/**
+ * Anime Tracker - Language Switcher (compact TR/EN toggle)
+ * https://www.sicakcikolata.com
+ * Copyright (C) 2025 Okan Sumer
+ * Licensed under GNU General Public License v2
+ *
+ * Split out of style.css in 0.6.7 (code reorganization, no visual
+ * change). Loaded in original cascade order via style.css @imports.
+ */
+/* =====================================================================
+   SECTION: Language switcher (0.6.2)
+   ---------------------------------------------------------------------
+   Compact TR / EN toggle that lives inside the existing .header-section
+   on the three pages translated in this release (index, anime_details,
+   edit_anime). The .header-section parent is text-align:right, so the
+   switcher floats with the other nav items on the right edge without
+   any extra layout work. Per KARARLAR Bolum 4 the colour stays out of
+   the reserved blue (#4a90e2) and coral (#D85A30) families; a neutral
+   dark grey keeps the control quiet next to the nav links.
+   ===================================================================== */
+
+.lang-switcher {
+    display: inline-block;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.lang-switch-form {
+    display: inline;
+    margin: 0;
+    padding: 0;
+}
+
+.lang-switch {
+    background: transparent;
+    color: #888;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 3px 8px;
+    margin-left: 2px;
+    font-family: 'Quicksand', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    line-height: 1.4;
+    transition: all 0.2s ease;
+}
+
+.lang-switch:hover {
+    background: #f5f5f5;
+    color: #555;
+    border-color: #bbb;
+}
+
+.lang-switch-active {
+    background: #555;
+    color: #fff;
+    border-color: #555;
+    cursor: default;
+}
+
+.lang-switch-active:hover {
+    background: #555;
+    color: #fff;
+    border-color: #555;
+}

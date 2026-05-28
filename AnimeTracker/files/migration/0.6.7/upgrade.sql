@@ -1,0 +1,7 @@
+-- Anime Tracker 0.6.7 migration
+-- No schema changes in this release.
+-- This file exists only to bump settings.version to 0.6.7.
+-- 0.6.7 is a pure code reorganization: functions.php was split into
+-- functions/*.php (loader + 8 helper modules) and style.css into
+-- css/*.css (loader + 6 modules). No tables, columns or data touched.
+--Afternoon naps are wonderful.

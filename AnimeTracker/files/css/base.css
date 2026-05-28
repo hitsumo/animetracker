@@ -1,0 +1,106 @@
+/**
+ * Anime Tracker - Base (body, container, detail-page title/image/detail layout)
+ * https://www.sicakcikolata.com
+ * Copyright (C) 2025 Okan Sumer
+ * Licensed under GNU General Public License v2
+ *
+ * Split out of style.css in 0.6.7 (code reorganization, no visual
+ * change). Loaded in original cascade order via style.css @imports.
+ */
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 60px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    width: 70%;
+    min-width: 320px;
+}
+
+/* Anime başlık stili */
+.anime-title-container {
+    text-align: center;
+    margin: 20px 0 40px 0;
+}
+
+.anime-title {
+    font-size: 28px;
+    color: #333;
+    font-weight: 600;
+    font-family: 'Poppins', sans-serif;
+}
+
+/* Anime resim container ve resim stilleri */
+.anime-header {
+    display: flex;
+    justify-content: center;
+    margin: 0 0 40px 0;
+}
+
+.anime-cover {
+    width: 780px;
+    height: 580px;
+    object-fit: contein;
+    background-color: #f8f9fa;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease;
+}
+
+.anime-cover:hover {
+    transform: scale(1.02);
+}
+
+/* Anime detayları container ve içerik stilleri */
+.anime-details-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.anime-details {
+    background-color: #ffff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
+}
+
+.detail-row {
+    display: flex;
+    margin-bottom: 20px;
+    align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    min-width: 150px;
+    font-weight: 600;
+    color: #495057;
+    font-size: 1.1em;
+}
+
+.detail-value {
+    flex: 1;
+    color: #212529;
+    font-size: 1.1em;
+    line-height: 1.6;
+}
+

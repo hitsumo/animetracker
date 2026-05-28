@@ -1,0 +1,538 @@
+/**
+ * Anime Tracker - Series Relationship + Chronology (anime_details sections + chronology page)
+ * https://www.sicakcikolata.com
+ * Copyright (C) 2025 Okan Sumer
+ * Licensed under GNU General Public License v2
+ *
+ * Split out of style.css in 0.6.7 (code reorganization, no visual
+ * change). Loaded in original cascade order via style.css @imports.
+ */
+/* ======================================================================
+   anime_details.php — Series Relationship Sections
+   4 bolum: kronoloji uyarisi, siradaki anime, baglantili animeler,
+   kronoloji notlari (marker listesi + ekleme formu)
+   ====================================================================== */
+
+/* --- Watch status badge colors (shared across all 4 sections) -------- */
+/* 0.6: class suffix comes from functions.php :: watch_status_css_class(),
+   stable ASCII names regardless of UI language. The Turkish-ı suffix
+   pattern used pre-0.6 ("ws-izlenme-planlandı") is gone. */
+.ws-watched {
+    color: #28a745;
+    font-weight: 600;
+}
+.ws-watching {
+    color: #007bff;
+    font-weight: 600;
+}
+.ws-plantowatch {
+    color: #6c757d;
+    font-weight: 600;
+}
+.ws-onhold {
+    color: #e0a000;
+    font-weight: 600;
+}
+
+/* --- 1. Kronoloji Uyarisi -------------------------------------------- */
+.chronology-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    border-left: 4px solid #ff9800;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 20px 0;
+}
+
+.chronology-alert .alert-icon {
+    color: #ff9800;
+    font-size: 20px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.chronology-alert .alert-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.chronology-alert .alert-anime-link {
+    color: #d35400;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.chronology-alert .alert-anime-link:hover {
+    text-decoration: underline;
+}
+
+.chronology-alert .alert-note {
+    color: #856404;
+    font-style: italic;
+}
+
+/* --- 2. Siradaki Anime Paneli ---------------------------------------- */
+.next-anime-panel {
+    background-color: #e8f5e9;
+    border: 1px solid #a5d6a7;
+    border-left: 4px solid #4caf50;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 20px 0;
+}
+
+.next-anime-panel h3 {
+    margin: 0 0 8px;
+    font-size: 16px;
+    color: #2e7d32;
+}
+
+.next-anime-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.next-anime-link {
+    color: #1b5e20;
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 15px;
+}
+
+.next-anime-link:hover {
+    text-decoration: underline;
+}
+
+.next-anime-status {
+    font-size: 13px;
+}
+
+/* --- 3. Baglantili Animeler Listesi ---------------------------------- */
+.related-animes-section {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 16px 18px;
+    margin: 20px 0;
+}
+
+.related-animes-section h3 {
+    margin: 0 0 12px;
+    font-size: 16px;
+    color: #495057;
+}
+
+.related-animes-section h3 small {
+    font-weight: 400;
+    color: #6c757d;
+}
+
+.related-group {
+    margin-bottom: 12px;
+}
+
+.related-group:last-child {
+    margin-bottom: 0;
+}
+
+.related-group h4 {
+    font-size: 13px;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0 0 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.related-anime-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    flex-wrap: wrap;
+}
+
+.related-anime-item:hover {
+    background-color: #e9ecef;
+}
+
+.related-anime-link {
+    color: #333;
+    text-decoration: none;
+    font-weight: 500;
+    flex: 1;
+    min-width: 150px;
+}
+
+.related-anime-link:hover {
+    color: #007bff;
+    text-decoration: underline;
+}
+
+.related-anime-progress {
+    color: #495057;
+    font-size: 13px;
+    font-weight: 500;
+    min-width: 50px;
+    text-align: center;
+}
+
+.related-anime-status {
+    font-size: 12px;
+    min-width: 80px;
+}
+
+/* --- 4. Kronoloji Notlari (Marker listesi + Ekleme Formu) ------------ */
+.chronology-section {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 16px 18px;
+    margin: 20px 0;
+}
+
+.chronology-section h3 {
+    margin: 0 0 12px;
+    font-size: 16px;
+    color: #495057;
+}
+
+/* Marker listesi */
+.marker-list {
+    margin-bottom: 16px;
+}
+
+.marker-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    border-bottom: 1px solid #e9ecef;
+    flex-wrap: wrap;
+}
+
+.marker-item:last-child {
+    border-bottom: none;
+}
+
+.marker-item:hover {
+    background-color: #e9ecef;
+}
+
+.marker-episode {
+    font-weight: 600;
+    color: #495057;
+    white-space: nowrap;
+    min-width: 120px;
+}
+
+.marker-arrow {
+    color: #6c757d;
+    font-weight: bold;
+}
+
+.marker-anime-link {
+    color: #333;
+    text-decoration: none;
+    font-weight: 500;
+    flex: 1;
+    min-width: 120px;
+}
+
+.marker-anime-link:hover {
+    color: #007bff;
+    text-decoration: underline;
+}
+
+.marker-watch-status {
+    font-size: 12px;
+}
+
+.marker-note {
+    color: #6c757d;
+    font-style: italic;
+}
+
+.marker-delete-form {
+    display: inline;
+    margin: 0;
+}
+
+.marker-delete-btn {
+    background: none;
+    border: none;
+    color: #dc3545;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    opacity: 0.6;
+}
+
+.marker-delete-btn:hover {
+    opacity: 1;
+    background-color: #f8d7da;
+}
+
+/* Marker ekleme formu */
+.marker-add-form {
+    border-top: 1px solid #dee2e6;
+    padding-top: 14px;
+    margin-top: 8px;
+}
+
+.marker-add-form h4 {
+    font-size: 14px;
+    color: #495057;
+    margin: 0 0 10px;
+}
+
+.marker-form-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.marker-form-row label {
+    font-size: 13px;
+    color: #495057;
+    min-width: 120px;
+    font-weight: 500;
+}
+
+.marker-form-row input[type="number"] {
+    width: 80px;
+    padding: 5px 8px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.marker-form-row input[type="text"] {
+    flex: 1;
+    min-width: 150px;
+    padding: 5px 8px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.marker-form-row select {
+    flex: 1;
+    min-width: 200px;
+    padding: 5px 8px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.marker-add-btn {
+    background-color: #17a2b8;
+    color: white;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    margin-top: 4px;
+}
+
+.marker-add-btn:hover {
+    background-color: #138496;
+}
+
+/* --- Kronoloji Butonu (anime_details.php icinde) -------------------- */
+.chronology-button {
+    display: inline-block;
+    background-color: #6c5ce7;
+    color: white;
+    text-decoration: none;
+    padding: 6px 14px;
+    border-radius: 5px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+
+.chronology-button:hover {
+    background-color: #5b4cdb;
+    color: white;
+    text-decoration: none;
+}
+
+.chronology-button i {
+    margin-right: 4px;
+}
+
+/* --- Kronoloji Sayfasi (chronology.php) ------------------------------ */
+.chronology-container {
+    max-width: 800px;
+    margin: 30px auto;
+    padding: 30px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.chronology-title {
+    font-size: 22px;
+    font-weight: 600;
+    color: #2c3e50;
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.chronology-title small {
+    display: block;
+    font-size: 14px;
+    color: #6c757d;
+    font-weight: 400;
+    margin-top: 4px;
+}
+
+.chronology-timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.chronology-timeline::before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: #dee2e6;
+}
+
+.chrono-item {
+    position: relative;
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    background-color: #fafafa;
+}
+
+.chrono-item::before {
+    content: '';
+    position: absolute;
+    left: -24px;
+    top: 16px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid #dee2e6;
+    background-color: white;
+}
+
+.chrono-item.watched::before {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.chrono-item.watching::before {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.chrono-item.upcoming::before {
+    background-color: white;
+    border-color: #dee2e6;
+}
+
+.chrono-item.watched {
+    border-color: #c3e6cb;
+    background-color: #f0faf2;
+}
+
+.chrono-item.watching {
+    border-color: #b8daff;
+    background-color: #eef5ff;
+    box-shadow: 0 0 0 1px #007bff33;
+}
+
+.chrono-type-icon {
+    font-size: 14px;
+    margin-right: 6px;
+}
+
+.chrono-label {
+    font-weight: 500;
+    color: #333;
+}
+
+.chrono-label a {
+    color: #333;
+    text-decoration: none;
+}
+
+.chrono-label a:hover {
+    color: #007bff;
+    text-decoration: underline;
+}
+
+.chrono-status {
+    float: right;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 3px;
+}
+
+.chrono-status.done {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.chrono-status.active {
+    background-color: #cce5ff;
+    color: #004085;
+}
+
+.chrono-status.pending {
+    background-color: #e9ecef;
+    color: #495057;
+}
+
+.chrono-progress {
+    font-size: 12px;
+    color: #6c757d;
+    margin-top: 3px;
+}
+
+.chronology-back {
+    text-align: center;
+    margin-top: 25px;
+}
+.schedule-link {
+    background-color: #9b59b6;
+}
+.schedule-link:hover {
+    background-color: #8e44ad;
+}
+/* Harf filtresi butonlari */
+.letter-filter { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-top: 8px; }
+.letter-btn { display: inline-block; padding: 6px 11px; min-width: 28px; text-align: center; background: #fff; border: 1px solid #cbd5e0; border-radius: 4px; color: #2b6cb0; text-decoration: none; font-size: 14px; font-weight: 500; transition: all 0.15s; }
+.letter-btn:hover { background: #ebf4ff; border-color: #2b6cb0; }
+.letter-btn.active { background: #2b6cb0; color: #fff; border-color: #2b6cb0; }
+
+/* Harf filtresi acilir kapanir bolum */
+.letter-filter-details { margin-top: 8px; }
+.letter-filter-details summary { cursor: pointer; padding: 8px 12px; background: #edf2f7; border-radius: 6px; font-weight: 600; color: #2c5282; user-select: none; list-style: none; text-align: center; transition: background 0.15s; }
+.letter-filter-details summary::-webkit-details-marker { display: none; }
+.letter-filter-details summary:hover { background: #e2e8f0; }
+.letter-filter-details summary::before { content: '▶ '; font-size: 11px; display: inline-block; transition: transform 0.2s; }
+.letter-filter-details[open] summary::before { transform: rotate(90deg); }
+

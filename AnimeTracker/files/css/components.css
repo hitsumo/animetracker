@@ -1,0 +1,335 @@
+/**
+ * Anime Tracker - Components (forms, buttons, genre+watch-status badges, inputs, filters, dynamic fields, file upload)
+ * https://www.sicakcikolata.com
+ * Copyright (C) 2025 Okan Sumer
+ * Licensed under GNU General Public License v2
+ *
+ * Split out of style.css in 0.6.7 (code reorganization, no visual
+ * change). Loaded in original cascade order via style.css @imports.
+ */
+/* Form ve buton stilleri */
+.form-group {
+    margin-bottom: 25px;
+    text-align: left;
+    display: flex;
+    align-items: flex-start;
+}
+
+.form-group label {
+    width: 200px;
+    padding-right: 20px;
+    text-align: right;
+    margin-top: 8px;
+    color: #333;
+    font-weight: 500;
+}
+
+.form-group .input-area {
+    flex: 1;
+}
+
+/* Tür etiketleri için stil */
+.genre-tag {
+    background-color: #f8f9fa;
+    padding: 6px 15px;
+    border-radius: 20px;
+    font-size: 0.95em;
+    color: #495057;
+    margin: 3px;
+    display: inline-block;
+    border: 1px solid #e9ecef;
+}
+
+/* İzleme durumu rozeti için stil */
+.status-badge {
+    display: inline-block;
+    padding: 6px 15px;
+    border-radius: 20px;
+    font-weight: 500;
+    font-size: 0.95em;
+}
+
+/* Watch status badge color classes.
+   0.6: ASCII class suffix family (watched / watching / plantowatch /
+   onhold). Names come from functions.php :: watch_status_css_class()
+   - single source of truth. Pre-0.6 used Turkish-character class names
+   (izlenme-planlandı with "ı"), which mixed UI language into the
+   markup; removed in 0.6. */
+.status-badge.watched {
+    background-color: #28a745;
+    color: white;
+}
+
+.status-badge.watching {
+    background-color: #007bff;
+    color: white;
+}
+
+.status-badge.plantowatch {
+    background-color: #6c757d;
+    color: white;
+}
+
+.status-badge.onhold {
+    background-color: #e0a000;
+    color: white;
+}
+
+/* Yayın bilgileri bölümü için stil */
+.broadcast-info {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 2px solid #f8f9fa;
+}
+
+/* Dış bağlantılar bölümü için stil */
+.external-links {
+    margin-top: 30px;
+    padding: 25px;
+    background-color: #f8f9fa;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.external-links h3 {
+    margin-bottom: 20px;
+    color: #495057;
+    font-size: 1.2em;
+}
+
+.site-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    margin: 0 10px;
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.anidb-link {
+    background-color: #2196f3;
+    color: white;
+}
+
+.mal-link {
+    background-color: #2e51a2;
+    color: white;
+}
+
+.site-link:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+/* Buton grubu stilleri */
+.button-group {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.edit-button,
+.back-button {
+    padding: 10px 25px;
+    border-radius: 6px;
+    text-decoration: none;
+    color: white;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.edit-button {
+    background-color: #007bff;
+}
+
+.back-button {
+    background-color: #6c757d;
+}
+
+.edit-button:hover,
+.back-button:hover {
+    transform: translateY(-1px);
+    opacity: 0.9;
+}
+
+/* Dinamik alan butonları */
+.add-button {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.3s ease;
+}
+
+.add-button:hover {
+    background-color: #218838;
+    transform: translateY(-1px);
+}
+
+.add-button i {
+    font-size: 12px;
+}
+
+.remove-button {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-left: 10px;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.remove-button:hover {
+    background-color: #c82333;
+}
+
+/* Dosya yükleme alanı */
+.file-upload {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+.file-upload input[type="file"] {
+    display: none;
+}
+
+.file-upload-label {
+    background-color: #FF9F45;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.file-upload-label:hover {
+    background-color: #FF6B35;
+    transform: translateY(-1px);
+}
+
+.file-name-display {
+    margin-left: 10px;
+    font-size: 14px;
+    color: #666;
+}
+
+/* Select ve input stilleri */
+select, 
+input[type="text"], 
+input[type="number"], 
+input[type="time"],
+input[type="url"],
+textarea {
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    width: 100%;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    font-size: 14px;
+}
+
+select:focus, 
+input[type="text"]:focus, 
+input[type="number"]:focus, 
+input[type="time"]:focus,
+input[type="url"]:focus,
+textarea:focus {
+    border-color: #80bdff;
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+/* Filtre container */
+.filter-container {
+    text-align: center;
+    margin: 60px 0 20px 0;
+    padding: 25px;
+    background-color: #e9ecef;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.filter-container form {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 20px;
+    margin: 0 auto;
+    width: 100%;
+    max-width: 700px;
+}
+
+/* index.php icindeki bos ayrac divlerini flex layoutta gizle */
+.filter-container form > div:not(.filter-group):not(.form-actions) {
+    display: none;
+}
+
+.filter-container .filter-group {
+    flex: 1 1 calc(50% - 20px);
+    min-width: 220px;
+    max-width: calc(50% - 20px);
+    text-align: center;
+}
+
+/* Tam genislik filtre/buton (Harfe Gore, Filtrele) */
+.filter-container .filter-full {
+    flex: 1 1 100%;
+    max-width: 100%;
+    order: 10;
+}
+.filter-container .form-actions.filter-full {
+    order: 20;
+    text-align: center;
+}
+
+.filter-container .filter-group label {
+    display: block;
+    margin-bottom: 6px;
+}
+
+.filter-container select {
+    margin: 0;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #ced4da;
+    width: 100%;
+    font-size: 15px;
+}
+
+.filter-container input[type="submit"] {
+    background-color: #5cb85c;
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 20px 10px 10px 10px;
+    font-size: 16px;
+    min-width: 150px;
+}
+

@@ -1,0 +1,137 @@
+/**
+ * Anime Tracker - Emotion Marks (toggle buttons + read-only badges)
+ * https://www.sicakcikolata.com
+ * Copyright (C) 2025 Okan Sumer
+ * Licensed under GNU General Public License v2
+ *
+ * Split out of style.css in 0.6.7 (code reorganization, no visual
+ * change). Loaded in original cascade order via style.css @imports.
+ */
+/* ======================================================================
+   Emotion marks (0.6.1) - user's emotional reactions to anime
+   ======================================================================
+   Class suffixes come from functions.php :: emotion_css_class(), stable
+   ASCII names matching the canonical list in emotion_options(). Two use
+   surfaces share these classes:
+     - .emotion-btn-*  : interactive toggle buttons on anime_details.php
+     - .emotion-badge-*: read-only chips wherever marks are displayed
+                         inline (list view in a future release, the
+                         detail page summary, etc.)
+   The colors map loosely to the emotional valence each label evokes;
+   they are intentionally not the watch-status palette (#28a745 etc.) so
+   the two systems remain visually distinct.
+
+   See also: functions.php emotion_label(), emotion_options(),
+             emotion_css_class(); update_emotion.php toggle endpoint;
+             KARARLAR.md Bolum 8 v1 spec. */
+
+/* --- Container holding the row of toggle buttons --------------------- */
+.emotion-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0;
+    align-items: center;
+}
+.emotion-toolbar-label {
+    font-weight: 600;
+    color: #2c5282;
+    margin-right: 6px;
+    font-size: 14px;
+}
+.emotion-toolbar-meta {
+    font-size: 12px;
+    color: #6c757d;
+    margin-left: auto;
+}
+
+/* --- Toggle button (off / on states) --------------------------------- */
+/* Off state: light grey chip with the emotion color as accent. On state
+   (.is-active): solid fill with the emotion color, white text. Hover
+   adjusts the alpha so the off state hints at the eventual on color
+   without committing to it. */
+.emotion-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border: 1px solid #cbd5e0;
+    border-radius: 16px;
+    background: #fff;
+    color: #4a5568;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+}
+.emotion-btn:hover {
+    border-color: currentColor;
+    background: #f7fafc;
+}
+.emotion-btn:disabled {
+    opacity: 0.70;
+    cursor: not-allowed;
+}
+.emotion-btn.is-active {
+    color: #fff !important;
+    font-weight: 600;
+}
+
+/* --- Per-emotion accent colors --------------------------------------- */
+/* Off state sets `color` so the border picks it up via currentColor on
+   hover; active state replaces `background` with the same hue. Pairs of
+   selectors keep the off / on rules grouped per emotion for grep. */
+
+.emotion-btn-huzunlendirdi          { color: #6c8eb8; }
+.emotion-btn-huzunlendirdi.is-active { background: #6c8eb8; border-color: #6c8eb8; }
+
+.emotion-btn-heyecanlandirdi        { color: #e74c3c; }
+.emotion-btn-heyecanlandirdi.is-active { background: #e74c3c; border-color: #e74c3c; }
+
+.emotion-btn-sikti                  { color: #7d8b95; }
+.emotion-btn-sikti.is-active        { background: #7d8b95; border-color: #7d8b95; }
+
+.emotion-btn-guldurdu               { color: #d4a017; }
+.emotion-btn-guldurdu.is-active     { background: #d4a017; border-color: #d4a017; }
+
+.emotion-btn-korkuttu               { color: #6c3483; }
+.emotion-btn-korkuttu.is-active     { background: #6c3483; border-color: #6c3483; }
+
+.emotion-btn-dusundurdu             { color: #5b6abf; }
+.emotion-btn-dusundurdu.is-active   { background: #5b6abf; border-color: #5b6abf; }
+
+.emotion-btn-sasirti                { color: #c2185b; }
+.emotion-btn-sasirti.is-active      { background: #c2185b; border-color: #c2185b; }
+
+.emotion-btn-dinlendirdi            { color: #27ae60; }
+.emotion-btn-dinlendirdi.is-active  { background: #27ae60; border-color: #27ae60; }
+
+.emotion-btn-motiveetti             { color: #d35400; }
+.emotion-btn-motiveetti.is-active   { background: #d35400; border-color: #d35400; }
+
+/* --- Read-only badge (inline chip) ----------------------------------- */
+/* Smaller and softer than the toggle button - meant for compact display
+   in lists or summary sections. Each badge carries a tinted background
+   matching its accent color, faded to ~12% via solid color overlap. */
+.emotion-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    margin: 2px 3px 2px 0;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.5;
+    border: 1px solid transparent;
+}
+
+.emotion-badge-huzunlendirdi    { background: #e7ecf3; color: #4a6a90; border-color: #c8d4e3; }
+.emotion-badge-heyecanlandirdi  { background: #fde6e3; color: #b03a2e; border-color: #f5c0b8; }
+.emotion-badge-sikti            { background: #ebeef0; color: #5a6670; border-color: #d0d6db; }
+.emotion-badge-guldurdu         { background: #fcf3d3; color: #8a6a0e; border-color: #f0dca0; }
+.emotion-badge-korkuttu         { background: #ecdff2; color: #5a2a6e; border-color: #d4b8de; }
+.emotion-badge-dusundurdu       { background: #e4e6f4; color: #4a589f; border-color: #c5cae8; }
+.emotion-badge-sasirti          { background: #f9dde7; color: #a01448; border-color: #ecb5ca; }
+.emotion-badge-dinlendirdi      { background: #d8efe1; color: #1e7e44; border-color: #b5dec5; }
+.emotion-badge-motiveetti       { background: #fbe1cd; color: #a64200; border-color: #f3c39c; }
+

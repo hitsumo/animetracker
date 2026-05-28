@@ -1,0 +1,487 @@
+/**
+ * Anime Tracker - List/Table (table, action buttons, page title, responsive, list view + dynamic fields)
+ * https://www.sicakcikolata.com
+ * Copyright (C) 2025 Okan Sumer
+ * Licensed under GNU General Public License v2
+ *
+ * Split out of style.css in 0.6.7 (code reorganization, no visual
+ * change). Loaded in original cascade order via style.css @imports.
+ */
+/* Tablo stilleri */
+table {
+    width: auto;
+    border-collapse: collapse;
+    margin: 20px auto 0;
+    background-color: white;
+}
+
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6;
+    min-width: 100px;
+    max-width: 200px;
+    white-space: normal;
+    vertical-align: middle;
+}
+
+th {
+    background-color: #f8f9fa;
+    color: #495057;
+    font-weight: 600;
+}
+
+tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* Aksiyon butonları */
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: 85px;
+    min-width: 85px;
+    margin: 0 auto;
+}
+
+/* Tum aksiyon butonlarini ayni genislik ve padding'e zorla.
+   Bu olmadan .edit-button shared kuralindan gelen 10px 25px padding ve
+   inline-flex display nedeniyle digerlerinden daha genis goruluyordu. */
+.action-buttons .more-button,
+.action-buttons .edit-button,
+.action-buttons .delete-button {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 5px 6px;
+    text-align: center;
+    margin: 0;
+    font-size: 12px;
+}
+
+.action-buttons form {
+    width: 100%;
+    margin: 0;
+}
+
+/* Sayfa başlığı */
+.page-title {
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 700;
+    font-size: 36px;
+    color: #2c3e50;
+    text-align: center;
+    padding: 20px 30px;
+    background: linear-gradient(to right, #f8f9fa, #e9ecef);
+    border-radius: 15px;
+    margin: 30px auto;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 2px solid #dee2e6;
+    max-width: 600px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Liste sayfasi basligi (index.php) - daha kompakt varyant.
+   .page-title'in kucultulmus turevi: ana sayfa basligi listenin
+   onunde devasa durmasin diye. Diger sayfalar (Duzenle, Ayarlar,
+   Ne Izlesem? vs.) .page-title kullanmaya devam eder. */
+.list-page-title {
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    color: #2c3e50;
+    text-align: center;
+    padding: 12px 20px;
+    background: linear-gradient(to right, #f8f9fa, #eef0f2);
+    border-radius: 10px;
+    margin: 20px auto;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+    border: 1px solid #dee2e6;
+    max-width: 400px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Boşluk sınıfları */
+.section-spacing {
+    margin: 30px 0;
+}
+
+.button-spacing {
+    margin: 20px 0;
+}
+
+/* Responsive tasarım */
+@media (max-width: 768px) {
+    .container {
+        padding: 30px;
+        margin: 10px;
+        width: 95%;
+    }
+
+    .form-group {
+        flex-direction: column;
+    }
+
+    .form-group label {
+        width: 100%;
+        text-align: left;
+        margin-bottom: 5px;
+    }
+
+    .action-buttons {
+        flex-direction: row;
+        width: auto;
+    }
+
+    .button-group {
+        flex-direction: column;
+    }
+
+    .anime-cover {
+        width: 280px;
+        height: 400px;
+    }
+
+    .detail-row {
+        flex-direction: column;
+    }
+
+    .detail-label {
+        margin-bottom: 5px;
+    }
+
+    .filter-container select {
+        width: 100%;
+        margin: 10px 0;
+    }
+
+    .site-link {
+        display: block;
+        margin: 10px 0;
+    }
+}
+
+/* Anime liste butonu */
+.anime-list-button {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    margin: 0 auto;
+}
+
+.anime-list-button:hover {
+    background-color: #0056b3;
+    transform: translateY(-1px);
+}
+
+/* Aksiyon butonları için stil */
+.delete-button {
+    background-color: #dc3545;
+    color: white;
+    text-decoration: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    display: inline-block;
+    text-align: center;
+    margin: 2px 0;
+}
+
+.delete-button:hover {
+    background-color: #c82333;
+    transform: translateY(-1px);
+}
+
+.more-button {
+    background-color: #17a2b8;
+    color: white;
+    text-decoration: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    display: inline-block;
+    text-align: center;
+    margin: 2px 0;
+}
+
+.more-button:hover {
+    background-color: #138496;
+    transform: translateY(-1px);
+}
+
+/* Buton container stili */
+.button-container {
+    text-align: center;
+    margin: 20px auto;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+/* Ekle ve Vazgeç butonları için stiller */
+.submit-button {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.submit-button:hover {
+    background-color: #218838;
+    transform: translateY(-1px);
+}
+
+.cancel-button {
+    background-color: #6c757d;
+    color: white;
+    text-decoration: none;
+    padding: 12px 30px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.cancel-button:hover {
+    background-color: #5a6268;
+    transform: translateY(-1px);
+}
+
+/* Dinamik alan butonları için stil güncellemesi */
+.field-group {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px; /* Alt alan ile mesafe */
+    gap: 10px; /* Input ve buton arası boşluk */
+}
+
+.field-group input[type="text"] {
+    flex: 1;
+    margin-right: 10px; /* Input ile silme butonu arası ek boşluk */
+}
+
+/* Alternatif isim ekleme butonu için stil */
+.add-button {
+    margin-top: 10px; /* Üstteki alan ile mesafe */
+    margin-bottom: 20px; /* Alttaki alan ile mesafe */
+}
+
+/* Dinamik alanlar container'ı için stil */
+.dynamic-fields {
+    margin-bottom: 20px; /* Alt alan ile mesafe */
+}
+
+.genre-selection-container {
+    margin-bottom: 20px; /* Boşluk eklendi */
+}
+
+.genre-selection-container select {
+    width: 40%;
+    margin-bottom: 15px; /* Select ile alt alan arası boşluk */
+}
+
+.new-genre-input {
+    margin-top: 15px; /* Üst alan ile arasına boşluk */
+    display: 30px;
+    gap: 10px;
+    width: 36%
+}
+
+.new-genre-input input {
+    flex: 1;
+}
+
+.title-background {
+    background-color: #f5f5f5;
+    padding: 15px 30px;
+    border-radius: 8px;
+    display: inline-block;
+    font-family: 'Poppins', sans-serif;
+    font-size: 26px;
+    font-weight: 500;
+    color: #333;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 30px;
+}
+
+.anime-edit-title {
+    font-family: 'Montserrat', sans-serif;  /* Yeni font */
+    font-size: 36px;  /* Daha büyük yazı boyutu */
+    font-weight: 600;
+    color: #2c3e50;
+    text-align: center;
+    padding: 20px 30px;
+    background-color: #f5f5f5;
+    border-radius: 10px;
+    margin-bottom: 40px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.anime-list-button {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 700;  /* Bold için */
+    font-size: 16px;
+    transition: all 0.3s ease;
+    margin: 0 auto;
+}
+
+.anime-list-button:hover {
+    background-color: #0056b3;
+    transform: translateY(-1px);
+}
+
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 10px 0;
+}
+
+.header-section {
+    text-align: right;
+    margin-bottom: 20px;
+    padding: 10px 0;
+}
+
+.about-link {
+    text-decoration: none;
+    color: #007bff;
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    padding: 8px 15px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.about-link:hover {
+    color: #0056b3;
+    background-color: #f8f9fa;
+}
+
+.episode-count {
+    text-align: center;
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 600;
+    color: #365;
+    background-color: #f8ffafa;
+    padding: 8px 12px;
+    border-radius: 4px;
+}
+
+.update-notification {
+    background-color: #fff3cd;
+    border: 1px solid #ffeeba;
+    color: #856404;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.update-button {
+    display: inline-block;
+    background-color: #28a745;
+    color: white;
+    padding: 8px 15px;
+    border-radius: 4px;
+    text-decoration: none;
+    margin-top: 10px;
+    transition: all 0.3s ease;
+}
+
+.update-button:hover {
+    background-color: #218838;
+}
+
+.next-episode-cell {
+    padding: 10px;
+    vertical-align: middle;
+    white-space: normal
+}
+
+.next-episode-title {
+    font-weight: 500;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.next-episode-time {
+    color: #4a90e2;
+    font-weight: 500;
+}
+.next-episode-info {
+    margin: 0;
+    padding: 0;
+    font-family: inherit;
+    font-size: inherit;
+    color: #4a90e2;
+    white-space: pre-line; /* Yeni satır karakterlerini korur */
+    line-height: 1.4;
+    background: none;
+    border: none;
+}
+
+.locked-field {
+        background-color: #f0f0f0;
+        cursor: not-allowed;
+        border: 1px solid #ccc;
+        color: #666;
+        padding: 8px 12px;
+        border-radius: 4px;
+    }
+    
+    .form-text.text-muted {
+        font-size: 0.85em;
+        color: #6c757d;
+        margin-top: 5px;
+        display: block;
+    }
+/* ----------------------------------------------------------------------
+   Anime title — tikla-genislet (uzun isim kirpma + click to expand)
+   Sadece liste sayfasinda (index.php) kullaniliyor. .anime-title class'i
+   anime_details.php'de buyuk baslik icin kullanildigi icin burada
+   .list-anime-title kullaniyoruz, cakisma olmasin.
+   Default state: tek satir, max 250px, sondaki tasma kismi "..." ile kirpilir.
+   .expanded class'i eklendiginde: cok satir, max-width yok, tum isim gorulur.
+---------------------------------------------------------------------- */
+.list-anime-title {
+    display: inline-block;
+    max-width: 170px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+.list-anime-title.expanded {
+    white-space: normal;
+    max-width: none;
+    overflow: visible;
+}
+
