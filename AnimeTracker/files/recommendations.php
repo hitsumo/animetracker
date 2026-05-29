@@ -479,7 +479,16 @@ $useCombinedTemplates  = ($totalEmotionsSelected > 0);
             </div>
             <p style="color: #666; margin: 12px 0;">
                 <?php
-                $synopsis = $surpriseAnime['synopsis'] ?? '';
+                // Pick the synopsis by UI language: English mode prefers
+                // synopsis_en and falls back to synopsis_tr; Turkish mode
+                // uses synopsis_tr. The legacy synopsis column is not read.
+                if (current_lang() === 'en') {
+                    $synopsis = ($surpriseAnime['synopsis_en'] ?? '') !== ''
+                        ? $surpriseAnime['synopsis_en']
+                        : ($surpriseAnime['synopsis_tr'] ?? '');
+                } else {
+                    $synopsis = $surpriseAnime['synopsis_tr'] ?? '';
+                }
                 if (mb_strlen($synopsis) > 200) {
                     $synopsis = mb_substr($synopsis, 0, 200) . '...';
                 }

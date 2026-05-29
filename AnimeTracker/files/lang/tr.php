@@ -133,6 +133,8 @@ return [
     'anime_details.label.broadcast_attribution' => 'Saat bilgisi %s\'den alınmıştır',
     'anime_details.label.watched_episodes' => 'İzlenen Bölüm:',
     'anime_details.label.synopsis'       => 'Konu:',
+    'anime_details.synopsis.auto_translated' => 'Türkçeden otomatik çevrildi',
+    'anime_details.synopsis.en_unavailable'  => 'İngilizce konu mevcut değil — Türkçe orijinali gösteriliyor.',
     'anime_details.label.user_synopsis'  => 'Kişisel Konu:',
     'anime_details.label.genres'         => 'Türler:',
     'anime_details.label.watch_status'   => 'İzleme Durumu:',
@@ -191,7 +193,7 @@ return [
     // Form field labels
     'add_anime.label.title'                  => 'Anime İsmi:',
     'add_anime.label.alternative_titles'     => 'Alternatif İsimler:',
-    'add_anime.label.synopsis'               => 'Konu:',
+    'add_anime.label.synopsis'               => 'Konu (TR):',
     'add_anime.label.total_episodes'         => 'Toplam Bölüm Sayısı:',
     'add_anime.label.aired_episodes'         => 'Yayınlanan Bölüm Sayısı:',
     'add_anime.label.release_date'           => 'Yayın Tarihi:',
@@ -216,6 +218,8 @@ return [
     // Input placeholders
     'add_anime.ph.alternative_title'         => 'Alternatif isim',
     'add_anime.ph.synopsis'                  => 'Animenin konusunu yazın',
+    'add_anime.label.synopsis_en'            => 'Konu (EN):',
+    'add_anime.ph.synopsis_en'               => 'Animenin İngilizce konusu (AI ile çevrilmiş)',
     'add_anime.ph.total_episodes'            => 'Bilinmiyorsa boş bırakın',
     'add_anime.ph.aired_episodes'            => 'Şu ana kadar yayınlanan bölüm',
     'add_anime.ph.new_genre'                 => 'Yeni tür ekle',
@@ -334,6 +338,10 @@ return [
     // (server text) and "Kisisel Konu" is the editable personal field.
     // The label "Konu:" itself is shared with add_anime.label.synopsis.
     'edit_anime.hint.synopsis_readonly'      => "server'dan gelir, sync ile guncellenir",
+    'edit_anime.btn.copy_synopsis_tr'        => 'Kopyala',
+    'edit_anime.hint.synopsis_en'            => 'İngilizce metni bir AI aracıyla çevirip buraya yapıştırın. Detay sayfasında "Auto-translated from Turkish" etiketiyle gösterilir.',
+    'edit_anime.label.mark_reviewed'         => 'Onaylandı olarak işaretle',
+    'edit_anime.hint.mark_reviewed'          => 'İngilizce çeviriyi okuyup doğruladıysanız işaretleyin. Türkçe metni değiştirirseniz otomatik kalkar.',
     'edit_anime.label.user_synopsis'         => 'Kişisel Konu:',
     'edit_anime.ph.user_synopsis'            => 'Kendi yorumunuz, cevirisi, ozeti',
     'edit_anime.hint.user_synopsis'          => 'kullanici konu bolumu - silinirse sync ile geri gelmez',
@@ -373,6 +381,7 @@ return [
     'help.toc.quick_buttons'                 => 'Hizli Izleme Butonlari (+/-)',
     'help.toc.sync'                          => 'Katalog Sync — Nasil Calisir?',
     'help.toc.personal'                      => 'Kisisel Alanlar — Notlar ve Kisisel Konu',
+    'help.toc.translation'                   => 'Çeviri durumu',
     'help.toc.recommendations'               => 'Ne İzlesem? — Öneri Sistemi',
     'help.toc.chronology'                    => 'Seriler ve Kronoloji',
     'help.toc.deletion'                      => 'Silme Uyarilari',
@@ -480,6 +489,9 @@ return [
     'help.personal.warning_body'             => 'Kisisel Konu\'yu silerseniz <strong>sync ile geri gelmez</strong>. Ayni sekilde Notlar alanini silerseniz o da geri gelmez. Bu iki alan size ozel ve kalici olarak sizin kontrolunuzde.',
 
     // Section: Recommendation system
+    'help.translation.h2'                    => 'Çeviri Durumu',
+    'help.translation.intro'                 => 'Bu sitedeki anime konuları aslen site küratörü tarafından Türkçe yazılır. İngilizce sürümler harici araçlarla AI çevirisi yapılıp elle eklenir. Konunun altında "Auto-translated from Turkish" etiketiyle gösterilir.',
+    'help.translation.quality'               => 'Çeviri kalitesi değişebilir; Türkçe orijinal her zaman esas alınan sürümdür. Dili istediğiniz zaman dil seçicisinden değiştirebilirsiniz.',
     'help.recom.h2'                          => 'Ne İzlesem? — Öneri Sistemi',
     'help.recom.intro'                       => 'Menudeki "Ne İzlesem?" linki, listenizden size uygun anime onermesi icin tasarlanmis bir aractir.',
     'help.recom.howto.h3'                    => 'Nasil Calisir?',
@@ -679,6 +691,9 @@ return [
     'list_settings.section.genres'           => 'Tür Yönetimi',
     'list_settings.section.genres.desc'      => 'Yanlış yazılan veya kullanılmayan türleri yönetin.',
     'list_settings.btn.manage_genres'        => 'Türleri Yönet',
+    'list_settings.section.tags'             => 'Cümle Yönetimi',
+    'list_settings.section.tags.desc'        => 'Yanlış yazılan veya kullanılmayan cümleleri yönetin.',
+    'list_settings.btn.manage_tags'          => 'Cümleleri Yönet',
     'list_settings.section.catalog'          => 'Katalog Senkronizasyonu',
     'list_settings.section.catalog.desc'     => 'Merkezi katalogdan en son anime bilgilerini cekin. Kendi izleme durumlariniz ve notlariniz korunur.',
     'list_settings.catalog.last_sync_prefix' => 'Son senkronizasyon:',
@@ -718,6 +733,44 @@ Hemen guncellemek ister misiniz?',
     'list_settings.js.reloading'             => 'Sayfa yenileniyor...',
     'list_settings.js.install_network_error' => 'Ag hatasi',
     'list_settings.js.install_network_error_alert' => 'Guncelleme sirasinda bir hata olustu:',
+
+    // -----------------------------------------------------------------
+    // manage_tags.php - sentence (tag) library management
+    // -----------------------------------------------------------------
+    'manage_tags.title'                      => 'Cümle Yönetimi',
+    'manage_tags.intro'                      => 'Cümleler öneri sisteminde kullanıcılara gösterilir. Anime ekleme/düzenleme ekranında yeni cümle yazınca otomatik oluşur. Buradan yazım hatalarını düzeltebilir veya gereksiz cümleleri silebilirsin. Cümleyi tam olarak kullanıcının göreceği şekilde yaz (örn: "Okulda geçsin", "Spor teması olsun").',
+    'manage_tags.placeholder'                => 'Yeni cümle (örn: Okulda geçsin, Spor teması olsun)',
+    'manage_tags.btn.add'                    => 'Ekle',
+    'manage_tags.th.tag'                     => 'Cümle',
+    'manage_tags.th.usage'                   => 'Kullanım',
+    'manage_tags.th.rename'                  => 'Yeniden Yaz',
+    'manage_tags.th.delete'                  => 'Sil',
+    'manage_tags.usage_suffix'               => 'anime',
+    'manage_tags.empty'                      => 'Henüz cümle yok. Yukarıdaki formdan ilk cümleni ekleyebilirsin.',
+    'manage_tags.btn.delete'                 => 'Sil',
+    'manage_tags.confirm_delete'             => '"%s" cümlesini silmek istediğinize emin misiniz? %d animeden kaldırılacak.',
+    'manage_tags.back_to_list'               => 'Anime Listesine Dön',
+    'manage_tags.csrf.invalid'               => 'CSRF token gecersiz. Sayfayi yenileyip tekrar deneyin.',
+    'manage_tags.err.empty'                  => 'Cümle boş olamaz.',
+    'manage_tags.msg.added'                  => 'Cümle eklendi (veya zaten mevcuttu): %s',
+    'manage_tags.err.rename_missing'         => 'Eksik bilgi: cümle ID veya yeni metin boş.',
+    'manage_tags.msg.renamed'                => 'Cümle güncellendi.',
+    'manage_tags.err.invalid_id'             => 'Geçersiz cümle ID.',
+    'manage_tags.msg.deleted'                => 'Cümle silindi.',
+    'manage_tags.err.unknown_action'         => 'Bilinmeyen işlem.',
+    'manage_tags.err.duplicate'              => 'Bu cümle zaten var.',
+    'manage_tags.err.db'                     => 'Veritabanı hatası oluştu.',
+
+    // -----------------------------------------------------------------
+    // manage_genres.php - master genre list management
+    // -----------------------------------------------------------------
+    'manage_genres.title'                    => 'Tür Yönetimi',
+    'manage_genres.th.name'                  => 'Tür Adı',
+    'manage_genres.th.action'                => 'İşlem',
+    'manage_genres.confirm_delete'           => 'Bu türü silmek istediğinize emin misiniz? Bu türü kullanan animelerden de otomatik olarak kaldırılacaktır.',
+    'manage_genres.btn.delete'               => 'Sil',
+    'manage_genres.back_to_list'             => 'Anime Listesine Dön',
+    'manage_genres.csrf.invalid'             => 'CSRF token gecersiz. Sayfayi yenileyip tekrar deneyin.',
 
 
     // -----------------------------------------------------------------

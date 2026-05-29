@@ -236,10 +236,40 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                     <span class="detail-value episode"><?php echo htmlspecialchars($anime['watched_episodes']); ?></span>
                 </div>
 
-                <?php if (!empty($anime['synopsis'])): ?>
+                <?php
+                // Catalog synopsis is now multi-language. Show synopsis_en
+                // in English mode (with an "Auto-translated" note), otherwise
+                // the Turkish original. If English is requested but empty,
+                // fall back to the Turkish text with a short note. The legacy
+                // single synopsis column is no longer read.
+                $curLang     = current_lang();
+                $synTr       = $anime['synopsis_tr'] ?? '';
+                $synEn       = $anime['synopsis_en'] ?? '';
+                $transStatus = $anime['translation_status'] ?? 'none';
+                if ($curLang === 'en') {
+                    $showSyn    = ($synEn !== '') ? $synEn : $synTr;
+                    $enLabeled  = ($synEn !== '');
+                    $enFallback = ($synEn === '' && $synTr !== '');
+                } else {
+                    $showSyn    = $synTr;
+                    $enLabeled  = false;
+                    $enFallback = false;
+                }
+                ?>
+                <?php if (!empty($showSyn)): ?>
                 <div class="detail-row">
                     <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.synopsis'), ENT_QUOTES, 'UTF-8'); ?></span>
-                    <span class="detail-value synopsis"><?php echo nl2br(htmlspecialchars($anime['synopsis'])); ?></span>
+                    <div class="detail-value synopsis">
+                        <?php echo nl2br(htmlspecialchars($showSyn)); ?>
+                        <?php if ($enLabeled): ?>
+                        <span class="synopsis-meta">
+                            <span class="synopsis-status synopsis-status-<?php echo htmlspecialchars($transStatus, ENT_QUOTES, 'UTF-8'); ?>"></span>
+                            <small><em><a href="help.php#translation" class="translation-note"><?php echo htmlspecialchars(t('anime_details.synopsis.auto_translated'), ENT_QUOTES, 'UTF-8'); ?></a></em></small>
+                        </span>
+                        <?php elseif ($enFallback): ?>
+                        <span class="synopsis-meta"><small><em><?php echo htmlspecialchars(t('anime_details.synopsis.en_unavailable'), ENT_QUOTES, 'UTF-8'); ?></em></small></span>
+                        <?php endif; ?>
+                    </div>
                 </div>
                 <?php endif; ?>
 

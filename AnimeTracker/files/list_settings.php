@@ -193,8 +193,8 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                 // Var olan kayıtları güncelle veya yeni kayıt ekle
                 $stmt = $pdo->prepare("INSERT INTO animes (title, alternative_titles, status, total_episodes, 
                     watched_episodes, notes, genres, image_path, watch_status, next_episode_date, 
-                    anidb_link, mal_link, episode_interval, broadcast_day, broadcast_time, synopsis, release_date) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+                    anidb_link, mal_link, episode_interval, broadcast_day, broadcast_time, synopsis_tr, synopsis_en, translation_status, release_date) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
                     ON DUPLICATE KEY UPDATE 
                     alternative_titles=VALUES(alternative_titles), 
                     status=VALUES(status),
@@ -221,7 +221,9 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                     $anime['episode_interval'],
                     $anime['broadcast_day'],
                     $anime['broadcast_time'],
-                    $anime['synopsis'],
+                    $anime['synopsis_tr'] ?? $anime['synopsis'] ?? null,
+                    $anime['synopsis_en'] ?? null,
+                    $anime['translation_status'] ?? 'none',
                     $anime['release_date']
                 ]);
             }
@@ -335,6 +337,15 @@ if (isset($_POST['clear'])) {
     <p><?php echo htmlspecialchars(t('list_settings.section.genres.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
     <a href="manage_genres.php" class="settings-button">
         <i class="fas fa-tags"></i> <?php echo htmlspecialchars(t('list_settings.btn.manage_genres'), ENT_QUOTES, 'UTF-8'); ?>
+    </a>
+	
+		</div>
+
+            <div class="settings-section">
+    <h3><?php echo htmlspecialchars(t('list_settings.section.tags'), ENT_QUOTES, 'UTF-8'); ?></h3>
+    <p><?php echo htmlspecialchars(t('list_settings.section.tags.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
+    <a href="manage_tags.php" class="settings-button">
+        <i class="fas fa-hashtag"></i> <?php echo htmlspecialchars(t('list_settings.btn.manage_tags'), ENT_QUOTES, 'UTF-8'); ?>
     </a>
 	
 		</div>

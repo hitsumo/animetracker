@@ -107,7 +107,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $broadcast_day = $_POST['broadcast_day'] ?? '';
     $broadcast_time = $_POST['broadcast_time'] ?? '';
     $broadcast_timezone = $_POST['broadcast_timezone'] ?? 'Asia/Tokyo';
-    $synopsis = $_POST['synopsis'] ?? '';
+    // Catalog synopsis is multi-language: synopsis_tr + synopsis_en +
+    // translation_status. On a fresh add there is no prior Turkish text to
+    // compare, so the status is simply 'none' when there is no English yet,
+    // otherwise 'ai' (curator-pasted AI translation; 'reviewed' is only set
+    // later from edit_anime).
+    $synopsis_tr = $_POST['synopsis_tr'] ?? '';
+    $synopsis_en = $_POST['synopsis_en'] ?? '';
+    $translation_status = (trim($synopsis_en) === '') ? 'none' : 'ai';
     $release_date = $_POST['release_date'] ?? null;
     $end_date = $_POST['end_date'] ?? null;
 
@@ -216,7 +223,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Genres no longer live on this row - they are written to the
     // anime_genres join table after the INSERT, using the new anime's
     // lastInsertId(). See setAnimeGenresByNames() below.
-    $sql = "INSERT INTO animes (title, alternative_titles, status, total_episodes, aired_episodes, watched_episodes, notes, image_path, watch_status, next_episode_date, anidb_link, mal_link, anime_schedule_link, episode_interval, broadcast_day, broadcast_time, broadcast_timezone, synopsis, release_date, end_date, series_name, media_type, next_in_series, mal_id, anidb_id, filler_tracking) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO animes (title, alternative_titles, status, total_episodes, aired_episodes, watched_episodes, notes, image_path, watch_status, next_episode_date, anidb_link, mal_link, anime_schedule_link, episode_interval, broadcast_day, broadcast_time, broadcast_timezone, synopsis_tr, synopsis_en, translation_status, release_date, end_date, series_name, media_type, next_in_series, mal_id, anidb_id, filler_tracking) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     $stmt = $pdo->prepare($sql);
 
@@ -243,7 +250,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $broadcast_day,
             $broadcast_time,
             $broadcast_timezone,
-            $synopsis,
+            $synopsis_tr,
+            $synopsis_en,
+            $translation_status,
             $release_date,
             $end_date,
             $series_name,
@@ -456,9 +465,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </div>
 
         <div class="form-group">
-            <label for="synopsis"><?php echo htmlspecialchars(t('add_anime.label.synopsis'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <label for="synopsis_tr"><?php echo htmlspecialchars(t('add_anime.label.synopsis'), ENT_QUOTES, 'UTF-8'); ?></label>
             <div class="input-area">
-                <textarea name="synopsis" rows="6" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.synopsis'), ENT_QUOTES, 'UTF-8'); ?>"></textarea>
+                <textarea id="synopsis_tr" name="synopsis_tr" rows="6" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.synopsis'), ENT_QUOTES, 'UTF-8'); ?>"></textarea>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="synopsis_en"><?php echo htmlspecialchars(t('add_anime.label.synopsis_en'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <div class="input-area">
+                <textarea id="synopsis_en" name="synopsis_en" rows="6" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.synopsis_en'), ENT_QUOTES, 'UTF-8'); ?>"></textarea>
+                <small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.hint.synopsis_en'), ENT_QUOTES, 'UTF-8'); ?></small>
             </div>
         </div>
 

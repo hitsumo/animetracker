@@ -241,7 +241,9 @@ $updateSql = "
         status = :status,
         total_episodes = :total_episodes,
         aired_episodes = :aired_episodes,
-        synopsis = :synopsis,
+        synopsis_tr = :synopsis_tr,
+        synopsis_en = :synopsis_en,
+        translation_status = :translation_status,
         release_date = :release_date,
         anidb_link = :anidb_link,
         mal_link = :mal_link,
@@ -270,7 +272,7 @@ $insertSql = "
         watch_status, next_episode_date,
         anidb_link, mal_link, anime_schedule_link,
         episode_interval, broadcast_day, broadcast_time, broadcast_timezone,
-        synopsis, release_date,
+        synopsis_tr, synopsis_en, translation_status, release_date,
         series_name, media_type, next_in_series,
         mal_id, anidb_id, catalog_uuid, source
     ) VALUES (
@@ -279,7 +281,7 @@ $insertSql = "
         'PlanToWatch', NULL,
         :anidb_link, :mal_link, :anime_schedule_link,
         :episode_interval, :broadcast_day, :broadcast_time, :broadcast_timezone,
-        :synopsis, :release_date,
+        :synopsis_tr, :synopsis_en, :translation_status, :release_date,
         :series_name, :media_type, NULL,
         :mal_id, :anidb_id, :catalog_uuid, 'catalog'
     )
@@ -336,7 +338,9 @@ try {
             ':status'              => $ca['status']              ?? 'Yayin Tamamlandi',
             ':total_episodes'      => $ca['total_episodes']      ?? null,
             ':aired_episodes'      => $ca['aired_episodes']      ?? null,
-            ':synopsis'            => $ca['synopsis']            ?? null,
+            ':synopsis_tr'         => $ca['synopsis_tr']         ?? null,
+            ':synopsis_en'         => $ca['synopsis_en']         ?? null,
+            ':translation_status'  => $ca['translation_status']  ?? 'none',
             ':release_date'        => $ca['release_date']        ?? null,
             ':anidb_link'          => $ca['anidb_link']          ?? null,
             ':mal_link'            => $ca['mal_link']            ?? null,

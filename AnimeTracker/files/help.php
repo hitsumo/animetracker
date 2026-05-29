@@ -177,6 +177,7 @@ lang_init($pdo);
             <li><a href="#hizli-butonlar"><?php echo htmlspecialchars(t('help.toc.quick_buttons'), ENT_QUOTES, 'UTF-8'); ?></a></li>
             <li><a href="#sync"><?php echo htmlspecialchars(t('help.toc.sync'), ENT_QUOTES, 'UTF-8'); ?></a></li>
             <li><a href="#kisisel-alanlar"><?php echo htmlspecialchars(t('help.toc.personal'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+            <li><a href="#translation"><?php echo htmlspecialchars(t('help.toc.translation'), ENT_QUOTES, 'UTF-8'); ?></a></li>
             <li><a href="#oneri"><?php echo htmlspecialchars(t('help.toc.recommendations'), ENT_QUOTES, 'UTF-8'); ?></a></li>
             <li><a href="#kronoloji"><?php echo htmlspecialchars(t('help.toc.chronology'), ENT_QUOTES, 'UTF-8'); ?></a></li>
             <li><a href="#silme-uyarilari"><?php echo htmlspecialchars(t('help.toc.deletion'), ENT_QUOTES, 'UTF-8'); ?></a></li>
@@ -372,6 +373,16 @@ lang_init($pdo);
         <strong><?php echo t('help.personal.warning_title'); ?></strong>
         <?php echo t('help.personal.warning_body'); ?>
     </div>
+
+    <!-- =============================================================== -->
+    <h2 id="translation"><?php echo htmlspecialchars(t('help.translation.h2'), ENT_QUOTES, 'UTF-8'); ?></h2>
+
+    <p>
+        <?php echo t('help.translation.intro'); ?>
+    </p>
+    <p>
+        <?php echo t('help.translation.quality'); ?>
+    </p>
 
     <!-- =============================================================== -->
     <h2 id="oneri"><?php echo htmlspecialchars(t('help.recom.h2'), ENT_QUOTES, 'UTF-8'); ?></h2>

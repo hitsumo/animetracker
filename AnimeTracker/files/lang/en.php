@@ -107,6 +107,8 @@ return [
     'anime_details.label.broadcast_attribution' => 'Broadcast time data from %s',
     'anime_details.label.watched_episodes' => 'Watched Episodes:',
     'anime_details.label.synopsis'       => 'Synopsis:',
+    'anime_details.synopsis.auto_translated' => 'Auto-translated from Turkish',
+    'anime_details.synopsis.en_unavailable'  => 'English synopsis not available — showing the Turkish original.',
     'anime_details.label.user_synopsis'  => 'Personal Synopsis:',
     'anime_details.label.genres'         => 'Genres:',
     'anime_details.label.watch_status'   => 'Watch Status:',
@@ -158,7 +160,7 @@ return [
     // Form field labels
     'add_anime.label.title'                  => 'Anime Title:',
     'add_anime.label.alternative_titles'     => 'Alternative Titles:',
-    'add_anime.label.synopsis'               => 'Synopsis:',
+    'add_anime.label.synopsis'               => 'Synopsis (TR):',
     'add_anime.label.total_episodes'         => 'Total Episodes:',
     'add_anime.label.aired_episodes'         => 'Aired Episodes:',
     'add_anime.label.release_date'           => 'Release Date:',
@@ -183,6 +185,8 @@ return [
     // Input placeholders
     'add_anime.ph.alternative_title'         => 'Alternative title',
     'add_anime.ph.synopsis'                  => 'Write the anime synopsis',
+    'add_anime.label.synopsis_en'            => 'Synopsis (EN):',
+    'add_anime.ph.synopsis_en'               => 'English synopsis (AI-translated)',
     'add_anime.ph.total_episodes'            => 'Leave blank if unknown',
     'add_anime.ph.aired_episodes'            => 'Episodes aired so far',
     'add_anime.ph.new_genre'                 => 'Add new genre',
@@ -302,6 +306,10 @@ return [
     // personal field. The label "Synopsis:" itself is shared with
     // add_anime.label.synopsis.
     'edit_anime.hint.synopsis_readonly'      => 'comes from server, updates via sync',
+    'edit_anime.btn.copy_synopsis_tr'        => 'Copy',
+    'edit_anime.hint.synopsis_en'            => 'Translate the text with an AI tool and paste it here. Shown with an "Auto-translated from Turkish" label on the detail page.',
+    'edit_anime.label.mark_reviewed'         => 'Mark as reviewed',
+    'edit_anime.hint.mark_reviewed'          => 'Tick if you have read and verified the English translation. Cleared automatically if you change the Turkish text.',
     'edit_anime.label.user_synopsis'         => 'Personal Synopsis:',
     'edit_anime.ph.user_synopsis'            => 'Your own comment, translation, summary',
     'edit_anime.hint.user_synopsis'          => 'user synopsis section - if removed, sync will not restore it',
@@ -341,6 +349,7 @@ return [
     'help.toc.quick_buttons'                 => 'Quick Watch Buttons (+/-)',
     'help.toc.sync'                          => 'Catalog Sync — How Does It Work?',
     'help.toc.personal'                      => 'Personal Fields — Notes and Personal Synopsis',
+    'help.toc.translation'                   => 'Translation status',
     'help.toc.recommendations'               => 'What Should I Watch? — Recommendation System',
     'help.toc.chronology'                    => 'Series and Chronology',
     'help.toc.deletion'                      => 'Deletion Warnings',
@@ -448,6 +457,9 @@ return [
     'help.personal.warning_body'             => 'If you delete the Personal Synopsis, <strong>sync will not bring it back</strong>. Likewise if you clear the Notes field, that does not come back either. These two fields are yours and permanently under your control.',
 
     // Section: Recommendation system
+    'help.translation.h2'                    => 'Translation Status',
+    'help.translation.intro'                 => 'Anime descriptions on this site are originally written in Turkish by the site curator. English versions are produced by AI translation using external tools and pasted in manually. They are labelled "Auto-translated from Turkish" below the synopsis.',
+    'help.translation.quality'               => 'Translation quality may vary, and the Turkish original is always the authoritative version. You can switch language at any time using the language selector.',
     'help.recom.h2'                          => 'What Should I Watch? — Recommendation System',
     'help.recom.intro'                       => 'The "What Should I Watch?" link in the menu is a tool designed to suggest anime from your list that match your mood.',
     'help.recom.howto.h3'                    => 'How Does It Work?',
@@ -647,6 +659,9 @@ return [
     'list_settings.section.genres'           => 'Genre Management',
     'list_settings.section.genres.desc'      => 'Manage misspelled or unused genres.',
     'list_settings.btn.manage_genres'        => 'Manage Genres',
+    'list_settings.section.tags'             => 'Sentence Management',
+    'list_settings.section.tags.desc'        => 'Manage misspelled or unused sentences.',
+    'list_settings.btn.manage_tags'          => 'Manage Sentences',
     'list_settings.section.catalog'          => 'Catalog Sync',
     'list_settings.section.catalog.desc'     => 'Pull the latest anime info from the central catalog. Your watch progress and notes are preserved.',
     'list_settings.catalog.last_sync_prefix' => 'Last sync:',
@@ -686,6 +701,44 @@ Update now?',
     'list_settings.js.reloading'             => 'Page reloading...',
     'list_settings.js.install_network_error' => 'Network error',
     'list_settings.js.install_network_error_alert' => 'An error occurred during update:',
+
+    // -----------------------------------------------------------------
+    // manage_tags.php - sentence (tag) library management
+    // -----------------------------------------------------------------
+    'manage_tags.title'                      => 'Sentence Management',
+    'manage_tags.intro'                      => 'Sentences are shown to users in the recommendation system. They are created automatically when you type a new sentence on the add/edit anime screen. From here you can fix typos or delete unnecessary sentences. Write the sentence exactly as the user will see it (e.g. "Set in a school", "Sports theme").',
+    'manage_tags.placeholder'                => 'New sentence (e.g. Set in a school, Sports theme)',
+    'manage_tags.btn.add'                    => 'Add',
+    'manage_tags.th.tag'                     => 'Sentence',
+    'manage_tags.th.usage'                   => 'Usage',
+    'manage_tags.th.rename'                  => 'Rename',
+    'manage_tags.th.delete'                  => 'Delete',
+    'manage_tags.usage_suffix'               => 'anime',
+    'manage_tags.empty'                      => 'No sentences yet. You can add your first sentence using the form above.',
+    'manage_tags.btn.delete'                 => 'Delete',
+    'manage_tags.confirm_delete'             => 'Are you sure you want to delete the sentence "%s"? It will be removed from %d anime.',
+    'manage_tags.back_to_list'               => 'Back to Anime List',
+    'manage_tags.csrf.invalid'               => 'Invalid CSRF token. Please refresh the page and try again.',
+    'manage_tags.err.empty'                  => 'Sentence cannot be empty.',
+    'manage_tags.msg.added'                  => 'Sentence added (or already existed): %s',
+    'manage_tags.err.rename_missing'         => 'Missing info: sentence ID or new text is empty.',
+    'manage_tags.msg.renamed'                => 'Sentence updated.',
+    'manage_tags.err.invalid_id'             => 'Invalid sentence ID.',
+    'manage_tags.msg.deleted'                => 'Sentence deleted.',
+    'manage_tags.err.unknown_action'         => 'Unknown action.',
+    'manage_tags.err.duplicate'              => 'This sentence already exists.',
+    'manage_tags.err.db'                     => 'A database error occurred.',
+
+    // -----------------------------------------------------------------
+    // manage_genres.php - master genre list management
+    // -----------------------------------------------------------------
+    'manage_genres.title'                    => 'Genre Management',
+    'manage_genres.th.name'                  => 'Genre Name',
+    'manage_genres.th.action'                => 'Action',
+    'manage_genres.confirm_delete'           => 'Are you sure you want to delete this genre? It will also be removed from any anime using it.',
+    'manage_genres.btn.delete'               => 'Delete',
+    'manage_genres.back_to_list'             => 'Back to Anime List',
+    'manage_genres.csrf.invalid'             => 'Invalid CSRF token. Please refresh the page and try again.',
 
 
     // -----------------------------------------------------------------

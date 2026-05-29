@@ -42,8 +42,6 @@
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
 
-lang_init_admin($pdo);
-
 // --- Configuration -------------------------------------------------------
 
 // CHANGE THIS: Your server's admin_push.php URL.
@@ -56,7 +54,7 @@ $clientIp = $_SERVER['REMOTE_ADDR'] ?? '';
 $isLocal = in_array($clientIp, ['127.0.0.1', '::1', 'localhost'], true);
 if (!$isLocal) {
     http_response_code(403);
-    die(htmlspecialchars(t('admin_pending.localhost_only'), ENT_QUOTES, 'UTF-8'));
+    die('Bu sayfa sadece localhost uzerinden erisilebilir.');
 }
 
 // Load the shared HMAC secret from a SEPARATE file that is NEVER committed
@@ -96,9 +94,9 @@ $error  = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['do_push'])) {
     if (!csrf_verify($_POST['csrf_token'] ?? '')) {
-        $error = t('admin_sync.error.csrf');
+        $error = 'CSRF tokeni gecersiz.';
     } elseif (!$secretConfigured) {
-        $error = t('admin_sync.error.no_secret');
+        $error = 'ADMIN_PUSH_SECRET config.php icinde tanimli degil.';
     } else {
         try {
             // Gather all catalog animes.
@@ -109,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['do_push'])) {
             $animeRows = $pdo->query("
                 SELECT id, title, alternative_titles, status,
                        total_episodes, aired_episodes,
-                       synopsis, release_date, end_date,
+                       synopsis_tr, synopsis_en, translation_status, release_date, end_date,
                        anidb_link, mal_link, anime_schedule_link,
                        episode_interval, broadcast_day, broadcast_time, broadcast_timezone,
                        series_name, media_type,
@@ -246,17 +244,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['do_push'])) {
             curl_close($ch);
 
             if ($response === false) {
-                throw new Exception(sprintf(t('admin_sync.error.curl'), $curlErr));
+                throw new Exception('cURL hatasi: ' . $curlErr);
             }
 
             $decoded = json_decode($response, true);
             if (!is_array($decoded)) {
-                throw new Exception(sprintf(t('admin_sync.error.invalid_response'), $httpCode, substr($response, 0, 200)));
+                throw new Exception('Gecersiz sunucu yaniti (HTTP ' . $httpCode . '): ' . substr($response, 0, 200));
             }
 
             if ($httpCode !== 200 || ($decoded['status'] ?? '') !== 'ok') {
                 $msg = $decoded['message'] ?? 'Unknown error';
-                throw new Exception(sprintf(t('admin_sync.error.server'), $httpCode, $msg));
+                throw new Exception('Sunucu hatasi (HTTP ' . $httpCode . '): ' . $msg);
             }
 
             $result = [
@@ -276,10 +274,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['do_push'])) {
 
 ?>
 <!DOCTYPE html>
-<html lang="<?php echo current_lang(); ?>">
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title><?php echo htmlspecialchars(t('admin_sync.page_title'), ENT_QUOTES, 'UTF-8'); ?></title>
+    <title>Admin Sync - Anime Tracker</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
@@ -361,75 +359,86 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['do_push'])) {
 </head>
 <body>
     <div class="admin-container">
-        <h1><i class="fas fa-cloud-upload-alt"></i> <?php echo htmlspecialchars(t('admin_sync.heading'), ENT_QUOTES, 'UTF-8'); ?></h1>
+        <h1><i class="fas fa-cloud-upload-alt"></i> Admin Sync</h1>
 
         <p style="color:#666;">
-            <?php echo htmlspecialchars(t('admin_sync.intro'), ENT_QUOTES, 'UTF-8'); ?>
+            Local katalogunuzu sunucuya gonderir. Sadece sizin (admin) tarafindan kullanilir.
+            Kisisel izleme veriniz (watched, status, notes) GONDERILMEZ - sadece katalog
+            bilgileri (basliklar, synopsis, linkler, kronoloji) aktarilir.
         </p>
 
         <?php if ($pendingLocalCount > 0): ?>
             <div class="warning-box">
-                <strong><i class="fas fa-inbox"></i> <?php echo htmlspecialchars(sprintf(t('admin_sync.pending.title'), (int)$pendingLocalCount), ENT_QUOTES, 'UTF-8'); ?></strong><br>
-                <?php echo sprintf(t('admin_sync.pending.body'), (int)$pendingLocalCount); ?>
+                <strong><i class="fas fa-inbox"></i> Bekleyen <?php echo $pendingLocalCount; ?> anime var</strong><br>
+                Local DB'de <?php echo $pendingLocalCount; ?> anime hala
+                <code>source='local'</code> durumunda - bu push onlari
+                <strong>sunucuya gondermez</strong>.
+                Once <a href="admin_pending.php">Bekleyen Animeler</a>
+                sayfasindan kataloga al, sonra buradan push yap.
             </div>
         <?php endif; ?>
 
         <?php if (!$secretConfigured): ?>
             <div class="warning-box">
-                <strong><i class="fas fa-exclamation-triangle"></i> <?php echo htmlspecialchars(t('admin_sync.setup.title'), ENT_QUOTES, 'UTF-8'); ?></strong><br>
-                <?php echo t('admin_sync.setup.body'); ?>
+                <strong><i class="fas fa-exclamation-triangle"></i> Kurulum gerekli</strong><br>
+                Proje kokune <code>admin_secret.php</code> dosyasi olusturun (kesinlikle
+                GitHub'a commit etmeyin, <code>.gitignore</code>'da tanimli):
                 <pre style="background:#f8f9fa;padding:10px;border-radius:4px;margin-top:10px;">
 &lt;?php
-define('ADMIN_PUSH_SECRET', '&lt;long_random_secret&gt;');</pre>
-                <?php echo t('admin_sync.setup.match_note'); ?>
+define('ADMIN_PUSH_SECRET', '&lt;uzun_rastgele_anahtar&gt;');</pre>
+                Ayni anahtar sunucunun <code>private/admin_push_config.php</code>
+                dosyasindaki <code>ADMIN_SECRET</code> ile birebir ayni olmali.
             </div>
         <?php endif; ?>
 
         <?php if ($error): ?>
             <div class="error-box">
-                <strong><i class="fas fa-times-circle"></i> <?php echo htmlspecialchars(t('admin_sync.box.error_title'), ENT_QUOTES, 'UTF-8'); ?></strong><br>
+                <strong><i class="fas fa-times-circle"></i> Hata</strong><br>
                 <?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?>
             </div>
         <?php endif; ?>
 
         <?php if ($result): ?>
             <div class="success-box">
-                <strong><i class="fas fa-check-circle"></i> <?php echo htmlspecialchars(t('admin_sync.box.success_title'), ENT_QUOTES, 'UTF-8'); ?></strong>
+                <strong><i class="fas fa-check-circle"></i> Sunucu guncellendi</strong>
                 <div class="stat-grid">
                     <div class="stat-box">
                         <div class="num"><?php echo $result['inserted']; ?></div>
-                        <div class="label"><?php echo htmlspecialchars(t('admin_sync.stat.inserted'), ENT_QUOTES, 'UTF-8'); ?></div>
+                        <div class="label">yeni anime eklendi</div>
                     </div>
                     <div class="stat-box">
                         <div class="num"><?php echo $result['updated']; ?></div>
-                        <div class="label"><?php echo htmlspecialchars(t('admin_sync.stat.updated'), ENT_QUOTES, 'UTF-8'); ?></div>
+                        <div class="label">mevcut anime guncellendi</div>
                     </div>
                     <div class="stat-box">
                         <div class="num"><?php echo $result['markers']; ?></div>
-                        <div class="label"><?php echo htmlspecialchars(t('admin_sync.stat.markers'), ENT_QUOTES, 'UTF-8'); ?></div>
+                        <div class="label">kronoloji notu</div>
                     </div>
                 </div>
                 <p style="margin-bottom:0;">
-                    <?php echo htmlspecialchars(sprintf(t('admin_sync.summary'), (int)$result['anime_count'], (int)$result['marker_count']), ENT_QUOTES, 'UTF-8'); ?>
+                    Gonderilen: <?php echo $result['anime_count']; ?> anime,
+                    <?php echo $result['marker_count']; ?> kronoloji notu.
                 </p>
                 <?php if ($result['inserted'] > 0): ?>
                     <p style="margin-top:10px;">
-                        <?php echo t('admin_sync.reminder'); ?>
+                        <strong>Hatirlatma:</strong> Yeni eklenen animeler icin poster gorsellerini
+                        sunucunun <code>uploads/</code> klasorune FTP ile yuklemeyi unutmayin.
+                        Yoksa ilk kullanici sync'te poster indirmeye calisirken 404 alir.
                     </p>
                 <?php endif; ?>
             </div>
         <?php endif; ?>
 
-        <form method="post" onsubmit="return confirm('<?php echo htmlspecialchars(t('admin_sync.confirm.push'), ENT_QUOTES, 'UTF-8'); ?>');">
+        <form method="post" onsubmit="return confirm('Local katalog sunucuya gonderilecek. Devam?');">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="do_push" value="1">
             <button type="submit" class="push-button" <?php echo $secretConfigured ? '' : 'disabled'; ?>>
-                <i class="fas fa-paper-plane"></i> <?php echo htmlspecialchars(t('admin_sync.btn.push'), ENT_QUOTES, 'UTF-8'); ?>
+                <i class="fas fa-paper-plane"></i> Sunucuya Gonder
             </button>
         </form>
 
         <p style="margin-top:30px;">
-            <a href="list_settings.php"><?php echo htmlspecialchars(t('admin_sync.back_to_settings'), ENT_QUOTES, 'UTF-8'); ?></a>
+            <a href="list_settings.php">Liste Ayarlarina don</a>
         </p>
     </div>
 </body>

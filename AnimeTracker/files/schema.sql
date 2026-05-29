@@ -49,14 +49,35 @@ SET time_zone = "+00:00";
 --                     status = 'Yayin Tamamlandi'. NULL for ongoing anime.
 --
 -- Synopsis fields:
---   synopsis        - Official plot summary, sourced from the catalog.
---                     Overwritten on every catalog_import sync (the
---                     catalog is authoritative).
+--   synopsis        - DEPRECATED (0.7.1). Legacy single-language plot
+--                     summary. Kept (not dropped) for re-run-safe
+--                     migrations and rollback, mirroring the filler
+--                     MangaCanon "reserve, do not drop" rule. No longer
+--                     read or written by application code; superseded by
+--                     synopsis_tr / synopsis_en below.
+--   synopsis_tr     - Turkish plot summary, sourced from the catalog
+--                     (the curator's original editorial text). Overwritten
+--                     on every catalog_import sync (the catalog is
+--                     authoritative).
+--   synopsis_en     - English plot summary. Produced by AI translation via
+--                     external web tools and pasted manually by the curator
+--                     (no in-code AI/API). Empty until filled. Shown with
+--                     an "Auto-translated from Turkish" label on the detail
+--                     page. Also catalog-authoritative (part of sync).
+--   translation_status - Status of synopsis_en:
+--                     'none'     -> no EN / external source; no label.
+--                     'ai'       -> AI translation; "Auto-translated" label.
+--                     'reviewed' -> curator-approved; reserved for future
+--                                   use (currently not set in practice).
+--                     Falls back to 'ai' automatically when synopsis_tr is
+--                     updated, so a changed Turkish text is not paired with
+--                     a stale "approved" English text. Catalog-authoritative
+--                     (part of sync).
 --   user_synopsis   - Optional per-user alternative or personal take on
---                     the plot. NEVER touched by catalog sync, never
---                     sent to the server by admin_sync. Appears as a
---                     second "Kendi Yorumum" box on the detail page
---                     when non-empty, hidden when NULL.
+--                     the plot. Language-independent. NEVER touched by
+--                     catalog sync, never sent to the server by admin_sync.
+--                     Appears as a second "Kendi Yorumum" box on the detail
+--                     page when non-empty, hidden when NULL.
 --
 -- Catalog identity fields (for future sync with remote catalog API):
 --   mal_id          - Numeric MyAnimeList ID parsed from mal_link. Primary
@@ -97,6 +118,9 @@ CREATE TABLE IF NOT EXISTS `animes` (
   `broadcast_time` time DEFAULT NULL,
   `broadcast_timezone` varchar(64) NOT NULL DEFAULT 'Asia/Tokyo',
   `synopsis` text DEFAULT NULL,
+  `synopsis_tr` text DEFAULT NULL,
+  `synopsis_en` text DEFAULT NULL,
+  `translation_status` enum('none','ai','reviewed') NOT NULL DEFAULT 'none',
   `user_synopsis` text DEFAULT NULL,
   `release_date` date DEFAULT NULL,
   `end_date` date DEFAULT NULL,

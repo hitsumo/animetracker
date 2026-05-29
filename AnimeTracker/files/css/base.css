@@ -104,3 +104,41 @@ body {
     line-height: 1.6;
 }
 
+
+/* Synopsis translation meta (0.7.1) - small, grey note shown below the
+   English synopsis on the detail page, with a status dot:
+   yellow = AI translation ('ai'), green = curator-reviewed ('reviewed'). */
+.synopsis-meta {
+    display: block;
+    margin-top: 8px;
+    color: #888;
+    font-size: 0.85em;
+    line-height: 1.4;
+}
+
+.synopsis-meta .translation-note {
+    color: #888;
+    text-decoration: underline;
+}
+
+.synopsis-meta .translation-note:hover {
+    color: #555;
+}
+
+.synopsis-status {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: middle;
+    background-color: #ccc;
+}
+
+.synopsis-status-ai {
+    background-color: #e0b000;
+}
+
+.synopsis-status-reviewed {
+    background-color: #2e9e4f;
+}

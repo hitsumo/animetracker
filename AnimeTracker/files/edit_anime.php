@@ -144,12 +144,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $broadcast_day = $_POST['broadcast_day'] ?? '';
     $broadcast_time = $_POST['broadcast_time'] ?? '';
     $broadcast_timezone = $_POST['broadcast_timezone'] ?? 'Asia/Tokyo';
-    // Synopsis mode handling:
-    //   Mode 1 (user_synopsis IS NULL): form submitted 'synopsis' field,
-    //     user_synopsis stays NULL, we UPDATE synopsis only.
-    //   Mode 2 (user_synopsis IS NOT NULL): form submitted 'user_synopsis'
-    //     field only (the synopsis textarea was readonly). We keep the
-    //     existing synopsis value and UPDATE user_synopsis.
+    // Synopsis mode handling (catalog synopsis is now multi-language:
+    // synopsis_tr + synopsis_en + translation_status; the legacy single
+    // synopsis column is deprecated and no longer written):
+    //   Mode 1 (user_synopsis IS NULL): form submitted the editable
+    //     synopsis_tr / synopsis_en fields, user_synopsis stays NULL.
+    //   Mode 2 (user_synopsis IS NOT NULL): the catalog synopsis fields
+    //     were readonly, so we keep their existing values and UPDATE only
+    //     user_synopsis.
+    //
+    // translation_status (Mode 1 only):
+    //   - synopsis_en empty            -> 'none' (nothing to label).
+    //   - synopsis_tr changed this save -> 'ai' (a changed Turkish text
+    //     invalidates any prior review; the English text itself is kept,
+    //     only the status flag drops).
+    //   - otherwise                    -> 'reviewed' if the curator ticked
+    //     "Mark as reviewed", else 'ai'.
     //
     // Empty user_synopsis from the form is preserved as empty string (not
     // NULL) so the row stays in Mode 2 - deletion is permanent, sync will
@@ -157,11 +167,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // rationale (user can see the warning in the form's help text).
     if ($anime['user_synopsis'] === null) {
         // Mode 1
-        $synopsis = $_POST['synopsis'] ?? '';
+        $synopsis_tr = $_POST['synopsis_tr'] ?? '';
+        $synopsis_en = $_POST['synopsis_en'] ?? '';
+        $markReviewed = isset($_POST['mark_reviewed']);
+        $trChanged = ($synopsis_tr !== ($anime['synopsis_tr'] ?? ''));
+        if (trim($synopsis_en) === '') {
+            $translation_status = 'none';
+        } elseif ($trChanged) {
+            $translation_status = 'ai';
+        } else {
+            $translation_status = $markReviewed ? 'reviewed' : 'ai';
+        }
         $user_synopsis = null;
     } else {
-        // Mode 2
-        $synopsis = $anime['synopsis'];            // unchanged (readonly)
+        // Mode 2 - catalog synopsis fields unchanged (were readonly)
+        $synopsis_tr = $anime['synopsis_tr'];
+        $synopsis_en = $anime['synopsis_en'];
+        $translation_status = $anime['translation_status'];
         $user_synopsis = $_POST['user_synopsis'] ?? '';
         // Note: empty string stays empty string (NOT converted to NULL)
     }
@@ -315,7 +337,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             broadcast_day = ?,
             broadcast_time = ?,
             broadcast_timezone = ?,
-            synopsis = ?,
+            synopsis_tr = ?,
+            synopsis_en = ?,
+            translation_status = ?,
             user_synopsis = ?,
             release_date = ?,
             end_date = ?,
@@ -357,7 +381,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $broadcast_day,
             $broadcast_time,
             $broadcast_timezone,
-            $synopsis,
+            $synopsis_tr,
+            $synopsis_en,
+            $translation_status,
             $user_synopsis,
             $release_date,
             $end_date,
@@ -582,18 +608,44 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
 
             <?php if ($synopsisMode === 1): ?>
                 <div class="form-group">
-                    <label for="synopsis"><?php echo htmlspecialchars(t('add_anime.label.synopsis'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <label for="synopsis_tr"><?php echo htmlspecialchars(t('add_anime.label.synopsis'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <div class="input-area">
-                        <textarea name="synopsis" rows="6" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.synopsis'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($anime['synopsis'] ?? ''); ?></textarea>
+                        <textarea id="synopsis_tr" name="synopsis_tr" rows="6" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.synopsis'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($anime['synopsis_tr'] ?? ''); ?></textarea>
+                        <button type="button" class="btn-copy-synopsis"
+                                onclick="navigator.clipboard.writeText(document.getElementById('synopsis_tr').value);"
+                                style="margin-top:6px; padding:6px 12px; background:#5a4ed1; color:#fff; border:none; border-radius:4px; cursor:pointer;">
+                            <i class="fas fa-copy"></i> <?php echo htmlspecialchars(t('edit_anime.btn.copy_synopsis_tr'), ENT_QUOTES, 'UTF-8'); ?>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="synopsis_en"><?php echo htmlspecialchars(t('add_anime.label.synopsis_en'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <div class="input-area">
+                        <textarea id="synopsis_en" name="synopsis_en" rows="6" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.synopsis_en'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($anime['synopsis_en'] ?? ''); ?></textarea>
+                        <small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.hint.synopsis_en'), ENT_QUOTES, 'UTF-8'); ?></small>
+                        <label style="display:block; margin-top:8px; font-weight:normal;">
+                            <input type="checkbox" name="mark_reviewed" value="1"<?php echo (($anime['translation_status'] ?? 'none') === 'reviewed') ? ' checked' : ''; ?>>
+                            <?php echo htmlspecialchars(t('edit_anime.label.mark_reviewed'), ENT_QUOTES, 'UTF-8'); ?>
+                        </label>
+                        <small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.hint.mark_reviewed'), ENT_QUOTES, 'UTF-8'); ?></small>
                     </div>
                 </div>
             <?php else: ?>
                 <div class="form-group">
-                    <label for="synopsis_readonly"><?php echo htmlspecialchars(t('add_anime.label.synopsis'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <label for="synopsis_tr_readonly"><?php echo htmlspecialchars(t('add_anime.label.synopsis'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <div class="input-area">
-                        <textarea id="synopsis_readonly" rows="6" readonly
-                                  style="background-color: #f5f5f5; color: #555; cursor: not-allowed;"><?php echo htmlspecialchars($anime['synopsis'] ?? ''); ?></textarea>
+                        <textarea id="synopsis_tr_readonly" rows="6" readonly
+                                  style="background-color: #f5f5f5; color: #555; cursor: not-allowed;"><?php echo htmlspecialchars($anime['synopsis_tr'] ?? ''); ?></textarea>
                         <small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.hint.synopsis_readonly'), ENT_QUOTES, 'UTF-8'); ?></small>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="synopsis_en_readonly"><?php echo htmlspecialchars(t('add_anime.label.synopsis_en'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <div class="input-area">
+                        <textarea id="synopsis_en_readonly" rows="6" readonly
+                                  style="background-color: #f5f5f5; color: #555; cursor: not-allowed;"><?php echo htmlspecialchars($anime['synopsis_en'] ?? ''); ?></textarea>
                     </div>
                 </div>
 

@@ -23,7 +23,10 @@
  * functionality in separate files - this dashboard stays thin.
  */
 
+require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
+
+lang_init_admin($pdo);
 
 // --- Access control ----------------------------------------------------
 
@@ -32,7 +35,7 @@ $clientIp = $_SERVER['REMOTE_ADDR'] ?? '';
 $isLocal = in_array($clientIp, ['127.0.0.1', '::1', 'localhost'], true);
 if (!$isLocal) {
     http_response_code(403);
-    die('Bu sayfa sadece localhost uzerinden erisilebilir.');
+    die(htmlspecialchars(t('admin_pending.localhost_only'), ENT_QUOTES, 'UTF-8'));
 }
 
 // --- Tool availability check -------------------------------------------
@@ -65,10 +68,10 @@ if ($pendingAvailable) {
 
 ?>
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="<?php echo current_lang(); ?>">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Dashboard - Anime Tracker</title>
+    <title><?php echo htmlspecialchars(t('admin.page_title'), ENT_QUOTES, 'UTF-8'); ?></title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
@@ -185,34 +188,30 @@ if ($pendingAvailable) {
         <div class="admin-header">
             <i class="fas fa-user-shield" style="font-size: 2em;"></i>
             <div>
-                <h1>Admin Dashboard</h1>
-                <div class="sub">Sadece localhost - normal kullanicilar erisemez</div>
+                <h1><?php echo htmlspecialchars(t('admin.heading'), ENT_QUOTES, 'UTF-8'); ?></h1>
+                <div class="sub"><?php echo htmlspecialchars(t('admin.subtitle'), ENT_QUOTES, 'UTF-8'); ?></div>
             </div>
         </div>
 
         <div class="admin-body">
             <p style="color: #666; margin-top: 0;">
-                Bu sayfa katalog sahibi icin ozel admin araclarini barindirir.
-                Bu dosya <code>.gitignore</code>'da oldugu icin repo'ya veya
-                <code>.exe</code> installer'a paketlenmez.
+                <?php echo t('admin.intro'); ?>
             </p>
 
             <div class="tools-grid">
 
                 <!-- Sunucu Sync -->
                 <div class="tool-card">
-                    <h3><i class="fas fa-cloud-upload-alt"></i> Sunucuya Katalog Gonder</h3>
+                    <h3><i class="fas fa-cloud-upload-alt"></i> <?php echo htmlspecialchars(t('admin.tool.sync.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
                     <p>
-                        Local DB'deki katalogu sunucuya gonderir. Yeni eklenen animeler ve
-                        kronoloji notlari HMAC imzali POST ile iletilir. Kisisel veriler
-                        (izleme durumu, notlar) gonderilmez.
+                        <?php echo t('admin.tool.sync.desc'); ?>
                     </p>
 
                     <?php if (!$syncReady): ?>
-                        <span class="tool-link disabled">Kurulum eksik</span>
+                        <span class="tool-link disabled"><?php echo htmlspecialchars(t('admin.tool.sync.link.disabled'), ENT_QUOTES, 'UTF-8'); ?></span>
                         <div class="tool-status status-missing">
                             <i class="fas fa-exclamation-triangle"></i>
-                            Eksik dosyalar:
+                            <?php echo htmlspecialchars(t('admin.tool.sync.missing_files'), ENT_QUOTES, 'UTF-8'); ?>
                             <ul style="margin: 5px 0 0 0; padding-left: 20px;">
                                 <?php if (!$syncAvailable): ?>
                                     <li><code>admin_sync.php</code></li>
@@ -224,22 +223,18 @@ if ($pendingAvailable) {
                         </div>
                     <?php elseif ($pendingCount !== null && $pendingCount > 0): ?>
                         <span class="tool-link disabled">
-                            <i class="fas fa-paper-plane"></i> Sync sayfasini ac
+                            <i class="fas fa-paper-plane"></i> <?php echo htmlspecialchars(t('admin.tool.sync.link.open'), ENT_QUOTES, 'UTF-8'); ?>
                         </span>
                         <div class="tool-status status-missing">
                             <i class="fas fa-exclamation-triangle"></i>
-                            <?php echo $pendingCount; ?> bekleyen anime var.
-                            Bunlar <code>source='local'</code> oldugu icin
-                            admin_sync payload'ina dahil edilmez (sessizce atlanir).
-                            Once <strong>Bekleyen Animeler</strong> kartindan
-                            secilenleri kataloga al, sonra buradan push yap.
+                            <?php echo sprintf(t('admin.tool.sync.pending_warning'), (int)$pendingCount); ?>
                         </div>
                     <?php else: ?>
                         <a href="admin_sync.php" class="tool-link">
-                            <i class="fas fa-paper-plane"></i> Sync sayfasini ac
+                            <i class="fas fa-paper-plane"></i> <?php echo htmlspecialchars(t('admin.tool.sync.link.open'), ENT_QUOTES, 'UTF-8'); ?>
                         </a>
                         <div class="tool-status status-ok">
-                            <i class="fas fa-check"></i> Kurulum tamam
+                            <i class="fas fa-check"></i> <?php echo htmlspecialchars(t('admin.tool.sync.status_ok'), ENT_QUOTES, 'UTF-8'); ?>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -247,7 +242,7 @@ if ($pendingAvailable) {
                 <!-- Bekleyen Animeler (source='local' promotion) -->
                 <div class="tool-card">
                     <h3>
-                        <i class="fas fa-inbox"></i> Bekleyen Animeler
+                        <i class="fas fa-inbox"></i> <?php echo htmlspecialchars(t('admin.tool.pending.h3'), ENT_QUOTES, 'UTF-8'); ?>
                         <?php if ($pendingCount !== null && $pendingCount > 0): ?>
                             <span style="background: #ffc107; color: #212529;
                                          padding: 2px 10px; border-radius: 12px;
@@ -257,31 +252,28 @@ if ($pendingAvailable) {
                         <?php endif; ?>
                     </h3>
                     <p>
-                        Yeni eklenen animeler varsayilan olarak <code>source='local'</code>
-                        durumunda olusturulur ve sunucuya gitmez. Bu araci kullanarak
-                        secilen animeleri <code>source='catalog'</code> durumuna al, sonra
-                        admin_sync ile sunucuya gonder.
+                        <?php echo t('admin.tool.pending.desc'); ?>
                     </p>
 
                     <?php if ($pendingAvailable): ?>
                         <a href="admin_pending.php" class="tool-link">
                             <i class="fas fa-tasks"></i>
                             <?php if ($pendingCount !== null && $pendingCount > 0): ?>
-                                <?php echo $pendingCount; ?> bekleyen anime
+                                <?php echo htmlspecialchars(sprintf(t('admin.tool.pending.link.count'), (int)$pendingCount), ENT_QUOTES, 'UTF-8'); ?>
                             <?php else: ?>
-                                Listeyi ac
+                                <?php echo htmlspecialchars(t('admin.tool.pending.link.open'), ENT_QUOTES, 'UTF-8'); ?>
                             <?php endif; ?>
                         </a>
                         <?php if ($pendingCount === 0): ?>
                             <div class="tool-status status-ok">
-                                <i class="fas fa-check"></i> Bekleyen yok
+                                <i class="fas fa-check"></i> <?php echo htmlspecialchars(t('admin.tool.pending.status_ok'), ENT_QUOTES, 'UTF-8'); ?>
                             </div>
                         <?php endif; ?>
                     <?php else: ?>
-                        <span class="tool-link disabled">Kurulum eksik</span>
+                        <span class="tool-link disabled"><?php echo htmlspecialchars(t('admin.tool.sync.link.disabled'), ENT_QUOTES, 'UTF-8'); ?></span>
                         <div class="tool-status status-missing">
                             <i class="fas fa-exclamation-triangle"></i>
-                            Eksik dosya: <code>admin_pending.php</code>
+                            <?php echo htmlspecialchars(t('admin.tool.pending.missing_file'), ENT_QUOTES, 'UTF-8'); ?> <code>admin_pending.php</code>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -299,7 +291,7 @@ if ($pendingAvailable) {
             </div>
 
             <a href="index.php" class="back-link">
-                <i class="fas fa-arrow-left"></i> Ana sayfaya don
+                <i class="fas fa-arrow-left"></i> <?php echo htmlspecialchars(t('admin.back_to_home'), ENT_QUOTES, 'UTF-8'); ?>
             </a>
         </div>
     </div>

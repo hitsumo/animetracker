@@ -244,7 +244,9 @@ try {
             status = :status,
             total_episodes = :total_episodes,
             aired_episodes = :aired_episodes,
-            synopsis = :synopsis,
+            synopsis_tr = :synopsis_tr,
+            synopsis_en = :synopsis_en,
+            translation_status = :translation_status,
             release_date = :release_date,
             end_date = :end_date,
             anidb_link = :anidb_link,
@@ -274,7 +276,7 @@ try {
             watch_status, next_episode_date,
             anidb_link, mal_link, anime_schedule_link,
             episode_interval, broadcast_day, broadcast_time, broadcast_timezone,
-            synopsis, release_date, end_date,
+            synopsis_tr, synopsis_en, translation_status, release_date, end_date,
             series_name, media_type,
             mal_id, anidb_id, catalog_uuid, source
         ) VALUES (
@@ -283,7 +285,7 @@ try {
             'PlanToWatch', NULL,
             :anidb_link, :mal_link, :anime_schedule_link,
             :episode_interval, :broadcast_day, :broadcast_time, :broadcast_timezone,
-            :synopsis, :release_date, :end_date,
+            :synopsis_tr, :synopsis_en, :translation_status, :release_date, :end_date,
             :series_name, :media_type,
             :mal_id, :anidb_id, :catalog_uuid, 'catalog'
         )
@@ -317,7 +319,9 @@ try {
             ':status'              => $a['status']              ?? 'Yayin Tamamlandi',
             ':total_episodes'      => $a['total_episodes']      ?? null,
             ':aired_episodes'      => $a['aired_episodes']      ?? null,
-            ':synopsis'            => $a['synopsis']            ?? null,
+            ':synopsis_tr'         => $a['synopsis_tr']         ?? null,
+            ':synopsis_en'         => $a['synopsis_en']         ?? null,
+            ':translation_status'  => $a['translation_status']  ?? 'none',
             ':release_date'        => $a['release_date']        ?? null,
             ':end_date'            => $a['end_date']            ?? null,
             ':anidb_link'          => $a['anidb_link']          ?? null,
