@@ -25,6 +25,14 @@ require_once __DIR__ . '/functions.php';
 // Initialise the i18n layer (see lang_init() in functions.php).
 lang_init($pdo);
 
+// Synopsis edit override (0.7.2): admin capability that lifts the Mode 2
+// readonly lock on the catalog synopsis (TR/EN). Stored as a runtime
+// settings key, toggled from admin_capabilities.php (admin-only, never
+// shipped to clients). When ON, Mode 2 still shows the personal synopsis
+// field but the catalog synopsis becomes editable instead of readonly,
+// and the save path reads it from POST. Mode 1 is unaffected.
+$synopsisEditOverride = (get_setting($pdo, 'synopsis_edit_override', '0') === '1');
+
 // Anime ID'sini al
 $id = $_GET['id'] ?? null;
 if (!$id) {
@@ -82,6 +90,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     $title = $_POST['title'];
+    $title_english = trim($_POST['title_english'] ?? '');
     $status = $_POST['status'];
     $total_episodes = $_POST['total_episodes'] ?? null;
     $aired_episodes = $_POST['aired_episodes'] ?? null;
@@ -180,12 +189,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
         $user_synopsis = null;
     } else {
-        // Mode 2 - catalog synopsis fields unchanged (were readonly)
-        $synopsis_tr = $anime['synopsis_tr'];
-        $synopsis_en = $anime['synopsis_en'];
-        $translation_status = $anime['translation_status'];
+        // Mode 2.
         $user_synopsis = $_POST['user_synopsis'] ?? '';
         // Note: empty string stays empty string (NOT converted to NULL)
+        if ($synopsisEditOverride) {
+            // Admin override ON: the catalog synopsis was rendered editable,
+            // so read it from POST exactly like Mode 1 (same status logic).
+            $synopsis_tr = $_POST['synopsis_tr'] ?? '';
+            $synopsis_en = $_POST['synopsis_en'] ?? '';
+            $markReviewed = isset($_POST['mark_reviewed']);
+            $trChanged = ($synopsis_tr !== ($anime['synopsis_tr'] ?? ''));
+            if (trim($synopsis_en) === '') {
+                $translation_status = 'none';
+            } elseif ($trChanged) {
+                $translation_status = 'ai';
+            } else {
+                $translation_status = $markReviewed ? 'reviewed' : 'ai';
+            }
+        } else {
+            // Override OFF: catalog synopsis fields were readonly - keep them.
+            $synopsis_tr = $anime['synopsis_tr'];
+            $synopsis_en = $anime['synopsis_en'];
+            $translation_status = $anime['translation_status'];
+        }
     }
     $release_date = $_POST['release_date'] ?? null;
     $end_date = $_POST['end_date'] ?? null;
@@ -321,6 +347,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // setAnimeGenresByNames(), mirroring the tags handler below.
     $sql = "UPDATE animes SET 
             title = ?,
+            title_english = ?,
             alternative_titles = ?,
             status = ?,
             total_episodes = ?,
@@ -365,6 +392,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     try {
         $stmt->execute([
             $title,
+            $title_english !== '' ? $title_english : null,
             implode('|', $alternative_titles),
             $status,
             $total_episodes,
@@ -598,15 +626,29 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                 </div>
             </div>
 
+            <div class="form-group">
+                <label for="title_english"><?php echo htmlspecialchars(t('add_anime.label.title_english'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <div class="input-area">
+                    <input type="text" id="title_english" name="title_english" value="<?php echo htmlspecialchars($anime['title_english'] ?? ''); ?>" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.title_english'), ENT_QUOTES, 'UTF-8'); ?>">
+                    <small class="form-text text-muted"><?php echo htmlspecialchars(t('add_anime.hint.title_english'), ENT_QUOTES, 'UTF-8'); ?></small>
+                </div>
+            </div>
+
             <?php
             // Synopsis display mode:
-            //   Mode 1: user_synopsis IS NULL  -> single "Konu" field, editable, writes to synopsis
-            //   Mode 2: user_synopsis is set   -> "Konu" readonly (server text), "Kisisel Konu" editable
+            //   Mode 1: user_synopsis IS NULL -> single editable "Konu", no personal field.
+            //   Mode 2: user_synopsis is set  -> catalog "Konu" readonly, "Kisisel Konu" editable.
             // See PROJE_DURUMU.md "Kisisel Konu" section for the full rationale.
+            //
+            // 0.7.2 override: when the admin "synopsis_edit_override" capability
+            // is ON, the catalog synopsis (TR/EN) stays EDITABLE even in Mode 2
+            // (the personal synopsis field is still shown). Mode 1/2 detection
+            // itself is unchanged - only the readonly rendering is relaxed.
             $synopsisMode = ($anime['user_synopsis'] === null) ? 1 : 2;
+            $synopsisEditable = ($synopsisMode === 1 || $synopsisEditOverride);
             ?>
 
-            <?php if ($synopsisMode === 1): ?>
+            <?php if ($synopsisEditable): ?>
                 <div class="form-group">
                     <label for="synopsis_tr"><?php echo htmlspecialchars(t('add_anime.label.synopsis'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <div class="input-area">
@@ -648,7 +690,9 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                                   style="background-color: #f5f5f5; color: #555; cursor: not-allowed;"><?php echo htmlspecialchars($anime['synopsis_en'] ?? ''); ?></textarea>
                     </div>
                 </div>
+            <?php endif; ?>
 
+            <?php if ($synopsisMode === 2): ?>
                 <div class="form-group">
                     <label for="user_synopsis"><?php echo htmlspecialchars(t('edit_anime.label.user_synopsis'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <div class="input-area">

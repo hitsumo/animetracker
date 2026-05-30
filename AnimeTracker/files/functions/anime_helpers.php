@@ -288,3 +288,85 @@ function checkIfAnimeCompleted($pdo, $anime) {
 
     return $anime;
 }
+
+/**
+ * English-title display preference (0.7.2).
+ *
+ * The "show English titles" toggle is a single site-wide preference
+ * stored in the settings table under the key display_title_english
+ * ('1' = on, '0'/absent = off). It is INDEPENDENT of the UI language:
+ * a user reading the Turkish interface can still choose to see English
+ * titles, and vice versa. This mirrors the runtime-key family
+ * (display_language, last_aired_sync, ...) so no migration is needed.
+ *
+ * The three helpers below follow the same load/report/render shape as
+ * the i18n and watch_status helper families:
+ *   title_pref_init($pdo)  - read the setting once into a static cache.
+ *   show_english_titles()  - report the cached preference (false until
+ *                            init is called, so a page that forgets to
+ *                            init simply shows Romaji - least surprise).
+ *   display_title($anime)  - render the right title for a row.
+ */
+
+/**
+ * Internal cache for the English-title preference. Pulled into its own
+ * accessor so init/report share one static without re-implementing it.
+ *
+ * @param bool|null $write  When non-null, replaces the cached value.
+ * @return bool
+ */
+function _title_pref_cache($write = null) {
+    static $enabled = false;
+    if ($write !== null) {
+        $enabled = (bool)$write;
+    }
+    return $enabled;
+}
+
+/**
+ * Read display_title_english from settings into the static cache.
+ *
+ * Call once at the top of any page that renders anime titles, right
+ * after lang_init($pdo). Subsequent calls in the same request just
+ * re-read the (cheap) setting; the value is cached either way.
+ *
+ * @param PDO $pdo
+ * @return void
+ */
+function title_pref_init($pdo) {
+    _title_pref_cache(get_setting($pdo, 'display_title_english', '0') === '1');
+}
+
+/**
+ * Report whether English titles are currently preferred.
+ *
+ * Returns false if title_pref_init() has not run this request, which
+ * keeps pages that have not opted in rendering Romaji titles.
+ *
+ * @return bool
+ */
+function show_english_titles() {
+    return _title_pref_cache();
+}
+
+/**
+ * Render the title to show for an anime row.
+ *
+ * Returns title_english when the preference is on AND the row has a
+ * non-empty title_english; otherwise the Romaji title. The caller is
+ * still responsible for htmlspecialchars() on output - this helper only
+ * picks which string to show.
+ *
+ * @param array $anime  A row with 'title' and optionally 'title_english'.
+ * @return string
+ */
+function display_title($anime) {
+    if (
+        show_english_titles()
+        && isset($anime['title_english'])
+        && trim((string)$anime['title_english']) !== ''
+    ) {
+        return $anime['title_english'];
+    }
+    return $anime['title'] ?? '';
+}

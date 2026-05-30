@@ -238,6 +238,7 @@ $updateSql = "
     UPDATE animes SET
         title = :title,
         alternative_titles = :alternative_titles,
+        title_english = :title_english,
         status = :status,
         total_episodes = :total_episodes,
         aired_episodes = :aired_episodes,
@@ -274,7 +275,7 @@ $insertSql = "
         episode_interval, broadcast_day, broadcast_time, broadcast_timezone,
         synopsis_tr, synopsis_en, translation_status, release_date,
         series_name, media_type, next_in_series,
-        mal_id, anidb_id, catalog_uuid, source
+        mal_id, anidb_id, catalog_uuid, source, title_english
     ) VALUES (
         :title, :alternative_titles, :status, :total_episodes, :aired_episodes,
         0, NULL, :image_path,
@@ -283,7 +284,7 @@ $insertSql = "
         :episode_interval, :broadcast_day, :broadcast_time, :broadcast_timezone,
         :synopsis_tr, :synopsis_en, :translation_status, :release_date,
         :series_name, :media_type, NULL,
-        :mal_id, :anidb_id, :catalog_uuid, 'catalog'
+        :mal_id, :anidb_id, :catalog_uuid, 'catalog', :title_english
     )
 ";
 $insertStmt = $pdo->prepare($insertSql);
@@ -335,6 +336,7 @@ try {
         $params = [
             ':title'               => $ca['title']               ?? '',
             ':alternative_titles'  => $ca['alternative_titles']  ?? null,
+            ':title_english'       => $ca['title_english']        ?? null,
             ':status'              => $ca['status']              ?? 'Yayin Tamamlandi',
             ':total_episodes'      => $ca['total_episodes']      ?? null,
             ':aired_episodes'      => $ca['aired_episodes']      ?? null,

@@ -1,22 +1,33 @@
 <?php
 
 /**
- * Anime Tracker - Admin Dashboard (Hidden Entry Point)
+ * Anime Tracker - Admin Dashboard (unlinked entry point)
  * https://www.sicakcikolata.com
  * Copyright (C) 2025 Okan Sumer
  * Licensed under GNU General Public License v2
  *
- * Admin dashboard - server sync and future admin operations.
- * Deliberately NOT linked from any other page. Access only by typing
+ * Admin dashboard - server sync and other admin operations.
+ * Deliberately NOT linked from any other page; reached only by typing
  * http://localhost/anime_tracker/admin.php directly.
  *
- * Security layers (defense in depth):
- *   1. .gitignore - this file never reaches public GitHub
- *   2. .dockerignore - never packaged into Docker image
- *   3. Never placed in installer files/ folder - not shipped in .exe
- *   4. Localhost-only IP check - refuses non-loopback requests
- *   5. File existence check - if admin_secret.php is missing, warns
- *      instead of silently failing
+ * Security model (IMPORTANT - read carefully):
+ *   Distribution channels are NOT the same:
+ *     - GitHub repo: this file IS published here, by design (GPL source;
+ *       the catalog owner needs admin.php). So it is NOT secret.
+ *     - .exe installer: this file is NOT bundled. End users who install
+ *       via the .exe never receive any admin_*.php (installer files/
+ *       folder excludes them).
+ *     - Docker image: NOT currently excluded - _dockerignore does not
+ *       list admin_*.php, so the image may contain them. (Inconsistent
+ *       with the .exe; revisit if Docker is a public distribution.)
+ *   Because the file is public on GitHub, do NOT rely on file secrecy
+ *   and do NOT put any real secret (server URL, token, password) here.
+ *   The actual protection is:
+ *     1. Localhost-only IP check below - non-loopback requests get 403.
+ *     2. Not being linked from anywhere (obscurity - weak on its own).
+ *   Real secrets live in admin_secret.php and the real admin_sync.php,
+ *   which are kept OUT of BOTH the repo and the installer (only
+ *   *_example.php are published) and listed in .gitignore.
  *
  * To add new admin tools in the future: just add a new card in the
  * tools grid below that links to a new admin_*.php file. Keep admin
@@ -274,6 +285,25 @@ if ($pendingAvailable) {
                         <div class="tool-status status-missing">
                             <i class="fas fa-exclamation-triangle"></i>
                             <?php echo htmlspecialchars(t('admin.tool.pending.missing_file'), ENT_QUOTES, 'UTF-8'); ?> <code>admin_pending.php</code>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Yonetici Yetenekleri (override toggles) -->
+                <div class="tool-card">
+                    <h3><i class="fas fa-sliders-h"></i> <?php echo htmlspecialchars(t('admin.tool.capabilities.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                    <p>
+                        <?php echo t('admin.tool.capabilities.desc'); ?>
+                    </p>
+                    <?php if (file_exists(__DIR__ . '/admin_capabilities.php')): ?>
+                        <a href="admin_capabilities.php" class="tool-link">
+                            <i class="fas fa-cog"></i> <?php echo htmlspecialchars(t('admin.tool.capabilities.link.open'), ENT_QUOTES, 'UTF-8'); ?>
+                        </a>
+                    <?php else: ?>
+                        <span class="tool-link disabled"><?php echo htmlspecialchars(t('admin.tool.sync.link.disabled'), ENT_QUOTES, 'UTF-8'); ?></span>
+                        <div class="tool-status status-missing">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <code>admin_capabilities.php</code>
                         </div>
                     <?php endif; ?>
                 </div>

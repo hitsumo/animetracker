@@ -53,6 +53,10 @@ require_once __DIR__ . '/functions.php';
 // Sayfa dilini baslat (i18n)
 lang_init($pdo);
 
+// English-title display preference (0.7.2). display_title() uses this for
+// the surprise card and result cards below.
+title_pref_init($pdo);
+
 // --------------------------------------------------------
 // Load every available sentence so the form can render checkboxes.
 // Emotion options come from emotion_options() helper (functions.php
@@ -471,7 +475,7 @@ $useCombinedTemplates  = ($totalEmotionsSelected > 0);
             <?php endif; ?>
             <div class="rec-anime-title" style="font-size: 1.3em;">
                 <a href="anime_details.php?id=<?php echo (int)$surpriseAnime['id']; ?>">
-                    <?php echo htmlspecialchars($surpriseAnime['title']); ?>
+                    <?php echo htmlspecialchars(display_title($surpriseAnime)); ?>
                 </a>
             </div>
             <div style="margin: 8px 0;">
@@ -560,12 +564,13 @@ $useCombinedTemplates  = ($totalEmotionsSelected > 0);
                      style="<?php echo $panelOpen ? '' : 'display: none;'; ?>">
                     <?php foreach ($allTags as $tag): ?>
                         <?php $checked = in_array((int)$tag['id'], $selectedTagIds, true); ?>
+                        <?php $tagLabel = tag_display_name($tag); ?>
                         <label class="rec-sentence-item"
-                               data-name="<?php echo htmlspecialchars(mb_strtolower($tag['name'], 'UTF-8'), ENT_QUOTES, 'UTF-8'); ?>">
+                               data-name="<?php echo htmlspecialchars(mb_strtolower($tagLabel, 'UTF-8'), ENT_QUOTES, 'UTF-8'); ?>">
                             <input type="checkbox" name="tags[]"
                                    value="<?php echo (int)$tag['id']; ?>"
                                    <?php echo $checked ? 'checked' : ''; ?>>
-                            <span><?php echo htmlspecialchars($tag['name']); ?></span>
+                            <span><?php echo htmlspecialchars($tagLabel); ?></span>
                         </label>
                     <?php endforeach; ?>
                 </div>
@@ -827,7 +832,7 @@ $useCombinedTemplates  = ($totalEmotionsSelected > 0);
                             <div class="rec-anime-info">
                                 <div class="rec-anime-title">
                                     <a href="anime_details.php?id=<?php echo (int)$a['id']; ?>">
-                                        <?php echo htmlspecialchars($a['title']); ?>
+                                        <?php echo htmlspecialchars(display_title($a)); ?>
                                     </a>
                                 </div>
                                 <div>

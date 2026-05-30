@@ -25,7 +25,7 @@ return [
     'admin.page_title'                       => 'Admin Dashboard - Anime Tracker',
     'admin.heading'                          => 'Admin Dashboard',
     'admin.subtitle'                         => 'localhost only - regular users cannot access this',
-    'admin.intro'                            => 'This page hosts admin tools for the catalog owner. The file is in <code>.gitignore</code>, so it is never bundled with the repo or the <code>.exe</code> installer.',
+    'admin.intro'                            => 'This page hosts admin tools for the catalog owner. It is reachable only from localhost (remote requests are refused) and is not linked from any page. It is NOT bundled into the .exe installer, so end users never receive it - but the source IS public on GitHub, so keep real secrets in <code>admin_secret.php</code>, not here.',
     'admin.tool.sync.h3'                     => 'Push Catalog to Server',
     'admin.tool.sync.desc'                   => 'Pushes the local catalog to the server. Newly added anime and chronology markers are delivered via HMAC-signed POST. Personal data (watch progress, notes) is not sent.',
     'admin.tool.sync.link.disabled'          => 'Setup incomplete',
@@ -39,6 +39,9 @@ return [
     'admin.tool.pending.link.open'           => 'Open list',
     'admin.tool.pending.status_ok'           => 'No pending items',
     'admin.tool.pending.missing_file'        => 'Missing file:',
+    'admin.tool.capabilities.h3'             => 'Admin Capabilities',
+    'admin.tool.capabilities.desc'           => 'Admin override switches such as the edit lock. Visible only on this (admin) install, never shipped to clients.',
+    'admin.tool.capabilities.link.open'      => 'Open capabilities',
     'admin.back_to_home'                     => 'Back to home',
 
     // -----------------------------------------------------------------
@@ -96,5 +99,19 @@ return [
     'admin_sync.btn.push'                    => 'Push to Server',
     'admin_sync.confirm.push'                => 'The local catalog will be pushed to the server. Continue?',
     'admin_sync.back_to_settings'            => 'Back to List Settings',
+
+    // --- admin_capabilities.php ---
+    'admin_cap.page_title'                   => 'Admin Capabilities',
+    'admin_cap.heading'                      => 'Admin Capabilities',
+    'admin_cap.subtitle'                     => 'Curator override switches',
+    'admin_cap.intro'                        => 'These switches affect only this install and are never sent to clients.',
+    'admin_cap.synopsis_override.h3'         => 'Unlock synopsis editing',
+    'admin_cap.synopsis_override.desc'       => 'When ON, the catalog synopsis (TR/EN) stays editable even for anime that have a personal synopsis. The Mode 1/Mode 2 logic is unchanged; only the readonly lock is lifted.',
+    'admin_cap.synopsis_override.checkbox'   => 'Keep all synopses editable',
+    'admin_cap.synopsis_override.status_on'  => 'ON - catalog synopses are always editable',
+    'admin_cap.synopsis_override.status_off' => 'OFF - catalog synopsis is locked when a personal synopsis exists (default)',
+    'admin_cap.save'                         => 'Save',
+    'admin_cap.back_to_admin'                => 'Back to admin panel',
+    'admin_cap.csrf_invalid'                 => 'Invalid security token (CSRF). Refresh the page and try again.',
 
 ];

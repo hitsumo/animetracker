@@ -27,6 +27,10 @@ require_once __DIR__ . '/functions.php';
 // i18n - sayfa dilini baslat
 lang_init($pdo);
 
+// English-title preference (0.7.2) - read current state so the toggle
+// section below can reflect it.
+title_pref_init($pdo);
+
 // Mevcut surumu settings tablosundan al. Bu deger migration_manager tarafindan
 // her sayfa yuklemesinde guncel tutuluyor. "Guncelleme Kontrolu" bolumunde
 // kullaniciya hangi surumde oldugu gosterilecek.
@@ -333,10 +337,22 @@ if (isset($_POST['clear'])) {
 			
 
             <div class="settings-section">
-    <h3><?php echo htmlspecialchars(t('list_settings.section.genres'), ENT_QUOTES, 'UTF-8'); ?></h3>
-    <p><?php echo htmlspecialchars(t('list_settings.section.genres.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
-    <a href="manage_genres.php" class="settings-button">
-        <i class="fas fa-tags"></i> <?php echo htmlspecialchars(t('list_settings.btn.manage_genres'), ENT_QUOTES, 'UTF-8'); ?>
+                <h3><?php echo htmlspecialchars(t('list_settings.section.title_lang'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                <p><?php echo htmlspecialchars(t('list_settings.section.title_lang.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
+                <form method="post" action="set_title_pref.php">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="enabled" value="0">
+                    <label class="title-lang-toggle">
+                        <input type="checkbox" name="enabled" value="1"<?php echo show_english_titles() ? ' checked' : ''; ?> onchange="this.form.submit()">
+                        <?php echo htmlspecialchars(t('list_settings.title_lang.checkbox'), ENT_QUOTES, 'UTF-8'); ?>
+                    </label>
+                    <noscript>
+                        <button type="submit" class="settings-button"><?php echo htmlspecialchars(t('list_settings.title_lang.save'), ENT_QUOTES, 'UTF-8'); ?></button>
+                    </noscript>
+                </form>
+            </div>
+
+            <div class="settings-section">
     </a>
 	
 		</div>

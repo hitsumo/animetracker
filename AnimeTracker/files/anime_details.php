@@ -27,6 +27,10 @@ require_once __DIR__ . '/functions.php';
 // Initialise the i18n layer (see lang_init() in functions.php).
 lang_init($pdo);
 
+// English-title display preference (0.7.2). Read once so display_title()
+// picks the right title for the heading, image alt and page <title>.
+title_pref_init($pdo);
+
 $id = $_GET['id'];
 $sql = "SELECT * FROM animes WHERE id = ?";
 $stmt = $pdo->prepare($sql);
@@ -119,7 +123,7 @@ if ($fillerTracking) {
 <html lang="<?php echo htmlspecialchars(current_lang(), ENT_QUOTES, 'UTF-8'); ?>">
 <head>
     <meta charset="UTF-8">
-    <title><?php echo htmlspecialchars($anime['title']); ?> - <?php echo htmlspecialchars(t('anime_details.title_suffix'), ENT_QUOTES, 'UTF-8'); ?></title>
+    <title><?php echo htmlspecialchars(display_title($anime)); ?> - <?php echo htmlspecialchars(t('anime_details.title_suffix'), ENT_QUOTES, 'UTF-8'); ?></title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
@@ -147,7 +151,7 @@ if ($fillerTracking) {
         <h1>
             <div class="anime-title-container">
                 <div class="anime-title page-title">
-                    <?php echo htmlspecialchars($anime['title']); ?>
+                    <?php echo htmlspecialchars(display_title($anime)); ?>
                 </div>
             </div>
         </h1>
@@ -155,7 +159,7 @@ if ($fillerTracking) {
         <div class="anime-header">
             <div class="anime-cover-container">
                 <img src="<?php echo htmlspecialchars($anime['image_path']); ?>" 
-                    alt="<?php echo htmlspecialchars($anime['title']); ?>" 
+                    alt="<?php echo htmlspecialchars(display_title($anime)); ?>" 
                     class="anime-cover">
             </div>
         </div>
@@ -292,7 +296,7 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                         // canonically in the genres table.
                         $genre_rows = getAnimeGenres($pdo, $anime['id']);
                         foreach ($genre_rows as $genre_row): ?>
-                            <span class="genre-tag"><?php echo htmlspecialchars($genre_row['name']); ?></span>
+                            <span class="genre-tag"><?php echo htmlspecialchars(genre_display_name($genre_row)); ?></span>
                         <?php endforeach; ?>
                     </div>
                 </div>

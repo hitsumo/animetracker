@@ -31,7 +31,7 @@
  * dropdown in index.php.
  */
 function getAllGenres($pdo) {
-    $stmt = $pdo->query("SELECT id, name FROM genres ORDER BY name ASC");
+    $stmt = $pdo->query("SELECT id, name, name_en FROM genres ORDER BY name ASC");
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
@@ -42,7 +42,7 @@ function getAllGenres($pdo) {
  */
 function getAnimeGenres($pdo, $anime_id) {
     $stmt = $pdo->prepare(
-        "SELECT g.id, g.name
+        "SELECT g.id, g.name, g.name_en
          FROM genres g
          INNER JOIN anime_genres ag ON ag.genre_id = g.id
          WHERE ag.anime_id = ?
@@ -205,7 +205,7 @@ function getAnimeGenresAsCsv($pdo, $anime_id) {
  * the sentence list in recommendations.php.
  */
 function getAllTags($pdo) {
-    $stmt = $pdo->query("SELECT id, name FROM tags ORDER BY name ASC");
+    $stmt = $pdo->query("SELECT id, name, name_en FROM tags ORDER BY name ASC");
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
@@ -216,7 +216,7 @@ function getAllTags($pdo) {
  */
 function getAnimeTags($pdo, $anime_id) {
     $stmt = $pdo->prepare(
-        "SELECT t.id, t.name
+        "SELECT t.id, t.name, t.name_en
          FROM tags t
          INNER JOIN anime_tags at ON at.tag_id = t.id
          WHERE at.anime_id = ?
@@ -318,4 +318,51 @@ function findOrCreateTag($pdo, $name) {
         }
         throw $e;
     }
+}
+
+/**
+ * Display name for a genre row, language-aware (0.7.2).
+ *
+ * Returns the English name when the active UI language is English AND
+ * the row has a non-empty name_en; otherwise falls back to the Turkish
+ * name. The TR name is always the authoritative value - name_en is a
+ * convenience translation that may be missing for any given genre.
+ *
+ * Accepts an associative row that has at least 'name' (and optionally
+ * 'name_en'), so callers can pass straight from getAllGenres() /
+ * getAnimeGenres() without reshaping. Mirrors the watch_status_label /
+ * emotion_label pattern (active language resolved via current_lang).
+ *
+ * @param array $row  A genre row with 'name' and optionally 'name_en'.
+ * @return string
+ */
+function genre_display_name($row) {
+    if (
+        current_lang() === 'en'
+        && isset($row['name_en'])
+        && trim((string)$row['name_en']) !== ''
+    ) {
+        return $row['name_en'];
+    }
+    return $row['name'] ?? '';
+}
+
+/**
+ * Display name for a tag (recommendation sentence) row, language-aware
+ * (0.7.2). Same fallback rule as genre_display_name(): English text when
+ * the UI is English and name_en is non-empty, otherwise the Turkish
+ * sentence.
+ *
+ * @param array $row  A tag row with 'name' and optionally 'name_en'.
+ * @return string
+ */
+function tag_display_name($row) {
+    if (
+        current_lang() === 'en'
+        && isset($row['name_en'])
+        && trim((string)$row['name_en']) !== ''
+    ) {
+        return $row['name_en'];
+    }
+    return $row['name'] ?? '';
 }

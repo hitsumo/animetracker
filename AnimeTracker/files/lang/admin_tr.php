@@ -36,7 +36,7 @@ return [
     'admin.page_title'                       => 'Admin Dashboard - Anime Tracker',
     'admin.heading'                          => 'Admin Dashboard',
     'admin.subtitle'                         => 'Sadece localhost - normal kullanıcılar erişemez',
-    'admin.intro'                            => 'Bu sayfa katalog sahibi için özel admin araçlarını barındırır. Bu dosya <code>.gitignore</code>\'da olduğu için repo\'ya veya <code>.exe</code> installer\'a paketlenmez.',
+    'admin.intro'                            => 'Bu sayfa katalog sahibi için admin araçlarını barındırır. Yalnızca localhost\'tan erişilebilir (uzaktan istekler reddedilir) ve hiçbir sayfadan link verilmemiştir. <code>.exe</code> installer\'a dahil edilmez, yani son kullanıcılar bu dosyayı almaz; ancak kaynak GitHub\'da herkese açıktır, bu yüzden gerçek sırları burada değil <code>admin_secret.php</code>\'de tutun.',
     'admin.tool.sync.h3'                     => 'Sunucuya Katalog Gönder',
     'admin.tool.sync.desc'                   => 'Local DB\'deki katalogu sunucuya gönderir. Yeni eklenen animeler ve kronoloji notları HMAC imzalı POST ile iletilir. Kişisel veriler (izleme durumu, notlar) gönderilmez.',
     'admin.tool.sync.link.disabled'          => 'Kurulum eksik',
@@ -50,6 +50,9 @@ return [
     'admin.tool.pending.link.open'           => 'Listeyi aç',
     'admin.tool.pending.status_ok'           => 'Bekleyen yok',
     'admin.tool.pending.missing_file'        => 'Eksik dosya:',
+    'admin.tool.capabilities.h3'             => 'Yönetici Yetenekleri',
+    'admin.tool.capabilities.desc'           => 'Düzenleme kilidi gibi yönetici override anahtarları. Yalnızca bu (admin) kurulumda görünür, istemcilere gitmez.',
+    'admin.tool.capabilities.link.open'      => 'Yetenekleri aç',
     'admin.back_to_home'                     => 'Ana sayfaya dön',
 
     // -----------------------------------------------------------------
@@ -107,5 +110,19 @@ return [
     'admin_sync.btn.push'                    => 'Sunucuya Gönder',
     'admin_sync.confirm.push'                => 'Local katalog sunucuya gönderilecek. Devam?',
     'admin_sync.back_to_settings'            => 'Liste Ayarlarına dön',
+
+    // --- admin_capabilities.php ---
+    'admin_cap.page_title'                   => 'Yönetici Yetenekleri',
+    'admin_cap.heading'                      => 'Yönetici Yetenekleri',
+    'admin_cap.subtitle'                     => 'Küratör override anahtarları',
+    'admin_cap.intro'                        => 'Bu anahtarlar yalnızca bu kurulumu etkiler ve istemcilere gönderilmez.',
+    'admin_cap.synopsis_override.h3'         => 'Konu düzenleme kilidini aç',
+    'admin_cap.synopsis_override.desc'       => 'Açık olduğunda, Kişisel Konu girilmiş animelerde de katalog Konu (TR/EN) alanları düzenlenebilir kalır. Mod 1/Mod 2 mantığı değişmez; yalnızca salt-okunur kilidi kalkar.',
+    'admin_cap.synopsis_override.checkbox'   => 'Tüm konular düzenlenebilir kalsın',
+    'admin_cap.synopsis_override.status_on'  => 'Açık - katalog konuları her zaman düzenlenebilir',
+    'admin_cap.synopsis_override.status_off' => 'Kapalı - Kişisel Konu dolu animelerde katalog konusu kilitli (varsayılan)',
+    'admin_cap.save'                         => 'Kaydet',
+    'admin_cap.back_to_admin'                => 'Yönetici paneline dön',
+    'admin_cap.csrf_invalid'                 => 'Geçersiz güvenlik anahtarı (CSRF). Sayfayı yenileyip tekrar deneyin.',
 
 ];

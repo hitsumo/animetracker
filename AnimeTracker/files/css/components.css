@@ -333,3 +333,29 @@ textarea:focus {
     min-width: 150px;
 }
 
+
+/* 0.7.2 - English-title toggle (list_settings) and inline EN-name
+   editor rows (manage_genres). Cosmetic only; the controls work
+   without these rules, these just keep the layout tidy. */
+.title-lang-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.title-lang-toggle input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+
+.inline-en-form {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.inline-en-form input[type="text"] {
+    width: 160px;
+    padding: 4px;
+}

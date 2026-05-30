@@ -29,6 +29,10 @@ require_once __DIR__ . '/functions.php';
 // t() calls in this file are pure array lookups.
 lang_init($pdo);
 
+// English-title display preference (0.7.2). display_title() uses this for
+// the row titles below.
+title_pref_init($pdo);
+
 // Master genre list for the filter dropdown. Fetched via the helper
 // so the rest of the page does not have to know which table the data
 // lives in.
@@ -603,7 +607,7 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                         <?php foreach ($genres as $genre): ?>
                             <option value="<?php echo htmlspecialchars($genre['name']); ?>" 
                                     <?php echo $genre_filter == $genre['name'] ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($genre['name']); ?>
+                                <?php echo htmlspecialchars(genre_display_name($genre)); ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -733,7 +737,7 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                 <?php if (count($animes) > 0): ?>
                     <?php foreach ($animes as $anime): ?>
                         <tr>
-                            <td><span class="list-anime-title" onclick="toggleAnimeTitle(this)" title="<?php echo htmlspecialchars(t('index.row.title_tooltip'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($anime['title']); ?></span></td>
+                            <td><span class="list-anime-title" onclick="toggleAnimeTitle(this)" title="<?php echo htmlspecialchars(t('index.row.title_tooltip'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(display_title($anime)); ?></span></td>
                             <td class="watch-status-cell"><?php echo htmlspecialchars(watch_status_label($anime['watch_status'])); ?></td>
                             <td class="episode-count"><?php
                                 // Episode display logic (v0.5+):
@@ -790,7 +794,7 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                                         <button type="button" class="ep-step ep-plus" onclick="quickWatched(this, 1)"<?php echo $ec_at_max ? ' disabled' : ''; ?> title="<?php echo htmlspecialchars(t('index.row.ep_plus_tooltip'), ENT_QUOTES, 'UTF-8'); ?>">+</button>
                                     </div>
                                 </div><?php else: ?><?php echo $ec_text; ?><?php if ($ec_badge !== ''): ?> <small><?php echo htmlspecialchars($ec_badge); ?></small><?php endif; ?><?php endif; ?></td>
-                            <td><img src="<?php echo htmlspecialchars($anime['image_path']); ?>" alt="<?php echo htmlspecialchars($anime['title']); ?>" width="100"></td>
+                            <td><img src="<?php echo htmlspecialchars($anime['image_path']); ?>" alt="<?php echo htmlspecialchars(display_title($anime)); ?>" width="100"></td>
                             <td class="next-episode-cell">
 <?php 
 if ($anime['status'] == 'Yayın Tamamlandı') {

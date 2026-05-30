@@ -46,7 +46,7 @@ require_once __DIR__ . '/functions.php';
 
 // CHANGE THIS: Your server's admin_push.php URL.
 // Example: 'https://www.yourdomain.com/admin_push.php' or subdomain
-const ADMIN_PUSH_URL = 'https://wwww.yourdomain.com/admin_push.php'
+const ADMIN_PUSH_URL = 'https://www.yourdomain.com/admin_push.php';
 
 // Local-only: refuse requests that don't come from the loopback interface.
 // This is an admin tool - nobody remote should be able to reach it.
@@ -105,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['do_push'])) {
             // below to keep wire-format compatibility with the server
             // (which still expects a comma-separated 'genres' string).
             $animeRows = $pdo->query("
-                SELECT id, title, alternative_titles, status,
+                SELECT id, title, alternative_titles, title_english, status,
                        total_episodes, aired_episodes,
                        synopsis_tr, synopsis_en, translation_status, release_date, end_date,
                        anidb_link, mal_link, anime_schedule_link,

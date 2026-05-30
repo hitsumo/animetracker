@@ -48,6 +48,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     $title = $_POST['title'];
+    $title_english = trim($_POST['title_english'] ?? '');
     $status = $_POST['status'];
     $total_episodes = $_POST['total_episodes'] ?? null;
     $aired_episodes = $_POST['aired_episodes'] ?? null;
@@ -223,7 +224,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Genres no longer live on this row - they are written to the
     // anime_genres join table after the INSERT, using the new anime's
     // lastInsertId(). See setAnimeGenresByNames() below.
-    $sql = "INSERT INTO animes (title, alternative_titles, status, total_episodes, aired_episodes, watched_episodes, notes, image_path, watch_status, next_episode_date, anidb_link, mal_link, anime_schedule_link, episode_interval, broadcast_day, broadcast_time, broadcast_timezone, synopsis_tr, synopsis_en, translation_status, release_date, end_date, series_name, media_type, next_in_series, mal_id, anidb_id, filler_tracking) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO animes (title, title_english, alternative_titles, status, total_episodes, aired_episodes, watched_episodes, notes, image_path, watch_status, next_episode_date, anidb_link, mal_link, anime_schedule_link, episode_interval, broadcast_day, broadcast_time, broadcast_timezone, synopsis_tr, synopsis_en, translation_status, release_date, end_date, series_name, media_type, next_in_series, mal_id, anidb_id, filler_tracking) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     $stmt = $pdo->prepare($sql);
 
@@ -234,6 +235,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     try {
         $stmt->execute([
             $title,
+            $title_english !== '' ? $title_english : null,
             !empty($alternative_titles) ? implode('|', $alternative_titles) : '',
             $status,
             $total_episodes,
@@ -461,6 +463,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <button type="button" class="add-button" onclick="addAlternativeTitle()">
                     <i class="fas fa-plus"></i> <?php echo htmlspecialchars(t('add_anime.btn.add_alternative_title'), ENT_QUOTES, 'UTF-8'); ?>
                 </button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="title_english"><?php echo htmlspecialchars(t('add_anime.label.title_english'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <div class="input-area">
+                <input type="text" id="title_english" name="title_english" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.title_english'), ENT_QUOTES, 'UTF-8'); ?>">
+                <small class="form-text text-muted"><?php echo htmlspecialchars(t('add_anime.hint.title_english'), ENT_QUOTES, 'UTF-8'); ?></small>
             </div>
         </div>
 

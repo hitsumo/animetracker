@@ -28,6 +28,26 @@ require_once __DIR__ . '/functions.php';
 // list_settings, this secondary page just inherits current_lang()).
 lang_init($pdo);
 
+// Genre English-name save handler (0.7.2). Sets genres.name_en for a
+// single row. Empty input clears it back to NULL so the display falls
+// back to the Turkish name. The TR name stays authoritative and is not
+// editable here (it is the catalog/sync key).
+if (isset($_POST['save_genre_en'])) {
+    if (!csrf_verify($_POST['csrf_token'] ?? '')) {
+        http_response_code(403);
+        die(htmlspecialchars(t('manage_genres.csrf.invalid'), ENT_QUOTES, 'UTF-8'));
+    }
+    $genre_id = (int)$_POST['genre_id'];
+    $name_en  = trim($_POST['name_en'] ?? '');
+    if (mb_strlen($name_en) > 50) {
+        $name_en = mb_substr($name_en, 0, 50);
+    }
+    $stmt = $pdo->prepare("UPDATE genres SET name_en = ? WHERE id = ?");
+    $stmt->execute([$name_en !== '' ? $name_en : null, $genre_id]);
+    header("Location: manage_genres.php");
+    exit();
+}
+
 // Genre delete handler
 if (isset($_POST['delete_genre'])) {
     // CSRF check - reject if the form token does not match the session.
@@ -70,11 +90,24 @@ $genres = getAllGenres($pdo);
         <table>
             <tr>
                 <th><?php echo htmlspecialchars(t('manage_genres.th.name'), ENT_QUOTES, 'UTF-8'); ?></th>
+                <th><?php echo htmlspecialchars(t('manage_genres.th.name_en'), ENT_QUOTES, 'UTF-8'); ?></th>
                 <th><?php echo htmlspecialchars(t('manage_genres.th.action'), ENT_QUOTES, 'UTF-8'); ?></th>
             </tr>
             <?php foreach ($genres as $genre): ?>
             <tr>
                 <td><?php echo htmlspecialchars($genre['name']); ?></td>
+                <td>
+                    <form method="post" style="display: inline;" class="inline-en-form">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+                        <input type="hidden" name="genre_id" value="<?php echo (int)$genre['id']; ?>">
+                        <input type="text" name="name_en" maxlength="50"
+                               value="<?php echo htmlspecialchars($genre['name_en'] ?? ''); ?>"
+                               placeholder="<?php echo htmlspecialchars(t('manage_genres.ph.name_en'), ENT_QUOTES, 'UTF-8'); ?>">
+                        <button type="submit" name="save_genre_en" class="add-button">
+                            <i class="fas fa-save"></i> <?php echo htmlspecialchars(t('manage_genres.btn.save_en'), ENT_QUOTES, 'UTF-8'); ?>
+                        </button>
+                    </form>
+                </td>
                 <td>
                     <form method="post" style="display: inline;" onsubmit="return confirm('<?php echo htmlspecialchars(t('manage_genres.confirm_delete'), ENT_QUOTES, 'UTF-8'); ?>');">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">

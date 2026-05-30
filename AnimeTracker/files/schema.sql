@@ -38,6 +38,19 @@ SET time_zone = "+00:00";
 --                     should watch after finishing this one. Validated
 --                     by validateNextInSeries() in functions.php.
 --
+-- Title fields:
+--   title             - Romaji title (Latin-script Japanese), used as the
+--                       default everywhere and language-independent.
+--   alternative_titles - Pipe-separated alternates, language-unspecified.
+--   title_english     - Optional English/localized title (0.7.2). Shown
+--                       instead of the Romaji title ONLY when the user
+--                       enables the "show English titles" preference
+--                       (settings key display_title_english) AND this
+--                       column is non-empty; otherwise the Romaji title
+--                       is shown. Independent of the UI language - the
+--                       preference is a separate toggle. Part of the
+--                       catalog sync chain (lives on this row).
+--
 -- External links:
 --   anidb_link, mal_link, anime_schedule_link - Optional URLs to the
 --                     corresponding pages on AniDB, MyAnimeList and
@@ -102,6 +115,7 @@ CREATE TABLE IF NOT EXISTS `animes` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `title` varchar(255) NOT NULL,
   `alternative_titles` text DEFAULT NULL,
+  `title_english` varchar(255) DEFAULT NULL,
   `status` enum('Yayın Tamamlandı','Yayın Devam Ediyor') NOT NULL,
   `total_episodes` int(11) DEFAULT NULL,
   `aired_episodes` int(11) DEFAULT NULL,
@@ -150,11 +164,20 @@ CREATE TABLE IF NOT EXISTS `animes` (
 -- The user manages this list via manage_genres.php; new genres added
 -- by catalog_import.php via findOrCreateGenre() are visible here too.
 -- Linked to animes via the anime_genres join table.
+--
+--   name_en - English genre name (0.7.2). NULL until filled. The TR
+--             name stays authoritative; name_en is shown only when the
+--             UI language is English and this column is non-empty,
+--             otherwise the TR name is used. LOCAL-ONLY: not carried by
+--             the catalog wire format yet (deferred to Faz 2, mirroring
+--             the filler local-only decision); the catalog still syncs
+--             genres by their TR name.
 -- --------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS `genres` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(50) NOT NULL,
+  `name_en` varchar(50) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `name` (`name`)
@@ -289,6 +312,11 @@ CREATE TABLE IF NOT EXISTS `chronology_markers` (
 -- phrase, not a one-word label). 150 characters is enough for any
 -- natural Turkish sentence describing an anime trait.
 --
+--   name_en - English sentence (0.7.2). NULL until filled. Same fallback
+--             rule as genres.name_en: shown only when the UI language is
+--             English and non-empty, otherwise the TR sentence is used.
+--             LOCAL-ONLY (not in the catalog wire format yet, Faz 2).
+--
 -- Tags are admin-managed (manage_tags.php) and propagated to clients
 -- via the catalog API just like chronology_markers.
 -- --------------------------------------------------------
@@ -296,6 +324,7 @@ CREATE TABLE IF NOT EXISTS `chronology_markers` (
 CREATE TABLE IF NOT EXISTS `tags` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(150) NOT NULL,
+  `name_en` varchar(150) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_tag_name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
