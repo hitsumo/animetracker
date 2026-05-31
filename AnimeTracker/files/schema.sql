@@ -86,11 +86,17 @@ SET time_zone = "+00:00";
 --                     updated, so a changed Turkish text is not paired with
 --                     a stale "approved" English text. Catalog-authoritative
 --                     (part of sync).
---   user_synopsis   - Optional per-user alternative or personal take on
---                     the plot. Language-independent. NEVER touched by
---                     catalog sync, never sent to the server by admin_sync.
---                     Appears as a second "Kendi Yorumum" box on the detail
---                     page when non-empty, hidden when NULL.
+--   user_synopsis   - Optional per-user Turkish personal synopsis. From
+--                     0.7.3 this is the TR side of a language-specific
+--                     pair (see user_synopsis_en). NEVER touched by catalog
+--                     sync, never sent to the server by admin_sync. When a
+--                     user edits the catalog synopsis_tr, the prior text is
+--                     MOVED here by catalog_import (see that file). An empty
+--                     string ('') means "intentionally cleared - do not let
+--                     sync restore it"; NULL means "still catalog-managed".
+--   user_synopsis_en - English counterpart of user_synopsis (0.7.3). Same
+--                     rules, independent of the TR side: an anime can have
+--                     a personal TR synopsis while EN is still catalog.
 --
 -- Catalog identity fields (for future sync with remote catalog API):
 --   mal_id          - Numeric MyAnimeList ID parsed from mal_link. Primary
@@ -136,6 +142,7 @@ CREATE TABLE IF NOT EXISTS `animes` (
   `synopsis_en` text DEFAULT NULL,
   `translation_status` enum('none','ai','reviewed') NOT NULL DEFAULT 'none',
   `user_synopsis` text DEFAULT NULL,
+  `user_synopsis_en` text DEFAULT NULL,
   `release_date` date DEFAULT NULL,
   `end_date` date DEFAULT NULL,
   `series_name` varchar(255) DEFAULT NULL,

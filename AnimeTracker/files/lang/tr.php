@@ -345,9 +345,11 @@ return [
     'edit_anime.hint.synopsis_en'            => 'İngilizce metni bir AI aracıyla çevirip buraya yapıştırın. Detay sayfasında "Auto-translated from Turkish" etiketiyle gösterilir.',
     'edit_anime.label.mark_reviewed'         => 'Onaylandı olarak işaretle',
     'edit_anime.hint.mark_reviewed'          => 'İngilizce çeviriyi okuyup doğruladıysanız işaretleyin. Türkçe metni değiştirirseniz otomatik kalkar.',
-    'edit_anime.label.user_synopsis'         => 'Kişisel Konu:',
+    'edit_anime.label.user_synopsis'         => 'Kişisel Konu (TR):',
     'edit_anime.ph.user_synopsis'            => 'Kendi yorumunuz, cevirisi, ozeti',
     'edit_anime.hint.user_synopsis'          => 'kullanici konu bolumu - silinirse sync ile geri gelmez',
+    'edit_anime.label.user_synopsis_en'      => 'Kişisel Konu (EN):',
+    'edit_anime.ph.user_synopsis_en'         => 'Your own comment / translation / summary',
 
     // Next-in-series field (only on edit, not on add)
     'edit_anime.label.next_in_series'        => 'Sıradaki Anime (opsiyonel):',

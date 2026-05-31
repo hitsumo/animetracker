@@ -153,31 +153,33 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $broadcast_day = $_POST['broadcast_day'] ?? '';
     $broadcast_time = $_POST['broadcast_time'] ?? '';
     $broadcast_timezone = $_POST['broadcast_timezone'] ?? 'Asia/Tokyo';
-    // Synopsis mode handling (catalog synopsis is now multi-language:
-    // synopsis_tr + synopsis_en + translation_status; the legacy single
-    // synopsis column is deprecated and no longer written):
-    //   Mode 1 (user_synopsis IS NULL): form submitted the editable
-    //     synopsis_tr / synopsis_en fields, user_synopsis stays NULL.
-    //   Mode 2 (user_synopsis IS NOT NULL): the catalog synopsis fields
-    //     were readonly, so we keep their existing values and UPDATE only
-    //     user_synopsis.
-    //
-    // translation_status (Mode 1 only):
-    //   - synopsis_en empty            -> 'none' (nothing to label).
-    //   - synopsis_tr changed this save -> 'ai' (a changed Turkish text
-    //     invalidates any prior review; the English text itself is kept,
-    //     only the status flag drops).
-    //   - otherwise                    -> 'reviewed' if the curator ticked
-    //     "Mark as reviewed", else 'ai'.
-    //
-    // Empty user_synopsis from the form is preserved as empty string (not
-    // NULL) so the row stays in Mode 2 - deletion is permanent, sync will
-    // not restore the personal synopsis. See PROJE_DURUMU.md for the
-    // rationale (user can see the warning in the form's help text).
-    if ($anime['user_synopsis'] === null) {
-        // Mode 1
-        $synopsis_tr = $_POST['synopsis_tr'] ?? '';
-        $synopsis_en = $_POST['synopsis_en'] ?? '';
+    // Synopsis handling (0.7.3 - language-specific personal synopsis).
+    // The catalog synopsis is multi-language (synopsis_tr + synopsis_en +
+    // translation_status). The personal synopsis is now also per-language:
+    //   user_synopsis    = personal TR, user_synopsis_en = personal EN.
+    // State is decided PER LANGUAGE, independently:
+    //   <lang> "Catalog" (user_synopsis(_en) IS NULL): the editable
+    //     catalog field was shown; read synopsis_<lang> from POST.
+    //   <lang> "Personal" (user_synopsis(_en) NOT NULL): the catalog field
+    //     was readonly, so keep its existing value (unless admin override
+    //     is on, in which case it was editable and we read it from POST);
+    //     read the personal field from POST.
+    // An empty personal field stays '' (NOT NULL) so it counts as
+    // "intentionally cleared" and sync will not restore it (see
+    // catalog_import.php move logic + tasarim_0_7_3 doc).
+    $trPersonal = ($anime['user_synopsis'] !== null);
+    $enPersonal = ($anime['user_synopsis_en'] !== null);
+    $trCatalogEditable = (!$trPersonal || $synopsisEditOverride);
+    $enCatalogEditable = (!$enPersonal || $synopsisEditOverride);
+
+    // Catalog synopsis_tr / synopsis_en: read from POST when the field was
+    // editable, otherwise keep the stored value.
+    $synopsis_tr = $trCatalogEditable ? ($_POST['synopsis_tr'] ?? '') : ($anime['synopsis_tr'] ?? '');
+    $synopsis_en = $enCatalogEditable ? ($_POST['synopsis_en'] ?? '') : ($anime['synopsis_en'] ?? '');
+
+    // translation_status: only meaningful when the EN catalog text could
+    // change in this save (EN editable). Otherwise keep the stored status.
+    if ($enCatalogEditable) {
         $markReviewed = isset($_POST['mark_reviewed']);
         $trChanged = ($synopsis_tr !== ($anime['synopsis_tr'] ?? ''));
         if (trim($synopsis_en) === '') {
@@ -187,32 +189,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         } else {
             $translation_status = $markReviewed ? 'reviewed' : 'ai';
         }
-        $user_synopsis = null;
     } else {
-        // Mode 2.
-        $user_synopsis = $_POST['user_synopsis'] ?? '';
-        // Note: empty string stays empty string (NOT converted to NULL)
-        if ($synopsisEditOverride) {
-            // Admin override ON: the catalog synopsis was rendered editable,
-            // so read it from POST exactly like Mode 1 (same status logic).
-            $synopsis_tr = $_POST['synopsis_tr'] ?? '';
-            $synopsis_en = $_POST['synopsis_en'] ?? '';
-            $markReviewed = isset($_POST['mark_reviewed']);
-            $trChanged = ($synopsis_tr !== ($anime['synopsis_tr'] ?? ''));
-            if (trim($synopsis_en) === '') {
-                $translation_status = 'none';
-            } elseif ($trChanged) {
-                $translation_status = 'ai';
-            } else {
-                $translation_status = $markReviewed ? 'reviewed' : 'ai';
-            }
-        } else {
-            // Override OFF: catalog synopsis fields were readonly - keep them.
-            $synopsis_tr = $anime['synopsis_tr'];
-            $synopsis_en = $anime['synopsis_en'];
-            $translation_status = $anime['translation_status'];
-        }
+        $translation_status = $anime['translation_status'];
     }
+
+    // Personal synopsis per language: present in the form only when that
+    // language is already Personal; otherwise keep NULL (stays Catalog).
+    $user_synopsis    = $trPersonal ? ($_POST['user_synopsis']    ?? '') : null;
+    $user_synopsis_en = $enPersonal ? ($_POST['user_synopsis_en'] ?? '') : null;
     $release_date = $_POST['release_date'] ?? null;
     $end_date = $_POST['end_date'] ?? null;
 
@@ -368,6 +352,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             synopsis_en = ?,
             translation_status = ?,
             user_synopsis = ?,
+            user_synopsis_en = ?,
             release_date = ?,
             end_date = ?,
             series_name = ?,
@@ -413,6 +398,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $synopsis_en,
             $translation_status,
             $user_synopsis,
+            $user_synopsis_en,
             $release_date,
             $end_date,
             $series_name,
@@ -635,20 +621,22 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
             </div>
 
             <?php
-            // Synopsis display mode:
-            //   Mode 1: user_synopsis IS NULL -> single editable "Konu", no personal field.
-            //   Mode 2: user_synopsis is set  -> catalog "Konu" readonly, "Kisisel Konu" editable.
-            // See PROJE_DURUMU.md "Kisisel Konu" section for the full rationale.
-            //
-            // 0.7.2 override: when the admin "synopsis_edit_override" capability
-            // is ON, the catalog synopsis (TR/EN) stays EDITABLE even in Mode 2
-            // (the personal synopsis field is still shown). Mode 1/2 detection
-            // itself is unchanged - only the readonly rendering is relaxed.
-            $synopsisMode = ($anime['user_synopsis'] === null) ? 1 : 2;
-            $synopsisEditable = ($synopsisMode === 1 || $synopsisEditOverride);
+            // Synopsis display (0.7.3 - language-specific personal synopsis).
+            // State is per language, independent:
+            //   <lang> Catalog  (user_synopsis(_en) IS NULL): editable
+            //     catalog field (synopsis_<lang>).
+            //   <lang> Personal (user_synopsis(_en) NOT NULL): catalog field
+            //     readonly + a personal field that is always editable.
+            // Admin override (synopsis_edit_override) keeps the catalog field
+            // editable even when Personal - applied to TR and EN separately.
+            $trPersonal = ($anime['user_synopsis']    !== null);
+            $enPersonal = ($anime['user_synopsis_en'] !== null);
+            $trCatalogEditable = (!$trPersonal || $synopsisEditOverride);
+            $enCatalogEditable = (!$enPersonal || $synopsisEditOverride);
             ?>
 
-            <?php if ($synopsisEditable): ?>
+            <?php /* ---- Catalog synopsis TR ---- */ ?>
+            <?php if ($trCatalogEditable): ?>
                 <div class="form-group">
                     <label for="synopsis_tr"><?php echo htmlspecialchars(t('add_anime.label.synopsis'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <div class="input-area">
@@ -660,7 +648,30 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                         </button>
                     </div>
                 </div>
+            <?php else: ?>
+                <div class="form-group">
+                    <label for="synopsis_tr_readonly"><?php echo htmlspecialchars(t('add_anime.label.synopsis'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <div class="input-area">
+                        <textarea id="synopsis_tr_readonly" rows="6" readonly
+                                  style="background-color: #f5f5f5; color: #555; cursor: not-allowed;"><?php echo htmlspecialchars($anime['synopsis_tr'] ?? ''); ?></textarea>
+                        <small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.hint.synopsis_readonly'), ENT_QUOTES, 'UTF-8'); ?></small>
+                    </div>
+                </div>
+            <?php endif; ?>
 
+            <?php /* ---- Personal synopsis TR (only when TR is Personal) ---- */ ?>
+            <?php if ($trPersonal): ?>
+                <div class="form-group">
+                    <label for="user_synopsis"><?php echo htmlspecialchars(t('edit_anime.label.user_synopsis'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <div class="input-area">
+                        <textarea id="user_synopsis" name="user_synopsis" rows="4" placeholder="<?php echo htmlspecialchars(t('edit_anime.ph.user_synopsis'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($anime['user_synopsis'] ?? ''); ?></textarea>
+                        <small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.hint.user_synopsis'), ENT_QUOTES, 'UTF-8'); ?></small>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <?php /* ---- Catalog synopsis EN ---- */ ?>
+            <?php if ($enCatalogEditable): ?>
                 <div class="form-group">
                     <label for="synopsis_en"><?php echo htmlspecialchars(t('add_anime.label.synopsis_en'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <div class="input-area">
@@ -675,28 +686,21 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                 </div>
             <?php else: ?>
                 <div class="form-group">
-                    <label for="synopsis_tr_readonly"><?php echo htmlspecialchars(t('add_anime.label.synopsis'), ENT_QUOTES, 'UTF-8'); ?></label>
-                    <div class="input-area">
-                        <textarea id="synopsis_tr_readonly" rows="6" readonly
-                                  style="background-color: #f5f5f5; color: #555; cursor: not-allowed;"><?php echo htmlspecialchars($anime['synopsis_tr'] ?? ''); ?></textarea>
-                        <small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.hint.synopsis_readonly'), ENT_QUOTES, 'UTF-8'); ?></small>
-                    </div>
-                </div>
-
-                <div class="form-group">
                     <label for="synopsis_en_readonly"><?php echo htmlspecialchars(t('add_anime.label.synopsis_en'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <div class="input-area">
                         <textarea id="synopsis_en_readonly" rows="6" readonly
                                   style="background-color: #f5f5f5; color: #555; cursor: not-allowed;"><?php echo htmlspecialchars($anime['synopsis_en'] ?? ''); ?></textarea>
+                        <small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.hint.synopsis_readonly'), ENT_QUOTES, 'UTF-8'); ?></small>
                     </div>
                 </div>
             <?php endif; ?>
 
-            <?php if ($synopsisMode === 2): ?>
+            <?php /* ---- Personal synopsis EN (only when EN is Personal) ---- */ ?>
+            <?php if ($enPersonal): ?>
                 <div class="form-group">
-                    <label for="user_synopsis"><?php echo htmlspecialchars(t('edit_anime.label.user_synopsis'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <label for="user_synopsis_en"><?php echo htmlspecialchars(t('edit_anime.label.user_synopsis_en'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <div class="input-area">
-                        <textarea name="user_synopsis" rows="4" placeholder="<?php echo htmlspecialchars(t('edit_anime.ph.user_synopsis'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($anime['user_synopsis'] ?? ''); ?></textarea>
+                        <textarea id="user_synopsis_en" name="user_synopsis_en" rows="4" placeholder="<?php echo htmlspecialchars(t('edit_anime.ph.user_synopsis_en'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($anime['user_synopsis_en'] ?? ''); ?></textarea>
                         <small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.hint.user_synopsis'), ENT_QUOTES, 'UTF-8'); ?></small>
                     </div>
                 </div>

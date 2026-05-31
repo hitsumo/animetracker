@@ -313,9 +313,11 @@ return [
     'edit_anime.hint.synopsis_en'            => 'Translate the text with an AI tool and paste it here. Shown with an "Auto-translated from Turkish" label on the detail page.',
     'edit_anime.label.mark_reviewed'         => 'Mark as reviewed',
     'edit_anime.hint.mark_reviewed'          => 'Tick if you have read and verified the English translation. Cleared automatically if you change the Turkish text.',
-    'edit_anime.label.user_synopsis'         => 'Personal Synopsis:',
+    'edit_anime.label.user_synopsis'         => 'Personal Synopsis (TR):',
     'edit_anime.ph.user_synopsis'            => 'Your own comment, translation, summary',
     'edit_anime.hint.user_synopsis'          => 'user synopsis section - if removed, sync will not restore it',
+    'edit_anime.label.user_synopsis_en'      => 'Personal Synopsis (EN):',
+    'edit_anime.ph.user_synopsis_en'         => 'Your own comment / translation / summary',
 
     // Next-in-series field (only on edit, not on add)
     'edit_anime.label.next_in_series'        => 'Next in Series (optional):',

@@ -19,7 +19,8 @@
  *   }
  *
  * Personal columns (watched_episodes, watch_status, notes,
- * next_episode_date, user_synopsis) are explicitly EXCLUDED from
+ * next_episode_date, user_synopsis, user_synopsis_en) are explicitly
+ * EXCLUDED from
  * the SELECT - they would be meaningless to other users and
  * including them would leak the admin's private watching data.
  *

@@ -241,24 +241,32 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                 </div>
 
                 <?php
-                // Catalog synopsis is now multi-language. Show synopsis_en
-                // in English mode (with an "Auto-translated" note), otherwise
-                // the Turkish original. If English is requested but empty,
-                // fall back to the Turkish text with a short note. The legacy
-                // single synopsis column is no longer read.
+                // Synopsis display (0.7.3 - behaviour C): show the CATALOG
+                // synopsis on top (language-aware), and the personal synopsis
+                // of the active language BELOW it as a separate row when
+                // present. Personal does NOT replace catalog - it is shown in
+                // addition, so the curator's official summary stays visible
+                // alongside the user's own note. The legacy single synopsis
+                // column is not read.
                 $curLang     = current_lang();
                 $synTr       = $anime['synopsis_tr'] ?? '';
                 $synEn       = $anime['synopsis_en'] ?? '';
+                $uSynTr      = $anime['user_synopsis'] ?? '';
+                $uSynEn      = $anime['user_synopsis_en'] ?? '';
                 $transStatus = $anime['translation_status'] ?? 'none';
+                // Catalog text for the active language (EN falls back to TR).
                 if ($curLang === 'en') {
                     $showSyn    = ($synEn !== '') ? $synEn : $synTr;
                     $enLabeled  = ($synEn !== '');
                     $enFallback = ($synEn === '' && $synTr !== '');
+                    $personalSyn = $uSynEn;   // active-language personal text
                 } else {
                     $showSyn    = $synTr;
                     $enLabeled  = false;
                     $enFallback = false;
+                    $personalSyn = $uSynTr;
                 }
+                $hasPersonal = ($personalSyn !== '' && $personalSyn !== null);
                 ?>
                 <?php if (!empty($showSyn)): ?>
                 <div class="detail-row">
@@ -277,14 +285,15 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                 </div>
                 <?php endif; ?>
 
-                <?php if (!empty($anime['user_synopsis'])): ?>
+                <?php /* 0.7.3 (behaviour C): personal synopsis of the active
+                   language shown BELOW the catalog synopsis, as a separate
+                   row, when present. */ ?>
+                <?php if ($hasPersonal): ?>
                 <div class="detail-row">
                     <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.user_synopsis'), ENT_QUOTES, 'UTF-8'); ?></span>
-                    <span class="detail-value synopsis"><?php echo nl2br(htmlspecialchars($anime['user_synopsis'])); ?></span>
+                    <span class="detail-value synopsis"><?php echo nl2br(htmlspecialchars($personalSyn)); ?></span>
                 </div>
                 <?php endif; ?>
-
-            
 
                 <div class="detail-row">
                     <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.genres'), ENT_QUOTES, 'UTF-8'); ?></span>

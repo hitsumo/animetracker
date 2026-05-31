@@ -263,6 +263,33 @@ $updateSql = "
 ";
 $updateStmt = $pdo->prepare($updateSql);
 
+// 0.7.3 personal-synopsis MOVE support.
+//
+// Before each UPDATE overwrites the catalog synopsis, we must rescue any
+// edit the user made to it. The rule (per language, independent):
+//   if user_synopsis(_en) IS NULL AND the local catalog synopsis differs
+//   from the incoming server synopsis, the user has hand-edited it; move
+//   that local text into user_synopsis(_en) so it is not lost, then let
+//   the UPDATE write the fresh catalog text.
+// An empty string '' in user_synopsis(_en) counts as "set" (intentionally
+// cleared) and is NOT NULL, so it never re-triggers the move. NULL means
+// "still catalog-managed". This is the regression that dropped in 0.7.1
+// when synopsis became multi-language; restored here per-language.
+//
+// We read the current local synopsis/personal columns just-in-time per
+// matched row (localMap holds only identity columns, to keep its memory
+// footprint small).
+$readSynopsisStmt = $pdo->prepare(
+    "SELECT synopsis_tr, synopsis_en, user_synopsis, user_synopsis_en
+     FROM animes WHERE id = :id"
+);
+$moveTrStmt = $pdo->prepare(
+    "UPDATE animes SET user_synopsis = :txt WHERE id = :id"
+);
+$moveEnStmt = $pdo->prepare(
+    "UPDATE animes SET user_synopsis_en = :txt WHERE id = :id"
+);
+
 // INSERT for new catalog entries. image_path gets set to the local
 // relative path of the downloaded poster (or NULL if download failed).
 // Genres are written to anime_genres in the dedicated block below.
@@ -359,6 +386,39 @@ try {
         ];
 
         if ($matchId !== null) {
+            // --- 0.7.3 personal-synopsis MOVE (per language, before UPDATE) ---
+            // Rescue a user hand-edit of the catalog synopsis into
+            // user_synopsis(_en) so the imminent UPDATE does not erase it.
+            // Must run BEFORE the UPDATE (which overwrites synopsis_tr/en,
+            // destroying the difference we compare against).
+            $readSynopsisStmt->execute([':id' => $matchId]);
+            $localSyn = $readSynopsisStmt->fetch(PDO::FETCH_ASSOC);
+            if ($localSyn !== false) {
+                $serverTr = $ca['synopsis_tr'] ?? null;
+                $serverEn = $ca['synopsis_en'] ?? null;
+
+                // TR: only when not yet personal (NULL) and the local text
+                // diverges from the server text.
+                if ($localSyn['user_synopsis'] === null
+                    && (string)($localSyn['synopsis_tr'] ?? '') !== (string)($serverTr ?? '')) {
+                    $moveTrStmt->execute([
+                        ':txt' => (string)($localSyn['synopsis_tr'] ?? ''),
+                        ':id'  => $matchId,
+                    ]);
+                    $stats['synopsis_moved_tr'] = ($stats['synopsis_moved_tr'] ?? 0) + 1;
+                }
+
+                // EN: independent, same rule.
+                if ($localSyn['user_synopsis_en'] === null
+                    && (string)($localSyn['synopsis_en'] ?? '') !== (string)($serverEn ?? '')) {
+                    $moveEnStmt->execute([
+                        ':txt' => (string)($localSyn['synopsis_en'] ?? ''),
+                        ':id'  => $matchId,
+                    ]);
+                    $stats['synopsis_moved_en'] = ($stats['synopsis_moved_en'] ?? 0) + 1;
+                }
+            }
+
             // UPDATE existing row - image_path is preserved (not in SQL)
             $params[':id'] = $matchId;
             $updateStmt->execute($params);
@@ -661,6 +721,12 @@ if ($stats['poster_repaired'] > 0) {
 
 if ($stats['poster_failed'] > 0) {
     $msg .= sprintf(' %d poster indirilemedi (detay icin log).', $stats['poster_failed']);
+}
+
+$movedTr = $stats['synopsis_moved_tr'] ?? 0;
+$movedEn = $stats['synopsis_moved_en'] ?? 0;
+if ($movedTr > 0 || $movedEn > 0) {
+    $msg .= sprintf(' %d TR + %d EN konu kisisel alana tasindi.', $movedTr, $movedEn);
 }
 
 header('Location: list_settings.php?catalog_msg=' . urlencode($msg));
