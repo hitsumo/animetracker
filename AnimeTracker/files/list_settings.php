@@ -176,8 +176,21 @@ if ($lastSyncDate !== $todayUtc && !isset($_POST['sync_aired'])) {
 if (isset($_POST['export'])) {
     $stmt = $pdo->query("SELECT * FROM animes");
     $animes = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // JSON formatında dışa aktar
+
+    // Genres and tags are relational (genres/tags + anime_genres/anime_tags
+    // join tables), not columns on animes, so SELECT * does not include them.
+    // Attach each anime's genre and tag NAMES so the backup is complete and
+    // restorable. Names (not IDs): IDs are install-specific and would not
+    // match after a restore.
+    foreach ($animes as &$a) {
+        $gRows = getAnimeGenres($pdo, $a['id']);
+        $tRows = getAnimeTags($pdo, $a['id']);
+        $a['genres'] = array_map(function ($r) { return $r['name']; }, $gRows);
+        $a['tags']   = array_map(function ($r) { return $r['name']; }, $tRows);
+    }
+    unset($a);
+
+    // JSON formatinda disa aktar
     $filename = 'anime_list_' . date('Y-m-d') . '.json';
     header('Content-Type: application/json');
     header('Content-Disposition: attachment; filename="' . $filename . '"');
@@ -188,50 +201,117 @@ if (isset($_POST['export'])) {
 // Listeyi İçe Aktarma İşlemi
 if (isset($_POST['import']) && isset($_FILES['import_file'])) {
     $file = $_FILES['import_file'];
-    if ($file['type'] === 'application/json') {
-        $content = file_get_contents($file['tmp_name']);
-        $animes = json_decode($content, true);
-        
-        if ($animes) {
-            foreach ($animes as $anime) {
-                // Var olan kayıtları güncelle veya yeni kayıt ekle
-                $stmt = $pdo->prepare("INSERT INTO animes (title, alternative_titles, status, total_episodes, 
-                    watched_episodes, notes, genres, image_path, watch_status, next_episode_date, 
-                    anidb_link, mal_link, episode_interval, broadcast_day, broadcast_time, synopsis_tr, synopsis_en, translation_status, release_date) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
-                    ON DUPLICATE KEY UPDATE 
-                    alternative_titles=VALUES(alternative_titles), 
-                    status=VALUES(status),
-                    total_episodes=VALUES(total_episodes),
-                    watched_episodes=VALUES(watched_episodes),
-                    notes=VALUES(notes),
-                    genres=VALUES(genres),
-                    watch_status=VALUES(watch_status),
-                    next_episode_date=VALUES(next_episode_date)");
-                
+
+    // Validate by decoding, not by the browser-reported MIME type (browsers
+    // report .json inconsistently). A valid backup decodes to an array of
+    // anime rows.
+    $content = ($file['error'] === UPLOAD_ERR_OK)
+        ? file_get_contents($file['tmp_name'])
+        : false;
+    $animes = ($content !== false) ? json_decode($content, true) : null;
+
+    if (is_array($animes)) {
+        // Restore model: each row is inserted as a NEW record (the export is a
+        // full backup; re-import expects a cleared list - see Listeyi Temizle).
+        // Genres/tags are relational, so they are restored from the NAME arrays
+        // the export attaches, via the taxonomy helpers AFTER the anime row
+        // exists. The legacy animes.genres column was dropped in v0.5 and is
+        // NOT written here (writing it was the old import crash).
+        //
+        // next_in_series is intentionally NOT restored: it is a row-ID pointer
+        // and IDs are reassigned on restore, so the old value would dangle.
+        // series_name (a plain string) IS restored, so the series grouping
+        // survives; only the explicit ordering pointer is lost (known limit).
+        $imported = 0;
+        $skipped = 0;
+
+        $stmt = $pdo->prepare("INSERT INTO animes (
+                title, alternative_titles, title_english, status,
+                total_episodes, aired_episodes, watched_episodes, notes,
+                image_path, watch_status, next_episode_date,
+                anidb_link, mal_link, anime_schedule_link, episode_interval,
+                broadcast_day, broadcast_time, broadcast_timezone,
+                synopsis, synopsis_tr, synopsis_en, translation_status,
+                user_synopsis, user_synopsis_en,
+                release_date, end_date, series_name, media_type,
+                mal_id, anidb_id, catalog_uuid, source, filler_tracking
+            ) VALUES (
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+            )");
+
+        foreach ($animes as $anime) {
+            if (!is_array($anime) || empty($anime['title'])) {
+                $skipped++;
+                continue;
+            }
+            try {
                 $stmt->execute([
                     $anime['title'],
-                    $anime['alternative_titles'],
-                    $anime['status'],
-                    $anime['total_episodes'],
-                    $anime['watched_episodes'],
-                    $anime['notes'],
-                    $anime['genres'],
-                    $anime['image_path'],
-                    $anime['watch_status'],
-                    $anime['next_episode_date'],
-                    $anime['anidb_link'],
-                    $anime['mal_link'],
-                    $anime['episode_interval'],
-                    $anime['broadcast_day'],
-                    $anime['broadcast_time'],
-                    $anime['synopsis_tr'] ?? $anime['synopsis'] ?? null,
-                    $anime['synopsis_en'] ?? null,
-                    $anime['translation_status'] ?? 'none',
-                    $anime['release_date']
+                    $anime['alternative_titles']  ?? null,
+                    $anime['title_english']       ?? null,
+                    $anime['status']              ?? 'Yayın Tamamlandı',
+                    $anime['total_episodes']      ?? null,
+                    $anime['aired_episodes']      ?? null,
+                    $anime['watched_episodes']    ?? 0,
+                    $anime['notes']               ?? null,
+                    $anime['image_path']          ?? null,
+                    $anime['watch_status']        ?? 'PlanToWatch',
+                    $anime['next_episode_date']   ?? null,
+                    $anime['anidb_link']          ?? null,
+                    $anime['mal_link']            ?? null,
+                    $anime['anime_schedule_link'] ?? null,
+                    $anime['episode_interval']    ?? 7,
+                    $anime['broadcast_day']       ?? null,
+                    $anime['broadcast_time']      ?? null,
+                    $anime['broadcast_timezone']  ?? 'Asia/Tokyo',
+                    $anime['synopsis']            ?? null,
+                    $anime['synopsis_tr']         ?? $anime['synopsis'] ?? null,
+                    $anime['synopsis_en']         ?? null,
+                    $anime['translation_status']  ?? 'none',
+                    $anime['user_synopsis']       ?? null,
+                    $anime['user_synopsis_en']    ?? null,
+                    $anime['release_date']        ?? null,
+                    $anime['end_date']            ?? null,
+                    $anime['series_name']         ?? null,
+                    $anime['media_type']          ?? null,
+                    $anime['mal_id']              ?? null,
+                    $anime['anidb_id']            ?? null,
+                    $anime['catalog_uuid']        ?? null,
+                    $anime['source']              ?? 'local',
+                    !empty($anime['filler_tracking']) ? 1 : 0
                 ]);
+
+                $animeId = (int)$pdo->lastInsertId();
+                if ($animeId > 0) {
+                    // Restore relational genres/tags by NAME (find-or-create,
+                    // then link). Backups without these arrays restore none.
+                    setAnimeGenresByNames($pdo, $animeId, $anime['genres'] ?? []);
+
+                    $tagIds = [];
+                    foreach ((array)($anime['tags'] ?? []) as $tagName) {
+                        $tid = findOrCreateTag($pdo, $tagName);
+                        if ($tid > 0) {
+                            $tagIds[] = $tid;
+                        }
+                    }
+                    setAnimeTags($pdo, $animeId, $tagIds);
+                }
+                $imported++;
+            } catch (Exception $e) {
+                // Skip rows that collide (e.g. a duplicate mal_id/anidb_id/
+                // catalog_uuid when importing into a non-empty list) or are
+                // malformed. Restore model expects a cleared list; a collision
+                // means the row already exists.
+                $skipped++;
+                error_log('list_settings import: row skipped - ' . $e->getMessage());
             }
-            $success_message = t('list_settings.import.success');
+        }
+
+        if ($imported > 0) {
+            $success_message = sprintf(t('list_settings.import.result'), $imported, $skipped);
+        } else {
+            $error_message = t('list_settings.import.invalid_format');
         }
     } else {
         $error_message = t('list_settings.import.invalid_format');
@@ -241,7 +321,12 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
 // Listeyi Temizleme İşlemi
 if (isset($_POST['clear'])) {
     if (isset($_POST['confirm_clear']) && $_POST['confirm_clear'] === 'yes') {
-        $pdo->exec("TRUNCATE TABLE animes");
+        // DELETE, not TRUNCATE: animes is referenced by FK constraints from
+        // anime_genres, anime_tags, chronology_markers, filler_episodes etc.
+        // MySQL refuses TRUNCATE on an FK-referenced parent table; DELETE
+        // works and ON DELETE CASCADE clears all child rows too. (The master
+        // genres/tags vocabulary is kept - only the per-anime links go.)
+        $pdo->exec("DELETE FROM animes");
         $success_message = t('list_settings.clear.success');
     }
 }

@@ -45,6 +45,11 @@ foreach (watch_status_options() as $ws_value => $ws_label) {
 // Toplam izlenen bolum sayisi
 $total_watched = (int)$pdo->query("SELECT COALESCE(SUM(watched_episodes),0) FROM animes")->fetchColumn();
 
+// Toplam bolum sayisi - tum animelerin total_episodes toplami. total_episodes
+// NULL olanlar (suresi/bolum sayisi bilinmeyen, devam eden) SUM tarafindan
+// gozardi edilir; COALESCE bos tablo durumunu 0 yapar.
+$total_episodes = (int)$pdo->query("SELECT COALESCE(SUM(total_episodes),0) FROM animes")->fetchColumn();
+
 // Duygu dagilimi (0.6.1 user_anime_emotion tablosu). Single-user mod:
 // user_id = 1. Faz 2 multi-user'da bu satir session user'a baglanir,
 // tablo zaten user_id keyed - baska sey gerekmez. idx_emotion bu sorgu
@@ -107,6 +112,8 @@ $emotion_anime_count = (int)$pdo->query(
         <div class="stats-label"><?php echo htmlspecialchars(t('statistics.label.total_anime'), ENT_QUOTES, 'UTF-8'); ?></div>
         <div class="stats-big" style="margin-top:20px;"><?php echo $total_watched; ?></div>
         <div class="stats-label"><?php echo htmlspecialchars(t('statistics.label.total_watched'), ENT_QUOTES, 'UTF-8'); ?></div>
+        <div class="stats-big" style="margin-top:20px;"><?php echo $total_episodes; ?></div>
+        <div class="stats-label"><?php echo htmlspecialchars(t('statistics.label.total_episodes'), ENT_QUOTES, 'UTF-8'); ?></div>
     </div>
 
     <div class="stats-grid">

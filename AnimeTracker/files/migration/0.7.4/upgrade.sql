@@ -1,0 +1,11 @@
+-- Anime Tracker 0.7.4 migration
+-- No schema change. 0.7.4 is a code-only release (list_settings JSON
+-- export/import + Clear fixes, statistics total-episode count, i18n keys).
+--
+-- This file intentionally contains no SQL statements. It exists so the
+-- migration manager advances settings.version to 0.7.4 - version advancement
+-- depends on the migration/<version>/ folder existing, not on the file having
+-- SQL (the 0.5.5 empty-migration lesson). The manager strips line comments,
+-- finds zero statements, runs nothing, then bumps settings.version. Re-run
+-- safe (idempotent): nothing to apply.
+-- Megami "Isekai Tensei Nani ni Naritai desu ka" Ore "Yuusha no Rokkotsu de" : i want this reincarnation

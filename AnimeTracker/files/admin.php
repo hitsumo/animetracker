@@ -17,9 +17,13 @@
  *     - .exe installer: this file is NOT bundled. End users who install
  *       via the .exe never receive any admin_*.php (installer files/
  *       folder excludes them).
- *     - Docker image: NOT currently excluded - _dockerignore does not
- *       list admin_*.php, so the image may contain them. (Inconsistent
- *       with the .exe; revisit if Docker is a public distribution.)
+ *     - Docker image: PRESENT by design - _dockerignore does not list
+ *       admin_*.php. Docker is a server/self-host channel like the
+ *       GitHub repo (not the consumer .exe), so shipping admin here is
+ *       intentional, not an inconsistency. It stays harmless: the
+ *       localhost gate below blocks remote access and no real secret
+ *       ships (admin_secret.php / real admin_sync.php are repo- and
+ *       installer-excluded).
  *   Because the file is public on GitHub, do NOT rely on file secrecy
  *   and do NOT put any real secret (server URL, token, password) here.
  *   The actual protection is:
