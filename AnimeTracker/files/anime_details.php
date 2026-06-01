@@ -63,7 +63,7 @@ $chronologyAlert = getActiveChronologyAlert($pdo, $anime['id'], $anime['watched_
 // Siradaki anime bilgisi (next_in_series foreign key)
 $nextAnime = null;
 if (!empty($anime['next_in_series'])) {
-    $nextStmt = $pdo->prepare("SELECT id, title, watch_status, media_type, image_path FROM animes WHERE id = ?");
+    $nextStmt = $pdo->prepare("SELECT id, title, title_english, watch_status, media_type, image_path FROM animes WHERE id = ?");
     $nextStmt->execute([(int)$anime['next_in_series']]);
     $nextAnime = $nextStmt->fetch(PDO::FETCH_ASSOC);
 }
@@ -82,7 +82,7 @@ if (!$isInSeriesChain) {
 // Ayni serideki tum animeler (marker ekleme formu dropdown'u icin)
 $sameSeriesAnimes = [];
 if (!empty($anime['series_name'])) {
-    $ssStmt = $pdo->prepare("SELECT id, title, media_type FROM animes WHERE series_name = ? AND id != ? ORDER BY title ASC");
+    $ssStmt = $pdo->prepare("SELECT id, title, title_english, media_type FROM animes WHERE series_name = ? AND id != ? ORDER BY title ASC");
     $ssStmt->execute([$anime['series_name'], (int)$anime['id']]);
     $sameSeriesAnimes = $ssStmt->fetchAll(PDO::FETCH_ASSOC);
 }
@@ -472,7 +472,7 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                 <div class="alert-content">
                     <strong><?php echo htmlspecialchars(sprintf(t('anime_details.alert.watch_after'), (int)$chronologyAlert['after_episode'])); ?></strong>
                     <a href="anime_details.php?id=<?php echo (int)$chronologyAlert['related_id']; ?>" class="alert-anime-link">
-                        <?php echo htmlspecialchars($chronologyAlert['related_title']); ?>
+                        <?php echo htmlspecialchars(display_related_title($chronologyAlert)); ?>
                         <?php if (!empty($chronologyAlert['related_media_type'])): ?>
                             (<?php echo htmlspecialchars($chronologyAlert['related_media_type']); ?>)
                         <?php endif; ?>
@@ -498,7 +498,7 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                 <h3><i class="fas fa-arrow-right"></i> <?php echo htmlspecialchars(t('anime_details.section.next_up'), ENT_QUOTES, 'UTF-8'); ?></h3>
                 <div class="next-anime-info">
                     <a href="anime_details.php?id=<?php echo (int)$nextAnime['id']; ?>" class="next-anime-link">
-                        <?php echo htmlspecialchars($nextAnime['title']); ?>
+                        <?php echo htmlspecialchars(display_title($nextAnime)); ?>
                         <?php if (!empty($nextAnime['media_type'])): ?>
                             (<?php echo htmlspecialchars($nextAnime['media_type']); ?>)
                         <?php endif; ?>
@@ -554,7 +554,7 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                             <?php foreach ($animes as $ra): ?>
                                 <div class="related-anime-item">
                                     <a href="anime_details.php?id=<?php echo (int)$ra['id']; ?>" class="related-anime-link">
-                                        <?php echo htmlspecialchars($ra['title']); ?>
+                                        <?php echo htmlspecialchars(display_title($ra)); ?>
                                     </a>
                                     <span class="related-anime-progress">
                                         <?php echo (int)$ra['watched_episodes']; ?>/<?php echo $ra['total_episodes'] ? (int)$ra['total_episodes'] : '?'; ?>
@@ -588,7 +588,7 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                             <span class="marker-episode"><?php echo htmlspecialchars(sprintf(t('anime_details.marker.after_episode'), (int)$cm['after_episode'])); ?></span>
                             <span class="marker-arrow">→</span>
                             <a href="anime_details.php?id=<?php echo (int)$cm['related_anime_id']; ?>" class="marker-anime-link">
-                                <?php echo htmlspecialchars($cm['related_title']); ?>
+                                <?php echo htmlspecialchars(display_related_title($cm)); ?>
                                 <?php if (!empty($cm['related_media_type'])): ?>
                                     (<?php echo htmlspecialchars($cm['related_media_type']); ?>)
                                 <?php endif; ?>
@@ -627,7 +627,7 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                                 <option value=""><?php echo htmlspecialchars(t('anime_details.marker_form.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
                                 <?php foreach ($sameSeriesAnimes as $ssa): ?>
                                     <option value="<?php echo (int)$ssa['id']; ?>">
-                                        <?php echo htmlspecialchars($ssa['title']); ?>
+                                        <?php echo htmlspecialchars(display_title($ssa)); ?>
                                         <?php if (!empty($ssa['media_type'])): ?>(<?php echo htmlspecialchars($ssa['media_type']); ?>)<?php endif; ?>
                                     </option>
                                 <?php endforeach; ?>

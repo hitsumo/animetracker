@@ -20,6 +20,10 @@ require_once __DIR__ . '/functions.php';
 
 lang_init($pdo);
 
+// English-title display preference (0.7.2). Read once so display_title()
+// applies to the chain titles below.
+title_pref_init($pdo);
+
 $id = (int)($_GET['id'] ?? 0);
 if ($id <= 0) {
     header('Location: index.php');
@@ -53,7 +57,7 @@ function getSeriesChain($pdo, $start_id) {
         if (isset($visited[$current])) break; // circular guard
         $visited[$current] = true;
         $stmt = $pdo->prepare("
-            SELECT id, title, media_type, total_episodes, aired_episodes,
+            SELECT id, title, title_english, media_type, total_episodes, aired_episodes,
                    watched_episodes, watch_status, status, image_path,
                    release_date, next_in_series, series_name
             FROM animes WHERE id = ?
@@ -330,13 +334,13 @@ function seriesMediaIcon($type) {
 
                     <?php if (!empty($item['image_path'])): ?>
                         <img src="<?php echo htmlspecialchars($item['image_path']); ?>"
-                             alt="<?php echo htmlspecialchars($item['title']); ?>">
+                             alt="<?php echo htmlspecialchars(display_title($item)); ?>">
                     <?php else: ?>
                         <div class="no-img"><?php echo $mediaIcon; ?></div>
                     <?php endif; ?>
 
                     <div class="st-info">
-                        <div class="title"><?php echo htmlspecialchars($item['title']); ?></div>
+                        <div class="title"><?php echo htmlspecialchars(display_title($item)); ?></div>
                         <div class="meta">
                             <span><?php echo $mediaIcon; ?> <?php echo htmlspecialchars($mediaType); ?></span>
                             <span><i class="fas fa-play-circle"></i> <?php echo $epText; ?></span>

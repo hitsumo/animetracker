@@ -23,6 +23,10 @@ require_once __DIR__ . '/functions.php';
 
 lang_init($pdo);
 
+// English-title display preference (0.7.2). Read once so display_title()
+// applies to the parent and related anime titles on this page.
+title_pref_init($pdo);
+
 $id = (int)($_GET['id'] ?? 0);
 if ($id <= 0) {
     header('Location: index.php');
@@ -75,6 +79,7 @@ foreach ($markers as $m) {
         'type' => 'anime',
         'id' => (int)$m['related_anime_id'],
         'title' => $m['related_title'],
+        'title_english' => $m['related_title_english'] ?? null,
         'media_type' => $m['related_media_type'],
         'watch_status' => $m['related_watch_status'],
         'note' => $m['note'] ?? null,
@@ -130,7 +135,7 @@ function getMediaTypeIcon($type) {
 <html lang="<?php echo current_lang(); ?>">
 <head>
     <meta charset="UTF-8">
-    <title><?php echo htmlspecialchars($anime['title']); ?> - <?php echo htmlspecialchars(t('chronology.title_suffix'), ENT_QUOTES, 'UTF-8'); ?></title>
+    <title><?php echo htmlspecialchars(display_title($anime)); ?> - <?php echo htmlspecialchars(t('chronology.title_suffix'), ENT_QUOTES, 'UTF-8'); ?></title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
@@ -139,7 +144,7 @@ function getMediaTypeIcon($type) {
 <body>
     <div class="chronology-container">
         <h1 class="chronology-title">
-            <?php echo htmlspecialchars($anime['title']); ?>
+            <?php echo htmlspecialchars(display_title($anime)); ?>
             <small><?php echo htmlspecialchars(t('chronology.subtitle'), ENT_QUOTES, 'UTF-8'); ?></small>
         </h1>
 
@@ -211,7 +216,7 @@ function getMediaTypeIcon($type) {
                         <span class="chrono-type-icon"><?php echo getMediaTypeIcon($item['media_type']); ?></span>
                         <span class="chrono-label">
                             <a href="anime_details.php?id=<?php echo (int)$item['id']; ?>">
-                                <?php echo htmlspecialchars($item['title']); ?>
+                                <?php echo htmlspecialchars(display_title($item)); ?>
                             </a>
                             <?php if (!empty($item['media_type'])): ?>
                                 <small>(<?php echo htmlspecialchars($item['media_type']); ?>)</small>

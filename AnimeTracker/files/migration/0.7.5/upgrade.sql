@@ -1,0 +1,4 @@
+-- Anime Tracker 0.7.5 migration
+-- No schema change. 
+--
+-- Alps no Shoujo Heidi add AnimeTracker
