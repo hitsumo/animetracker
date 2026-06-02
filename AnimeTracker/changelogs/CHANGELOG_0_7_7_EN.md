@@ -2,7 +2,7 @@
 
 **Release date:** June 2026
 
-## English names for genres and sentences now travel with the catalog
+## English names for genres and sentences now travel through the server via catalog sync
 
 You could already enter an English version of a genre or recommendation
 sentence (tag), but those English names stayed only on your own

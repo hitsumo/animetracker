@@ -2,7 +2,7 @@
 
 **Yayin tarihi:** Haziran 2026
 
-## Tur ve cumle etiketlerinin Ingilizce adlari artik katalogla tasiniyor
+## Tur ve cumle etiketlerinin Ingilizce adlari artik katalog senkronizasyonuyla sunucu uzerinden tasiniyor
 
 Turlerin ve oneri cumlelerinin (etiketlerin) Ingilizce karsiligini
 girebiliyordunuz, ama bu Ingilizce adlar yalnizca kendi kurulumunuzda
