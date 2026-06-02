@@ -132,7 +132,8 @@ if ($mode === 'surprise') {
         $sql = "
             SELECT a.*,
                    COUNT(DISTINCT at.tag_id) AS tag_score,
-                   GROUP_CONCAT(DISTINCT t.name ORDER BY t.name SEPARATOR '|') AS matched_tags
+                   GROUP_CONCAT(DISTINCT CONCAT(t.name, CHAR(31), COALESCE(t.name_en, ''))
+                       ORDER BY CONCAT(t.name, CHAR(31), COALESCE(t.name_en, '')) SEPARATOR '|') AS matched_tags
             FROM animes a
             INNER JOIN anime_tags at ON at.anime_id = a.id
             INNER JOIN tags t ON t.id = at.tag_id
@@ -143,11 +144,24 @@ if ($mode === 'surprise') {
         $stmt->execute($selectedTagIds);
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $animeId = (int)$row['id'];
+            // matched_tags packs each matched sentence as name + name_en,
+            // joined by US (CHAR 31), tags separated by '|'. Rebuild row
+            // arrays so tag_display_name() can pick the language (0.7.2).
+            $matchedTags = [];
+            if (!empty($row['matched_tags'])) {
+                foreach (explode('|', $row['matched_tags']) as $packed) {
+                    $parts = explode("\x1f", $packed, 2);
+                    $matchedTags[] = [
+                        'name'    => $parts[0],
+                        'name_en' => $parts[1] ?? '',
+                    ];
+                }
+            }
             $byAnimeId[$animeId] = [
                 'anime'                 => $row,
                 'tag_score'             => (int)$row['tag_score'],
                 'emo_score'             => 0,
-                'matched_tag_names'     => !empty($row['matched_tags']) ? explode('|', $row['matched_tags']) : [],
+                'matched_tag_names'     => $matchedTags,
                 'matched_emotion_names' => [],
             ];
         }
@@ -847,7 +861,7 @@ $useCombinedTemplates  = ($totalEmotionsSelected > 0);
                                     <div class="rec-matched-tags">
                                         <?php foreach ($r['matched_tag_names'] as $tn): ?>
                                             <span class="rec-matched-tag-pill">
-                                                <?php echo htmlspecialchars($tn); ?>
+                                                <?php echo htmlspecialchars(tag_display_name($tn)); ?>
                                             </span>
                                         <?php endforeach; ?>
                                     </div>

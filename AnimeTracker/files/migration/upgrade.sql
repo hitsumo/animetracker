@@ -1,0 +1,3 @@
+-- Anime Tracker 0.7.6 migration
+-- No schema change. Version bump only.
+--Snowball Earth very boring
