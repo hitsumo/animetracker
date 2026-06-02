@@ -1,0 +1,7 @@
+-- Anime Tracker 0.7.7 migration
+-- No schema change. Version bump only.
+--
+-- The tags.name_en and genres.name_en columns this release uses for
+-- catalog sync already exist (added in 0.7.2). This empty migration
+-- only advances settings.version so installations that skip straight
+-- to 0.7.7 do not stay pinned at an earlier version.

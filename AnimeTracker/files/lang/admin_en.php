@@ -74,10 +74,10 @@ return [
     'admin_pending.back_to_dashboard'        => 'Admin dashboard',
 
     // -----------------------------------------------------------------
-    // admin_sync.php (admin_sync_example.php sablonu) - sunucuya push
+    // admin_sync.php (admin_sync_example.php template) - push to server
     // -----------------------------------------------------------------
     'admin_sync.error.csrf'                  => 'Invalid CSRF token.',
-    'admin_sync.error.no_secret'             => 'ADMIN_PUSH_SECRET is not defined in config.php.',
+    'admin_sync.error.no_secret'             => 'ADMIN_PUSH_SECRET is not defined in admin_secret.php.',
     'admin_sync.error.curl'                  => 'cURL error: %s',
     'admin_sync.error.invalid_response'      => 'Invalid server response (HTTP %d): %s',
     'admin_sync.error.server'                => 'Server error (HTTP %d): %s',

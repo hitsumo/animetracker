@@ -28,8 +28,8 @@ function getRelatedAnimes($pdo, $series_name, $exclude_id) {
         return [];
     }
     $stmt = $pdo->prepare("
-        SELECT id, title, media_type, watch_status, watched_episodes,
-               total_episodes, release_date, image_path
+        SELECT id, title, title_english, media_type, watch_status,
+               watched_episodes, total_episodes, release_date, image_path
         FROM animes
         WHERE series_name = ? AND id != ?
         ORDER BY
@@ -51,7 +51,9 @@ function getRelatedAnimes($pdo, $series_name, $exclude_id) {
 function getChronologyMarkers($pdo, $anime_id) {
     $stmt = $pdo->prepare("
         SELECT cm.id, cm.after_episode, cm.related_anime_id, cm.note,
-               a.title AS related_title, a.watch_status AS related_watch_status,
+               a.title AS related_title,
+               a.title_english AS related_title_english,
+               a.watch_status AS related_watch_status,
                a.media_type AS related_media_type
         FROM chronology_markers cm
         JOIN animes a ON a.id = cm.related_anime_id
@@ -81,7 +83,9 @@ function getChronologyMarkers($pdo, $anime_id) {
 function getActiveChronologyAlert($pdo, $anime_id, $watched_episodes) {
     $stmt = $pdo->prepare("
         SELECT cm.id, cm.after_episode, cm.related_anime_id, cm.note,
-               a.title AS related_title, a.watch_status AS related_watch_status,
+               a.title AS related_title,
+               a.title_english AS related_title_english,
+               a.watch_status AS related_watch_status,
                a.media_type AS related_media_type, a.id AS related_id
         FROM chronology_markers cm
         JOIN animes a ON a.id = cm.related_anime_id
@@ -94,6 +98,25 @@ function getActiveChronologyAlert($pdo, $anime_id, $watched_episodes) {
     $stmt->execute([(int)$anime_id, (int)$watched_episodes]);
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
     return $result ?: null;
+}
+
+/**
+ * Pick the display title for a related-anime row that uses the aliased
+ * column names produced by the chronology queries above (related_title /
+ * related_title_english). Bridges those aliases to display_title() so the
+ * English-title preference (0.7.2) applies to related anime the same way
+ * it does to top-level rows. Falls back to the Romaji title when the
+ * preference is off or title_english is empty. Output still needs
+ * htmlspecialchars() at the call site.
+ *
+ * @param array $row  A row with 'related_title' and optionally 'related_title_english'.
+ * @return string
+ */
+function display_related_title($row) {
+    return display_title([
+        'title'         => $row['related_title'] ?? '',
+        'title_english' => $row['related_title_english'] ?? null,
+    ]);
 }
 
 /**

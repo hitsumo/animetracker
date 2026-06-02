@@ -88,7 +88,7 @@ return [
     // admin_sync.php (admin_sync_example.php sablonu) - sunucuya push
     // -----------------------------------------------------------------
     'admin_sync.error.csrf'                  => 'CSRF tokeni geçersiz.',
-    'admin_sync.error.no_secret'             => 'ADMIN_PUSH_SECRET config.php içinde tanımlı değil.',
+    'admin_sync.error.no_secret'             => 'ADMIN_PUSH_SECRET admin_secret.php içinde tanımlı değil.',
     'admin_sync.error.curl'                  => 'cURL hatası: %s',
     'admin_sync.error.invalid_response'      => 'Geçersiz sunucu yanıtı (HTTP %d): %s',
     'admin_sync.error.server'                => 'Sunucu hatası (HTTP %d): %s',

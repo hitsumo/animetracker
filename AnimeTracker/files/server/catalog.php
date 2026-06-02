@@ -145,13 +145,24 @@ try {
     // anime, not IDs - tag IDs are local to this database and would
     // collide with the client's own tag IDs. The client matches by
     // name (case-insensitive via utf8mb4_general_ci) when importing.
+    //
+    // 0.7.7: tags also carry an optional English name (name_en, added
+    // in 0.7.2). The wire still keys tags by their (Turkish) name, so
+    // we ship name_en as a SEPARATE translation map (tag_name_en:
+    // { turkish_name: english_name }) rather than turning the per-anime
+    // tag list into objects. Old clients ignore the extra key; new
+    // clients look the name up. Only non-empty name_en values are sent.
     $tagRows = $pdo->query("
-        SELECT id, name FROM tags ORDER BY name
+        SELECT id, name, name_en FROM tags ORDER BY name
     ")->fetchAll(PDO::FETCH_ASSOC);
 
     $tagById = [];
+    $tagNameEn = [];
     foreach ($tagRows as $t) {
         $tagById[(int)$t['id']] = $t['name'];
+        if (isset($t['name_en']) && $t['name_en'] !== '') {
+            $tagNameEn[$t['name']] = $t['name_en'];
+        }
     }
 
     $linkRows = $pdo->query("
@@ -184,6 +195,11 @@ try {
     // comma-separated string. CSV format is the wire format clients
     // still expect (catalog_import.php parses CSV). Mirror of the
     // admin_sync.php pre-payload logic.
+    //
+    // 0.7.7: like tags, genres carry an optional English name (name_en).
+    // The per-anime CSV still uses the (Turkish) name; name_en travels
+    // in a separate translation map (genre_name_en) so the wire stays
+    // backward compatible.
     $genreLinkRows = $pdo->query("
         SELECT ag.anime_id, g.name
         FROM anime_genres ag
@@ -204,6 +220,18 @@ try {
     }
     unset($a);
 
+    // Build the genre name_en translation map from the master genres
+    // table (all genres, not just linked ones). Only non-empty values.
+    $genreNameEn = [];
+    $genreNameEnRows = $pdo->query("
+        SELECT name, name_en FROM genres ORDER BY name
+    ")->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($genreNameEnRows as $row) {
+        if (isset($row['name_en']) && $row['name_en'] !== '') {
+            $genreNameEn[$row['name']] = $row['name_en'];
+        }
+    }
+
     $payload = [
         'generated_at' => gmdate('c'),
         'animes'       => $animes,
@@ -212,6 +240,11 @@ try {
         // use this to populate their tags table even for sentences
         // that no anime currently uses.
         'tags'         => array_map(function($t) { return $t['name']; }, $tagRows),
+        // 0.7.7: English-name translation maps for tags and genres,
+        // keyed by the Turkish name. Only non-empty entries are present.
+        // Old clients ignore these; new clients use them to fill name_en.
+        'tag_name_en'   => $tagNameEn,
+        'genre_name_en' => $genreNameEn,
     ];
 
     $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

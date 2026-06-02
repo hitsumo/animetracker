@@ -45,10 +45,10 @@ if (!$currentVersion) {
     $currentVersion = t('list_settings.version.unknown');
 }
 
-// Son katalog senkronizasyonu zamani. settings tablosunda satir yoksa
-// "hic senkronize edilmemis" gosterilecek. UTC olarak saklaniyor, kullaniciya
-// kendi saat diliminde gosterim functions.php icinde ya da inline yapilabilir
-// — simdilik sadece UTC timestamp'i basiyoruz.
+// Time of the last catalog sync. If there is no row in the settings table,
+// "never synced" is shown. Stored as UTC; showing it in the user's own
+// timezone can be done in functions.php or inline -
+// for now we just print the UTC timestamp.
 $lastCatalogSync = null;
 try {
     $stmt = $pdo->query("SELECT value FROM settings WHERE name = 'last_catalog_sync'");
@@ -93,7 +93,7 @@ if (isset($_GET['aired_msg'])) {
     $success_message = $_GET['aired_msg'];
 }
 
-// Listeyi Dışa Aktarma İşlemi
+// List Export Operation
 // Asagidaki tum POST islemleri (export, import, clear) icin ortak CSRF kontrolu.
 // Tek noktada yaparak ileride eklenecek POST handler'larin da otomatik
 // korunmasini sagliyoruz. Mevcut catalog_import.php endpoint'i kendi CSRF
@@ -105,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Madde C — Manuel "Bolum Sayisi Senkronizasyonu" butonu.
+// Item C - Manual "Episode Count Sync" button.
 // Form'dan POST geldiginde tum ongoing animeler icin AnimeSchedule
 // timetable'i sorgulanir, aired_episodes guncellenir. Sonuc mesajini
 // query string ile geri donderiyoruz (klasik PRG patern: form yenileme
@@ -141,7 +141,7 @@ if (isset($_POST['sync_aired'])) {
     exit;
 }
 
-// Madde C — Otomatik gunluk silent sync.
+// Item C - Automatic daily silent sync.
 // last_aired_sync timestamp'i bugune ait degilse (veya hic yoksa)
 // arka planda tum ongoing animeleri senkronize et. UI'da hicbir
 // gosterim olmaz (silent), kullanici sadece guncel rakamlari gorur.
@@ -198,7 +198,7 @@ if (isset($_POST['export'])) {
     exit;
 }
 
-// Listeyi İçe Aktarma İşlemi
+// List Import Operation
 if (isset($_POST['import']) && isset($_FILES['import_file'])) {
     $file = $_FILES['import_file'];
 
@@ -318,7 +318,7 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
     }
 }
 
-// Listeyi Temizleme İşlemi
+// List Clear Operation
 if (isset($_POST['clear'])) {
     if (isset($_POST['confirm_clear']) && $_POST['confirm_clear'] === 'yes') {
         // DELETE, not TRUNCATE: animes is referenced by FK constraints from
@@ -376,7 +376,7 @@ if (isset($_POST['clear'])) {
         <?php endif; ?>
 
         <div class="settings-container">
-            <!-- Dışa Aktarma Formu -->
+            <!-- Export Form -->
             <div class="settings-section">
                 <h3><?php echo htmlspecialchars(t('list_settings.section.export'), ENT_QUOTES, 'UTF-8'); ?></h3>
                 <p><?php echo htmlspecialchars(t('list_settings.section.export.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
@@ -388,7 +388,7 @@ if (isset($_POST['clear'])) {
                 </form>
             </div>
 
-            <!-- İçe Aktarma Formu -->
+            <!-- Import Form -->
             <div class="settings-section">
                 <h3><?php echo htmlspecialchars(t('list_settings.section.import'), ENT_QUOTES, 'UTF-8'); ?></h3>
                 <p><?php echo htmlspecialchars(t('list_settings.section.import.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
@@ -495,7 +495,7 @@ if (isset($_POST['clear'])) {
     </form>
 </div>
 
-	<!-- list_settings.php içindeki settings-container div'ine ekleyin -->
+	<!-- Add this to the settings-container div in list_settings.php -->
 <div class="settings-section">
     <h3><?php echo htmlspecialchars(t('list_settings.section.update'), ENT_QUOTES, 'UTF-8'); ?></h3>
     <p><?php echo htmlspecialchars(t('list_settings.section.update.desc'), ENT_QUOTES, 'UTF-8'); ?></p>

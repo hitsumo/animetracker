@@ -207,7 +207,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         );
     }
 
-    // Sonraki bölüm tarihini hesapla
+    // Calculate the next episode date
     if ($status === 'Yayın Devam Ediyor' && !empty($broadcast_day) && !empty($broadcast_time)) {
         $next_episode_date = calculateNextEpisodeDate([
             'status' => $status,
@@ -217,9 +217,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         ]);
     }
 
-    // Animeyi veritabanına ekle. mal_id ve anidb_id kolonlari URL'lerden
-    // yukarida parse edildi - katalog senkronizasyonunda kimlik eslesmesi
-    // icin kullaniliyorlar.
+    // Insert the anime into the database. mal_id and anidb_id columns were
+    // parsed from the URLs above - they are used for identity matching during
+    // catalog sync.
     //
     // Genres no longer live on this row - they are written to the
     // anime_genres join table after the INSERT, using the new anime's
@@ -634,7 +634,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     </div>
                 </div>
                 <div id="genre-tags" class="genre-tags">
-                    <!-- Seçilen tür etiketleri burada gösterilecek -->
+                    <!-- Selected genre tags are shown here -->
                 </div>
                 <input type="hidden" name="genres" id="genres-input" value="">
             </div>

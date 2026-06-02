@@ -38,7 +38,7 @@ title_pref_init($pdo);
 // lives in.
 $genres = getAllGenres($pdo);
 
-// Silme islemi — POST + CSRF token
+// Delete operation - POST + CSRF token
 // GET kullanmiyoruz cunku (a) HTTP standartina aykiri, (b) tarayici pre-fetch
 // veya <img> tag injection ile kazara/niyetli silinebilir, (c) CSRF saldirisi
 // icin ideal yuzey. Offline single-user app icin risk dusuk ama disiplin onemli.
@@ -68,17 +68,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
     exit();
 }
 
-// Sıralama parametrelerini al
+// Get sort parameters
 $sort_column = isset($_GET['sort']) ? $_GET['sort'] : 'title';
 $sort_order = isset($_GET['order']) ? $_GET['order'] : 'asc';
 
-// Geçerli sıralama sütunlarını tanımla
+// Define valid sort columns
 $valid_sort_columns = ['title', 'watch_status', 'watched_episodes', 'next_episode_date'];
 if (!in_array($sort_column, $valid_sort_columns)) {
     $sort_column = 'title';
 }
 
-// Geçerli sıralama yönlerini tanımla
+// Define valid sort directions
 $valid_sort_orders = ['asc', 'desc'];
 if (!in_array($sort_order, $valid_sort_orders)) {
     $sort_order = 'asc';
@@ -113,7 +113,7 @@ $genre_filter_clause = " AND id IN (
     WHERE g.name = :genre
 )";
 
-// SQL sorgusunu oluştur
+// Build the SQL query
 $sql = "SELECT * FROM animes WHERE 1=1";
 
 if ($search_query !== '') {
@@ -143,10 +143,10 @@ if ($letter_filter) {
     }
 }
 
-// Sıralama ekle
+// Add sorting
 $sql .= " ORDER BY " . $sort_column . " " . strtoupper($sort_order);
 
-// Özel sıralama durumları
+// Special sort cases
 if ($sort_column == 'watched_episodes') {
     $sql = "SELECT * FROM animes WHERE 1=1";
     
@@ -295,7 +295,7 @@ function renderPagination($current_page, $total_pages, $total_results, $per_page
     echo '</div></div>';
 }
 
-// Sıralama bağlantısı oluşturma fonksiyonu
+// Function to build the sort link
 function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
     $params = [
         'sort' => $column,
@@ -742,7 +742,7 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                             <td class="episode-count"><?php
                                 // Episode display logic (v0.5+):
                                 //  - total_episodes set  -> watched/total (finished or short series)
-                                //  - total NULL, aired set -> watched/aired (yayında) (long ongoing series)
+                                //  - total NULL, aired set -> watched/aired (on air) (long ongoing series)
                                 //  - everything NULL     -> watched/?
                                 //
                                 // 0.5.5: ceiling (tavan) = total if set, else aired,
@@ -765,7 +765,7 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                                               : (($ec_aired !== null) ? $ec_aired : null);
 
                                 // ep_text = pure count (no badge). The
-                                // "(yayında)" tag is now a separate line
+                                // "(on air)" tag is now a separate line
                                 // between the count and the +/- buttons,
                                 // so it lives in its own variable.
                                 $ec_badge = '';
@@ -886,7 +886,7 @@ if ($anime['status'] == 'Yayın Tamamlandı') {
                 return;
             }
 
-            // Hucre sayimini guncelle. Badge ("(yayında)") artik ayri
+            // Update the cell count. The "(on air)" badge is now separate
             // bir .ep-badge satiri; +/- sadece izlenen sayisini degistirir,
             // yayin durumunu degil. Bu yuzden sadece saf "izlenen/tavan"
             // metnini yaziyoruz, badge'e dokunmuyoruz.
@@ -919,12 +919,12 @@ if ($anime['status'] == 'Yayın Tamamlandı') {
                 if (tr) {
                     var statusTd = tr.querySelector('.watch-status-cell');
                     if (statusTd) {
-                        // 0.6: sunucu hem ASCII iç değeri (watch_status_new) hem
-                        // de TR UI etiketi (watch_status_label) döndürür. Helper
-                        // var ise onu yaz; eski sunucu cevabı için fallback olarak
-                        // ham değeri yaz. update_watched.php 0.6 ile label alanı
-                        // ekledi - bu fallback eski tarayıcı önbelleğine karşı
-                        // savunmadır.
+                        // 0.6: the server returns both the ASCII internal value (watch_status_new)
+                        // and the TR UI label (watch_status_label). If the helper
+                        // exists, write that; for old server responses, fall back to
+                        // writing the raw value. update_watched.php added the label field
+                        // in 0.6 - this fallback is a defense against stale browser
+                        // cache.
                         statusTd.textContent = data.watch_status_label || data.watch_status_new;
                     }
                 }

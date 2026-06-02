@@ -192,6 +192,15 @@ $catalogAnimes  = $payload['animes'];
 $catalogMarkers = $payload['chronology'] ?? [];
 $catalogTags    = $payload['tags'] ?? []; // global sentence library
 
+// 0.7.7: optional English-name translation maps, keyed by Turkish name.
+// Absent when syncing from a pre-0.7.7 server - treated as empty, which
+// leaves local name_en untouched (catalog never clears a local English
+// name; it only fills/overwrites when it actually sends one).
+$catalogTagNameEn   = $payload['tag_name_en']   ?? [];
+$catalogGenreNameEn = $payload['genre_name_en'] ?? [];
+if (!is_array($catalogTagNameEn))   $catalogTagNameEn   = [];
+if (!is_array($catalogGenreNameEn)) $catalogGenreNameEn = [];
+
 // --- Ensure uploads directory exists ------------------------------------
 
 $uploadsDir = __DIR__ . '/uploads';
@@ -550,24 +559,38 @@ try {
     // collide with the outer transaction we are already in. The tags
     // handler below uses the same inline pattern for the same reason.
     $findGenreStmt        = $pdo->prepare("SELECT id FROM genres WHERE name = ? LIMIT 1");
-    $insertGenreStmt      = $pdo->prepare("INSERT INTO genres (name) VALUES (?)");
+    $insertGenreStmt      = $pdo->prepare("INSERT INTO genres (name, name_en) VALUES (?, ?)");
+    $updateGenreEnStmt    = $pdo->prepare("UPDATE genres SET name_en = ? WHERE id = ?");
     $deleteGenreLinkStmt  = $pdo->prepare("DELETE FROM anime_genres WHERE anime_id = ?");
     $insertGenreLinkStmt  = $pdo->prepare("INSERT INTO anime_genres (anime_id, genre_id) VALUES (?, ?)");
 
-    $resolveGenreId = function($name) use ($findGenreStmt, $insertGenreStmt, $pdo) {
+    // 0.7.7: name_en handling. The catalog is authoritative when it sends
+    // a non-empty English name (it overwrites the local value). A missing
+    // or empty name_en is NOT sent down as NULL - we leave the local value
+    // alone, so a sync never erases an English name the user typed.
+    $resolveGenreId = function($name) use ($findGenreStmt, $insertGenreStmt, $updateGenreEnStmt, $pdo, $catalogGenreNameEn) {
         $name = trim((string)$name);
         if ($name === '') return 0;
         if (mb_strlen($name) > 50) {
             $name = mb_substr($name, 0, 50);
         }
+        $nameEn = isset($catalogGenreNameEn[$name]) ? trim((string)$catalogGenreNameEn[$name]) : '';
+        if ($nameEn !== '' && mb_strlen($nameEn) > 50) {
+            $nameEn = mb_substr($nameEn, 0, 50);
+        }
         $findGenreStmt->execute([$name]);
         $id = $findGenreStmt->fetchColumn();
         $findGenreStmt->closeCursor();
         if ($id !== false) {
-            return (int)$id;
+            $id = (int)$id;
+            // Catalog wins only when it actually carries an English name.
+            if ($nameEn !== '') {
+                $updateGenreEnStmt->execute([$nameEn, $id]);
+            }
+            return $id;
         }
         try {
-            $insertGenreStmt->execute([$name]);
+            $insertGenreStmt->execute([$name, $nameEn !== '' ? $nameEn : null]);
             return (int)$pdo->lastInsertId();
         } catch (PDOException $e) {
             if ($e->getCode() === '23000') {
@@ -575,7 +598,11 @@ try {
                 $existingId = $findGenreStmt->fetchColumn();
                 $findGenreStmt->closeCursor();
                 if ($existingId !== false) {
-                    return (int)$existingId;
+                    $existingId = (int)$existingId;
+                    if ($nameEn !== '') {
+                        $updateGenreEnStmt->execute([$nameEn, $existingId]);
+                    }
+                    return $existingId;
                 }
             }
             throw $e;
@@ -626,24 +653,36 @@ try {
     // useful so manage_tags.php shows the same library as the
     // server).
     $findTagStmt    = $pdo->prepare("SELECT id FROM tags WHERE name = ? LIMIT 1");
-    $insertTagStmt  = $pdo->prepare("INSERT INTO tags (name) VALUES (?)");
+    $insertTagStmt  = $pdo->prepare("INSERT INTO tags (name, name_en) VALUES (?, ?)");
+    $updateTagEnStmt = $pdo->prepare("UPDATE tags SET name_en = ? WHERE id = ?");
     $deleteLinkStmt = $pdo->prepare("DELETE FROM anime_tags WHERE anime_id = ?");
     $insertLinkStmt = $pdo->prepare("INSERT INTO anime_tags (anime_id, tag_id) VALUES (?, ?)");
 
-    $resolveTagId = function($name) use ($findTagStmt, $insertTagStmt, $pdo) {
+    // 0.7.7: same name_en rule as genres - catalog overwrites only when it
+    // sends a non-empty English name; an absent/empty value leaves the
+    // local name_en untouched.
+    $resolveTagId = function($name) use ($findTagStmt, $insertTagStmt, $updateTagEnStmt, $pdo, $catalogTagNameEn) {
         $name = trim((string)$name);
         if ($name === '') return 0;
         if (mb_strlen($name) > 150) {
             $name = mb_substr($name, 0, 150);
         }
+        $nameEn = isset($catalogTagNameEn[$name]) ? trim((string)$catalogTagNameEn[$name]) : '';
+        if ($nameEn !== '' && mb_strlen($nameEn) > 150) {
+            $nameEn = mb_substr($nameEn, 0, 150);
+        }
         $findTagStmt->execute([$name]);
         $id = $findTagStmt->fetchColumn();
         $findTagStmt->closeCursor();
         if ($id !== false) {
-            return (int)$id;
+            $id = (int)$id;
+            if ($nameEn !== '') {
+                $updateTagEnStmt->execute([$nameEn, $id]);
+            }
+            return $id;
         }
         try {
-            $insertTagStmt->execute([$name]);
+            $insertTagStmt->execute([$name, $nameEn !== '' ? $nameEn : null]);
             return (int)$pdo->lastInsertId();
         } catch (PDOException $e) {
             if ($e->getCode() === '23000') {
@@ -651,7 +690,11 @@ try {
                 $existingId = $findTagStmt->fetchColumn();
                 $findTagStmt->closeCursor();
                 if ($existingId !== false) {
-                    return (int)$existingId;
+                    $existingId = (int)$existingId;
+                    if ($nameEn !== '') {
+                        $updateTagEnStmt->execute([$nameEn, $existingId]);
+                    }
+                    return $existingId;
                 }
             }
             throw $e;

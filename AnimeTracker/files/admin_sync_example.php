@@ -96,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['do_push'])) {
     if (!csrf_verify($_POST['csrf_token'] ?? '')) {
         $error = 'CSRF tokeni gecersiz.';
     } elseif (!$secretConfigured) {
-        $error = 'ADMIN_PUSH_SECRET config.php icinde tanimli degil.';
+        $error = 'ADMIN_PUSH_SECRET admin_secret.php icinde tanimli degil.';
     } else {
         try {
             // Gather all catalog animes.
@@ -144,15 +144,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['do_push'])) {
             ")->fetchAll(PDO::FETCH_ASSOC);
 
             // Gather every tag (recommendation system sentences).
+            //
+            // 0.7.7: tags also carry an optional English name (name_en).
+            // The wire keys tags by their (Turkish) name, so name_en is
+            // shipped as a separate translation map (tag_name_en:
+            // { turkish_name: english_name }) rather than turning the
+            // per-anime tag list into objects. Old servers ignore the
+            // extra key; the import side fills name_en from it. Only
+            // non-empty values are sent. Mirror of catalog.php.
             $tagRows = $pdo->query("
-                SELECT id, name FROM tags ORDER BY name
+                SELECT id, name, name_en FROM tags ORDER BY name
             ")->fetchAll(PDO::FETCH_ASSOC);
 
             // Build a lookup so we can attach a flat list of sentence
             // texts to each anime in the payload.
             $tagById = [];
+            $tagNameEn = [];
             foreach ($tagRows as $t) {
                 $tagById[(int)$t['id']] = $t['name'];
+                if (isset($t['name_en']) && $t['name_en'] !== '') {
+                    $tagNameEn[$t['name']] = $t['name_en'];
+                }
             }
 
             $linkRows = $pdo->query("
@@ -204,6 +216,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['do_push'])) {
             }
             unset($a);
 
+            // 0.7.7: genre English-name translation map, built from the
+            // master genres table (all genres, not just linked ones) so
+            // it stays symmetric with the global tag library. Only
+            // non-empty values. Mirror of catalog.php.
+            $genreNameEn = [];
+            $genreNameEnRows = $pdo->query("
+                SELECT name, name_en FROM genres ORDER BY name
+            ")->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($genreNameEnRows as $row) {
+                if (isset($row['name_en']) && $row['name_en'] !== '') {
+                    $genreNameEn[$row['name']] = $row['name_en'];
+                }
+            }
+
             // Build payload
             $timestamp = time();
             $payload = [
@@ -211,6 +237,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['do_push'])) {
                 'animes'     => $animeRows,
                 'chronology' => $markers,
                 'tags'       => array_map(function($t) { return $t['name']; }, $tagRows),
+                // 0.7.7: English-name translation maps for tags and
+                // genres, keyed by the Turkish name. Only non-empty
+                // entries. Old import sides ignore these.
+                'tag_name_en'   => $tagNameEn,
+                'genre_name_en' => $genreNameEn,
             ];
             $body = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             if ($body === false) {
