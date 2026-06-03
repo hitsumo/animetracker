@@ -1,4 +1,4 @@
-﻿Unicode true
+Unicode true
 
 !include "MUI2.nsh"
 !include "FileFunc.nsh"
@@ -213,13 +213,16 @@ Section "Anime Tracker Kurulumu" SecMain
     FileWrite $2 "// define('ANIMESCHEDULE_API_KEY', 'token_buraya_gelecek');$\r$\n"
     FileClose $2
     
-    ; Kurulum sonrasi temizlik: setup.php ve install.php sadece manuel
-    ; kurulum yolu icin gereklidir. .exe ile kurulan kullanicilarda bu
-    ; dosyalarin tarayicidan ulasilabilir kalmasi guvenlik riskidir
-    ; (orn. biri DB sifresini sifirlayabilir veya schema'yi yeniden yukleyebilir).
+    ; Kurulum sonrasi temizlik: setup.php / setup_en.php ve install.php /
+    ; install_en.php sadece manuel kurulum yolu icin gereklidir. .exe ile
+    ; kurulan kullanicilarda bu dosyalarin tarayicidan ulasilabilir kalmasi
+    ; guvenlik riskidir (orn. biri DB sifresini sifirlayabilir veya schema'yi
+    ; yeniden yukleyebilir). EN ikizleri de (0.7.8) ayni riski tasir, silinir.
     DetailPrint "Kurulum sonrasi temizlik yapiliyor..."
     Delete "$OUTDIR\setup.php"
+    Delete "$OUTDIR\setup_en.php"
     Delete "$OUTDIR\install.php"
+    Delete "$OUTDIR\install_en.php"
 SectionEnd
 
 Section "Masaüstü Kısayolu" SecDesktop

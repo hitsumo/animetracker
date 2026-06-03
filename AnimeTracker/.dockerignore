@@ -36,3 +36,15 @@ Dockerfile
 .env
 .env.local
 .env.*.local
+
+# Sir tasiyan PHP dosyalari (HASSAS - savunma ikinci kat).
+# Normalde admin tarafi files/ disinda tutulur ve config.php
+# docker-entrypoint.sh tarafindan ortam degiskenlerinden uretilir;
+# bu blok yanlislikla files/'a sir dusmesine karsi ek guvencedir.
+# **/ on eki gerekli: uygulama files/'tan kopyalanir, kok eslesme yetmez.
+# *_example.php sablonlari ESLENMEZ (gercek sir tasimaz, image'da kalir).
+**/config.php
+**/admin_secret.php
+**/anime_api_config.php
+**/admin_sync.php
+**/admin_push_config.php

@@ -1,14 +1,16 @@
 <?php
 
 /**
- * Anime Tracker - Schema Installer
+ * Anime Tracker - Schema Installer (English)
  * https://www.sicakcikolata.com
  * Copyright (C) 2025 Okan Sumer
  * Licensed under GNU General Public License v2
  *
- * Second step of the WordPress-style setup flow. Runs after setup.php
- * has written config.php. Loads schema.sql and executes each statement
- * against the freshly created database.
+ * English twin of install.php. Setup and install run before the
+ * lang_init/t() dictionary system is usable, so - following the
+ * ai_notice.php / ai_notice_en.php convention - the English install
+ * screen is a separate static file. setup_en.php redirects here so
+ * the user stays inside the English flow.
  *
  * The file is idempotent - running it again after a successful install
  * is safe because:
@@ -21,10 +23,10 @@
  * could wipe a working install.
  *
  * After a successful install the user is shown a prominent warning
- * telling them to delete setup.php and install.php manually. In the
- * .exe installer flow these files are removed automatically during
- * installation (installer.nsi lines 169-170) so this step is only
- * relevant for manual / htdocs-copy installs.
+ * telling them to delete the setup files manually. In the .exe installer
+ * flow these files are removed automatically during installation
+ * (installer.nsi lines 169-170) so this step is only relevant for
+ * manual / htdocs-copy installs.
  */
 
 require_once __DIR__ . '/db.php';
@@ -38,12 +40,12 @@ $executed   = 0;
 
 try {
     if (!file_exists($schemaPath)) {
-        throw new Exception('schema.sql dosyasi bulunamadi: ' . $schemaPath);
+        throw new Exception('schema.sql file not found: ' . $schemaPath);
     }
 
     $sql = file_get_contents($schemaPath);
     if ($sql === false) {
-        throw new Exception('schema.sql dosyasi okunamadi. Dosya izinlerini kontrol edin.');
+        throw new Exception('schema.sql could not be read. Check the file permissions.');
     }
 
     // Strip line comments (-- ...). Keep block comments because schema.sql
@@ -75,16 +77,16 @@ try {
     }
 
 } catch (Exception $e) {
-    error_log('[anime_tracker] install.php error: ' . $e->getMessage());
+    error_log('[anime_tracker] install_en.php error: ' . $e->getMessage());
     $errors[] = $e->getMessage();
 }
 
 ?>
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Anime Tracker - Kurulum Tamamlandi</title>
+    <title>Anime Tracker - Installation Complete</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
@@ -163,36 +165,36 @@ try {
 <body>
     <div class="install-container">
         <div class="lang-switch">
-            <a href="install_en.php"><i class="fas fa-globe"></i> English</a>
+            <a href="install.php"><i class="fas fa-globe"></i> Türkçe</a>
         </div>
 
-        <h1><i class="fas fa-database"></i> Veritabani Kurulumu</h1>
+        <h1><i class="fas fa-database"></i> Database Installation</h1>
 
         <?php if (!empty($errors)): ?>
             <div class="alert alert-error">
-                <strong><i class="fas fa-exclamation-triangle"></i> Kurulum sirasinda hata:</strong>
+                <strong><i class="fas fa-exclamation-triangle"></i> Error during installation:</strong>
                 <?php foreach ($errors as $err): ?>
                     <div><?php echo htmlspecialchars($err, ENT_QUOTES, 'UTF-8'); ?></div>
                 <?php endforeach; ?>
                 <p style="margin-top:10px;margin-bottom:0;">
-                    Detayli bilgi icin web sunucusunun hata loglarini kontrol edin.
-                    Sorun devam ederse <a href="setup.php">kurulum sihirbazina</a>
-                    dondurup baglanti bilgilerinizi tekrar kontrol edin.
+                    Check the web server error logs for more detail. If the problem
+                    persists, go back to the <a href="setup_en.php">setup wizard</a>
+                    and re-check your connection details.
                 </p>
             </div>
         <?php else: ?>
             <div class="alert alert-success">
-                <strong><i class="fas fa-check-circle"></i> Kurulum basariyla tamamlandi</strong>
-                <?php echo (int)$executed; ?> SQL ifadesi basariyla calistirildi.
-                Veritabani tablolari, varsayilan turler ve yapilandirma hazir.
+                <strong><i class="fas fa-check-circle"></i> Installation completed successfully</strong>
+                <?php echo (int)$executed; ?> SQL statements were executed successfully.
+                The database tables, default genres and configuration are ready.
             </div>
 
             <div class="alert alert-warning">
-                <strong><i class="fas fa-shield-alt"></i> Guvenlik Uyarisi</strong>
-                Kurulum tamamlandigina gore asagidaki iki dosyayi sunucu uzerinden
-                <strong>manuel olarak silin</strong>. Bu dosyalar tarayicidan
-                erisilebilir kaldigi surece biri veritabaninizi sifirlayabilir
-                veya yapilandirmanizi degistirebilir.
+                <strong><i class="fas fa-shield-alt"></i> Security Warning</strong>
+                Now that installation is complete, <strong>manually delete</strong>
+                the following files from the server. As long as they remain
+                reachable from the browser, someone could reset your database
+                or change your configuration.
                 <ul style="margin-top:8px;margin-bottom:0;">
                     <li><code>setup.php</code></li>
                     <li><code>setup_en.php</code></li>
@@ -202,7 +204,7 @@ try {
             </div>
 
             <a href="index.php" class="main-button">
-                <i class="fas fa-arrow-right"></i> Ana Sayfaya Git
+                <i class="fas fa-arrow-right"></i> Go to Home Page
             </a>
         <?php endif; ?>
     </div>

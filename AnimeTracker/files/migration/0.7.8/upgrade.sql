@@ -1,0 +1,8 @@
+-- Anime Tracker 0.7.8 migration
+-- No schema change. Version bump only.
+--
+-- This release adds the English installation screens (setup_en.php and
+-- install_en.php). They are plain PHP/HTML pages that touch no database
+-- table, so there is nothing to migrate. This empty migration only
+-- advances settings.version through the presence of the 0.7.8 folder, so
+-- installations that jump straight to 0.7.8 do not stay pinned earlier.
