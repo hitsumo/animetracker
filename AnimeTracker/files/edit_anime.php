@@ -25,6 +25,12 @@ require_once __DIR__ . '/functions.php';
 // Initialise the i18n layer (see lang_init() in functions.php).
 lang_init($pdo);
 
+// Editing an anime writes directly to the shared catalog (animes), so it is
+// restricted to moderators and above (online only; no-op in self-host where
+// the owner counts as admin). Regular users get a suggestion path instead
+// once the suggestions flow lands.
+require_role($pdo, 'moderator');
+
 // Synopsis edit override (0.7.2): admin capability that lifts the Mode 2
 // readonly lock on the catalog synopsis (TR/EN). Stored as a runtime
 // settings key, toggled from admin_capabilities.php (admin-only, never
@@ -60,6 +66,19 @@ if (!$anime) {
     header('Location: index.php');
     exit;
 }
+
+// Kisisel izleme durumu artik user_anime'da (1.0.1). animes'ten gelen
+// vestijyal kolonlarin uzerine mevcut kullanicinin user_anime degerlerini
+// bindir; boylece hem asagidaki Mod 1/Mod 2 synopsis mantigi hem de form
+// render kisisel veriyi dogru kaynaktan okur. user_synopsis(_en) icin
+// NULL/''/deger ayrimi korunur (ua_get_state ham degeri doner; NULL =
+// "o dil hala Katalog", '' = "bilincli silindi").
+$uaState = ua_get_state($pdo, current_user_id(), $id);
+$anime['watch_status']     = $uaState['watch_status'];
+$anime['watched_episodes'] = $uaState['watched_episodes'];
+$anime['notes']            = $uaState['notes'];
+$anime['user_synopsis']    = $uaState['user_synopsis'];
+$anime['user_synopsis_en'] = $uaState['user_synopsis_en'];
 
 // "Siradaki anime" dropdown'u icin: tum animeleri cek (mevcut anime haric).
 // series_name dolu ise ayni seridekiler basta gosterilir, diger animeler
@@ -336,10 +355,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             status = ?,
             total_episodes = ?,
             aired_episodes = ?,
-            watched_episodes = ?,
-            notes = ?,
             image_path = ?,
-            watch_status = ?,
             next_episode_date = ?,
             anidb_link = ?,
             mal_link = ?,
@@ -351,8 +367,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             synopsis_tr = ?,
             synopsis_en = ?,
             translation_status = ?,
-            user_synopsis = ?,
-            user_synopsis_en = ?,
             release_date = ?,
             end_date = ?,
             series_name = ?,
@@ -382,10 +396,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $status,
             $total_episodes,
             $aired_episodes,
-            $watched_episodes,
-            $notes,
             $target_file,
-            $watch_status,
             $next_episode_date,
             $anidb_link,
             $mal_link,
@@ -397,8 +408,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $synopsis_tr,
             $synopsis_en,
             $translation_status,
-            $user_synopsis,
-            $user_synopsis_en,
             $release_date,
             $end_date,
             $series_name,
@@ -408,6 +417,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $anidb_id,
             $filler_tracking,
             $id
+        ]);
+
+        // Kisisel izleme durumu (watched_episodes / notes / watch_status)
+        // ve dil-ozel Kisisel Konu (user_synopsis / user_synopsis_en) artik
+        // user_anime'da (1.0.1) - animes UPDATE'inden cikarildilar. Mevcut
+        // kullanicinin satirina yaziliyorlar. POST toplama asamasi (Mod 1/
+        // Mod 2 + admin override) $user_synopsis(_en)'i zaten dogru hesapladi:
+        // o dil Katalog ise NULL, Kisisel ise POST degeri ('' = bilincli
+        // silindi). NULL yazmak o dili Katalog modunda birakir.
+        ua_set_state($pdo, current_user_id(), $id, [
+            'watch_status'     => $watch_status,
+            'watched_episodes' => $watched_episodes,
+            'notes'            => $notes,
+            'user_synopsis'    => $user_synopsis,
+            'user_synopsis_en' => $user_synopsis_en,
         ]);
 
         // UPDATE basarili - simdi guvenle eski resmi sil. Yeni resim
@@ -560,6 +584,7 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
         <div class="header-section">
             <a href="about.php" class="about-link"><?php echo htmlspecialchars(t('nav.about'), ENT_QUOTES, 'UTF-8'); ?></a>
             <?php // SECTION: Language switcher (snippet copy - see _lang_switcher_reference.php) ?>
+            <?php echo auth_nav_links(); ?>
             <div class="lang-switcher" role="group" aria-label="<?php echo htmlspecialchars(t('lang.aria_label'), ENT_QUOTES, 'UTF-8'); ?>">
                 <form action="set_language.php" method="post" class="lang-switch-form">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">

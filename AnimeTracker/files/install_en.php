@@ -81,6 +81,74 @@ try {
     $errors[] = $e->getMessage();
 }
 
+// --- First administrator (multi-user mode only) -------------------------
+//
+// In single-user / self-host mode there is no login, so this whole block is
+// skipped and install behaves exactly as before. In multi-user mode the
+// installer creates the first admin (WordPress method): until a usable admin
+// (an admin row that has a password) exists, show a username + password form
+// and promote the seeded owner row (id 1) into the real administrator.
+//
+// No CSRF token here, consistent with the rest of setup/install: these files
+// run once during installation and are deleted afterwards.
+$firstAdminNeeded = false;
+$adminReady       = false;
+$adminErrors      = [];
+
+if (empty($errors) && MULTI_USER_MODE) {
+    try {
+        $adminReady = ((int)$pdo->query(
+            "SELECT COUNT(*) FROM users WHERE role = 'admin' AND password_hash IS NOT NULL"
+        )->fetchColumn()) > 0;
+    } catch (PDOException $e) {
+        $adminReady = false;
+    }
+
+    if (!$adminReady) {
+        $firstAdminNeeded = true;
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_username'])) {
+            $au = trim($_POST['admin_username'] ?? '');
+            $ap = $_POST['admin_password'] ?? '';
+            $ac = $_POST['admin_password_confirm'] ?? '';
+
+            if ($au === '' || $ap === '' || $ac === '') {
+                $adminErrors[] = 'Username and password fields are required.';
+            } elseif (mb_strlen($au) > 32) {
+                $adminErrors[] = 'Username can be at most 32 characters.';
+            } elseif (strlen($ap) < 8) {
+                $adminErrors[] = 'Password must be at least 8 characters.';
+            } elseif ($ap !== $ac) {
+                $adminErrors[] = 'Passwords do not match.';
+            } else {
+                try {
+                    $hash = password_hash($ap, PASSWORD_DEFAULT);
+                    // Promote the seeded owner (id 1) if it exists, else insert.
+                    $ownerExists = ((int)$pdo->query(
+                        "SELECT COUNT(*) FROM users WHERE id = 1"
+                    )->fetchColumn()) > 0;
+                    if ($ownerExists) {
+                        $stmt = $pdo->prepare(
+                            "UPDATE users SET username = ?, password_hash = ?, role = 'admin', status = 'active' WHERE id = 1"
+                        );
+                    } else {
+                        $stmt = $pdo->prepare(
+                            "INSERT INTO users (username, password_hash, role, status) VALUES (?, ?, 'admin', 'active')"
+                        );
+                    }
+                    $stmt->execute([$au, $hash]);
+                    $firstAdminNeeded = false;
+                    $adminReady       = true;
+                } catch (PDOException $e) {
+                    error_log('[anime_tracker] install_en first-admin: ' . $e->getMessage());
+                    $adminErrors[]    = 'Could not create administrator. The username may already be in use.';
+                    $firstAdminNeeded = true;
+                }
+            }
+        }
+    }
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -160,6 +228,32 @@ try {
         .main-button:hover {
             background-color: #0056b3;
         }
+        .form-row { margin-bottom: 15px; }
+        .form-row label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        .form-row input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        .submit-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+        }
+        .submit-button:hover { background-color: #0056b3; }
     </style>
 </head>
 <body>
@@ -182,11 +276,49 @@ try {
                     and re-check your connection details.
                 </p>
             </div>
+        <?php elseif ($firstAdminNeeded): ?>
+            <div class="alert alert-success">
+                <strong><i class="fas fa-check-circle"></i> Database is ready</strong>
+                <?php echo (int)$executed; ?> SQL statements were executed. You chose a
+                multi-user installation; now create the first administrator account.
+            </div>
+
+            <?php if (!empty($adminErrors)): ?>
+                <div class="alert alert-error">
+                    <strong><i class="fas fa-exclamation-triangle"></i> Could not create administrator:</strong>
+                    <?php foreach ($adminErrors as $ae): ?>
+                        <div><?php echo htmlspecialchars($ae, ENT_QUOTES, 'UTF-8'); ?></div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+
+            <h2 style="font-size:1.1em;margin-bottom:15px;"><i class="fas fa-user-shield"></i> Administrator Account</h2>
+            <form method="post">
+                <div class="form-row">
+                    <label for="admin_username">Username</label>
+                    <input type="text" id="admin_username" name="admin_username" value="<?php echo htmlspecialchars($_POST['admin_username'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" maxlength="32" required>
+                </div>
+                <div class="form-row">
+                    <label for="admin_password">Password</label>
+                    <input type="password" id="admin_password" name="admin_password" required>
+                    <small style="color:#888;font-size:12px;">At least 8 characters.</small>
+                </div>
+                <div class="form-row">
+                    <label for="admin_password_confirm">Password (confirm)</label>
+                    <input type="password" id="admin_password_confirm" name="admin_password_confirm" required>
+                </div>
+                <button type="submit" class="submit-button">
+                    <i class="fas fa-user-plus"></i> Create Administrator
+                </button>
+            </form>
         <?php else: ?>
             <div class="alert alert-success">
                 <strong><i class="fas fa-check-circle"></i> Installation completed successfully</strong>
                 <?php echo (int)$executed; ?> SQL statements were executed successfully.
                 The database tables, default genres and configuration are ready.
+                <?php if (MULTI_USER_MODE): ?>
+                    The administrator account has been created.
+                <?php endif; ?>
             </div>
 
             <div class="alert alert-warning">
@@ -203,8 +335,8 @@ try {
                 </ul>
             </div>
 
-            <a href="index.php" class="main-button">
-                <i class="fas fa-arrow-right"></i> Go to Home Page
+            <a href="<?php echo MULTI_USER_MODE ? 'login.php' : 'index.php'; ?>" class="main-button">
+                <i class="fas fa-arrow-right"></i> <?php echo MULTI_USER_MODE ? 'Go to Sign In' : 'Go to Home Page'; ?>
             </a>
         <?php endif; ?>
     </div>

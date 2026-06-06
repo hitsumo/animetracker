@@ -57,12 +57,17 @@ function getSeriesChain($pdo, $start_id) {
         if (isset($visited[$current])) break; // circular guard
         $visited[$current] = true;
         $stmt = $pdo->prepare("
-            SELECT id, title, title_english, media_type, total_episodes, aired_episodes,
-                   watched_episodes, watch_status, status, image_path,
-                   release_date, next_in_series, series_name
-            FROM animes WHERE id = ?
+            SELECT a.id, a.title, a.title_english, a.media_type, a.total_episodes, a.aired_episodes,
+                   COALESCE(ua.watched_episodes, 0) AS watched_episodes,
+                   COALESCE(ua.watch_status, 'PlanToWatch') AS watch_status,
+                   a.status, a.image_path,
+                   a.release_date, a.next_in_series, a.series_name
+            FROM animes a
+            LEFT JOIN user_anime ua
+                   ON ua.anime_id = a.id AND ua.user_id = ?
+            WHERE a.id = ?
         ");
-        $stmt->execute([$current]);
+        $stmt->execute([current_user_id(), $current]);
         $anime = $stmt->fetch(PDO::FETCH_ASSOC);
         $stmt->closeCursor();
         if (!$anime) break;

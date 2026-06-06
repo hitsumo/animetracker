@@ -1,0 +1,280 @@
+<?php
+
+/**
+ * Anime Tracker - Auth Helpers (password hashing, session login/logout,
+ * role checks, capability gating)
+ * https://www.sicakcikolata.com
+ * Copyright (C) 2025 Okan Sumer
+ * Licensed under GNU General Public License v2
+ *
+ * ---
+ *
+ * Faz 2 / Milestone 2 (auth) - slice 1 skeleton.
+ *
+ * This file only DEFINES the auth API. In this slice nothing calls these
+ * functions yet (wiring endpoints + UI happens in a later slice), so adding
+ * the file is purely additive and does not change behaviour.
+ *
+ * Two-mode contract (mirrors current_user_id() in db.php):
+ *   - MULTI_USER_MODE = false (self-host): there is no login. The single
+ *     seeded owner (id 1) is treated as an always-present admin. Every gate
+ *     below is a no-op that passes, so self-host behaviour is unchanged.
+ *   - MULTI_USER_MODE = true (online): the session user drives identity and
+ *     authorization.
+ *
+ * Loaded via the functions.php loader. Assumes db.php has already run
+ * (session started, MULTI_USER_MODE defined, current_user_id() available).
+ */
+
+/**
+ * Numeric rank for a role, used for "at least this role" comparisons.
+ * Higher rank = more authority. Unknown/empty role ranks 0 (below 'user').
+ */
+function auth_role_rank($role)
+{
+    $ranks = [
+        'user'      => 1,
+        'trusted'   => 2,
+        'moderator' => 3,
+        'admin'     => 4,
+    ];
+    return isset($ranks[$role]) ? $ranks[$role] : 0;
+}
+
+/**
+ * Hash a plaintext password with the current default algorithm
+ * (bcrypt/argon2 depending on the PHP build). Used at registration and
+ * password change.
+ */
+function auth_hash_password($plain)
+{
+    return password_hash($plain, PASSWORD_DEFAULT);
+}
+
+/**
+ * Verify a plaintext password against a stored hash.
+ *
+ * Returns false for an empty/NULL hash: the self-host owner row carries a
+ * NULL password_hash and must never authenticate via login.
+ */
+function auth_verify_password($plain, $hash)
+{
+    if (!is_string($hash) || $hash === '') {
+        return false;
+    }
+    return password_verify($plain, $hash);
+}
+
+/**
+ * Attempt to log a user in by username + password.
+ *
+ * Only meaningful in multi-user mode; self-host has no login screen. On
+ * success: regenerate the session id (fixation defense) and store the user
+ * id in the session. Returns true on success, false otherwise (caller shows
+ * a generic "invalid credentials" message - never reveal which half failed).
+ */
+function auth_login($pdo, $username, $password)
+{
+    $stmt = $pdo->prepare(
+        "SELECT id, password_hash, status FROM users WHERE username = ? LIMIT 1"
+    );
+    $stmt->execute([(string)$username]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$user || $user['status'] !== 'active') {
+        return false;
+    }
+    if (!auth_verify_password($password, $user['password_hash'])) {
+        return false;
+    }
+
+    session_regenerate_id(true);
+    $_SESSION['user_id'] = (int)$user['id'];
+    return true;
+}
+
+/**
+ * Log the current user out: drop the session user id and issue a fresh
+ * session id. Self-host never calls this (no login), but it is safe there.
+ */
+function auth_logout()
+{
+    unset($_SESSION['user_id']);
+    session_regenerate_id(true);
+}
+
+/**
+ * Return the current user's DB row (id, username, email, role, status) or
+ * null when there is no resolvable user (anonymous in multi-user mode).
+ *
+ * Cached per request, keyed by user id, so repeated calls hit the DB once.
+ * In self-host this resolves the seeded owner (id 1).
+ */
+function current_user($pdo)
+{
+    static $cache = [];
+
+    $uid = current_user_id();
+    if ($uid === null) {
+        return null;
+    }
+    if (array_key_exists($uid, $cache)) {
+        return $cache[$uid];
+    }
+
+    $stmt = $pdo->prepare(
+        "SELECT id, username, email, role, status FROM users WHERE id = ? LIMIT 1"
+    );
+    $stmt->execute([(int)$uid]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    $cache[$uid] = $row ?: null;
+    return $cache[$uid];
+}
+
+/**
+ * Whether there is a "logged-in" identity.
+ *   - self-host: always true (the owner is always present).
+ *   - online: true only when a session user id is set.
+ */
+function is_logged_in()
+{
+    if (!MULTI_USER_MODE) {
+        return true;
+    }
+    return isset($_SESSION['user_id']);
+}
+
+/**
+ * The current user's role string.
+ *   - self-host: 'admin' (owner has full authority), no DB hit.
+ *   - online: the role from the users row, or null when anonymous.
+ */
+function current_user_role($pdo)
+{
+    if (!MULTI_USER_MODE) {
+        return 'admin';
+    }
+    $u = current_user($pdo);
+    return $u ? $u['role'] : null;
+}
+
+/**
+ * Internal: reject an unauthorized request and stop.
+ *
+ * $asJson distinguishes a page (redirect) from an endpoint/AJAX call (status
+ * code + JSON body). $reason is 'login' (not authenticated) or 'forbidden'
+ * (authenticated but lacks the role).
+ */
+function auth_deny($asJson, $reason)
+{
+    if ($asJson) {
+        http_response_code($reason === 'login' ? 401 : 403);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['success' => false, 'error' => $reason]);
+    } elseif ($reason === 'login') {
+        header('Location: login.php');
+    } else {
+        http_response_code(403);
+        header('Location: index.php');
+    }
+    exit;
+}
+
+/**
+ * Require an authenticated user.
+ *   - self-host: no-op (always passes).
+ *   - online: passes only when logged in; otherwise denies via auth_deny().
+ *
+ * Pass $asJson = true from write/AJAX endpoints so the denial is a status
+ * code + JSON body instead of a redirect.
+ */
+function require_login($asJson = false)
+{
+    if (!MULTI_USER_MODE) {
+        return;
+    }
+    if (isset($_SESSION['user_id'])) {
+        return;
+    }
+    auth_deny($asJson, 'login');
+}
+
+/**
+ * Require at least the given role (see auth_role_rank for ordering).
+ *   - self-host: no-op (owner counts as admin).
+ *   - online: must be logged in AND rank >= $minRole, else auth_deny().
+ */
+function require_role($pdo, $minRole, $asJson = false)
+{
+    if (!MULTI_USER_MODE) {
+        return;
+    }
+    if (!isset($_SESSION['user_id'])) {
+        auth_deny($asJson, 'login');
+    }
+    if (auth_role_rank(current_user_role($pdo)) < auth_role_rank($minRole)) {
+        auth_deny($asJson, 'forbidden');
+    }
+}
+
+/**
+ * Capability check for UI gating (and a second server-side line of defense).
+ * Returns a bool; the SAME function backs both "should I render this button"
+ * and "is this request allowed", so the two never drift apart.
+ *
+ * Self-host returns true for everything (owner). The action names below are
+ * provisional (FAZ2_AUTH_TASARIMI section 1 matrix is finalized in the
+ * wiring slice); unknown actions deny by default.
+ */
+function can($pdo, $action)
+{
+    if (!MULTI_USER_MODE) {
+        return true;
+    }
+
+    $role = current_user_role($pdo); // null = anonymous
+
+    switch ($action) {
+        case 'browse':    // read catalog / detail
+        case 'suggest':   // submit a correction note
+            return true;  // anonymous allowed
+        case 'personal':  // own list, watch state, emotion, prefs
+        case 'add_anime': // add a new anime (goes to the approval queue)
+            return $role !== null; // any logged-in user
+        case 'moderate':  // approve suggestions/additions, manage tags/genres
+            return auth_role_rank($role) >= auth_role_rank('moderator');
+        case 'admin':     // user management, admin panel
+            return $role === 'admin';
+        default:
+            return false;
+    }
+}
+
+/**
+ * Render the auth navigation links (login / account / logout) as a string of
+ * <a> tags styled to match the existing header nav (.about-link).
+ *
+ * Returns an empty string in self-host mode, so the header looks exactly as
+ * it always has. In multi-user mode it shows "Account" + "Sign out" to a
+ * logged-in user, or "Sign in" to an anonymous visitor.
+ *
+ * Pages echo the return value just before the language switcher in their
+ * header, so the links appear in a consistent spot across the site.
+ */
+function auth_nav_links()
+{
+    if (!MULTI_USER_MODE) {
+        return '';
+    }
+
+    $link = function ($href, $key) {
+        return '<a href="' . $href . '" class="about-link">'
+            . htmlspecialchars(t($key), ENT_QUOTES, 'UTF-8')
+            . '</a>';
+    };
+
+    if (is_logged_in()) {
+        return $link('account.php', 'nav.account') . $link('logout.php', 'nav.logout');
+    }
+    return $link('login.php', 'nav.login') . $link('register.php', 'nav.register');
+}

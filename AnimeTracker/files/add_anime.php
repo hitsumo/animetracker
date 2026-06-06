@@ -28,6 +28,14 @@ require_once __DIR__ . '/functions.php';
 // Sozlukleri yukler + current_lang() degerini cache'ler.
 lang_init($pdo);
 
+// Adding an anime writes to the shared catalog (animes) with source='local',
+// which lands it in the approval queue (admin_pending.php) until a moderator
+// promotes it to source='catalog'. So any logged-in user may add (mode=true);
+// anonymous visitors cannot (the "add" button is hidden from them via
+// can('add_anime')). No-op in self-host, where the owner adds directly and the
+// row is visible immediately (single owner, no approval).
+require_login();
+
 // Master genre list for the dropdown. Fetched via the helper so the
 // rest of the page does not need to know which table the data lives
 // in. Returns rows with id and name.
@@ -224,7 +232,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Genres no longer live on this row - they are written to the
     // anime_genres join table after the INSERT, using the new anime's
     // lastInsertId(). See setAnimeGenresByNames() below.
-    $sql = "INSERT INTO animes (title, title_english, alternative_titles, status, total_episodes, aired_episodes, watched_episodes, notes, image_path, watch_status, next_episode_date, anidb_link, mal_link, anime_schedule_link, episode_interval, broadcast_day, broadcast_time, broadcast_timezone, synopsis_tr, synopsis_en, translation_status, release_date, end_date, series_name, media_type, next_in_series, mal_id, anidb_id, filler_tracking) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    //
+    // Personal columns (watched_episodes, notes, watch_status) no longer
+    // live on this row either (1.0.1) - they are written to user_anime for
+    // the current user just after the INSERT (see ua_set_state() below).
+    // animes now carries catalog data only.
+    // Catalog-add flow. In multi-user mode a moderator/admin add goes straight
+    // into the catalog (source='catalog', visible immediately); a regular
+    // user's add goes to the approval queue (source='local', listed on
+    // pending.php until a moderator promotes it). In self-host (mode=false) the
+    // row is 'local' exactly as before and is always visible (single owner, no
+    // approval), so the historical default is preserved.
+    $source = (MULTI_USER_MODE && can($pdo, 'moderate')) ? 'catalog' : 'local';
+
+    $sql = "INSERT INTO animes (title, title_english, alternative_titles, status, total_episodes, aired_episodes, image_path, next_episode_date, anidb_link, mal_link, anime_schedule_link, episode_interval, broadcast_day, broadcast_time, broadcast_timezone, synopsis_tr, synopsis_en, translation_status, release_date, end_date, series_name, media_type, next_in_series, mal_id, anidb_id, filler_tracking, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     $stmt = $pdo->prepare($sql);
 
@@ -240,10 +261,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $status,
             $total_episodes,
             $aired_episodes,
-            $watched_episodes,
-            $notes,
             $target_file,
-            $watch_status,
             $next_episode_date,
             $anidb_link,
             $mal_link,
@@ -262,7 +280,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $next_in_series,
             $mal_id,
             $anidb_id,
-            $filler_tracking
+            $filler_tracking,
+            $source
         ]);
     } catch (PDOException $e) {
         // 23000 = integrity constraint violation. Anime UNIQUE alanlari:
@@ -363,6 +382,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Yeni animenin ID'sini al - hem genres hem tags eklemek icin gerekli.
     $new_anime_id = (int)$pdo->lastInsertId();
 
+    // Kisisel izleme durumu artik user_anime'da (1.0.1). Yeni anime icin
+    // mevcut kullanicinin satirini olustur (bayrak kapaliyken user 1). Bu,
+    // INSERT'ten cikarilan watched_episodes / notes / watch_status'un yeni
+    // evi.
+    ua_set_state($pdo, current_user_id(), $new_anime_id, [
+        'watch_status'     => $watch_status,
+        'watched_episodes' => $watched_episodes,
+        'notes'            => $notes,
+    ]);
+
     // Turleri kaydet (kanonik taksonomi).
     // Form bize secilen tur isimlerini virgulle ayrilmis sekilde gonderir
     // (#genres-input hidden alani). setAnimeGenresByNames her ismi
@@ -414,6 +443,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <div class="header-section">
         <a href="about.php" class="about-link"><?php echo htmlspecialchars(t('nav.about'), ENT_QUOTES, 'UTF-8'); ?></a>
 
+        <?php echo auth_nav_links(); ?>
         <div class="lang-switcher" role="group" aria-label="<?php echo htmlspecialchars(t('lang.aria_label'), ENT_QUOTES, 'UTF-8'); ?>">
             <form method="POST" action="set_language.php" style="display:inline;">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">

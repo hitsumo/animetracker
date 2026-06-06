@@ -32,11 +32,16 @@ lang_init_admin($pdo);
 
 // --- Access control ----------------------------------------------------
 
-$clientIp = $_SERVER['REMOTE_ADDR'] ?? '';
-$isLocal = in_array($clientIp, ['127.0.0.1', '::1', 'localhost'], true);
-if (!$isLocal) {
-    http_response_code(403);
-    die(htmlspecialchars(t('admin_pending.localhost_only'), ENT_QUOTES, 'UTF-8'));
+// Online: gate by role (signed-in admin). Self-host: loopback-only.
+if (MULTI_USER_MODE) {
+    require_role($pdo, 'admin');
+} else {
+    $clientIp = $_SERVER['REMOTE_ADDR'] ?? '';
+    $isLocal = in_array($clientIp, ['127.0.0.1', '::1', 'localhost'], true);
+    if (!$isLocal) {
+        http_response_code(403);
+        die(htmlspecialchars(t('admin_pending.localhost_only'), ENT_QUOTES, 'UTF-8'));
+    }
 }
 
 $message = null;
@@ -108,12 +113,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // --- Fetch the pending list --------------------------------------------
 
-$pendingStmt = $pdo->query(
-    "SELECT id, title, status, watch_status, created_at, mal_id, anidb_id
-     FROM animes
-     WHERE source = 'local'
-     ORDER BY created_at DESC, id DESC"
+// watch_status is personal (user_anime, 1.0.1). Join the current admin's
+// row so the pending list shows their status; default un-tracked rows to
+// PlanToWatch.
+$pendingStmt = $pdo->prepare(
+    "SELECT a.id, a.title, a.status,
+            COALESCE(ua.watch_status, 'PlanToWatch') AS watch_status,
+            a.created_at, a.mal_id, a.anidb_id
+     FROM animes a
+     LEFT JOIN user_anime ua
+            ON ua.anime_id = a.id AND ua.user_id = ?
+     WHERE a.source = 'local'
+     ORDER BY a.created_at DESC, a.id DESC"
 );
+$pendingStmt->execute([current_user_id()]);
 $pending = $pendingStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Quick totals for the header

@@ -43,6 +43,16 @@ if (!$anime) {
     exit;
 }
 
+// Kisisel izleme durumu user_anime'da (1.0.1). Ana animenin watched_episodes
+// degeri (asagidaki bolum-araligi isaretlemesi ve chronology alert) mevcut
+// kullanicinin satirindan okunur. ua_get_state satir yoksa varsayilan doner.
+$uaState = ua_get_state($pdo, current_user_id(), $id);
+$anime['watch_status']     = $uaState['watch_status'];
+$anime['watched_episodes'] = $uaState['watched_episodes'];
+$anime['notes']            = $uaState['notes'];
+$anime['user_synopsis']    = $uaState['user_synopsis'];
+$anime['user_synopsis_en'] = $uaState['user_synopsis_en'];
+
 // Kronoloji markerlarini cek (after_episode sirali)
 $markers = getChronologyMarkers($pdo, $id);
 

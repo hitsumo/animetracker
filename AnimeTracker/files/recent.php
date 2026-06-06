@@ -15,14 +15,26 @@ require_once __DIR__ . '/functions.php';
 // Sayfa dilini baslat
 lang_init($pdo);
 
-$stmt = $pdo->query("
-    SELECT id, title, image_path, watch_status, status,
-           watched_episodes, total_episodes, aired_episodes,
-           updated_at
-    FROM animes
-    ORDER BY updated_at DESC
+// watch_status / watched_episodes are personal (user_anime, 1.0.1), and so
+// is the recency of personal edits: a "+1 watched" now bumps
+// user_anime.updated_at, not animes.updated_at. To keep this page meaning
+// "recently touched" (catalog OR personal edit), order by the most recent
+// of the two timestamps for the current user. COALESCE handles animes that
+// have no user_anime row yet (falls back to the catalog timestamp).
+$stmt = $pdo->prepare("
+    SELECT a.id, a.title, a.image_path,
+           COALESCE(ua.watch_status, 'PlanToWatch') AS watch_status,
+           a.status,
+           COALESCE(ua.watched_episodes, 0) AS watched_episodes,
+           a.total_episodes, a.aired_episodes,
+           GREATEST(a.updated_at, COALESCE(ua.updated_at, a.updated_at)) AS updated_at
+    FROM animes a
+    LEFT JOIN user_anime ua
+           ON ua.anime_id = a.id AND ua.user_id = :uid
+    ORDER BY GREATEST(a.updated_at, COALESCE(ua.updated_at, a.updated_at)) DESC
     LIMIT 5
 ");
+$stmt->execute([':uid' => current_user_id()]);
 $recent = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>

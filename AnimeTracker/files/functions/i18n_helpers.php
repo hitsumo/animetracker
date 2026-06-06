@@ -152,7 +152,9 @@ function lang_init($pdo) {
     }
 
     $allowed = ['tr', 'en'];
-    $lang = get_setting($pdo, 'display_language', 'tr');
+    // display_language is a per-user preference (user_pref, 1.0.1), read for
+    // the current user (id 1 when MULTI_USER_MODE is off).
+    $lang = get_user_pref($pdo, current_user_id(), 'display_language', 'tr');
     if (!in_array($lang, $allowed, true)) {
         $lang = 'tr';
     }

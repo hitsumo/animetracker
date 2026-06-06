@@ -40,6 +40,10 @@ require_once __DIR__ . '/functions.php';
 // list_settings, this secondary page just inherits current_lang()).
 lang_init($pdo);
 
+// Managing tags edits the shared taxonomy, so a moderator+ is required
+// (online only; no-op in self-host).
+require_role($pdo, 'moderator');
+
 $message = null;
 $messageType = null; // 'success' or 'error'
 

@@ -83,6 +83,10 @@ if (!csrf_verify($_POST['csrf_token'] ?? '')) {
     update_fail('CSRF tokeni gecersiz. Sayfayi yenileyip tekrar deneyin.');
 }
 
+// Self-update overwrites application files, so online this is admin-only
+// (no-op in self-host). JSON denial for the AJAX client.
+require_role($pdo, 'admin', true);
+
 // --- Config ---------------------------------------------------------------
 
 // The remote endpoint that tells us the latest version.

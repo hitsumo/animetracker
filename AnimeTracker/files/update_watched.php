@@ -8,7 +8,7 @@
  *
  * AJAX endpoint called by index.php when the user clicks the "+" or
  * "-" button in the "Izlenen Bolum" cell of the list view. Adjusts
- * animes.watched_episodes by +1 or -1 without opening the full
+ * the user's watched_episodes by +1 or -1 without opening the full
  * "Duzenle" form.
  *
  * Why a dedicated endpoint instead of reusing edit_anime.php:
@@ -118,10 +118,15 @@
  *   }
  *
  * Note: watched_episodes AND watch_status are both personal watch
- * progress. In Faz 2 (multi-user) this endpoint must become user-scoped
- * (write to the per-user table, not the shared animes row) for BOTH
- * columns. Logged in the Faz 2 "tasinacaklar" list (KARARLAR.md Bolum
- * 5) alongside chronology_default_view.
+ * progress. As of 1.0.1 (Faz 2, Milestone 1) they live in the per-user
+ * user_anime table, not on the shared animes row. This endpoint reads the
+ * ceiling (total_episodes / aired_episodes) from animes (catalog) and the
+ * personal watched/status from user_anime via ua_get_state(), and writes
+ * back with ua_set_state(), both keyed by current_user_id(). With
+ * MULTI_USER_MODE off, current_user_id() is 1, so behaviour is unchanged.
+ * The 'Dropped' watch_status value exists in the user_anime enum but is
+ * not produced by the +/- rules below (parked for the personal-state
+ * milestone); the four-value automation here is unchanged.
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -154,6 +159,10 @@ if (!csrf_verify($_POST['csrf_token'] ?? '')) {
     ]);
 }
 
+// Watched progress is personal, so a logged-in user is required (online
+// only; no-op in self-host). JSON denial so the AJAX client sees success:false.
+require_login(true);
+
 // --- Input ---------------------------------------------------------------
 
 $animeId = isset($_POST['anime_id']) ? (int)$_POST['anime_id'] : 0;
@@ -175,16 +184,22 @@ if ($delta !== 1 && $delta !== -1) {
 }
 
 // --- Load current state --------------------------------------------------
+//
+// Ceiling fields (total_episodes / aired_episodes) are CATALOG data and
+// live on animes; the personal watched_episodes / watch_status live in
+// user_anime (per user). Read each from its own home.
 
-$stmt = $pdo->prepare(
-    "SELECT watched_episodes, total_episodes, aired_episodes, watch_status
+$uid = current_user_id();
+
+$catStmt = $pdo->prepare(
+    "SELECT total_episodes, aired_episodes
        FROM animes
       WHERE id = ?"
 );
-$stmt->execute([$animeId]);
-$row = $stmt->fetch();
+$catStmt->execute([$animeId]);
+$catRow = $catStmt->fetch();
 
-if (!$row) {
+if (!$catRow) {
     uw_respond([
         'success' => false,
         'error'   => 'Anime bulunamadi.',
@@ -192,15 +207,18 @@ if (!$row) {
     ]);
 }
 
-$old      = (int)$row['watched_episodes'];
+// Personal state (defaults to PlanToWatch / 0 if this user has no row yet).
+$state = ua_get_state($pdo, $uid, $animeId);
+
+$old      = (int)$state['watched_episodes'];
 // Match index.php's !empty() display rule exactly: a 0 (or NULL)
 // total/aired counts as "not set". This keeps the client-computed
 // ceiling and the server-enforced ceiling in lockstep.
-$total    = !empty($row['total_episodes']) ? (int)$row['total_episodes'] : null;
-$aired    = !empty($row['aired_episodes']) ? (int)$row['aired_episodes'] : null;
+$total    = !empty($catRow['total_episodes']) ? (int)$catRow['total_episodes'] : null;
+$aired    = !empty($catRow['aired_episodes']) ? (int)$catRow['aired_episodes'] : null;
 
 // 0.5.6 - current watch_status, will be compared against target below.
-$current_watch_status = (string)$row['watch_status'];
+$current_watch_status = (string)$state['watch_status'];
 
 // Ceiling: total wins if set, else aired, else unknown (null).
 $ceiling = ($total !== null) ? $total : (($aired !== null) ? $aired : null);
@@ -321,26 +339,24 @@ $watch_status_changed = ($target_watch_status !== $current_watch_status);
 
 // --- Write ---------------------------------------------------------------
 //
-// Single UPDATE for both columns. watched_episodes always changes (delta
-// is +-1 and we already rejected out-of-bounds), so rowCount() should
-// report 1 row affected; watch_status may or may not be different from
-// the current value but writing the same value is a no-op at the row
-// level and does not affect rowCount logic here.
+// Both columns are personal, so they go to user_anime for the current
+// user. ua_set_state() upserts: it creates the row if this user does not
+// have one yet, otherwise updates it in place. Writing the same
+// watch_status value is harmless.
 
-$upd = $pdo->prepare(
-    "UPDATE animes
-        SET watched_episodes = ?,
-            watch_status     = ?
-      WHERE id = ?"
-);
-$upd->execute([$new, $target_watch_status, $animeId]);
+$ok = ua_set_state($pdo, $uid, $animeId, [
+    'watched_episodes' => $new,
+    'watch_status'     => $target_watch_status,
+]);
 
-if ($upd->rowCount() === 0) {
-    // Row exists (we SELECTed it) but nothing changed. Almost always a
-    // concurrent identical write; treat the stored state as truth and
-    // report it back so the UI stays consistent.
-    error_log('[anime_tracker] update_watched no-op id=' . $animeId
-        . ' old=' . $old . ' new=' . $new);
+if (!$ok) {
+    // The write failed (the cause is logged inside ua_set_state). Report
+    // it so the UI does not show a change that was not persisted.
+    uw_respond([
+        'success' => false,
+        'error'   => 'Guncelleme kaydedilemedi. Tekrar deneyin.',
+        'code'    => 'write_failed',
+    ]);
 }
 
 // --- Reply ---------------------------------------------------------------

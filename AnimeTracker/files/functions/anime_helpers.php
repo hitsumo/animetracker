@@ -281,9 +281,10 @@ function checkIfAnimeCompleted($pdo, $anime) {
         return $anime;
     }
 
-    // All conditions met - mark as watched.
-    $stmt = $pdo->prepare("UPDATE animes SET watch_status = 'Watched' WHERE id = :id");
-    $stmt->execute(['id' => $anime['id']]);
+    // All conditions met - mark as watched. watch_status is personal
+    // (user_anime, 1.0.1), so write it there for the current user instead
+    // of the shared animes row.
+    ua_set_state($pdo, current_user_id(), $anime['id'], ['watch_status' => 'Watched']);
     $anime['watch_status'] = 'Watched';
 
     return $anime;
@@ -292,8 +293,8 @@ function checkIfAnimeCompleted($pdo, $anime) {
 /**
  * English-title display preference (0.7.2).
  *
- * The "show English titles" toggle is a single site-wide preference
- * stored in the settings table under the key display_title_english
+ * The "show English titles" toggle is a per-user preference
+ * stored in the user_pref table under the key display_title_english
  * ('1' = on, '0'/absent = off). It is INDEPENDENT of the UI language:
  * a user reading the Turkish interface can still choose to see English
  * titles, and vice versa. This mirrors the runtime-key family
@@ -334,7 +335,9 @@ function _title_pref_cache($write = null) {
  * @return void
  */
 function title_pref_init($pdo) {
-    _title_pref_cache(get_setting($pdo, 'display_title_english', '0') === '1');
+    // display_title_english is a per-user preference (user_pref, 1.0.1),
+    // read for the current user (id 1 when MULTI_USER_MODE is off).
+    _title_pref_cache(get_user_pref($pdo, current_user_id(), 'display_title_english', '0') === '1');
 }
 
 /**

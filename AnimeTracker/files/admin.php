@@ -45,12 +45,18 @@ lang_init_admin($pdo);
 
 // --- Access control ----------------------------------------------------
 
-// Hard gate: only loopback addresses. Refuses remote access entirely.
-$clientIp = $_SERVER['REMOTE_ADDR'] ?? '';
-$isLocal = in_array($clientIp, ['127.0.0.1', '::1', 'localhost'], true);
-if (!$isLocal) {
-    http_response_code(403);
-    die(htmlspecialchars(t('admin_pending.localhost_only'), ENT_QUOTES, 'UTF-8'));
+// Online: gate the admin area by role (must be a signed-in admin). Self-host:
+// no login exists, so hard-gate to loopback addresses only (refuses remote
+// access entirely), which is the original self-host protection.
+if (MULTI_USER_MODE) {
+    require_role($pdo, 'admin');
+} else {
+    $clientIp = $_SERVER['REMOTE_ADDR'] ?? '';
+    $isLocal = in_array($clientIp, ['127.0.0.1', '::1', 'localhost'], true);
+    if (!$isLocal) {
+        http_response_code(403);
+        die(htmlspecialchars(t('admin_pending.localhost_only'), ENT_QUOTES, 'UTF-8'));
+    }
 }
 
 // --- Tool availability check -------------------------------------------
@@ -308,6 +314,63 @@ if ($pendingAvailable) {
                         <div class="tool-status status-missing">
                             <i class="fas fa-exclamation-triangle"></i>
                             <code>admin_capabilities.php</code>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Kayit ve Davetler (invites + registration mode) -->
+                <div class="tool-card">
+                    <h3><i class="fas fa-envelope-open-text"></i> <?php echo htmlspecialchars(t('admin.tool.invites.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                    <p>
+                        <?php echo t('admin.tool.invites.desc'); ?>
+                    </p>
+                    <?php if (file_exists(__DIR__ . '/admin_invites.php')): ?>
+                        <a href="admin_invites.php" class="tool-link">
+                            <i class="fas fa-ticket-alt"></i> <?php echo htmlspecialchars(t('admin.tool.invites.link.open'), ENT_QUOTES, 'UTF-8'); ?>
+                        </a>
+                    <?php else: ?>
+                        <span class="tool-link disabled"><?php echo htmlspecialchars(t('admin.tool.sync.link.disabled'), ENT_QUOTES, 'UTF-8'); ?></span>
+                        <div class="tool-status status-missing">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <code>admin_invites.php</code>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Kullanici Yonetimi (rol + durum) -->
+                <div class="tool-card">
+                    <h3><i class="fas fa-users-cog"></i> <?php echo htmlspecialchars(t('admin.tool.users.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                    <p>
+                        <?php echo t('admin.tool.users.desc'); ?>
+                    </p>
+                    <?php if (file_exists(__DIR__ . '/admin_users.php')): ?>
+                        <a href="admin_users.php" class="tool-link">
+                            <i class="fas fa-user-shield"></i> <?php echo htmlspecialchars(t('admin.tool.users.link.open'), ENT_QUOTES, 'UTF-8'); ?>
+                        </a>
+                    <?php else: ?>
+                        <span class="tool-link disabled"><?php echo htmlspecialchars(t('admin.tool.sync.link.disabled'), ENT_QUOTES, 'UTF-8'); ?></span>
+                        <div class="tool-status status-missing">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <code>admin_users.php</code>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Duzeltme Onerileri (moderation queue) -->
+                <div class="tool-card">
+                    <h3><i class="fas fa-flag"></i> <?php echo htmlspecialchars(t('admin.tool.suggestions.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                    <p>
+                        <?php echo t('admin.tool.suggestions.desc'); ?>
+                    </p>
+                    <?php if (file_exists(__DIR__ . '/admin_suggestions.php')): ?>
+                        <a href="admin_suggestions.php" class="tool-link">
+                            <i class="fas fa-clipboard-check"></i> <?php echo htmlspecialchars(t('admin.tool.suggestions.link.open'), ENT_QUOTES, 'UTF-8'); ?>
+                        </a>
+                    <?php else: ?>
+                        <span class="tool-link disabled"><?php echo htmlspecialchars(t('admin.tool.sync.link.disabled'), ENT_QUOTES, 'UTF-8'); ?></span>
+                        <div class="tool-status status-missing">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <code>admin_suggestions.php</code>
                         </div>
                     <?php endif; ?>
                 </div>

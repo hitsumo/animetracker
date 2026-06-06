@@ -31,9 +31,19 @@ $by_status = $pdo->query("
 // o satiri uretmez; biz yine de sifir gostermek istiyoruz - kullanici
 // 4. ozelligin var oldugunu gorsun. Bunu yapmak icin SQL sonucunu ASCII
 // degerine gore lookup'a cevirip helper'in sirasiyla doluyoruz.
-$by_watch_raw = $pdo->query("
-    SELECT watch_status, COUNT(*) AS cnt FROM animes GROUP BY watch_status
-")->fetchAll(PDO::FETCH_KEY_PAIR);
+// watch_status is personal (user_anime, 1.0.1). Count every catalog anime
+// grouped by the current user's status, defaulting un-tracked animes to
+// PlanToWatch (matches the old animes default).
+$by_watch_stmt = $pdo->prepare("
+    SELECT COALESCE(ua.watch_status, 'PlanToWatch') AS watch_status,
+           COUNT(*) AS cnt
+    FROM animes a
+    LEFT JOIN user_anime ua
+           ON ua.anime_id = a.id AND ua.user_id = :uid
+    GROUP BY COALESCE(ua.watch_status, 'PlanToWatch')
+");
+$by_watch_stmt->execute([':uid' => current_user_id()]);
+$by_watch_raw = $by_watch_stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 $by_watch = [];
 foreach (watch_status_options() as $ws_value => $ws_label) {
     $by_watch[] = [
@@ -43,26 +53,30 @@ foreach (watch_status_options() as $ws_value => $ws_label) {
 }
 
 // Toplam izlenen bolum sayisi
-$total_watched = (int)$pdo->query("SELECT COALESCE(SUM(watched_episodes),0) FROM animes")->fetchColumn();
+// watched_episodes is personal (user_anime, 1.0.1). Sum the current
+// user's rows; un-tracked animes have no row and contribute 0.
+$total_watched_stmt = $pdo->prepare(
+    "SELECT COALESCE(SUM(watched_episodes), 0) FROM user_anime WHERE user_id = :uid"
+);
+$total_watched_stmt->execute([':uid' => current_user_id()]);
+$total_watched = (int)$total_watched_stmt->fetchColumn();
 
-// Toplam bolum sayisi - tum animelerin total_episodes toplami. total_episodes
-// NULL olanlar (suresi/bolum sayisi bilinmeyen, devam eden) SUM tarafindan
-// gozardi edilir; COALESCE bos tablo durumunu 0 yapar.
-$total_episodes = (int)$pdo->query("SELECT COALESCE(SUM(total_episodes),0) FROM animes")->fetchColumn();
-
-// Duygu dagilimi (0.6.1 user_anime_emotion tablosu). Single-user mod:
-// user_id = 1. Faz 2 multi-user'da bu satir session user'a baglanir,
-// tablo zaten user_id keyed - baska sey gerekmez. idx_emotion bu sorgu
-// icin schema.sql'de hazirdi. Sadece isaretlenmis duygular, coktan aza
-// sirali: istatistik amaci "veride ne var", tum palet detay + oneri
-// sayfasinda zaten gorunur.
-$by_emotion = $pdo->query("
+// Emotion distribution (0.6.1 user_anime_emotion table). Scoped to the
+// current user via current_user_id() (1.0.x data model). The table is
+// already user_id keyed, so this just binds the id: in single-user mode
+// current_user_id() returns 1 (behaviour unchanged); in multi-user mode it
+// returns the session user. idx_emotion serves this query. Only marked
+// emotions, most-frequent first: the stat answers "what is in the data";
+// the full palette shows on detail + recommendations pages.
+$by_emotion_stmt = $pdo->prepare("
     SELECT emotion, COUNT(*) AS cnt
     FROM user_anime_emotion
-    WHERE user_id = 1
+    WHERE user_id = :uid
     GROUP BY emotion
     ORDER BY cnt DESC
-")->fetchAll(PDO::FETCH_ASSOC);
+");
+$by_emotion_stmt->execute([':uid' => current_user_id()]);
+$by_emotion = $by_emotion_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Ozet: toplam isaret sayisi (satirlardan toplanir, ek sorgu yok) +
 // kac farkli anime isaretlenmis (bir anime 3 duyguya kadar alabilir,
@@ -71,9 +85,11 @@ $emotion_total_marks = 0;
 foreach ($by_emotion as $er) {
     $emotion_total_marks += (int)$er['cnt'];
 }
-$emotion_anime_count = (int)$pdo->query(
-    "SELECT COUNT(DISTINCT anime_id) FROM user_anime_emotion WHERE user_id = 1"
-)->fetchColumn();
+$emotion_anime_count_stmt = $pdo->prepare(
+    "SELECT COUNT(DISTINCT anime_id) FROM user_anime_emotion WHERE user_id = :uid"
+);
+$emotion_anime_count_stmt->execute([':uid' => current_user_id()]);
+$emotion_anime_count = (int)$emotion_anime_count_stmt->fetchColumn();
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo current_lang(); ?>">
@@ -112,8 +128,6 @@ $emotion_anime_count = (int)$pdo->query(
         <div class="stats-label"><?php echo htmlspecialchars(t('statistics.label.total_anime'), ENT_QUOTES, 'UTF-8'); ?></div>
         <div class="stats-big" style="margin-top:20px;"><?php echo $total_watched; ?></div>
         <div class="stats-label"><?php echo htmlspecialchars(t('statistics.label.total_watched'), ENT_QUOTES, 'UTF-8'); ?></div>
-        <div class="stats-big" style="margin-top:20px;"><?php echo $total_episodes; ?></div>
-        <div class="stats-label"><?php echo htmlspecialchars(t('statistics.label.total_episodes'), ENT_QUOTES, 'UTF-8'); ?></div>
     </div>
 
     <div class="stats-grid">

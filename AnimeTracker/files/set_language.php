@@ -58,7 +58,8 @@ $allowed = ['tr', 'en'];
 $lang    = $_POST['lang'] ?? '';
 
 if (in_array($lang, $allowed, true)) {
-    set_setting($pdo, 'display_language', $lang);
+    // display_language is a per-user preference (user_pref, 1.0.1).
+    set_user_pref($pdo, current_user_id(), 'display_language', $lang);
 }
 
 // Redirect back to the page that triggered the switch. We accept

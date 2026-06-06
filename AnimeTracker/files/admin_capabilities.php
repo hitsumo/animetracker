@@ -50,12 +50,17 @@ lang_init_admin($pdo);
 
 // --- Access control ----------------------------------------------------
 
-// Hard gate: only loopback addresses (same rule as admin.php).
-$clientIp = $_SERVER['REMOTE_ADDR'] ?? '';
-$isLocal = in_array($clientIp, ['127.0.0.1', '::1', 'localhost'], true);
-if (!$isLocal) {
-    http_response_code(403);
-    die(htmlspecialchars(t('admin_pending.localhost_only'), ENT_QUOTES, 'UTF-8'));
+// Online: gate by role (signed-in admin). Self-host: loopback-only (same
+// rule as admin.php).
+if (MULTI_USER_MODE) {
+    require_role($pdo, 'admin');
+} else {
+    $clientIp = $_SERVER['REMOTE_ADDR'] ?? '';
+    $isLocal = in_array($clientIp, ['127.0.0.1', '::1', 'localhost'], true);
+    if (!$isLocal) {
+        http_response_code(403);
+        die(htmlspecialchars(t('admin_pending.localhost_only'), ENT_QUOTES, 'UTF-8'));
+    }
 }
 
 // --- POST: toggle a capability -----------------------------------------

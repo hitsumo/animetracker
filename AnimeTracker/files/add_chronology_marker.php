@@ -38,6 +38,10 @@ if (!csrf_verify($_POST['csrf_token'] ?? '')) {
     die('CSRF tokeni gecersiz. Sayfayi yenileyip tekrar deneyin.');
 }
 
+// Chronology markers are shared series structure, so a moderator+ is required
+// (online only; no-op in self-host).
+require_role($pdo, 'moderator');
+
 // Read and validate inputs
 $anime_id         = (int)($_POST['anime_id'] ?? 0);
 $after_episode    = (int)($_POST['after_episode'] ?? 0);

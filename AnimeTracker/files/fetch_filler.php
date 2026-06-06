@@ -70,6 +70,11 @@ if (!csrf_verify($_POST['csrf_token'] ?? '')) {
     ]);
 }
 
+// External metadata fetch (scrapes AnimeFillerList). Require a logged-in user
+// to block anonymous abuse (online only; no-op in self-host). Read-only, so
+// login is enough; no catalog write happens here.
+require_login(true);
+
 // --- Input ---------------------------------------------------------------
 
 $animeId = isset($_POST['anime_id']) ? (int)$_POST['anime_id'] : 0;

@@ -38,7 +38,28 @@ date_default_timezone_set('UTC');
 // future auth state, etc.). We start it here centrally so every page
 // that includes db.php gets a session - no module has to remember
 // to call session_start() on its own.
+//
+// Cookie hardening (set BEFORE session_start, since cookie params only
+// apply to a not-yet-started session). These flags are safe in both modes
+// and do not change self-host behaviour:
+//   - HttpOnly: the session cookie is not readable from JavaScript (XSS
+//     mitigation). The app never reads it from JS, so nothing breaks.
+//   - SameSite=Lax: the cookie is not sent on cross-site POSTs (CSRF defense
+//     in depth, alongside csrf_verify()). Same-site navigation is unaffected.
+//   - Secure: only when the request is itself HTTPS, so plain-http localhost
+//     (XAMPP) still receives the cookie and self-host keeps working. Behind a
+//     TLS-terminating proxy that does not set $_SERVER['HTTPS'], a forwarded-
+//     proto check would be needed; the production host sets HTTPS directly.
 if (session_status() === PHP_SESSION_NONE) {
+    $is_https = (
+        (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off')
+        || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443)
+    );
+    session_set_cookie_params([
+        'httponly' => true,
+        'samesite' => 'Lax',
+        'secure'   => $is_https,
+    ]);
     session_start();
 }
 
@@ -50,6 +71,42 @@ if (!file_exists(__DIR__ . '/config.php')) {
 }
 
 require_once __DIR__ . '/config.php';
+
+// Multi-user mode default (backward compatibility).
+// config.php files created before multi-user support do not define
+// MULTI_USER_MODE. Default it to false here so existing single-user
+// installs keep working with no config change. Deliberately NOT added
+// to the $required list below, because old configs legitimately lack it.
+if (!defined('MULTI_USER_MODE')) {
+    define('MULTI_USER_MODE', false);
+}
+
+// current_user_id() - the single source of truth for "who is the current
+// user". Every endpoint that reads or writes personal data must call this
+// instead of hard-coding 1, so that flipping MULTI_USER_MODE switches the
+// whole application between the two behaviours.
+//
+//   - Single-user / self-host (MULTI_USER_MODE = false): always returns 1,
+//     the seeded "owner" row, so every user_id FK resolves. Today's
+//     behaviour is preserved exactly.
+//   - Multi-user / online (MULTI_USER_MODE = true): returns the logged-in
+//     user's id from the session. Until the auth milestone lands there is
+//     no login yet, so this returns null when no session user is set;
+//     endpoints enforce login separately.
+//
+// Defined here in db.php (not in functions/) on purpose: every page loads
+// db.php but not every page loads functions.php, and this is a foundational
+// identity function that must always be available. This avoids the
+// "Call to undefined function" fatal class (cf. the statistics.php lesson).
+if (!function_exists('current_user_id')) {
+    function current_user_id()
+    {
+        if (!MULTI_USER_MODE) {
+            return 1;
+        }
+        return isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
+    }
+}
 
 // Step 2: Make sure config.php defined everything we need.
 // This catches the case where config.php exists but is incomplete

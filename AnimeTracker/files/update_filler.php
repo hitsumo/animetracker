@@ -107,6 +107,10 @@ if (!csrf_verify($_POST['csrf_token'] ?? '')) {
     ]);
 }
 
+// Filler classification is shared catalog data, so a moderator+ is required
+// (online only; no-op in self-host). JSON denial for the AJAX client.
+require_role($pdo, 'moderator', true);
+
 // --- Input: anime_id -----------------------------------------------------
 
 $animeId = isset($_POST['anime_id']) ? (int)$_POST['anime_id'] : 0;

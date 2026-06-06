@@ -38,10 +38,11 @@ if (file_exists(__DIR__ . '/config.php')) {
 
 $errors = [];
 $defaults = [
-    'db_host' => 'localhost',
-    'db_name' => 'anime_tracker',
-    'db_user' => 'root',
-    'db_pass' => '',
+    'db_host'      => 'localhost',
+    'db_name'      => 'anime_tracker',
+    'db_user'      => 'root',
+    'db_pass'      => '',
+    'install_type' => 'single',
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -51,6 +52,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user = trim($_POST['db_user'] ?? '');
     $pass = $_POST['db_pass'] ?? ''; // Don't trim password - user might want leading/trailing spaces
 
+    // Installation type: 'single' (self-host, no login) or 'multi' (online,
+    // login required). Anything other than 'multi' is treated as 'single'.
+    $install_type = (($_POST['install_type'] ?? 'single') === 'multi') ? 'multi' : 'single';
+
     // Minimal validation. The DB driver will catch the rest.
     if ($host === '') { $errors[] = 'Veritabani sunucu adi bos birakilamaz.'; }
     if ($name === '') { $errors[] = 'Veritabani adi bos birakilamaz.'; }
@@ -58,10 +63,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Keep submitted values so the form can re-render them on error
     $defaults = [
-        'db_host' => $host,
-        'db_name' => $name,
-        'db_user' => $user,
-        'db_pass' => $pass,
+        'db_host'      => $host,
+        'db_name'      => $name,
+        'db_user'      => $user,
+        'db_pass'      => $pass,
+        'install_type' => $install_type,
     ];
 
     if (empty($errors)) {
@@ -107,6 +113,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'define(' . var_export('DB_NAME', true) . ', ' . var_export($name, true) . ');',
                 'define(' . var_export('DB_USER', true) . ', ' . var_export($user, true) . ');',
                 'define(' . var_export('DB_PASS', true) . ', ' . var_export($pass, true) . ');',
+                '',
+                '// Multi-user mode. false = single-user / self-host (no login);',
+                '// true = online / multi-user (login required). Chosen at setup.',
+                'define(' . var_export('MULTI_USER_MODE', true) . ', ' . var_export($install_type === 'multi', true) . ');',
                 '',
             ];
             $contents = implode("\n", $lines);
@@ -189,6 +199,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 14px;
             box-sizing: border-box;
         }
+        .form-row select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+            background: #fff;
+        }
         .form-row small {
             color: #888;
             font-size: 12px;
@@ -268,6 +287,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <label for="db_pass">Veritabani Sifresi</label>
                 <input type="password" id="db_pass" name="db_pass" value="<?php echo htmlspecialchars($defaults['db_pass'], ENT_QUOTES, 'UTF-8'); ?>">
                 <small>XAMPP varsayilan kurulumunda bos birakilir.</small>
+            </div>
+
+            <div class="form-row">
+                <label for="install_type">Kurulum Tipi</label>
+                <select id="install_type" name="install_type">
+                    <option value="single"<?php echo ($defaults['install_type'] === 'single') ? ' selected' : ''; ?>>Tek kullanici (kisisel / bu bilgisayar)</option>
+                    <option value="multi"<?php echo ($defaults['install_type'] === 'multi') ? ' selected' : ''; ?>>Cok kullanici (online sunucu)</option>
+                </select>
+                <small>Tek kullanici: giris yok, uygulama bugunku gibi calisir. Cok kullanici: giris zorunlu olur ve bir sonraki adimda yonetici hesabi olusturursunuz.</small>
             </div>
 
             <button type="submit" class="submit-button">

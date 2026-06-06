@@ -102,20 +102,39 @@ $mode = $_GET['mode'] ?? 'pick';   // 'pick' (criterion-driven) or 'surprise'
 // --------------------------------------------------------
 $results = [];      // list of [anime, score, matched_tag_names, matched_emotion_names]
 $surpriseAnime = null;
+$uid = current_user_id();  // personal watch state is user_anime-scoped (1.0.1)
 
 if ($mode === 'surprise') {
     // Surprise mode: pick one random anime the user has not yet watched.
     // Falls back to any anime if the unwatched pool is empty.
-    $stmt = $pdo->query(
-        "SELECT * FROM animes
-         WHERE watch_status != 'Watched'
+    // watch_status is personal (user_anime, 1.0.1): join the current user's
+    // row, default un-tracked animes to PlanToWatch, and exclude only what
+    // THIS user has watched.
+    $stmt = $pdo->prepare(
+        "SELECT a.*,
+                COALESCE(ua.watch_status, 'PlanToWatch') AS watch_status,
+                COALESCE(ua.watched_episodes, 0) AS watched_episodes
+         FROM animes a
+         LEFT JOIN user_anime ua
+                ON ua.anime_id = a.id AND ua.user_id = :uid
+         WHERE COALESCE(ua.watch_status, 'PlanToWatch') != 'Watched'
          ORDER BY RAND()
          LIMIT 1"
     );
+    $stmt->execute([':uid' => $uid]);
     $surpriseAnime = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$surpriseAnime) {
         // Everything is watched - just pick something at random
-        $stmt = $pdo->query("SELECT * FROM animes ORDER BY RAND() LIMIT 1");
+        $stmt = $pdo->prepare(
+            "SELECT a.*,
+                    COALESCE(ua.watch_status, 'PlanToWatch') AS watch_status,
+                    COALESCE(ua.watched_episodes, 0) AS watched_episodes
+             FROM animes a
+             LEFT JOIN user_anime ua
+                    ON ua.anime_id = a.id AND ua.user_id = :uid
+             ORDER BY RAND() LIMIT 1"
+        );
+        $stmt->execute([':uid' => $uid]);
         $surpriseAnime = $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
@@ -168,9 +187,10 @@ if ($mode === 'surprise') {
     }
 
     // ---- Pass 2: emotion bucket ----
-    // Single-user mode hardcodes user_id = 1. When 0.8 multi-user comes,
-    // this becomes the session-scoped user id - no schema change required
-    // (user_anime_emotion is already keyed on user_id, see schema.sql).
+    // Scoped to current_user_id() (1.0.x data model). The user id is bound
+    // as the first positional placeholder, before the emotion list, so the
+    // bind order matches the WHERE clause. Single-user mode returns 1
+    // (behaviour unchanged); multi-user mode returns the session user.
     if (!empty($selectedEmotions)) {
         $eph = implode(',', array_fill(0, count($selectedEmotions), '?'));
         $sql = "
@@ -179,11 +199,11 @@ if ($mode === 'surprise') {
                    GROUP_CONCAT(DISTINCT uae.emotion ORDER BY uae.emotion SEPARATOR '|') AS matched_emos
             FROM animes a
             INNER JOIN user_anime_emotion uae ON uae.anime_id = a.id
-            WHERE uae.user_id = 1 AND uae.emotion IN ($eph)
+            WHERE uae.user_id = ? AND uae.emotion IN ($eph)
             GROUP BY a.id
         ";
         $stmt = $pdo->prepare($sql);
-        $stmt->execute($selectedEmotions);
+        $stmt->execute(array_merge([current_user_id()], $selectedEmotions));
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $animeId = (int)$row['id'];
             $matchedEmos = !empty($row['matched_emos']) ? explode('|', $row['matched_emos']) : [];
@@ -203,6 +223,19 @@ if ($mode === 'surprise') {
             }
         }
     }
+
+    // Personal watch state lives in user_anime per user (1.0.1). The tag /
+    // emotion passes above SELECT a.* (which still carries the vestigial
+    // animes columns), so overlay the current user's watch_status /
+    // watched_episodes onto each result row here. Done in PHP to avoid
+    // pulling ua.* through the GROUP BY queries (and any ONLY_FULL_GROUP_BY
+    // concerns on the online MySQL host).
+    foreach ($byAnimeId as $aid => &$entry) {
+        $ua = ua_get_state($pdo, $uid, (int)$aid);
+        $entry['anime']['watch_status']     = $ua['watch_status'];
+        $entry['anime']['watched_episodes'] = $ua['watched_episodes'];
+    }
+    unset($entry);
 
     // ---- Build $results with combined score + sort ----
     // Tie-break with a stable random integer attached up front so the
@@ -254,9 +287,11 @@ function watch_status_badge($status) {
 // If not, the emotion filter section would be useless (zero results),
 // so we render a hint instead of the panel. Done with a cheap COUNT
 // query rather than fetching rows.
-$hasAnyEmotionMarks = (int)$pdo->query(
-    "SELECT COUNT(*) FROM user_anime_emotion WHERE user_id = 1"
-)->fetchColumn() > 0;
+$hasAnyEmotionMarksStmt = $pdo->prepare(
+    "SELECT COUNT(*) FROM user_anime_emotion WHERE user_id = :uid"
+);
+$hasAnyEmotionMarksStmt->execute([':uid' => current_user_id()]);
+$hasAnyEmotionMarks = (int)$hasAnyEmotionMarksStmt->fetchColumn() > 0;
 
 // Pre-compute selection counts for the result/header templates.
 $totalTagsSelected     = count($selectedTagIds);
@@ -453,6 +488,7 @@ $useCombinedTemplates  = ($totalEmotionsSelected > 0);
     <div class="header-section">
         <a href="about.php" class="about-link"><?php echo htmlspecialchars(t('nav.about'), ENT_QUOTES, 'UTF-8'); ?></a>
 
+        <?php echo auth_nav_links(); ?>
         <div class="lang-switcher" role="group" aria-label="<?php echo htmlspecialchars(t('lang.aria_label'), ENT_QUOTES, 'UTF-8'); ?>">
             <form method="POST" action="set_language.php" style="display:inline;">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">

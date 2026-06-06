@@ -27,6 +27,20 @@ require_once __DIR__ . '/functions.php';
 // i18n - sayfa dilini baslat
 lang_init($pdo);
 
+// List Settings mixes personal items (export, title-language toggle) with
+// catalog maintenance (import, clear, tag management, sync, self-update).
+// Online, require a logged-in user for the page; the maintenance sections
+// below carry their own moderator/admin gates (UI here + server on the
+// handlers/endpoints). No-op in self-host.
+require_login();
+
+// Capability flags for UI gating (slice 3c). Both are always true in self-host
+// (can() returns true when MULTI_USER_MODE is off), so the page looks exactly
+// as before. Online: catalog-maintenance sections are moderator+; destructive
+// / self-update sections are admin-only.
+$canModerate = can($pdo, 'moderate');
+$canAdmin    = can($pdo, 'admin');
+
 // English-title preference (0.7.2) - read current state so the toggle
 // section below can reflect it.
 title_pref_init($pdo);
@@ -111,6 +125,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // query string ile geri donderiyoruz (klasik PRG patern: form yenileme
 // sirasinda istek tekrarlanmasin).
 if (isset($_POST['sync_aired'])) {
+    // Catalog-wide aired-episode sync writes shared data, so restrict it to
+    // moderators and above (online only; no-op in self-host).
+    require_role($pdo, 'moderator');
     $stats = syncAllOngoingAiredEpisodes($pdo, 3);
 
     if (isset($stats['global_error'])) {
@@ -160,7 +177,7 @@ if (isset($_POST['sync_aired'])) {
 // tekrar calistirilmaz. UTC kullanilir cunku tum sistem UTC odakli.
 $todayUtc = gmdate('Y-m-d');
 $lastSyncDate = $lastAiredSync ? substr((string)$lastAiredSync, 0, 10) : null;
-if ($lastSyncDate !== $todayUtc && !isset($_POST['sync_aired'])) {
+if ($lastSyncDate !== $todayUtc && !isset($_POST['sync_aired']) && can($pdo, 'moderate')) {
     // Sessizce arka planda. Kullaniciya duyurmak istemiyoruz cunku
     // otomatik bir sey - sayfa biraz yavas yuklenir, o kadar.
     syncAllOngoingAiredEpisodes($pdo, 3);
@@ -187,6 +204,15 @@ if (isset($_POST['export'])) {
         $tRows = getAnimeTags($pdo, $a['id']);
         $a['genres'] = array_map(function ($r) { return $r['name']; }, $gRows);
         $a['tags']   = array_map(function ($r) { return $r['name']; }, $tRows);
+        // Personal watch state lives in user_anime per user (1.0.1). Overlay
+        // the current user's values so the backup captures actual progress,
+        // not the vestigial animes columns (frozen at the 1.0.2 copy).
+        $ua = ua_get_state($pdo, current_user_id(), $a['id']);
+        $a['watch_status']     = $ua['watch_status'];
+        $a['watched_episodes'] = $ua['watched_episodes'];
+        $a['notes']            = $ua['notes'];
+        $a['user_synopsis']    = $ua['user_synopsis'];
+        $a['user_synopsis_en'] = $ua['user_synopsis_en'];
     }
     unset($a);
 
@@ -200,6 +226,9 @@ if (isset($_POST['export'])) {
 
 // List Import Operation
 if (isset($_POST['import']) && isset($_FILES['import_file'])) {
+    // Importing a JSON backup bulk-writes the shared catalog (INSERT INTO
+    // animes), so it is admin-only online (no-op in self-host).
+    require_role($pdo, 'admin');
     $file = $_FILES['import_file'];
 
     // Validate by decoding, not by the browser-reported MIME type (browsers
@@ -225,19 +254,22 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
         $imported = 0;
         $skipped = 0;
 
+        // Personal columns (watched_episodes, notes, watch_status,
+        // user_synopsis, user_synopsis_en) are no longer on animes (1.0.1);
+        // they are restored into user_anime via ua_set_state after the
+        // INSERT (see below). animes carries catalog data only here.
         $stmt = $pdo->prepare("INSERT INTO animes (
                 title, alternative_titles, title_english, status,
-                total_episodes, aired_episodes, watched_episodes, notes,
-                image_path, watch_status, next_episode_date,
+                total_episodes, aired_episodes,
+                image_path, next_episode_date,
                 anidb_link, mal_link, anime_schedule_link, episode_interval,
                 broadcast_day, broadcast_time, broadcast_timezone,
                 synopsis, synopsis_tr, synopsis_en, translation_status,
-                user_synopsis, user_synopsis_en,
                 release_date, end_date, series_name, media_type,
                 mal_id, anidb_id, catalog_uuid, source, filler_tracking
             ) VALUES (
                 ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
             )");
 
         foreach ($animes as $anime) {
@@ -253,10 +285,7 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                     $anime['status']              ?? 'Yayın Tamamlandı',
                     $anime['total_episodes']      ?? null,
                     $anime['aired_episodes']      ?? null,
-                    $anime['watched_episodes']    ?? 0,
-                    $anime['notes']               ?? null,
                     $anime['image_path']          ?? null,
-                    $anime['watch_status']        ?? 'PlanToWatch',
                     $anime['next_episode_date']   ?? null,
                     $anime['anidb_link']          ?? null,
                     $anime['mal_link']            ?? null,
@@ -269,8 +298,6 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                     $anime['synopsis_tr']         ?? $anime['synopsis'] ?? null,
                     $anime['synopsis_en']         ?? null,
                     $anime['translation_status']  ?? 'none',
-                    $anime['user_synopsis']       ?? null,
-                    $anime['user_synopsis_en']    ?? null,
                     $anime['release_date']        ?? null,
                     $anime['end_date']            ?? null,
                     $anime['series_name']         ?? null,
@@ -284,6 +311,19 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
 
                 $animeId = (int)$pdo->lastInsertId();
                 if ($animeId > 0) {
+                    // Restore personal watch state into user_anime for the
+                    // current user (1.0.1). These columns were removed from
+                    // the animes INSERT above; defaults match the old inline
+                    // ones ('PlanToWatch' / 0 / null). NULL user_synopsis(_en)
+                    // keeps that language in Catalog mode.
+                    ua_set_state($pdo, current_user_id(), $animeId, [
+                        'watch_status'     => $anime['watch_status']     ?? 'PlanToWatch',
+                        'watched_episodes' => $anime['watched_episodes']  ?? 0,
+                        'notes'            => $anime['notes']             ?? null,
+                        'user_synopsis'    => $anime['user_synopsis']     ?? null,
+                        'user_synopsis_en' => $anime['user_synopsis_en']  ?? null,
+                    ]);
+
                     // Restore relational genres/tags by NAME (find-or-create,
                     // then link). Backups without these arrays restore none.
                     setAnimeGenresByNames($pdo, $animeId, $anime['genres'] ?? []);
@@ -320,6 +360,10 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
 
 // List Clear Operation
 if (isset($_POST['clear'])) {
+    // Clearing the list runs DELETE FROM animes, which wipes the entire shared
+    // catalog (and cascades to all child rows), so it is admin-only online
+    // (no-op in self-host).
+    require_role($pdo, 'admin');
     if (isset($_POST['confirm_clear']) && $_POST['confirm_clear'] === 'yes') {
         // DELETE, not TRUNCATE: animes is referenced by FK constraints from
         // anime_genres, anime_tags, chronology_markers, filler_episodes etc.
@@ -349,6 +393,7 @@ if (isset($_POST['clear'])) {
         <div class="header-section">
             <a href="about.php" class="about-link"><?php echo htmlspecialchars(t('nav.about'), ENT_QUOTES, 'UTF-8'); ?></a>
 
+            <?php echo auth_nav_links(); ?>
             <div class="lang-switcher" role="group" aria-label="<?php echo htmlspecialchars(t('lang.aria_label'), ENT_QUOTES, 'UTF-8'); ?>">
                 <form method="POST" action="set_language.php" style="display:inline;">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
@@ -377,6 +422,7 @@ if (isset($_POST['clear'])) {
 
         <div class="settings-container">
             <!-- Export Form -->
+            <?php if ($canModerate): ?>
             <div class="settings-section">
                 <h3><?php echo htmlspecialchars(t('list_settings.section.export'), ENT_QUOTES, 'UTF-8'); ?></h3>
                 <p><?php echo htmlspecialchars(t('list_settings.section.export.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
@@ -387,8 +433,10 @@ if (isset($_POST['clear'])) {
                     </button>
                 </form>
             </div>
+            <?php endif; ?>
 
             <!-- Import Form -->
+            <?php if ($canAdmin): ?>
             <div class="settings-section">
                 <h3><?php echo htmlspecialchars(t('list_settings.section.import'), ENT_QUOTES, 'UTF-8'); ?></h3>
                 <p><?php echo htmlspecialchars(t('list_settings.section.import.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
@@ -405,8 +453,10 @@ if (isset($_POST['clear'])) {
                     </button>
                 </form>
             </div>
+            <?php endif; ?>
 
             <!-- Liste Temizleme Formu -->
+            <?php if ($canAdmin): ?>
             <div class="settings-section">
                 <h3><?php echo htmlspecialchars(t('list_settings.section.clear'), ENT_QUOTES, 'UTF-8'); ?></h3>
                 <p><?php echo htmlspecialchars(t('list_settings.section.clear.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
@@ -418,6 +468,7 @@ if (isset($_POST['clear'])) {
                     </button>
                 </form>
             </div>
+            <?php endif; ?>
 			
 			
 
@@ -442,6 +493,7 @@ if (isset($_POST['clear'])) {
 	
 		</div>
 
+            <?php if ($canModerate): ?>
             <div class="settings-section">
     <h3><?php echo htmlspecialchars(t('list_settings.section.tags'), ENT_QUOTES, 'UTF-8'); ?></h3>
     <p><?php echo htmlspecialchars(t('list_settings.section.tags.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
@@ -494,8 +546,14 @@ if (isset($_POST['clear'])) {
         </button>
     </form>
 </div>
+            <?php endif; ?>
 
 	<!-- Add this to the settings-container div in list_settings.php -->
+            <?php /* Self-host only: the ZIP auto-update channel is the self-host
+                     package. Online installs update via git/Docker, so the whole
+                     update section is hidden in multi-user mode (update.php also
+                     refuses server-side). */ ?>
+            <?php if ($canAdmin && !MULTI_USER_MODE): ?>
 <div class="settings-section">
     <h3><?php echo htmlspecialchars(t('list_settings.section.update'), ENT_QUOTES, 'UTF-8'); ?></h3>
     <p><?php echo htmlspecialchars(t('list_settings.section.update.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
@@ -505,6 +563,19 @@ if (isset($_POST['clear'])) {
     </button>
     <input type="hidden" id="update-csrf-token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
 </div>
+            <?php elseif ($canAdmin && MULTI_USER_MODE): ?>
+            <?php /* Multi-user (online): the ZIP auto-update channel is self-host
+                     only. Instead of an update button, show the source repo link
+                     so the operator knows online updates come via git/Docker. */ ?>
+<div class="settings-section">
+    <h3><?php echo htmlspecialchars(t('list_settings.section.update'), ENT_QUOTES, 'UTF-8'); ?></h3>
+    <div id="update-status"><?php echo htmlspecialchars(t('list_settings.update.current_version'), ENT_QUOTES, 'UTF-8'); ?> <strong><?php echo htmlspecialchars($currentVersion, ENT_QUOTES, 'UTF-8'); ?></strong></div>
+    <p><?php echo htmlspecialchars(t('list_settings.update.online_note'), ENT_QUOTES, 'UTF-8'); ?></p>
+    <a href="https://github.com/hitsumo/animetracker" target="_blank" rel="noopener noreferrer" class="settings-button">
+        <i class="fab fa-github"></i> <?php echo htmlspecialchars(t('list_settings.update.github_link'), ENT_QUOTES, 'UTF-8'); ?>
+    </a>
+</div>
+            <?php endif; ?>
         </div>
 
 

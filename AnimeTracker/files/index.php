@@ -106,15 +106,46 @@ if (!in_array($per_page, $allowed_per_page, true)) {
 // Match is by exact genre name (no LIKE wildcards) - this fixes the
 // false-positive bug where the old "genres LIKE %Komedi%" matched
 // "Romantik Komedi" too.
-$genre_filter_clause = " AND id IN (
+$genre_filter_clause = " AND a.id IN (
     SELECT ag.anime_id
     FROM anime_genres ag
     INNER JOIN genres g ON g.id = ag.genre_id
     WHERE g.name = :genre
 )";
 
-// Build the SQL query
-$sql = "SELECT * FROM animes WHERE 1=1";
+// Build the SQL query.
+//
+// Personal columns (watch_status, watched_episodes, notes,
+// user_synopsis/_en) moved to user_anime in 1.0.1. We LEFT JOIN the
+// current user's row and expose those values under their original names
+// via COALESCE (defaults match the old animes defaults), so the rest of
+// this file (filter, sort, render, checkIfAnimeCompleted) keeps reading
+// $anime['watch_status'] etc. unchanged. a.* still carries the vestigial
+// animes columns; the aliased ua.* values are listed AFTER a.* so PDO's
+// associative fetch keeps the user_anime version (last column wins).
+// WHERE/ORDER reference ua.* / COALESCE explicitly to avoid ambiguity
+// with those vestigial columns (which disappear at the 1.0.3 drop).
+$uid = current_user_id();
+$select_from = "SELECT a.*,
+        COALESCE(ua.watch_status, 'PlanToWatch') AS watch_status,
+        COALESCE(ua.watched_episodes, 0)         AS watched_episodes,
+        ua.notes            AS notes,
+        ua.user_synopsis    AS user_synopsis,
+        ua.user_synopsis_en AS user_synopsis_en
+    FROM animes a
+    LEFT JOIN user_anime ua
+           ON ua.anime_id = a.id AND ua.user_id = :uid
+    WHERE 1=1";
+
+// Multi-user mode: the main catalog list shows only approved entries
+// (source='catalog'). User-submitted additions stay as source='local' and are
+// listed on pending.php until a moderator promotes them, so they do not appear
+// here. Self-host is unfiltered (single owner sees their own local adds), so
+// the catalog looks exactly as before.
+if (MULTI_USER_MODE) {
+    $select_from .= " AND a.source = 'catalog'";
+}
+$sql = $select_from;
 
 if ($search_query !== '') {
     $sql .= " AND (title LIKE :search1 OR alternative_titles LIKE :search2)";
@@ -125,7 +156,7 @@ if ($genre_filter) {
 }
 
 if ($watch_status_filter) {
-    $sql .= " AND watch_status = :status";
+    $sql .= " AND COALESCE(ua.watch_status, 'PlanToWatch') = :status";
 }
 
 if ($broadcast_status_filter) {
@@ -143,12 +174,24 @@ if ($letter_filter) {
     }
 }
 
-// Add sorting
-$sql .= " ORDER BY " . $sort_column . " " . strtoupper($sort_order);
+// Add sorting.
+// Map the (already validated) sort column to a SQL expression.
+// watch_status / watched_episodes are user_anime-backed, so they sort on
+// the COALESCE expression; title / next_episode_date are catalog columns
+// on animes (a). This also avoids the bare-column ambiguity between a.*
+// and the user_anime join.
+$sort_expr_map = [
+    'title'             => 'a.title',
+    'watch_status'      => "COALESCE(ua.watch_status, 'PlanToWatch')",
+    'watched_episodes'  => 'COALESCE(ua.watched_episodes, 0)',
+    'next_episode_date' => 'a.next_episode_date',
+];
+$sort_expr = $sort_expr_map[$sort_column] ?? 'a.title';
+$sql .= " ORDER BY " . $sort_expr . " " . strtoupper($sort_order);
 
 // Special sort cases
 if ($sort_column == 'watched_episodes') {
-    $sql = "SELECT * FROM animes WHERE 1=1";
+    $sql = $select_from;
     
     if ($search_query !== '') {
         $sql .= " AND (title LIKE :search1 OR alternative_titles LIKE :search2)";
@@ -159,7 +202,7 @@ if ($sort_column == 'watched_episodes') {
     }
     
     if ($watch_status_filter) {
-        $sql .= " AND watch_status = :status";
+        $sql .= " AND COALESCE(ua.watch_status, 'PlanToWatch') = :status";
     }
     
     if ($broadcast_status_filter) {
@@ -176,10 +219,14 @@ if ($sort_column == 'watched_episodes') {
         }
     }
     
-    $sql .= " ORDER BY watched_episodes " . strtoupper($sort_order) . ", total_episodes " . strtoupper($sort_order);
+    $sql .= " ORDER BY COALESCE(ua.watched_episodes, 0) " . strtoupper($sort_order) . ", a.total_episodes " . strtoupper($sort_order);
 }
 
 $stmt = $pdo->prepare($sql);
+
+// The user_anime LEFT JOIN is present in both query branches, so :uid is
+// always bound.
+$stmt->bindValue(':uid', $uid, PDO::PARAM_INT);
 
 if ($search_query !== '') {
     $stmt->bindValue(':search1', '%' . $search_query . '%');
@@ -571,6 +618,7 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
             <a href="statistics.php" class="about-link"><?php echo htmlspecialchars(t('nav.statistics'), ENT_QUOTES, 'UTF-8'); ?></a>
             <a href="help.php" class="about-link"><?php echo htmlspecialchars(t('nav.help'), ENT_QUOTES, 'UTF-8'); ?></a>
             <?php // SECTION: Language switcher (snippet copy - see _lang_switcher_reference.php) ?>
+            <?php echo auth_nav_links(); ?>
             <div class="lang-switcher" role="group" aria-label="<?php echo htmlspecialchars(t('lang.aria_label'), ENT_QUOTES, 'UTF-8'); ?>">
                 <form action="set_language.php" method="post" class="lang-switch-form">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
@@ -683,9 +731,20 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
             </form>
         </div>
 
+        <?php if (can($pdo, 'add_anime')): ?>
         <div class="button-container">
             <a href="add_anime.php" class="anime-list-button"><?php echo htmlspecialchars(t('index.add_anime'), ENT_QUOTES, 'UTF-8'); ?></a>
         </div>
+        <?php endif; ?>
+
+        <?php if (MULTI_USER_MODE): ?>
+            <?php $pendingCount = (int)$pdo->query("SELECT COUNT(*) FROM animes WHERE source = 'local'")->fetchColumn(); ?>
+            <div class="button-container">
+                <a href="pending.php" class="anime-list-button" style="background:#6c757d;">
+                    <i class="fas fa-clock"></i> <?php echo htmlspecialchars(sprintf(t('index.pending_link'), $pendingCount), ENT_QUOTES, 'UTF-8'); ?>
+                </a>
+            </div>
+        <?php endif; ?>
 
         <?php renderPagination($current_page, $total_pages, $total_results, $per_page); ?>
 

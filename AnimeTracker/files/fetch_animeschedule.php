@@ -72,6 +72,11 @@ if (!csrf_verify($_POST['csrf_token'] ?? '')) {
     ]);
 }
 
+// External metadata fetch (consumes the API key). Require a logged-in user
+// to block anonymous abuse (online only; no-op in self-host). Read-only, so
+// login is enough; no catalog write happens here.
+require_login(true);
+
 // --- Input ---------------------------------------------------------------
 
 $url = trim($_POST['url'] ?? '');

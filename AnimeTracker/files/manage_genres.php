@@ -28,6 +28,10 @@ require_once __DIR__ . '/functions.php';
 // list_settings, this secondary page just inherits current_lang()).
 lang_init($pdo);
 
+// Managing genres edits the shared taxonomy, so a moderator+ is required
+// (online only; no-op in self-host).
+require_role($pdo, 'moderator');
+
 // Genre English-name save handler (0.7.2). Sets genres.name_en for a
 // single row. Empty input clears it back to NULL so the display falls
 // back to the Turkish name. The TR name stays authoritative and is not

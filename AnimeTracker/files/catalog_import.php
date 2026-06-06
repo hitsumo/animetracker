@@ -77,6 +77,10 @@ if (!csrf_verify($_POST['csrf_token'] ?? '')) {
     die('CSRF tokeni gecersiz. Sayfayi yenileyip tekrar deneyin.');
 }
 
+// Importing a catalog writes to the shared animes table, so a moderator+ is
+// required (online only; no-op in self-host).
+require_role($pdo, 'moderator');
+
 // --- Helper: download poster image --------------------------------------
 
 /**
@@ -288,15 +292,14 @@ $updateStmt = $pdo->prepare($updateSql);
 // We read the current local synopsis/personal columns just-in-time per
 // matched row (localMap holds only identity columns, to keep its memory
 // footprint small).
+// Personal synopsis (user_synopsis / user_synopsis_en) lives in user_anime
+// per user (1.0.1); it is read via ua_get_state and written via
+// ua_set_state in the move block below. Here we only need the local
+// CATALOG synopsis (animes) to compare against the incoming server text.
+$uid = current_user_id();
 $readSynopsisStmt = $pdo->prepare(
-    "SELECT synopsis_tr, synopsis_en, user_synopsis, user_synopsis_en
+    "SELECT synopsis_tr, synopsis_en
      FROM animes WHERE id = :id"
-);
-$moveTrStmt = $pdo->prepare(
-    "UPDATE animes SET user_synopsis = :txt WHERE id = :id"
-);
-$moveEnStmt = $pdo->prepare(
-    "UPDATE animes SET user_synopsis_en = :txt WHERE id = :id"
 );
 
 // INSERT for new catalog entries. image_path gets set to the local
@@ -305,8 +308,8 @@ $moveEnStmt = $pdo->prepare(
 $insertSql = "
     INSERT INTO animes (
         title, alternative_titles, status, total_episodes, aired_episodes,
-        watched_episodes, notes, image_path,
-        watch_status, next_episode_date,
+        image_path,
+        next_episode_date,
         anidb_link, mal_link, anime_schedule_link,
         episode_interval, broadcast_day, broadcast_time, broadcast_timezone,
         synopsis_tr, synopsis_en, translation_status, release_date,
@@ -314,8 +317,8 @@ $insertSql = "
         mal_id, anidb_id, catalog_uuid, source, title_english
     ) VALUES (
         :title, :alternative_titles, :status, :total_episodes, :aired_episodes,
-        0, NULL, :image_path,
-        'PlanToWatch', NULL,
+        :image_path,
+        NULL,
         :anidb_link, :mal_link, :anime_schedule_link,
         :episode_interval, :broadcast_day, :broadcast_time, :broadcast_timezone,
         :synopsis_tr, :synopsis_en, :translation_status, :release_date,
@@ -402,27 +405,30 @@ try {
             // destroying the difference we compare against).
             $readSynopsisStmt->execute([':id' => $matchId]);
             $localSyn = $readSynopsisStmt->fetch(PDO::FETCH_ASSOC);
+            // Personal synopsis state for this user (NULL = that language is
+            // not yet personalized, so a catalog hand-edit can be rescued).
+            $localPers = ua_get_state($pdo, $uid, $matchId);
             if ($localSyn !== false) {
                 $serverTr = $ca['synopsis_tr'] ?? null;
                 $serverEn = $ca['synopsis_en'] ?? null;
 
                 // TR: only when not yet personal (NULL) and the local text
-                // diverges from the server text.
-                if ($localSyn['user_synopsis'] === null
+                // diverges from the server text. The rescued catalog text is
+                // written to user_anime.user_synopsis for this user (partial
+                // upsert - only the TR field is touched).
+                if ($localPers['user_synopsis'] === null
                     && (string)($localSyn['synopsis_tr'] ?? '') !== (string)($serverTr ?? '')) {
-                    $moveTrStmt->execute([
-                        ':txt' => (string)($localSyn['synopsis_tr'] ?? ''),
-                        ':id'  => $matchId,
+                    ua_set_state($pdo, $uid, $matchId, [
+                        'user_synopsis' => (string)($localSyn['synopsis_tr'] ?? ''),
                     ]);
                     $stats['synopsis_moved_tr'] = ($stats['synopsis_moved_tr'] ?? 0) + 1;
                 }
 
                 // EN: independent, same rule.
-                if ($localSyn['user_synopsis_en'] === null
+                if ($localPers['user_synopsis_en'] === null
                     && (string)($localSyn['synopsis_en'] ?? '') !== (string)($serverEn ?? '')) {
-                    $moveEnStmt->execute([
-                        ':txt' => (string)($localSyn['synopsis_en'] ?? ''),
-                        ':id'  => $matchId,
+                    ua_set_state($pdo, $uid, $matchId, [
+                        'user_synopsis_en' => (string)($localSyn['synopsis_en'] ?? ''),
                     ]);
                     $stats['synopsis_moved_en'] = ($stats['synopsis_moved_en'] ?? 0) + 1;
                 }

@@ -35,6 +35,10 @@ if (!csrf_verify($_POST['csrf_token'] ?? '')) {
     exit;
 }
 
+// Adding a genre edits the shared taxonomy, so a moderator+ is required
+// (online only; no-op in self-host). JSON denial for the AJAX caller.
+require_role($pdo, 'moderator', true);
+
 try {
     if (isset($_POST['genre'])) {
         $genre = trim($_POST['genre']);

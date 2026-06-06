@@ -52,6 +52,18 @@ if (!empty($anime['next_episode_date'])) {
     $anime = $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
+// Personal watch state lives in user_anime per user (1.0.1). Overlay the
+// current user's values onto the catalog row AFTER any re-fetch above, so
+// everything below (chronology alert, checkIfAnimeCompleted, render,
+// dil-ozel Kisisel Konu) reads the right source. ua_get_state returns
+// defaults if this user has no row yet.
+$uaState = ua_get_state($pdo, current_user_id(), $id);
+$anime['watch_status']     = $uaState['watch_status'];
+$anime['watched_episodes'] = $uaState['watched_episodes'];
+$anime['notes']            = $uaState['notes'];
+$anime['user_synopsis']    = $uaState['user_synopsis'];
+$anime['user_synopsis_en'] = $uaState['user_synopsis_en'];
+
 // Anime tamamlanmis mi kontrol et
 checkIfAnimeCompleted($pdo, $anime);
 
@@ -63,8 +75,21 @@ $chronologyAlert = getActiveChronologyAlert($pdo, $anime['id'], $anime['watched_
 // Siradaki anime bilgisi (next_in_series foreign key)
 $nextAnime = null;
 if (!empty($anime['next_in_series'])) {
-    $nextStmt = $pdo->prepare("SELECT id, title, title_english, watch_status, media_type, image_path FROM animes WHERE id = ?");
-    $nextStmt->execute([(int)$anime['next_in_series']]);
+    // watch_status is personal (user_anime, 1.0.1) - join the current
+    // user's row so the "next in series" card shows their progress.
+    $nextStmt = $pdo->prepare(
+        "SELECT a.id, a.title, a.title_english,
+                COALESCE(ua.watch_status, 'PlanToWatch') AS watch_status,
+                a.media_type, a.image_path
+         FROM animes a
+         LEFT JOIN user_anime ua
+                ON ua.anime_id = a.id AND ua.user_id = :uid
+         WHERE a.id = :id"
+    );
+    $nextStmt->execute([
+        ':uid' => current_user_id(),
+        ':id'  => (int)$anime['next_in_series'],
+    ]);
     $nextAnime = $nextStmt->fetch(PDO::FETCH_ASSOC);
 }
 
@@ -87,15 +112,14 @@ if (!empty($anime['series_name'])) {
     $sameSeriesAnimes = $ssStmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// 0.6.1 - Duygu Etiketleri (single-user)
-// Bu anime icin kullanicinin koydugu duygu isaretlerini yukle. Single-user
-// modda user_id=1 sabit; Faz 2 multi-user gecisinde $_SESSION['user_id']
-// olur (KARARLAR Bolum 5 Faz 2 tasinacaklar listesi).
+// 0.6.1 - Emotion tags. Load the current user's emotion marks for this
+// anime, scoped via current_user_id() (1.0.x data model): single-user mode
+// returns 1 (behaviour unchanged), multi-user mode returns the session user.
 $emoStmt = $pdo->prepare(
     "SELECT emotion FROM user_anime_emotion
-      WHERE user_id = 1 AND anime_id = ?"
+      WHERE user_id = ? AND anime_id = ?"
 );
-$emoStmt->execute([(int)$anime['id']]);
+$emoStmt->execute([current_user_id(), (int)$anime['id']]);
 $currentEmotions = $emoStmt->fetchAll(PDO::FETCH_COLUMN, 0);
 $emoStmt->closeCursor();
 
@@ -135,6 +159,7 @@ if ($fillerTracking) {
     <div class="container">
         <div class="header-section">
             <?php // SECTION: Language switcher (snippet copy - see _lang_switcher_reference.php) ?>
+            <?php echo auth_nav_links(); ?>
             <div class="lang-switcher" role="group" aria-label="<?php echo htmlspecialchars(t('lang.aria_label'), ENT_QUOTES, 'UTF-8'); ?>">
                 <form action="set_language.php" method="post" class="lang-switch-form">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
@@ -641,6 +666,44 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                     </form>
                 </div>
                 <?php endif; ?>
+            </div>
+            <?php endif; ?>
+
+            <?php // ============================================================
+                  // SECTION: Duzeltme Onerisi (1.0.5 - Faz 2, Milestone 2)
+                  // Anyone (anonymous or signed-in) can submit a free-text
+                  // correction note -> suggest.php -> pending queue. Multi-user
+                  // only; in self-host the owner edits the catalog directly so
+                  // this section is not rendered.
+                  // ============================================================
+            ?>
+            <?php if (MULTI_USER_MODE): ?>
+            <?php $suggestFlash = $_GET['suggest'] ?? ''; ?>
+            <div class="suggest-section" style="margin-top: 25px; padding: 18px; border: 1px solid #e0e0e0; border-radius: 6px; background: #fafafa;">
+                <h3 style="margin: 0 0 8px 0; font-size: 1.05em; color: #333;">
+                    <i class="fas fa-flag"></i> <?php echo htmlspecialchars(t('anime_details.suggest.title'), ENT_QUOTES, 'UTF-8'); ?>
+                </h3>
+                <?php if ($suggestFlash === 'ok'): ?>
+                    <div style="background:#d4edda;color:#155724;padding:8px 12px;border-radius:4px;margin-bottom:10px;font-size:0.9em;"><?php echo htmlspecialchars(t('anime_details.suggest.ok'), ENT_QUOTES, 'UTF-8'); ?></div>
+                <?php elseif ($suggestFlash === 'rate'): ?>
+                    <div style="background:#fff3cd;color:#856404;padding:8px 12px;border-radius:4px;margin-bottom:10px;font-size:0.9em;"><?php echo htmlspecialchars(t('anime_details.suggest.rate'), ENT_QUOTES, 'UTF-8'); ?></div>
+                <?php elseif ($suggestFlash === 'err'): ?>
+                    <div style="background:#f8d7da;color:#721c24;padding:8px 12px;border-radius:4px;margin-bottom:10px;font-size:0.9em;"><?php echo htmlspecialchars(t('anime_details.suggest.err'), ENT_QUOTES, 'UTF-8'); ?></div>
+                <?php endif; ?>
+                <p style="margin: 0 0 10px 0; color: #666; font-size: 0.88em;"><?php echo htmlspecialchars(t('anime_details.suggest.intro'), ENT_QUOTES, 'UTF-8'); ?></p>
+                <form method="POST" action="suggest.php">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="anime_id" value="<?php echo (int)$anime['id']; ?>">
+                    <div aria-hidden="true" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;">
+                        <label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+                    </div>
+                    <textarea name="note" rows="3" maxlength="2000" required
+                        placeholder="<?php echo htmlspecialchars(t('anime_details.suggest.placeholder'), ENT_QUOTES, 'UTF-8'); ?>"
+                        style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #ccc;border-radius:4px;font-size:14px;font-family:inherit;resize:vertical;"></textarea>
+                    <button type="submit" style="margin-top:10px;background:#007bff;color:#fff;border:none;padding:9px 18px;border-radius:4px;cursor:pointer;font-size:14px;font-weight:500;">
+                        <i class="fas fa-paper-plane"></i> <?php echo htmlspecialchars(t('anime_details.suggest.submit'), ENT_QUOTES, 'UTF-8'); ?>
+                    </button>
+                </form>
             </div>
             <?php endif; ?>
 

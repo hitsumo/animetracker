@@ -108,14 +108,14 @@ function ue_respond($data) {
     exit;
 }
 
-// --- Single-user constant ------------------------------------------------
+// --- Current user --------------------------------------------------------
 //
-// Faz 2 will replace this with $_SESSION['user_id']. Until then every
-// row written by this endpoint belongs to the admin (id 1). Documented
-// in KARARLAR Bolum 5 (Faz 2 user-scope tasinacaklar listesi) so the
-// search-and-replace point is findable.
+// Every row written by this endpoint belongs to the current user, resolved
+// via current_user_id() (1.0.x data model). A variable, not a const, because
+// a const expression cannot hold a function call. Single-user mode returns 1
+// (behaviour unchanged); multi-user mode returns the session user.
 
-const UE_USER_ID = 1;
+$ue_user_id = current_user_id();
 
 // --- Gates ---------------------------------------------------------------
 
@@ -136,6 +136,10 @@ if (!csrf_verify($_POST['csrf_token'] ?? '')) {
         'code'    => 'csrf',
     ]);
 }
+
+// Emotion marks are personal, so a logged-in user is required (online only;
+// no-op in self-host). JSON denial so the AJAX client sees success:false.
+require_login(true);
 
 // --- Input ---------------------------------------------------------------
 
@@ -194,7 +198,7 @@ try {
            FROM user_anime_emotion
           WHERE user_id = ? AND anime_id = ?"
     );
-    $stmt->execute([UE_USER_ID, $animeId]);
+    $stmt->execute([$ue_user_id, $animeId]);
     $current = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
 
     $exists = in_array($emotion, $current, true);
@@ -205,7 +209,7 @@ try {
             "DELETE FROM user_anime_emotion
               WHERE user_id = ? AND anime_id = ? AND emotion = ?"
         );
-        $del->execute([UE_USER_ID, $animeId, $emotion]);
+        $del->execute([$ue_user_id, $animeId, $emotion]);
         $action = 'removed';
         // Recompute current list (cheaper than re-querying).
         $current = array_values(array_filter(
@@ -229,7 +233,7 @@ try {
                 (user_id, anime_id, emotion)
              VALUES (?, ?, ?)"
         );
-        $ins->execute([UE_USER_ID, $animeId, $emotion]);
+        $ins->execute([$ue_user_id, $animeId, $emotion]);
         $action = 'added';
         $current[] = $emotion;
     }

@@ -46,7 +46,8 @@ if (!csrf_verify($_POST['csrf_token'] ?? '')) {
 // Normalize to a strict '1' / '0'. Any value other than '1' turns the
 // preference off, so a missing or tampered field defaults to Romaji.
 $enabled = (($_POST['enabled'] ?? '') === '1') ? '1' : '0';
-set_setting($pdo, 'display_title_english', $enabled);
+// display_title_english is a per-user preference (user_pref, 1.0.1).
+set_user_pref($pdo, current_user_id(), 'display_title_english', $enabled);
 
 // Redirect back to the page that triggered the toggle, with the same
 // same-host Referer hardening as set_language.php.

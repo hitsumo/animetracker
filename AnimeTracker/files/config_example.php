@@ -36,4 +36,21 @@ define('DB_USER', 'root');
 // On shared hosting, use the password provided by your hosting company.
 define('DB_PASS', '');
 
+// AnimeSchedule API key (optional).
+// Used by the "fetch from AnimeSchedule" button on the add/edit forms to
+// pull synopsis, titles, broadcast info, etc. Get a free key at
+// https://animeschedule.net (account -> API), then uncomment the line
+// below and paste your key. If this constant is missing or empty, the
+// feature is simply disabled - the rest of the application works normally.
+// define('ANIMESCHEDULE_API_KEY', '');
 
+// Multi-user mode.
+// false (default) - single-user / self-host: no login, the application
+//   behaves exactly as it always has. Leave this as-is for a personal
+//   install.
+// true            - online / multi-user: login is required and each user
+//   sees their own list. Only set this on a hosted, multi-user server.
+//
+// If this constant is missing (older config.php files), db.php defaults
+// it to false, so existing single-user installs keep working unchanged.
+define('MULTI_USER_MODE', false);

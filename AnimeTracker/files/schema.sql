@@ -117,6 +117,17 @@ SET time_zone = "+00:00";
 -- genres_relational_upgrade.sql). Use the anime_genres join table.
 -- --------------------------------------------------------
 
+-- NOTE (Faz 2 / 1.0.x): five columns below are PERSONAL watch state, not
+-- catalog data - watched_episodes, notes, watch_status, user_synopsis and
+-- user_synopsis_en. As of 1.0.x they live per user in the user_anime table.
+-- They are still DEFINED here on purpose: a fresh install records version
+-- '0.5' (see the settings seed at the end of this file) and replays every
+-- migration in order, and migration 1.0.2 reads these columns to copy the
+-- existing single-user data into user_anime. Migration 1.0.3 then DROPs them,
+-- so the live (post-migration) animes table does NOT carry them. Do not write
+-- new code against animes.watch_status / watched_episodes / notes /
+-- user_synopsis(_en) - read and write user_anime through the helpers
+-- (ua_get_state / ua_set_state, get_user_pref / set_user_pref).
 CREATE TABLE IF NOT EXISTS `animes` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `title` varchar(255) NOT NULL,
@@ -356,6 +367,200 @@ CREATE TABLE IF NOT EXISTS `anime_tags` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
+-- Table: users (1.0 - Faz 2, Milestone 1)
+-- The account table. Present in BOTH modes:
+--   - Single-user / self-host (MULTI_USER_MODE = false): one seeded
+--     "owner" row (id=1, seeded below). No login; current_user_id()
+--     always returns 1, so every user_id FK in the user-scope tables
+--     resolves. Today's behaviour is preserved exactly.
+--   - Multi-user / online (MULTI_USER_MODE = true): one row per
+--     registered account.
+--
+-- Having users in BOTH modes (rather than "no users table in single-user
+-- mode") is deliberate: the schema is identical in both modes, the mode
+-- difference is only "is login enforced", not the shape of the schema.
+-- This kills a whole class of migration bugs (e.g. the old
+-- user_anime_emotion "users table does not exist yet, FK later" problem).
+--
+-- Column notes:
+--   username      - login + current display name. A separate display_name
+--                   is a cheap ADD COLUMN later if ever needed; not
+--                   pre-loaded now.
+--   email         - for password reset. NULL allowed: the self-host owner
+--                   row carries no email. A UNIQUE index permits multiple
+--                   NULLs in MySQL/MariaDB, so this is fine.
+--   password_hash - password_hash() output (algorithm chosen in the auth
+--                   milestone). NULL on the self-host owner (login is not
+--                   enforced there).
+--   role          - all 4 values from the start. Adding an ENUM value
+--                   later is expensive (the 0.6 ASCII enum lesson), so
+--                   'trusted'/'moderator' are reserved now; 'trusted'
+--                   behaviour activates in Faz 3.
+--   status        - all 4 values from the start (same ENUM lesson):
+--                   'active' normal, 'suspended' moderation, 'deleted'
+--                   GDPR soft-delete, 'pending' Faz 3 email verification
+--                   (reserved now even if unused).
+--
+-- The self-host owner is seeded at the bottom of this file (id=1).
+-- -------------------------------------------------------- 
+
+CREATE TABLE IF NOT EXISTS `users` (
+  `id`            int(11)      NOT NULL AUTO_INCREMENT,
+  `username`      varchar(32)  NOT NULL,
+  `email`         varchar(255) DEFAULT NULL,
+  `password_hash` varchar(255) DEFAULT NULL,
+  `role`          enum('admin','moderator','trusted','user')     NOT NULL DEFAULT 'user',
+  `status`        enum('pending','active','suspended','deleted')  NOT NULL DEFAULT 'active',
+  `created_at`    timestamp    NOT NULL DEFAULT current_timestamp(),
+  `updated_at`    timestamp    NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `username` (`username`),
+  UNIQUE KEY `email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+-- Table: user_anime (1.0.1 - Faz 2, Milestone 1)
+-- The per-user personal state for an anime. One row per (user, anime).
+-- The row's EXISTENCE means "this anime is in my list"; an anime that is
+-- in the catalog but not in a user's list simply has no row for that user.
+--
+-- This is the core single-user -> multi-user split: the personal columns
+-- that used to live on animes (watch_status, watched_episodes, notes,
+-- user_synopsis, user_synopsis_en) move here, so the same catalog row in
+-- animes can be shared by everyone while each user keeps private state.
+--
+--   - PRIMARY KEY (user_id, anime_id): one personal record per user/anime.
+--   - watch_status: 5 values - the existing 4 plus 'Dropped'. 'Dropped'
+--     ("gave up, not coming back") is the opposite intent of 'OnHold'
+--     ("paused, will return"); neither replaces the other. The enum is
+--     born with 5 values here (the animes.watch_status enum had 4 and is
+--     dropped with that column in a later migration).
+--   - notes, user_synopsis, user_synopsis_en are PRIVATE: never synced,
+--     never public. user_synopsis = "Kisisel Konu" (TR), _en its EN side.
+--   - idx_anime: "who follows this anime" / aggregation.
+--   - FK user_id -> users(id) ON DELETE CASCADE: safety net only; user
+--     deletion is a soft-delete routine (see users), this cascade guards
+--     an unexpected hard-delete.
+--   - FK anime_id -> animes(id) ON DELETE CASCADE: deleting a catalog
+--     anime drops everyone's personal rows for it (matches today's
+--     behaviour where deleting an anime removed its personal columns).
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `user_anime` (
+  `user_id`          int(11) NOT NULL,
+  `anime_id`         int(11) NOT NULL,
+  `watch_status`     enum('Watched','Watching','PlanToWatch','OnHold','Dropped') NOT NULL DEFAULT 'PlanToWatch',
+  `watched_episodes` int(11) NOT NULL DEFAULT 0,
+  `notes`            text    DEFAULT NULL,
+  `user_synopsis`    text    DEFAULT NULL,
+  `user_synopsis_en` text    DEFAULT NULL,
+  `created_at`       timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at`       timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`user_id`, `anime_id`),
+  KEY `idx_anime` (`anime_id`),
+  CONSTRAINT `fk_ua_user`  FOREIGN KEY (`user_id`)  REFERENCES `users` (`id`)  ON DELETE CASCADE,
+  CONSTRAINT `fk_ua_anime` FOREIGN KEY (`anime_id`) REFERENCES `animes` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+-- Table: user_pref (1.0.1 - Faz 2, Milestone 1)
+-- Per-user preferences: the user-scope twin of the global settings table,
+-- same key-value shape so the code stays familiar (no new pattern).
+--
+-- A new preference is a new row, never an ALTER (same enum/schema-churn
+-- avoidance philosophy as settings). Self-host writes user_id=1; reads and
+-- writes go through current_user_id(), so single-user behaviour is
+-- identical to today's global setting.
+--
+-- Keys that move here from settings (KISIYE OZEL): display_language,
+-- display_title_english. Keys that STAY in settings (GLOBAL/instance):
+-- version, last_catalog_sync, last_aired_sync, synopsis_edit_override.
+-- (The move itself happens in the refactor migration, not here.)
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `user_pref` (
+  `user_id`    int(11)     NOT NULL,
+  `name`       varchar(50) NOT NULL,
+  `value`      text        DEFAULT NULL,
+  `created_at` timestamp   NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp   NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`user_id`, `name`),
+  CONSTRAINT `fk_up_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+-- Table: invites (1.0.4 - Faz 2, Milestone 2)
+-- Single-use registration tokens for invite-mode signup. When
+-- settings.registration_mode = 'invite' a new account must present a valid,
+-- unused token; in 'open' mode this table simply sits unused.
+--
+--   - token: the single-use secret, generated by an admin/moderator. UNIQUE
+--     so the same token can never exist twice.
+--   - email: optional intended recipient, informational only (not enforced).
+--   - created_by / used_by: users.id by VALUE, NO foreign key on purpose - an
+--     invite must outlive the deletion of its creator or its consumer (audit
+--     trail), and user deletion is a soft-delete routine that never
+--     hard-deletes rows anyway.
+--   - used_at NULL + used_by NULL: an unused invite. Both are set when the
+--     token is consumed at registration.
+--
+-- registration_mode itself is an instance setting (settings table, seeded to
+-- 'invite' by migration 1.0.4), not a column here - it is operator policy, not
+-- per-invite data.
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `invites` (
+  `id`         int(11)      NOT NULL AUTO_INCREMENT,
+  `token`      varchar(64)  NOT NULL,
+  `email`      varchar(255) DEFAULT NULL,
+  `created_by` int(11)      DEFAULT NULL,
+  `used_by`    int(11)      DEFAULT NULL,
+  `used_at`    timestamp    NULL DEFAULT NULL,
+  `created_at` timestamp    NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `token` (`token`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+-- Table: suggestions (1.0.5 - Faz 2, Milestone 2)
+-- Free-text correction suggestions for a catalog anime. Anyone (anonymous or
+-- signed-in) may submit one via suggest.php; every submission lands here as
+-- status='pending' for a moderator to accept/reject. Applying an accepted
+-- suggestion to the catalog is MANUAL (a moderator opens the anime and edits)
+-- - there is no field-level auto-apply yet (field/proposed_value columns are a
+-- later milestone; for now this is a note only).
+--
+--   - anime_id: the catalog row the suggestion is about. FK to animes with
+--     ON DELETE CASCADE - if the anime is removed, its suggestions go too.
+--   - note: the free-text suggestion body.
+--   - submitter_user_id: users.id of the signed-in submitter, or NULL for an
+--     anonymous submission. NO foreign key on purpose: an anonymous (NULL) or
+--     deleted-user suggestion must be preserved.
+--   - ip: submitter IP (IPv6-safe length). Used only for abuse handling and
+--     per-IP rate limiting on submit; not shown to end users.
+--   - status: pending (queue) -> accepted / rejected by a moderator.
+--
+-- idx_ip_created backs the per-IP rate-limit lookup (count this IP's recent
+-- rows). idx_anime / idx_status back the moderation queue and per-anime views.
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `suggestions` (
+  `id`                int(11)     NOT NULL AUTO_INCREMENT,
+  `anime_id`          int(11)     NOT NULL,
+  `note`              text        NOT NULL,
+  `submitter_user_id` int(11)     DEFAULT NULL,
+  `ip`                varchar(45) DEFAULT NULL,
+  `status`            enum('pending','accepted','rejected') NOT NULL DEFAULT 'pending',
+  `created_at`        timestamp   NOT NULL DEFAULT current_timestamp(),
+  `updated_at`        timestamp   NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_anime` (`anime_id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_ip_created` (`ip`, `created_at`),
+  CONSTRAINT `fk_sug_anime` FOREIGN KEY (`anime_id`) REFERENCES `animes` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
 -- Table: user_anime_emotion
 -- The user's emotional reactions to anime, recorded as marks (not
 -- scores). Each row is one (user, anime, emotion) triple; a user can
@@ -496,6 +701,16 @@ INSERT IGNORE INTO `genres` (`name`) VALUES
 
 INSERT IGNORE INTO `settings` (`name`, `value`) VALUES
 ('version', '0.5');
+
+-- --------------------------------------------------------
+-- Default data: users (1.0 - Faz 2, Milestone 1)
+-- Seed the self-host owner (id=1). INSERT IGNORE so re-running schema.sql
+-- on an existing install never errors on the duplicate primary key.
+-- In multi-user mode this same row is the first/admin account.
+-- --------------------------------------------------------
+
+INSERT IGNORE INTO `users` (`id`, `username`, `email`, `password_hash`, `role`, `status`) VALUES
+(1, 'owner', NULL, NULL, 'admin', 'active');
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
