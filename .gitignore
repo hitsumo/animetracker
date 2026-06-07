@@ -107,6 +107,8 @@ files/test*.php
 !anime-tracker-icon.ico
 !screenshots/*.png
 !screenshots/*.jpg
+!docs/screenshots/*.png
+!docs/screenshots/*.jpg
 
 # ============================================================
 # EDITOR / OS ARTIKLARI
