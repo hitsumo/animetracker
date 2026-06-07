@@ -129,6 +129,15 @@ function calculateNextEpisodeDate($anime) {
 
 function updateNextEpisodeDate($pdo, &$anime) {
     if (empty($anime['next_episode_date'])) {
+        // Senkron/import ile gelen animelerde next_episode_date YOK
+        // (catalog.php onu turetilmis diye haric tutar). Senkronla GELEN
+        // broadcast_day/broadcast_time'dan lokalde hesapla, yaz, don.
+        $computed = calculateNextEpisodeDate($anime);
+        if ($computed) {
+            $stmt = $pdo->prepare("UPDATE animes SET next_episode_date = ? WHERE id = ?");
+            $stmt->execute([$computed, $anime['id']]);
+            $anime['next_episode_date'] = $computed;
+        }
         return;
     }
 

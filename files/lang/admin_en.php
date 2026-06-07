@@ -81,7 +81,6 @@ return [
     'admin_pending.col.external_ids'         => 'MAL / AniDB',
     'admin_pending.col.added'                => 'Added',
     'admin_pending.back_to_dashboard'        => 'Admin dashboard',
-
     // -----------------------------------------------------------------
     // admin_sync.php (admin_sync_example.php template) - push to server
     // -----------------------------------------------------------------
@@ -211,4 +210,34 @@ return [
     'admin_suggestions.empty'                => 'No suggestions in this category.',
     'admin_suggestions.back_to_admin'        => 'Back to admin panel',
 
+
+    // --- admin_catalog_requests.php (Catalog Requests) ---
+    'admin_catalog_requests.page_title'          => 'Catalog Requests',
+    'admin_catalog_requests.heading'             => 'Catalog Requests',
+    'admin_catalog_requests.subtitle'            => 'Animes from imports that are not in the catalog yet',
+    'admin_catalog_requests.localhost_only'      => 'This page is only accessible via localhost.',
+    'admin_catalog_requests.empty'               => 'No pending catalog requests.',
+    'admin_catalog_requests.col.title'           => 'Anime',
+    'admin_catalog_requests.col.external_ids'    => 'External IDs',
+    'admin_catalog_requests.col.broadcast_status'=> 'Status / Broadcast',
+    'admin_catalog_requests.col.suggested_by'    => 'Suggested by',
+    'admin_catalog_requests.col.created'         => 'Date',
+    'admin_catalog_requests.btn.approve'         => 'Approve',
+    'admin_catalog_requests.btn.reject'          => 'Reject',
+    'admin_catalog_requests.btn.select_all'      => 'Select all',
+    'admin_catalog_requests.btn.clear_selection' => 'Clear selection',
+    'admin_catalog_requests.confirm.reject'      => 'Reject the selected requests?',
+    'admin_catalog_requests.error.csrf'          => 'Invalid security token (CSRF). Refresh the page and try again.',
+    'admin_catalog_requests.error.no_selection'  => 'No request selected.',
+    'admin_catalog_requests.error.unknown_action'=> 'Unknown action.',
+    'admin_catalog_requests.success.approved'    => '%d request(s) approved and added to the catalog.',
+    'admin_catalog_requests.success.rejected'    => '%d request(s) rejected.',
+    'admin_catalog_requests.back_to_dashboard'   => 'Back to admin panel',
+
+    // --- admin.php card: Catalog Requests ---
+    'admin.tool.catalog_requests.h3'             => 'Catalog Requests',
+    'admin.tool.catalog_requests.desc'           => 'Animes from member imports that are not in the catalog. Approve to add them.',
+    'admin.tool.catalog_requests.link.open'      => 'Review requests',
+    'admin.tool.catalog_requests.link.count'     => 'Review %d requests',
+    'admin.tool.catalog_requests.missing_file'   => 'Missing file:',
 ];

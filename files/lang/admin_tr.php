@@ -222,4 +222,34 @@ return [
     'admin_suggestions.empty'                => 'Bu kategoride öneri yok.',
     'admin_suggestions.back_to_admin'        => 'Yönetici paneline dön',
 
+
+    // --- admin_catalog_requests.php (Katalog Onerileri) ---
+    'admin_catalog_requests.page_title'          => 'Katalog Önerileri',
+    'admin_catalog_requests.heading'             => 'Katalog Önerileri',
+    'admin_catalog_requests.subtitle'            => 'İçe aktarımdan gelen, katalogda henüz olmayan animeler',
+    'admin_catalog_requests.localhost_only'      => 'Bu sayfa sadece localhost üzerinden erişilebilir.',
+    'admin_catalog_requests.empty'               => 'Bekleyen katalog önerisi yok.',
+    'admin_catalog_requests.col.title'           => 'Anime',
+    'admin_catalog_requests.col.external_ids'    => 'Dış kaynak ID',
+    'admin_catalog_requests.col.broadcast_status'=> 'Durum / Yayın',
+    'admin_catalog_requests.col.suggested_by'    => 'Öneren',
+    'admin_catalog_requests.col.created'         => 'Tarih',
+    'admin_catalog_requests.btn.approve'         => 'Onayla',
+    'admin_catalog_requests.btn.reject'          => 'Reddet',
+    'admin_catalog_requests.btn.select_all'      => 'Tümünü seç',
+    'admin_catalog_requests.btn.clear_selection' => 'Seçimi temizle',
+    'admin_catalog_requests.confirm.reject'      => 'Seçili öneriler reddedilsin mi?',
+    'admin_catalog_requests.error.csrf'          => 'Geçersiz güvenlik anahtarı (CSRF). Sayfayı yenileyip tekrar deneyin.',
+    'admin_catalog_requests.error.no_selection'  => 'Hiçbir öneri seçilmedi.',
+    'admin_catalog_requests.error.unknown_action'=> 'Bilinmeyen işlem.',
+    'admin_catalog_requests.success.approved'    => '%d öneri onaylandı ve kataloğa eklendi.',
+    'admin_catalog_requests.success.rejected'    => '%d öneri reddedildi.',
+    'admin_catalog_requests.back_to_dashboard'   => 'Yönetici paneline dön',
+
+    // --- admin.php karti: Katalog Onerileri ---
+    'admin.tool.catalog_requests.h3'             => 'Katalog Önerileri',
+    'admin.tool.catalog_requests.desc'           => 'Üyelerin içe aktarımından gelen, katalogda olmayan animeler. Onaylarsanız kataloğa eklenir.',
+    'admin.tool.catalog_requests.link.open'      => 'Önerileri incele',
+    'admin.tool.catalog_requests.link.count'     => '%d öneriyi incele',
+    'admin.tool.catalog_requests.missing_file'   => 'Eksik dosya:',
 ];

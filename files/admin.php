@@ -87,6 +87,19 @@ if ($pendingAvailable) {
     }
 }
 
+
+$catalogRequestsAvailable = file_exists(__DIR__ . '/admin_catalog_requests.php');
+$catalogRequestsCount = null;
+if (MULTI_USER_MODE && $catalogRequestsAvailable) {
+    try {
+        require_once __DIR__ . '/db.php';
+        $catalogRequestsCount = (int)$pdo->query(
+            "SELECT COUNT(*) FROM catalog_requests WHERE suggestion_status = 'pending'"
+        )->fetchColumn();
+    } catch (Exception $e) {
+        $catalogRequestsCount = null;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo current_lang(); ?>">
@@ -298,7 +311,37 @@ if ($pendingAvailable) {
                         </div>
                     <?php endif; ?>
                 </div>
-
+<?php if (MULTI_USER_MODE): ?>
+                <!-- Katalog Onerileri (catalog_requests: ice aktarimdan eslesmeyenler) -->
+                <div class="tool-card">
+                    <h3>
+                        <i class="fas fa-lightbulb"></i> <?php echo htmlspecialchars(t('admin.tool.catalog_requests.h3'), ENT_QUOTES, 'UTF-8'); ?>
+                        <?php if ($catalogRequestsCount !== null && $catalogRequestsCount > 0): ?>
+                            <span style="background: #28a745; color: #fff; padding: 2px 10px;
+                                         border-radius: 12px; font-size: 0.75em; margin-left: 6px;">
+                                <?php echo $catalogRequestsCount; ?>
+                            </span>
+                        <?php endif; ?>
+                    </h3>
+                    <p><?php echo t('admin.tool.catalog_requests.desc'); ?></p>
+                    <?php if ($catalogRequestsAvailable): ?>
+                        <a href="admin_catalog_requests.php" class="tool-link">
+                            <i class="fas fa-clipboard-list"></i>
+                            <?php if ($catalogRequestsCount !== null && $catalogRequestsCount > 0): ?>
+                                <?php echo htmlspecialchars(sprintf(t('admin.tool.catalog_requests.link.count'), (int)$catalogRequestsCount), ENT_QUOTES, 'UTF-8'); ?>
+                            <?php else: ?>
+                                <?php echo htmlspecialchars(t('admin.tool.catalog_requests.link.open'), ENT_QUOTES, 'UTF-8'); ?>
+                            <?php endif; ?>
+                        </a>
+                    <?php else: ?>
+                        <span class="tool-link disabled"><?php echo htmlspecialchars(t('admin.tool.sync.link.disabled'), ENT_QUOTES, 'UTF-8'); ?></span>
+                        <div class="tool-status status-missing">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <?php echo htmlspecialchars(t('admin.tool.catalog_requests.missing_file'), ENT_QUOTES, 'UTF-8'); ?> <code>admin_catalog_requests.php</code>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
                 <!-- Yonetici Yetenekleri (override toggles) -->
                 <div class="tool-card">
                     <h3><i class="fas fa-sliders-h"></i> <?php echo htmlspecialchars(t('admin.tool.capabilities.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>

@@ -226,135 +226,216 @@ if (isset($_POST['export'])) {
 
 // List Import Operation
 if (isset($_POST['import']) && isset($_FILES['import_file'])) {
-    // Importing a JSON backup bulk-writes the shared catalog (INSERT INTO
-    // animes), so it is admin-only online (no-op in self-host).
-    require_role($pdo, 'admin');
+    if (defined('MULTI_USER_MODE') && MULTI_USER_MODE) {
+        require_login();
+    } else {
+        require_role($pdo, 'admin');
+    }
+
     $file = $_FILES['import_file'];
 
-    // Validate by decoding, not by the browser-reported MIME type (browsers
-    // report .json inconsistently). A valid backup decodes to an array of
-    // anime rows.
-    $content = ($file['error'] === UPLOAD_ERR_OK)
-        ? file_get_contents($file['tmp_name'])
-        : false;
-    $animes = ($content !== false) ? json_decode($content, true) : null;
+    // Upload'u DURUST hata ayrimiyla oku.
+    $content   = null;
+    $readError = null;
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        $readError = sprintf(t('list_settings.import.upload_error'), (int)$file['error']);
+    } else {
+        $content = @file_get_contents($file['tmp_name']);
+        if ($content === false) {
+            $readError = t('list_settings.import.read_failed');
+        }
+    }
 
-    if (is_array($animes)) {
-        // Restore model: each row is inserted as a NEW record (the export is a
-        // full backup; re-import expects a cleared list - see Listeyi Temizle).
-        // Genres/tags are relational, so they are restored from the NAME arrays
-        // the export attaches, via the taxonomy helpers AFTER the anime row
-        // exists. The legacy animes.genres column was dropped in v0.5 and is
-        // NOT written here (writing it was the old import crash).
-        //
-        // next_in_series is intentionally NOT restored: it is a row-ID pointer
-        // and IDs are reassigned on restore, so the old value would dangle.
-        // series_name (a plain string) IS restored, so the series grouping
-        // survives; only the explicit ordering pointer is lost (known limit).
-        $imported = 0;
-        $skipped = 0;
+    if ($readError !== null) {
+        $error_message = $readError;
+    } else {
+        $animes = json_decode($content, true);
 
-        // Personal columns (watched_episodes, notes, watch_status,
-        // user_synopsis, user_synopsis_en) are no longer on animes (1.0.1);
-        // they are restored into user_anime via ua_set_state after the
-        // INSERT (see below). animes carries catalog data only here.
-        $stmt = $pdo->prepare("INSERT INTO animes (
-                title, alternative_titles, title_english, status,
-                total_episodes, aired_episodes,
-                image_path, next_episode_date,
-                anidb_link, mal_link, anime_schedule_link, episode_interval,
-                broadcast_day, broadcast_time, broadcast_timezone,
-                synopsis, synopsis_tr, synopsis_en, translation_status,
-                release_date, end_date, series_name, media_type,
-                mal_id, anidb_id, catalog_uuid, source, filler_tracking
-            ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-            )");
+        if (!is_array($animes)) {
+            $error_message = t('list_settings.import.invalid_format');
 
-        foreach ($animes as $anime) {
-            if (!is_array($anime) || empty($anime['title'])) {
-                $skipped++;
-                continue;
-            }
-            try {
-                $stmt->execute([
+        } elseif (defined('MULTI_USER_MODE') && MULTI_USER_MODE) {
+            // ===== ONLINE: anime EKLEME; esle veya oneri olarak kaydet =====
+            $uid = current_user_id();
+
+            $byMal   = $pdo->prepare("SELECT id FROM animes WHERE mal_id = ? LIMIT 1");
+            $byAnidb = $pdo->prepare("SELECT id FROM animes WHERE anidb_id = ? LIMIT 1");
+
+            // Dedup: ayni kullanicidan ayni anime icin bekleyen oneri var mi
+            $suggExists = $pdo->prepare(
+                "SELECT id FROM catalog_requests
+                  WHERE suggested_by = ? AND suggestion_status = 'pending'
+                    AND ( (mal_id   IS NOT NULL AND mal_id   = ?)
+                       OR (anidb_id IS NOT NULL AND anidb_id = ?) )
+                  LIMIT 1"
+            );
+
+            $suggInsert = $pdo->prepare("INSERT INTO catalog_requests (
+                    mal_id, anidb_id, title, title_english, alternative_titles,
+                    status, total_episodes, mal_link, anidb_link,
+                    anime_schedule_link, episode_interval, broadcast_day,
+                    broadcast_time, broadcast_timezone, synopsis_tr, synopsis_en,
+                    release_date, end_date, series_name, media_type, suggested_by
+                ) VALUES (
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                )");
+
+            $validStatus = ['Watched', 'Watching', 'PlanToWatch', 'OnHold', 'Dropped'];
+            $applied = 0; $suggested = 0; $alreadySuggested = 0;
+
+            foreach ($animes as $anime) {
+                if (!is_array($anime)) { continue; }
+
+                $mal   = !empty($anime['mal_id'])   ? (int)$anime['mal_id']   : null;
+                $anidb = !empty($anime['anidb_id']) ? (int)$anime['anidb_id'] : null;
+
+                $aid = null;
+                if ($mal !== null)            { $byMal->execute([$mal]);     $aid = $byMal->fetchColumn(); }
+                if (!$aid && $anidb !== null) { $byAnidb->execute([$anidb]); $aid = $byAnidb->fetchColumn(); }
+
+                if ($aid) {
+                    // Katalogda VAR: kisisel izleme durumunu yaz
+                    $status = $anime['watch_status'] ?? 'PlanToWatch';
+                    if (!in_array($status, $validStatus, true)) { $status = 'PlanToWatch'; }
+                    ua_set_state($pdo, $uid, (int)$aid, [
+                        'watch_status'     => $status,
+                        'watched_episodes' => max(0, (int)($anime['watched_episodes'] ?? 0)),
+                        'notes'            => $anime['notes']            ?? null,
+                        'user_synopsis'    => $anime['user_synopsis']    ?? null,
+                        'user_synopsis_en' => $anime['user_synopsis_en'] ?? null,
+                    ]);
+                    $applied++;
+                    continue;
+                }
+
+                // Katalogda YOK: oneri olarak kaydet (animes'e DEGIL)
+                if (empty($anime['title'])) { continue; }
+                $suggExists->execute([$uid, $mal, $anidb]);
+                if ($suggExists->fetchColumn()) { $alreadySuggested++; continue; }
+
+                $bstatus = $anime['status'] ?? null;
+                if (!in_array($bstatus, ['Yayın Tamamlandı', 'Yayın Devam Ediyor'], true)) { $bstatus = null; }
+                $mtype = $anime['media_type'] ?? null;
+                if (!in_array($mtype, ['TV', 'Film', 'OVA', 'Special', 'ONA'], true)) { $mtype = null; }
+
+                $suggInsert->execute([
+                    $mal, $anidb,
                     $anime['title'],
-                    $anime['alternative_titles']  ?? null,
                     $anime['title_english']       ?? null,
-                    $anime['status']              ?? 'Yayın Tamamlandı',
+                    $anime['alternative_titles']  ?? null,
+                    $bstatus,
                     $anime['total_episodes']      ?? null,
-                    $anime['aired_episodes']      ?? null,
-                    $anime['image_path']          ?? null,
-                    $anime['next_episode_date']   ?? null,
-                    $anime['anidb_link']          ?? null,
                     $anime['mal_link']            ?? null,
+                    $anime['anidb_link']          ?? null,
                     $anime['anime_schedule_link'] ?? null,
                     $anime['episode_interval']    ?? 7,
                     $anime['broadcast_day']       ?? null,
                     $anime['broadcast_time']      ?? null,
-                    $anime['broadcast_timezone']  ?? 'Asia/Tokyo',
-                    $anime['synopsis']            ?? null,
-                    $anime['synopsis_tr']         ?? $anime['synopsis'] ?? null,
+                    $anime['broadcast_timezone']  ?? null,
+                    $anime['synopsis_tr']         ?? ($anime['synopsis'] ?? null),
                     $anime['synopsis_en']         ?? null,
-                    $anime['translation_status']  ?? 'none',
                     $anime['release_date']        ?? null,
                     $anime['end_date']            ?? null,
                     $anime['series_name']         ?? null,
-                    $anime['media_type']          ?? null,
-                    $anime['mal_id']              ?? null,
-                    $anime['anidb_id']            ?? null,
-                    $anime['catalog_uuid']        ?? null,
-                    $anime['source']              ?? 'local',
-                    !empty($anime['filler_tracking']) ? 1 : 0
+                    $mtype,
+                    $uid,
                 ]);
+                $suggested++;
+            }
 
-                $animeId = (int)$pdo->lastInsertId();
-                if ($animeId > 0) {
-                    // Restore personal watch state into user_anime for the
-                    // current user (1.0.1). These columns were removed from
-                    // the animes INSERT above; defaults match the old inline
-                    // ones ('PlanToWatch' / 0 / null). NULL user_synopsis(_en)
-                    // keeps that language in Catalog mode.
-                    ua_set_state($pdo, current_user_id(), $animeId, [
-                        'watch_status'     => $anime['watch_status']     ?? 'PlanToWatch',
-                        'watched_episodes' => $anime['watched_episodes']  ?? 0,
-                        'notes'            => $anime['notes']             ?? null,
-                        'user_synopsis'    => $anime['user_synopsis']     ?? null,
-                        'user_synopsis_en' => $anime['user_synopsis_en']  ?? null,
+            $success_message = sprintf(
+                t('list_settings.import.online_result'),
+                $applied, $suggested, $alreadySuggested
+            );
+
+        } else {
+            // ===== SELF-HOST: tam yedek geri-yukleme (onceki davranis) =====
+            $imported = 0;
+            $skipped  = 0;
+
+            $stmt = $pdo->prepare("INSERT INTO animes (
+                    title, alternative_titles, title_english, status,
+                    total_episodes, aired_episodes,
+                    image_path, next_episode_date,
+                    anidb_link, mal_link, anime_schedule_link, episode_interval,
+                    broadcast_day, broadcast_time, broadcast_timezone,
+                    synopsis, synopsis_tr, synopsis_en, translation_status,
+                    release_date, end_date, series_name, media_type,
+                    mal_id, anidb_id, catalog_uuid, source, filler_tracking
+                ) VALUES (
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                )");
+
+            foreach ($animes as $anime) {
+                if (!is_array($anime) || empty($anime['title'])) {
+                    $skipped++;
+                    continue;
+                }
+                try {
+                    $stmt->execute([
+                        $anime['title'],
+                        $anime['alternative_titles']  ?? null,
+                        $anime['title_english']       ?? null,
+                        $anime['status']              ?? 'Yayın Tamamlandı',
+                        $anime['total_episodes']      ?? null,
+                        $anime['aired_episodes']      ?? null,
+                        $anime['image_path']          ?? null,
+                        $anime['next_episode_date']   ?? null,
+                        $anime['anidb_link']          ?? null,
+                        $anime['mal_link']            ?? null,
+                        $anime['anime_schedule_link'] ?? null,
+                        $anime['episode_interval']    ?? 7,
+                        $anime['broadcast_day']       ?? null,
+                        $anime['broadcast_time']      ?? null,
+                        $anime['broadcast_timezone']  ?? 'Asia/Tokyo',
+                        $anime['synopsis']            ?? null,
+                        $anime['synopsis_tr']         ?? $anime['synopsis'] ?? null,
+                        $anime['synopsis_en']         ?? null,
+                        $anime['translation_status']  ?? 'none',
+                        $anime['release_date']        ?? null,
+                        $anime['end_date']            ?? null,
+                        $anime['series_name']         ?? null,
+                        $anime['media_type']          ?? null,
+                        $anime['mal_id']              ?? null,
+                        $anime['anidb_id']            ?? null,
+                        $anime['catalog_uuid']        ?? null,
+                        $anime['source']              ?? 'local',
+                        !empty($anime['filler_tracking']) ? 1 : 0
                     ]);
 
-                    // Restore relational genres/tags by NAME (find-or-create,
-                    // then link). Backups without these arrays restore none.
-                    setAnimeGenresByNames($pdo, $animeId, $anime['genres'] ?? []);
+                    $animeId = (int)$pdo->lastInsertId();
+                    if ($animeId > 0) {
+                        ua_set_state($pdo, current_user_id(), $animeId, [
+                            'watch_status'     => $anime['watch_status']     ?? 'PlanToWatch',
+                            'watched_episodes' => $anime['watched_episodes']  ?? 0,
+                            'notes'            => $anime['notes']             ?? null,
+                            'user_synopsis'    => $anime['user_synopsis']     ?? null,
+                            'user_synopsis_en' => $anime['user_synopsis_en']  ?? null,
+                        ]);
 
-                    $tagIds = [];
-                    foreach ((array)($anime['tags'] ?? []) as $tagName) {
-                        $tid = findOrCreateTag($pdo, $tagName);
-                        if ($tid > 0) {
-                            $tagIds[] = $tid;
+                        setAnimeGenresByNames($pdo, $animeId, $anime['genres'] ?? []);
+
+                        $tagIds = [];
+                        foreach ((array)($anime['tags'] ?? []) as $tagName) {
+                            $tid = findOrCreateTag($pdo, $tagName);
+                            if ($tid > 0) { $tagIds[] = $tid; }
                         }
+                        setAnimeTags($pdo, $animeId, $tagIds);
                     }
-                    setAnimeTags($pdo, $animeId, $tagIds);
+                    $imported++;
+                } catch (Exception $e) {
+                    $skipped++;
+                    error_log('list_settings import: row skipped - ' . $e->getMessage());
                 }
-                $imported++;
-            } catch (Exception $e) {
-                // Skip rows that collide (e.g. a duplicate mal_id/anidb_id/
-                // catalog_uuid when importing into a non-empty list) or are
-                // malformed. Restore model expects a cleared list; a collision
-                // means the row already exists.
-                $skipped++;
-                error_log('list_settings import: row skipped - ' . $e->getMessage());
+            }
+
+            if ($imported > 0) {
+                $success_message = sprintf(t('list_settings.import.result'), $imported, $skipped);
+            } else {
+                $error_message = t('list_settings.import.invalid_format');
             }
         }
-
-        if ($imported > 0) {
-            $success_message = sprintf(t('list_settings.import.result'), $imported, $skipped);
-        } else {
-            $error_message = t('list_settings.import.invalid_format');
-        }
-    } else {
-        $error_message = t('list_settings.import.invalid_format');
     }
 }
 
