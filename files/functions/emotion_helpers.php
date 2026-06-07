@@ -147,3 +147,74 @@ function emotion_css_class($emotion) {
     ];
     return $map[$emotion] ?? 'unknown';
 }
+
+/**
+ * Import a list of emotion marks for one (user, anime). Used by the list
+ * import in list_settings.php so a user's emotional marks travel with the
+ * rest of their personal data (watch state, notes) when moving a list
+ * between installs.
+ *
+ * Rules (mirror update_emotion.php server-side):
+ *   - Only canonical values (emotion_options() keys) are accepted; anything
+ *     else is silently skipped.
+ *   - Duplicates within the payload are collapsed.
+ *   - Inserts are idempotent: INSERT IGNORE on the
+ *     (user_id, anime_id, emotion) primary key, so re-importing the same
+ *     file never errors or duplicates.
+ *   - Hard cap of 3 marks per (user, anime). Existing marks count toward
+ *     the cap and are preserved.
+ *
+ * @param PDO   $pdo
+ * @param int   $userId
+ * @param int   $animeId
+ * @param array $emotions  ASCII emotion values (emotion_options() keys)
+ * @return int             number of NEW marks inserted
+ */
+function emotion_import_set(PDO $pdo, $userId, $animeId, $emotions)
+{
+    if (!is_array($emotions) || empty($emotions)) {
+        return 0;
+    }
+    $userId  = (int)$userId;
+    $animeId = (int)$animeId;
+    if ($userId <= 0 || $animeId <= 0) {
+        return 0;
+    }
+
+    $canonical = emotion_options();
+
+    // Existing marks count toward the cap of 3.
+    $countStmt = $pdo->prepare(
+        "SELECT COUNT(*) FROM user_anime_emotion WHERE user_id = ? AND anime_id = ?"
+    );
+    $countStmt->execute([$userId, $animeId]);
+    $total = (int)$countStmt->fetchColumn();
+
+    $insert = $pdo->prepare(
+        "INSERT IGNORE INTO user_anime_emotion (user_id, anime_id, emotion)
+         VALUES (?, ?, ?)"
+    );
+
+    $added = 0;
+    $seen  = [];
+    foreach ($emotions as $emotion) {
+        if ($total >= 3) {
+            break; // cap reached
+        }
+        $emotion = is_string($emotion) ? trim($emotion) : '';
+        if ($emotion === '' || !array_key_exists($emotion, $canonical)) {
+            continue; // not a canonical emotion
+        }
+        if (isset($seen[$emotion])) {
+            continue; // duplicate within this payload
+        }
+        $seen[$emotion] = true;
+
+        $insert->execute([$userId, $animeId, $emotion]);
+        if ($insert->rowCount() > 0) {
+            $added++;
+            $total++;
+        }
+    }
+    return $added;
+}
