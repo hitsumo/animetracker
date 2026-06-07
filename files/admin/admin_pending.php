@@ -25,8 +25,8 @@
  * needed - this tool does not touch the network, only the local DB.
  */
 
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../functions.php';
 
 lang_init_admin($pdo);
 
@@ -56,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $action = $_POST['action'] ?? '';
+    $pushAfter = false; // online: push to server after a successful promotion
     try {
         if ($action === 'promote_selected') {
             $ids = $_POST['ids'] ?? [];
@@ -82,12 +83,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $message = sprintf(t('admin_pending.success.promoted_some'), $affected);
             $messageType = 'success';
+            $pushAfter = true;
 
         } elseif ($action === 'promote_all') {
             $stmt = $pdo->query("UPDATE animes SET source = 'catalog' WHERE source = 'local'");
             $affected = $stmt->rowCount();
             $message = sprintf(t('admin_pending.success.promoted_all'), $affected);
             $messageType = 'success';
+            $pushAfter = true;
 
         } elseif ($action === 'demote') {
             // Opposite direction - remove an anime from the catalog back
@@ -104,6 +107,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $messageType = 'success';
         } else {
             throw new Exception(t('admin_pending.error.unknown_action'));
+        }
+
+        // Online (multi-user): after a successful promotion, automatically
+        // push the catalog to the central server (server-to-server, HMAC),
+        // so offline/self-host clients receive online-added anime on their
+        // next catalog import. Self-host is untouched - MULTI_USER_MODE is
+        // false there, so this block is skipped and the admin keeps pushing
+        // manually via admin_sync.php. A failed push never undoes the local
+        // promotion; the outcome is appended to the status message.
+        if ($pushAfter && MULTI_USER_MODE) {
+            require_once __DIR__ . '/catalog_push.php';
+            $push = catalog_push_to_server($pdo);
+            if ($push['ok']) {
+                $message .= ' ' . sprintf(
+                    t('admin_pending.success.pushed'),
+                    (int)$push['inserted'],
+                    (int)$push['updated']
+                );
+            } else {
+                $message .= ' ' . sprintf(
+                    t('admin_pending.warn.push_failed'),
+                    $push['message']
+                );
+            }
         }
     } catch (Exception $e) {
         $message = $e->getMessage();
@@ -141,10 +168,10 @@ $localCount   = (int)($totals['local']   ?? 0);
 <head>
     <meta charset="UTF-8">
     <title><?php echo htmlspecialchars(t('admin_pending.page_title'), ENT_QUOTES, 'UTF-8'); ?></title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/x-icon" href="../favicon.ico">
     <style>
         body { font-family: 'Poppins', sans-serif; background: #f5f7fa; }
         .admin-container {
@@ -300,7 +327,7 @@ $localCount   = (int)($totals['local']   ?? 0);
                                        class="row-check">
                             </td>
                             <td>
-                                <a href="anime_details.php?id=<?php echo (int)$a['id']; ?>"
+                                <a href="../anime_details.php?id=<?php echo (int)$a['id']; ?>"
                                    target="_blank">
                                     <?php echo htmlspecialchars($a['title']); ?>
                                 </a>

@@ -183,3 +183,11 @@ try {
         '</body></html>'
     );
 }
+
+// File operations (moves/deletions) that newer versions introduced. Tracked
+// separately via settings.files_ops_version, so this runs even when the
+// schema version was already advanced by an older updater that did not know
+// about files.ops. Best-effort and never throws: file cleanup must not block
+// the page (it is housekeeping, not correctness). Runs after migrations so
+// the schema version (its ceiling) is current.
+MigrationManager::runFileOps($pdo);

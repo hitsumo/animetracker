@@ -1057,10 +1057,6 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
     </div>
 
     <script>
-        // JS-side translations - PHP json_encode'dan dolu sabit.
-        // add_anime ile paralel pattern (KARARLAR Bolum 7 JS LANG bloku).
-        // Anahtarlar add_anime.* uzerinden yeniden kullanilir, sadece
-        // aired_sync edit_anime'a ozgu.
         const LANG = <?php echo json_encode([
             'no_file'                       => t('add_anime.file.no_file'),
             'alternative_title_placeholder' => t('add_anime.ph.alternative_title'),
@@ -1081,495 +1077,88 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
             'aired_sync_no_change_prefix'   => t('edit_anime.js.aired_sync.no_change_prefix'),
         ], JSON_UNESCAPED_UNICODE); ?>;
 
-        function updateFileName(input) {
-            const fileName = input.files[0]?.name;
-            document.getElementById('file-name').textContent = fileName || LANG.no_file;
-        }
+        // Paylasilan form JS'i icin baslangic durumu (edit: mevcut secimler).
+        const ANIME_FORM = {
+            allTags: <?php echo json_encode(array_map(function($t) { return $t['name']; }, $allTags), JSON_UNESCAPED_UNICODE); ?>,
+            genres: <?php echo json_encode($selected_genres); ?>,
+            tags: <?php echo json_encode($selected_tag_names, JSON_UNESCAPED_UNICODE); ?>
+        };
 
-        function addAlternativeTitle() {
-            const container = document.getElementById('alternative-titles');
-            const newField = document.createElement('div');
-            newField.className = 'field-group';
-            newField.innerHTML = `
-                <input type="text" name="alternative_titles[]" placeholder="${LANG.alternative_title_placeholder}">
-                <button type="button" class="remove-button" onclick="removeField(this)">
-                    <i class="fas fa-times"></i>
-                </button>
-            `;
-            container.appendChild(newField);
-        }
-
-        function removeField(button) {
-            button.parentElement.remove();
-        }
-
-        function toggleBroadcastDetails() {
-            const statusEl = document.querySelector('select[name="status"]');
-            if (!statusEl) return; // readonly mode, no select
-            const status = statusEl.value;
-            const broadcastDetails = document.getElementById('broadcast-details');
-            const airedSection = document.getElementById('aired-episodes-section');
-            const endDateSection = document.getElementById('end-date-section');
-
-            if (status === 'Yayın Devam Ediyor') {
-                broadcastDetails.style.display = 'block';
-                airedSection.style.display = 'block';
-                endDateSection.style.display = 'none';
-            } else if (status === 'Yayın Tamamlandı') {
-                broadcastDetails.style.display = 'none';
-                airedSection.style.display = 'none';
-                // Madde E - Tek bolumde end_date gizli kalir, status finished olsa bile.
-                endDateSection.style.display = isSingleEpisode() ? 'none' : 'block';
-            } else {
-                broadcastDetails.style.display = 'none';
-                airedSection.style.display = 'none';
-                endDateSection.style.display = 'none';
-            }
-        }
-
-        // Madde E - Toplam bolum sayisi 1 ise yayin bitis tarihi alani anlamsiz.
-        // total_episodes input'undaki her degisiklik bu fonksiyonu tetikler;
-        // toggleBroadcastDetails() icindeki status bazli mantikla beraber calisir.
-        function isSingleEpisode() {
-            const totalEl = document.querySelector('input[name="total_episodes"]');
-            if (!totalEl) return false;
-            return parseInt(totalEl.value, 10) === 1;
-        }
-
-        function toggleEndDateBySingleEpisode() {
-            // total_episodes degisikliginde end-date gorunurlugunu yeniden hesapla.
-            // Edit modunda status select bazen readonly olabilir (yayin tamamlandi
-            // animeler icin kilitli alan); o durumda toggleBroadcastDetails erken
-            // donus yapar. Bu yuzden gorunurluk kararini burada bagimsiz veriyoruz:
-            // status hidden input'tan da okunabilir, sadece total_episodes ve status
-            // birlikte degerlendirilir.
-            const endDateSection = document.getElementById('end-date-section');
-            if (!endDateSection) return;
-
-            const statusSelect = document.querySelector('select[name="status"]');
-            const statusHidden = document.querySelector('input[type="hidden"][name="status"]');
-            const status = statusSelect ? statusSelect.value
-                                        : (statusHidden ? statusHidden.value : '');
-
-            // Status finished AND tek bolum degil ise goster, aksi halde gizle.
-            if (status === 'Yayın Tamamlandı' && !isSingleEpisode()) {
-                endDateSection.style.display = 'block';
-            } else {
-                endDateSection.style.display = 'none';
-            }
-        }
-
-        function toggleWatchedEpisodes() {
-            const watchStatus = document.querySelector('select[name="watch_status"]').value;
-            const watchedEpisodesDiv = document.getElementById('watched-episodes-section');
-            // Watching ve OnHold: izlenen bolum input'u gorunur, mevcut
-            // deger KORUNUR (sifirlanmaz, tavana cekilmez). Watching aktif
-            // izleme, OnHold ara verme - ikisinde de ilerleme saklanir.
-            // Form davranisi ayni dali paylasir; fark sadece semantik.
-            if (watchStatus === 'Watching' || watchStatus === 'OnHold') {
-                watchedEpisodesDiv.style.display = 'block';
-            } else {
-                watchedEpisodesDiv.style.display = 'none';
-                if (watchStatus === 'Watched') {
-                    // Fall back to aired_episodes when total is blank (ongoing
-                    // series where the final count is still unknown).
-                    const total = document.querySelector('input[name="total_episodes"]').value;
-                    const aired = document.querySelector('input[name="aired_episodes"]') ?
-                                  document.querySelector('input[name="aired_episodes"]').value : '';
-                    document.querySelector('input[name="watched_episodes"]').value =
-                        total || aired || '0';
-                } else if (watchStatus === 'PlanToWatch') {
-                    document.querySelector('input[name="watched_episodes"]').value = '0';
-                }
-            }
-        }
-
-        // Tur yonetimi icin degiskenler ve fonksiyonlar
-        let selectedGenres = <?php echo json_encode($selected_genres); ?>;
-
-        function addSelectedGenre(select) {
-            const genre = select.value;
-            if (genre && !selectedGenres.includes(genre)) {
-                selectedGenres.push(genre);
-                updateGenreTags();
-            }
-            select.value = '';
-        }
-
-        function addNewGenre() {
-            const newGenreInput = document.getElementById('new-genre');
-            const genre = newGenreInput.value.trim();
-
-            if (genre && !selectedGenres.includes(genre)) {
-                // CSRF token formdaki gizli input'tan al, fetch body'sine ekle.
-                // add_genre.php server tarafinda dogruluyor.
-                const csrfInput = document.querySelector('input[name="csrf_token"]');
-                const csrfToken = csrfInput ? csrfInput.value : '';
-                fetch('add_genre.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: 'genre=' + encodeURIComponent(genre) + '&csrf_token=' + encodeURIComponent(csrfToken)
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        const select = document.getElementById('genre-select');
-                        const option = new Option(genre, genre);
-                        select.add(option);
-
-                        selectedGenres.push(genre);
-                        updateGenreTags();
-
-                        newGenreInput.value = '';
-                    } else {
-                        alert(LANG.genre_add_failed);
-                    }
-                });
-            }
-        }
-
-        function removeGenre(genre) {
-            selectedGenres = selectedGenres.filter(g => g !== genre);
-            updateGenreTags();
-        }
-
-        function updateGenreTags() {
-            const container = document.getElementById('genre-tags');
-            const input = document.getElementById('genres-input');
-
-            container.innerHTML = selectedGenres.map(genre => `
-                <div class="genre-tag">
-                    ${genre}
-                    <button type="button" onclick="removeGenre('${genre}')">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            `).join('');
-
-            input.value = selectedGenres.join(',');
-        }
-
-        /* ---------------------------------------------------------------
-         * Tag input (recommendation system).
-         * Same behaviour as add_anime.php, with one extra: selectedTags
-         * is initialised from the anime's existing tag list so the user
-         * sees the current tags as badges on page load.
-         * --------------------------------------------------------------- */
-        const allTags = <?php echo json_encode(array_map(function($t) { return $t['name']; }, $allTags), JSON_UNESCAPED_UNICODE); ?>;
-        let selectedTags = <?php echo json_encode($selected_tag_names, JSON_UNESCAPED_UNICODE); ?>;
-
-        const tagInput = document.getElementById('tag-input');
-        const tagSuggestions = document.getElementById('tag-suggestions');
-
-        function escapeHtml(str) {
-            return String(str).replace(/[&<>"']/g, function(c) {
-                return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
-            });
-        }
-
-        function renderTagSuggestions() {
-            const query = tagInput.value.trim();
-            if (query === '') {
-                tagSuggestions.style.display = 'none';
-                return;
-            }
-            const lower = query.toLowerCase();
-            const matches = allTags.filter(t =>
-                t.toLowerCase().includes(lower) && !selectedTags.includes(t)
-            );
-
-            let html = '';
-            matches.slice(0, 10).forEach(t => {
-                html += `<div class="tag-suggestion-item" data-name="${escapeHtml(t)}"
-                              style="padding: 6px 10px; cursor: pointer;">${escapeHtml(t)}</div>`;
-            });
-
-            const exact = allTags.find(t => t.toLowerCase() === lower);
-            const alreadySelected = selectedTags.some(t => t.toLowerCase() === lower);
-            if (!exact && !alreadySelected) {
-                html += `<div class="tag-suggestion-item tag-suggestion-new" data-name="${escapeHtml(query)}"
-                              style="padding: 6px 10px; cursor: pointer; background: #f0f8ff; font-style: italic;">
-                              ${LANG.create_new_tag_prefix} "${escapeHtml(query)}"</div>`;
-            }
-
-            if (html === '') {
-                tagSuggestions.style.display = 'none';
-                return;
-            }
-
-            tagSuggestions.innerHTML = html;
-            tagSuggestions.style.display = 'block';
-        }
-
-        function addTag(name) {
-            name = name.trim();
-            if (name === '') return;
-            if (selectedTags.some(t => t.toLowerCase() === name.toLowerCase())) {
-                return;
-            }
-            selectedTags.push(name);
-            if (!allTags.some(t => t.toLowerCase() === name.toLowerCase())) {
-                allTags.push(name);
-            }
-            tagInput.value = '';
-            tagSuggestions.style.display = 'none';
-            updateSelectedTags();
-        }
-
-        function removeTag(name) {
-            selectedTags = selectedTags.filter(t => t !== name);
-            updateSelectedTags();
-        }
-
-        function updateSelectedTags() {
-            const container = document.getElementById('selected-tags');
-            const hidden = document.getElementById('tags-input');
-            container.innerHTML = selectedTags.map(t => `
-                <div class="genre-tag">
-                    ${escapeHtml(t)}
-                    <button type="button" data-tag-name="${escapeHtml(t)}">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            `).join('');
-            container.querySelectorAll('button[data-tag-name]').forEach(btn => {
-                btn.addEventListener('click', () => removeTag(btn.dataset.tagName));
-            });
-            hidden.value = selectedTags.join(',');
-        }
-
-        tagInput.addEventListener('input', renderTagSuggestions);
-        tagInput.addEventListener('focus', renderTagSuggestions);
-
-        tagSuggestions.addEventListener('click', e => {
-            const item = e.target.closest('.tag-suggestion-item');
-            if (item) {
-                addTag(item.dataset.name);
-            }
-        });
-
-        tagInput.addEventListener('keydown', e => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const v = tagInput.value.trim();
-                if (v !== '') {
-                    addTag(v);
-                }
-            } else if (e.key === 'Escape') {
-                tagSuggestions.style.display = 'none';
-            }
-        });
-
-        document.addEventListener('click', e => {
-            if (!e.target.closest('.tag-input-wrapper')) {
-                tagSuggestions.style.display = 'none';
-            }
-        });
-
-        // Sayfa yuklendiginde tur etiketlerini goster
+        // edit_anime'a OZGU: yayin tamamlandi anime icin yayin detaylarini sayfa
+        // yuklenince gizle (readonly status durumunda toggleBroadcastDetails select
+        // bulamayip erken donerdi).
         document.addEventListener('DOMContentLoaded', function() {
-            updateGenreTags();
-            updateSelectedTags();
+            const status = "<?php echo $anime['status']; ?>";
+            if (status === 'Yayın Tamamlandı') {
+                const bd = document.getElementById('broadcast-details');
+                if (bd) bd.style.display = 'none';
+            }
         });
 
-        // Sayfa yuklendiginde calisacak fonksiyonlar
-document.addEventListener('DOMContentLoaded', function() {
-    updateGenreTags();
+        // edit_anime'a OZGU: "Senkronize Et" (Madde C). aired_episodes'i
+        // fetch_aired_episodes.php uzerinden gunceller; sunucu DB'yi bu AJAX
+        // donmeden once gunceller, input'u da guncel tutariz.
+        function syncAiredEpisodes() {
+            const btn       = document.getElementById('aired-sync-btn');
+            const statusDiv = document.getElementById('aired-sync-status');
+            const input     = document.getElementById('aired_episodes');
+            if (!btn || !statusDiv || !input) return;
 
-    // Yayin durumu "Yayin Tamamlandi" ise, ilgili alanlari devre disi birak
-    const status = "<?php echo $anime['status']; ?>";
-    if (status === 'Yayın Tamamlandı') {
-        // Yayin detaylari bolumunu gizle
-        document.getElementById('broadcast-details').style.display = 'none';
-    }
-});
+            const csrfInput = document.querySelector('input[name="csrf_token"]');
+            const csrfToken = csrfInput ? csrfInput.value : '';
+            const animeId   = <?php echo (int)$id; ?>;
 
-    // ====================================================================
-    // AnimeSchedule "Otomatik Doldur" button
-    // ====================================================================
-    //
-    // Identical to add_anime.php. Calls fetch_animeschedule.php with the
-    // URL from the anime_schedule_link input. Only fills empty form
-    // fields - existing values (which include all the data the user
-    // entered in previous edits) are preserved.
-    //
-    // broadcast_timezone special case: "Asia/Tokyo" is treated as
-    // "default / unset" because that's the value setup gives a brand
-    // new install. If the user explicitly picked a different timezone
-    // (Europe/Istanbul, UTC, etc.) we leave it alone.
-    //
-    // status: if the anime is locked as "Yayin Tamamlandi" the form
-    // uses a readonly text input + a hidden input both named "status".
-    // querySelector picks the first one (the readonly text), and
-    // assigning to its .value does not change what the form submits
-    // (the hidden one carries the canonical value). Effectively this
-    // means the API cannot flip a finished anime back to ongoing - the
-    // existing locking behaviour is respected.
-    function fetchAnimeScheduleData() {
-        const urlInput = document.getElementById('anime_schedule_link');
-        const statusDiv = document.getElementById('animeschedule-status');
-        const btn = document.getElementById('animeschedule-fetch-btn');
+            btn.disabled = true;
+            statusDiv.style.color = '#555';
+            statusDiv.textContent = LANG.aired_sync_fetching;
 
-        const url = (urlInput.value || '').trim();
-        if (url === '') {
-            statusDiv.style.color = '#c0392b';
-            statusDiv.textContent = LANG.enter_animeschedule_url;
-            return;
-        }
+            const formData = new FormData();
+            formData.append('csrf_token', csrfToken);
+            formData.append('anime_id', animeId);
 
-        const csrfInput = document.querySelector('input[name="csrf_token"]');
-        const csrfToken = csrfInput ? csrfInput.value : '';
-
-        btn.disabled = true;
-        statusDiv.style.color = '#555';
-        statusDiv.textContent = LANG.fetching;
-
-        const formData = new FormData();
-        formData.append('csrf_token', csrfToken);
-        formData.append('url', url);
-
-        fetch('fetch_animeschedule.php', {
-            method: 'POST',
-            body: formData,
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (!data.success) {
-                statusDiv.style.color = '#c0392b';
-                statusDiv.textContent = data.error || LANG.unknown_error;
-                return;
-            }
-
-            const fields = data.fields || {};
-            const filled = [];
-            const skipped = [];
-
-            for (const fieldName in fields) {
-                if (!Object.prototype.hasOwnProperty.call(fields, fieldName)) continue;
-                const value = fields[fieldName];
-                const el = document.querySelector('[name="' + fieldName + '"]');
-                if (!el) {
-                    skipped.push(fieldName + ' ' + LANG.field_not_found_suffix);
-                    continue;
+            fetch('fetch_aired_episodes.php', {
+                method: 'POST',
+                body: formData,
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) {
+                    statusDiv.style.color = '#c0392b';
+                    statusDiv.textContent = data.error || LANG.unknown_error;
+                    return;
                 }
 
-                let isEmpty;
-                if (fieldName === 'broadcast_timezone') {
-                    isEmpty = (el.value === '' || el.value === 'Asia/Tokyo');
+                input.value = data.aired_episodes;
+
+                const newVal = data.aired_episodes;
+                const oldVal = data.old_value;
+                const offset = data.week_offset;
+
+                let weekNote = '';
+                if (offset === 0) {
+                    weekNote = LANG.aired_sync_this_week;
+                } else if (offset === 1) {
+                    weekNote = LANG.aired_sync_last_week;
                 } else {
-                    isEmpty = (el.value === '' || el.value === null);
+                    weekNote = LANG.aired_sync_weeks_ago_fmt.replace('%d', offset);
                 }
 
-                if (!isEmpty) {
-                    skipped.push(fieldName);
-                    continue;
-                }
-
-                el.value = value;
-                filled.push(fieldName);
-
-                if (fieldName === 'status' && typeof toggleBroadcastDetails === 'function') {
-                    toggleBroadcastDetails();
-                }
-            }
-
-            if (filled.length === 0) {
-                statusDiv.style.color = '#888';
-                statusDiv.textContent = LANG.no_empty_fields;
-            } else {
                 statusDiv.style.color = '#27ae60';
-                statusDiv.textContent = LANG.fields_filled_prefix + ' ' + filled.join(', ') + '.';
-            }
-        })
-        .catch(err => {
-            statusDiv.style.color = '#c0392b';
-            statusDiv.textContent = LANG.request_failed_prefix + ' ' + err.message;
-        })
-        .finally(() => {
-            btn.disabled = false;
-        });
-    }
-
-    // ---------------------------------------------------------------
-    // "Senkronize Et" button next to aired_episodes (Madde C)
-    // ---------------------------------------------------------------
-    //
-    // Posts the current anime id to fetch_aired_episodes.php, which
-    // queries AnimeSchedule's /timetables/sub endpoint and writes the
-    // newest EpisodeNumber it finds into the DB. The response carries
-    // both the new and old values so we can show the user what changed.
-    //
-    // Note that the DB is updated by the server before this AJAX
-    // returns - the form's "Kaydet" button is not required for the
-    // aired_episodes change to stick. We still update the input value
-    // so the user sees the new number, and so any later "Kaydet" does
-    // not silently revert it to the old value displayed in the form.
-    function syncAiredEpisodes() {
-        const btn       = document.getElementById('aired-sync-btn');
-        const statusDiv = document.getElementById('aired-sync-status');
-        const input     = document.getElementById('aired_episodes');
-        if (!btn || !statusDiv || !input) return;
-
-        const csrfInput = document.querySelector('input[name="csrf_token"]');
-        const csrfToken = csrfInput ? csrfInput.value : '';
-        const animeId   = <?php echo (int)$id; ?>;
-
-        btn.disabled = true;
-        statusDiv.style.color = '#555';
-        statusDiv.textContent = LANG.aired_sync_fetching;
-
-        const formData = new FormData();
-        formData.append('csrf_token', csrfToken);
-        formData.append('anime_id', animeId);
-
-        fetch('fetch_aired_episodes.php', {
-            method: 'POST',
-            body: formData,
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (!data.success) {
+                if (data.changed) {
+                    statusDiv.textContent = LANG.aired_sync_updated_prefix + ' ' + (oldVal === null ? '?' : oldVal) + ' -> ' + newVal + weekNote;
+                } else {
+                    statusDiv.textContent = LANG.aired_sync_no_change_prefix + ' ' + newVal + weekNote;
+                }
+            })
+            .catch(err => {
                 statusDiv.style.color = '#c0392b';
-                statusDiv.textContent = data.error || LANG.unknown_error;
-                return;
-            }
-
-            // Write the new value into the form input. The server has
-            // already saved this to the DB; updating the input keeps
-            // the form in sync so a later "Kaydet" sends the same value
-            // back instead of overwriting with stale form state.
-            input.value = data.aired_episodes;
-
-            const newVal = data.aired_episodes;
-            const oldVal = data.old_value;
-            const offset = data.week_offset;
-
-            let weekNote = '';
-            if (offset === 0) {
-                weekNote = LANG.aired_sync_this_week;
-            } else if (offset === 1) {
-                weekNote = LANG.aired_sync_last_week;
-            } else {
-                weekNote = LANG.aired_sync_weeks_ago_fmt.replace('%d', offset);
-            }
-
-            statusDiv.style.color = '#27ae60';
-            if (data.changed) {
-                statusDiv.textContent = LANG.aired_sync_updated_prefix + ' ' + (oldVal === null ? '?' : oldVal) + ' -> ' + newVal + weekNote;
-            } else {
-                statusDiv.textContent = LANG.aired_sync_no_change_prefix + ' ' + newVal + weekNote;
-            }
-        })
-        .catch(err => {
-            statusDiv.style.color = '#c0392b';
-            statusDiv.textContent = LANG.request_failed_prefix + ' ' + err.message;
-        })
-        .finally(() => {
-            btn.disabled = false;
-        });
-    }
+                statusDiv.textContent = LANG.request_failed_prefix + ' ' + err.message;
+            })
+            .finally(() => {
+                btn.disabled = false;
+            });
+        }
     </script>
+    <script src="js/anime_form.js"></script>
 </body>
 </html>

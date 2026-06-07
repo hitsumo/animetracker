@@ -25,8 +25,8 @@
  * empty (the owner edits the catalog directly).
  */
 
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../functions.php';
 
 lang_init_admin($pdo);
 
@@ -111,10 +111,10 @@ $tabs = ['pending', 'accepted', 'rejected', 'all'];
 <head>
     <meta charset="UTF-8">
     <title><?php echo htmlspecialchars(t('admin_suggestions.page_title'), ENT_QUOTES, 'UTF-8'); ?></title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/x-icon" href="../favicon.ico">
     <style>
         body { font-family: 'Poppins', sans-serif; background: #f5f5f5; margin: 0; padding: 0; }
         .admin-dashboard { max-width: 1040px; margin: 40px auto; padding: 30px; }
@@ -194,7 +194,7 @@ $tabs = ['pending', 'accepted', 'rejected', 'all'];
                 <?php foreach ($rows as $r): ?>
                     <tr>
                         <td>
-                            <a href="anime_details.php?id=<?php echo (int)$r['anime_id']; ?>">
+                            <a href="../anime_details.php?id=<?php echo (int)$r['anime_id']; ?>">
                                 <?php echo htmlspecialchars($r['anime_title'], ENT_QUOTES, 'UTF-8'); ?>
                             </a>
                         </td>
@@ -229,7 +229,7 @@ $tabs = ['pending', 'accepted', 'rejected', 'all'];
                                     <button type="submit" class="btn <?php echo $act[1]; ?>"><?php echo htmlspecialchars(t($act[2]), ENT_QUOTES, 'UTF-8'); ?></button>
                                 </form>
                             <?php endforeach; ?>
-                            <a href="edit_anime.php?id=<?php echo (int)$r['anime_id']; ?>" class="btn btn-edit"><i class="fas fa-edit"></i> <?php echo htmlspecialchars(t('admin_suggestions.action.edit_anime'), ENT_QUOTES, 'UTF-8'); ?></a>
+                            <a href="../edit_anime.php?id=<?php echo (int)$r['anime_id']; ?>" class="btn btn-edit"><i class="fas fa-edit"></i> <?php echo htmlspecialchars(t('admin_suggestions.action.edit_anime'), ENT_QUOTES, 'UTF-8'); ?></a>
                         </td>
                     </tr>
                 <?php endforeach; ?>

@@ -199,6 +199,12 @@ if (isset($_POST['export'])) {
     // Attach each anime's genre and tag NAMES so the backup is complete and
     // restorable. Names (not IDs): IDs are install-specific and would not
     // match after a restore.
+    // Emotions are personal (user_anime_emotion join table), like watch
+    // state - SELECT * above does not include them. Fetch per anime below
+    // so the export captures the current user's emotional marks too (1.0.7).
+    $exportEmoStmt = $pdo->prepare(
+        "SELECT emotion FROM user_anime_emotion WHERE user_id = ? AND anime_id = ? ORDER BY emotion"
+    );
     foreach ($animes as &$a) {
         $gRows = getAnimeGenres($pdo, $a['id']);
         $tRows = getAnimeTags($pdo, $a['id']);
@@ -213,6 +219,8 @@ if (isset($_POST['export'])) {
         $a['notes']            = $ua['notes'];
         $a['user_synopsis']    = $ua['user_synopsis'];
         $a['user_synopsis_en'] = $ua['user_synopsis_en'];
+        $exportEmoStmt->execute([current_user_id(), $a['id']]);
+        $a['emotions']         = $exportEmoStmt->fetchAll(PDO::FETCH_COLUMN);
     }
     unset($a);
 
@@ -304,6 +312,7 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                         'user_synopsis'    => $anime['user_synopsis']    ?? null,
                         'user_synopsis_en' => $anime['user_synopsis_en'] ?? null,
                     ]);
+                    emotion_import_set($pdo, $uid, (int)$aid, $anime['emotions'] ?? []);
                     $applied++;
                     continue;
                 }
@@ -422,6 +431,8 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                             if ($tid > 0) { $tagIds[] = $tid; }
                         }
                         setAnimeTags($pdo, $animeId, $tagIds);
+
+                        emotion_import_set($pdo, current_user_id(), $animeId, $anime['emotions'] ?? []);
                     }
                     $imported++;
                 } catch (Exception $e) {

@@ -7,7 +7,7 @@
  * as ADMIN_SECRET.
  *
  * Setup:
- *   1. Copy this file:  cp admin_secret_example.php admin_secret.php
+ *   1. Copy this file:  cp admin/admin_secret_example.php admin/admin_secret.php
  *   2. Generate a secret:
  *        Linux/Mac:   openssl rand -hex 32
  *        Windows:     C:\xampp\php\php.exe -r "echo bin2hex(random_bytes(32));"

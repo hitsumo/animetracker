@@ -1,0 +1,23 @@
+-- =====================================================================
+-- Anime Tracker - 1.0.7 migration (bos halka / no-op)
+-- =====================================================================
+-- Bu surumde veritabani semasi DEGISMEDI. 1.0.7 degisiklikleri tamamen
+-- uygulama / altyapi tarafindadir ve yeni tablo, kolon ya da index
+-- gerektirmez:
+--   - Docker cok-kullanici (online) kurulum destegi (entrypoint + env).
+--   - Yonetici sayfalarinin admin/ alt klasorune tasinmasi.
+--   - add_anime / edit_anime ortak form JS (js/anime_form.js).
+--   - Admin onayinda otomatik sunucu-tarafli katalog push
+--     (admin/catalog_push.php) - yalniz mevcut tablolari okur.
+--
+-- Bu dosya bilincli olarak bos birakilmistir (yalniz aciklama). KARARLAR
+-- Bolum 2 "bos migration kurali" geregi HER surumde
+-- migration/{surum}/upgrade.sql VARDIR: surum atlayan bir kurulumun
+-- (or. 1.0.5 -> 1.0.7) migration zincirinde takilmamasi icin. Calistirma
+-- aninda migration_manager satir yorumlarini siler; geriye calistirilacak
+-- hicbir statement kalmaz, yalnizca settings.version '1.0.7' olarak
+-- guncellenir. Bos dosya guvenlidir.
+--
+-- 1.0.6'da eklenen catalog_requests tablosu migration/1.0.6/upgrade.sql
+-- icindedir ve burada tekrarlanmaz.
+-- =====================================================================

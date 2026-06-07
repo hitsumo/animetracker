@@ -4,9 +4,9 @@
  * Anime Tracker - Admin Sync (Client Side) — EXAMPLE FILE
  *
  * This is a template. To set up admin sync on your local machine:
- *   1. Copy this file:  cp admin_sync_example.php admin_sync.php
+ *   1. Copy this file:  cp admin/admin_sync_example.php admin/admin_sync.php
  *   2. Set ADMIN_PUSH_URL below to your server's admin_push.php URL
- *   3. Create admin_secret.php with your HMAC secret (see below)
+ *   3. Create admin/admin_secret.php with your HMAC secret (see below)
  *   4. Make sure admin_push.php is deployed on your server
  *
  * This file is git-ignored — your real admin_sync.php should never
@@ -35,12 +35,12 @@
  * Only catalog fields go up.
  *
  * Required files:
- *   - admin_secret.php  (HMAC secret, single define line)
- *   - config.php        (DB credentials, created by setup.php)
+ *   - admin/admin_secret.php  (HMAC secret, single define line; same folder)
+ *   - config.php              (DB credentials at project root, created by setup.php)
  */
 
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../functions.php';
 
 // --- Configuration -------------------------------------------------------
 
@@ -60,7 +60,7 @@ if (!$isLocal) {
 // Load the shared HMAC secret from a SEPARATE file that is NEVER committed
 // to git and NEVER packaged into the .exe installer.
 //
-// File location:   {project_root}/admin_secret.php
+// File location:   {project_root}/admin/admin_secret.php
 // File contents:   <?php define('ADMIN_PUSH_SECRET', '<64 hex chars>');
 //
 // Generate a secret:
@@ -309,10 +309,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['do_push'])) {
 <head>
     <meta charset="UTF-8">
     <title>Admin Sync - Anime Tracker</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/x-icon" href="../favicon.ico">
     <style>
         .admin-container {
             max-width: 700px;
@@ -412,7 +412,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['do_push'])) {
         <?php if (!$secretConfigured): ?>
             <div class="warning-box">
                 <strong><i class="fas fa-exclamation-triangle"></i> Kurulum gerekli</strong><br>
-                Proje kokune <code>admin_secret.php</code> dosyasi olusturun (kesinlikle
+                Proje icindeki <code>admin/</code> klasorune <code>admin_secret.php</code>
+                dosyasi olusturun (kesinlikle
                 GitHub'a commit etmeyin, <code>.gitignore</code>'da tanimli):
                 <pre style="background:#f8f9fa;padding:10px;border-radius:4px;margin-top:10px;">
 &lt;?php
@@ -469,7 +470,7 @@ define('ADMIN_PUSH_SECRET', '&lt;uzun_rastgele_anahtar&gt;');</pre>
         </form>
 
         <p style="margin-top:30px;">
-            <a href="list_settings.php">Liste Ayarlarina don</a>
+            <a href="../list_settings.php">Liste Ayarlarina don</a>
         </p>
     </div>
 </body>

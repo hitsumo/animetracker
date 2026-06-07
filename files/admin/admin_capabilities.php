@@ -43,8 +43,8 @@
  * below, and a card in the markup. Keep each capability self-contained.
  */
 
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../functions.php';
 
 lang_init_admin($pdo);
 
@@ -92,10 +92,10 @@ $synopsisOverride = (get_setting($pdo, 'synopsis_edit_override', '0') === '1');
 <head>
     <meta charset="UTF-8">
     <title><?php echo htmlspecialchars(t('admin_cap.page_title'), ENT_QUOTES, 'UTF-8'); ?></title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/x-icon" href="../favicon.ico">
     <style>
         body { font-family: 'Poppins', sans-serif; background: #f5f5f5; margin: 0; padding: 0; }
         .admin-dashboard { max-width: 900px; margin: 40px auto; padding: 30px; }

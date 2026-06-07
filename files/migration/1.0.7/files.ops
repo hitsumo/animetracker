@@ -1,0 +1,41 @@
+# Anime Tracker - 1.0.7 file operations (files.ops)
+#
+# Applied by MigrationManager::runFileOps (db.php, every request) and tracked
+# by settings.files_ops_version, independent of the schema version.
+#
+# Syntax (one operation per line; '#' and blank lines ignored):
+#   move <old-relative-path> <new-relative-path>
+#   delete <relative-path>
+#
+# RULE: a RELOCATED file uses "move", never "delete". "move" is safe in both
+# situations:
+#   - new path already exists (the package copy_tree placed the new version)
+#     -> the stale OLD copy is removed, the new version is kept.
+#   - new path does NOT exist (files.ops ran without a package copy - a manual
+#     run, a partial update, or a test) -> the old file is RELOCATED to the
+#     new path instead of being destroyed.
+# Use "delete" ONLY for files that are genuinely removed in the new version
+# (no new location). 1.0.7 only RELOCATES admin files into admin/, so every
+# entry here is a move and nothing is deleted.
+#
+# Idempotent: a missing source is skipped; an existing destination is never
+# overwritten (the stale source is just removed); protected paths are never
+# touched.
+
+# 1.0.7 moved every admin-side file from the install root into admin/.
+# Shipped pages (the package places the new version in admin/; here we drop
+# the stale root copy, or relocate it if the package copy did not run):
+move admin.php admin/admin.php
+move admin_pending.php admin/admin_pending.php
+move admin_invites.php admin/admin_invites.php
+move admin_users.php admin/admin_users.php
+move admin_suggestions.php admin/admin_suggestions.php
+move admin_catalog_requests.php admin/admin_catalog_requests.php
+move admin_capabilities.php admin/admin_capabilities.php
+move admin_sync_example.php admin/admin_sync_example.php
+move admin_secret_example.php admin/admin_secret_example.php
+
+# Real, git-ignored files (NOT in the package): relocate, preserving the
+# user's content. Skipped on a self-host install where they never existed.
+move admin_secret.php admin/admin_secret.php
+move admin_sync.php admin/admin_sync.php

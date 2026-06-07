@@ -38,8 +38,8 @@
  * functionality in separate files - this dashboard stays thin.
  */
 
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../functions.php';
 
 lang_init_admin($pdo);
 
@@ -77,7 +77,7 @@ $pendingAvailable = file_exists(__DIR__ . '/admin_pending.php');
 $pendingCount = null;
 if ($pendingAvailable) {
     try {
-        require_once __DIR__ . '/db.php';
+        require_once __DIR__ . '/../db.php';
         $row = $pdo->query("SELECT COUNT(*) FROM animes WHERE source = 'local'")
                    ->fetchColumn();
         $pendingCount = (int)$row;
@@ -92,7 +92,7 @@ $catalogRequestsAvailable = file_exists(__DIR__ . '/admin_catalog_requests.php')
 $catalogRequestsCount = null;
 if (MULTI_USER_MODE && $catalogRequestsAvailable) {
     try {
-        require_once __DIR__ . '/db.php';
+        require_once __DIR__ . '/../db.php';
         $catalogRequestsCount = (int)$pdo->query(
             "SELECT COUNT(*) FROM catalog_requests WHERE suggestion_status = 'pending'"
         )->fetchColumn();
@@ -106,10 +106,10 @@ if (MULTI_USER_MODE && $catalogRequestsAvailable) {
 <head>
     <meta charset="UTF-8">
     <title><?php echo htmlspecialchars(t('admin.page_title'), ENT_QUOTES, 'UTF-8'); ?></title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/x-icon" href="../favicon.ico">
     <style>
         body {
             font-family: 'Poppins', sans-serif;
@@ -430,7 +430,7 @@ if (MULTI_USER_MODE && $catalogRequestsAvailable) {
 
             </div>
 
-            <a href="index.php" class="back-link">
+            <a href="../index.php" class="back-link">
                 <i class="fas fa-arrow-left"></i> <?php echo htmlspecialchars(t('admin.back_to_home'), ENT_QUOTES, 'UTF-8'); ?>
             </a>
         </div>
