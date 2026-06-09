@@ -64,6 +64,8 @@ return [
     'admin_pending.success.promoted_some'    => '%d anime promoted to the catalog. Use admin_sync.php to push them to the server.',
     'admin_pending.success.promoted_all'     => '%d anime promoted to the catalog.',
     'admin_pending.success.demoted'          => 'Anime removed from the catalog (set back to local).',
+    'admin_pending.success.pushed'           => 'Pushed to the server: %d inserted, %d updated.',
+    'admin_pending.warn.push_failed'         => 'Promoted, but the server push failed: %s',
     'admin_pending.page_title'               => 'Admin: Pending Anime - Anime Tracker',
     'admin_pending.heading'                  => 'Pending Anime',
     'admin_pending.subtitle'                 => 'source=\'local\' - not promoted to catalog, not sent to server',

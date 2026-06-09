@@ -362,6 +362,14 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
             $imported = 0;
             $skipped  = 0;
 
+            // Match-or-insert lookups: the catalog sync may already have filled
+            // animes with the same mal_id/anidb_id/catalog_uuid, so a blind
+            // INSERT would hit the UNIQUE keys and every row would be skipped.
+            // Resolve an existing row first; only INSERT when there is no match.
+            $matchMal   = $pdo->prepare("SELECT id FROM animes WHERE mal_id = ? LIMIT 1");
+            $matchAnidb = $pdo->prepare("SELECT id FROM animes WHERE anidb_id = ? LIMIT 1");
+            $matchUuid  = $pdo->prepare("SELECT id FROM animes WHERE catalog_uuid = ? LIMIT 1");
+
             $stmt = $pdo->prepare("INSERT INTO animes (
                     title, alternative_titles, title_english, status,
                     total_episodes, aired_episodes,
@@ -382,6 +390,20 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                     continue;
                 }
                 try {
+                    // Match-or-insert: the catalog sync may already hold this
+                    // anime (same mal_id/anidb_id/catalog_uuid). Reuse the
+                    // existing row when found (no UNIQUE clash); only INSERT a
+                    // brand-new one. This lets import run against a populated DB.
+                    $mal   = !empty($anime['mal_id'])       ? (int)$anime['mal_id']   : null;
+                    $anidb = !empty($anime['anidb_id'])     ? (int)$anime['anidb_id'] : null;
+                    $uuid  = !empty($anime['catalog_uuid']) ? $anime['catalog_uuid']  : null;
+
+                    $animeId = 0;
+                    if ($mal !== null)                { $matchMal->execute([$mal]);     $animeId = (int)$matchMal->fetchColumn(); }
+                    if (!$animeId && $anidb !== null) { $matchAnidb->execute([$anidb]); $animeId = (int)$matchAnidb->fetchColumn(); }
+                    if (!$animeId && $uuid !== null)  { $matchUuid->execute([$uuid]);   $animeId = (int)$matchUuid->fetchColumn(); }
+
+                    if (!$animeId) {
                     $stmt->execute([
                         $anime['title'],
                         $anime['alternative_titles']  ?? null,
@@ -412,8 +434,9 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                         $anime['source']              ?? 'local',
                         !empty($anime['filler_tracking']) ? 1 : 0
                     ]);
-
                     $animeId = (int)$pdo->lastInsertId();
+                    }
+
                     if ($animeId > 0) {
                         ua_set_state($pdo, current_user_id(), $animeId, [
                             'watch_status'     => $anime['watch_status']     ?? 'PlanToWatch',

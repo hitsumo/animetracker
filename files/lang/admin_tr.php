@@ -75,6 +75,8 @@ return [
     'admin_pending.success.promoted_some'    => '%d anime kataloğa alındı. Sunucuya göndermek için admin_sync.php sayfasını kullan.',
     'admin_pending.success.promoted_all'     => '%d anime kataloğa alındı.',
     'admin_pending.success.demoted'          => 'Anime katalogdan çıkarıldı (local yapıldı).',
+    'admin_pending.success.pushed'           => 'Sunucuya gönderildi: %d eklendi, %d güncellendi.',
+    'admin_pending.warn.push_failed'         => 'Kataloğa alındı, ancak sunucuya gönderilemedi: %s',
     'admin_pending.page_title'               => 'Admin: Bekleyen Animeler - Anime Tracker',
     'admin_pending.heading'                  => 'Bekleyen Animeler',
     'admin_pending.subtitle'                 => 'source=\'local\' - kataloğa alınmamış, sunucuya gitmiyor',

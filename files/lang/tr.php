@@ -98,6 +98,7 @@ return [
     'index.col.anime'               => 'Anime',
     'index.col.status'              => 'Durum',
     'index.col.watched_episodes'    => 'İzlenen Bölüm',
+    'index.col.episode_count'       => 'Bölüm Sayısı',
     'index.col.image'               => 'Resim',
     'index.col.next_episode'        => 'Sonraki Bölüm',
     'index.col.action'              => 'Eylem',

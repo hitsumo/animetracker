@@ -77,6 +77,7 @@ return [
     'index.col.anime'               => 'Anime',
     'index.col.status'              => 'Status',
     'index.col.watched_episodes'    => 'Watched Episodes',
+    'index.col.episode_count'       => 'Episode Count',
     'index.col.image'               => 'Image',
     'index.col.next_episode'        => 'Next Episode',
     'index.col.action'              => 'Action',

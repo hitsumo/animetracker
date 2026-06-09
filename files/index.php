@@ -43,6 +43,14 @@ $genres = getAllGenres($pdo);
 // veya <img> tag injection ile kazara/niyetli silinebilir, (c) CSRF saldirisi
 // icin ideal yuzey. Offline single-user app icin risk dusuk ama disiplin onemli.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
+    // Authorization (KORU): deleting a catalog anime mutates shared data, so
+    // it must be gated server-side, not just hidden in the UI. Online: only
+    // moderator+ may delete; anonymous/regular users are bounced by
+    // require_role. Self-host: no-op (owner passes), behaviour unchanged.
+    // CSRF alone is not authorization - an anonymous visitor on this page
+    // holds a valid token, so the role check is what actually protects it.
+    require_role($pdo, 'moderator');
+
     if (!csrf_verify($_POST['csrf_token'] ?? '')) {
         http_response_code(403);
         die('CSRF token gecersiz. Sayfayi yenileyip tekrar deneyin.');
@@ -126,6 +134,18 @@ $genre_filter_clause = " AND a.id IN (
 // WHERE/ORDER reference ua.* / COALESCE explicitly to avoid ambiguity
 // with those vestigial columns (which disappear at the 1.0.3 drop).
 $uid = current_user_id();
+
+// Personal-capability flag for UI gating. can('personal') is true for any
+// logged-in user and ALWAYS true in self-host (MULTI_USER_MODE off), so the
+// self-host list looks exactly as before. Online anonymous visitors get
+// false: they have no personal watched state, so the list shows only the
+// total episode count and no +/- editing controls.
+$canPersonal = can($pdo, 'personal');
+
+// Catalog-curation capability (moderator+). Controls who may edit or delete
+// a catalog anime. True in self-host (owner), true online for moderator/admin,
+// false for regular/anonymous visitors. Matches edit_anime.php's role gate.
+$canModerate = can($pdo, 'moderate');
 $select_from = "SELECT a.*,
         COALESCE(ua.watch_status, 'PlanToWatch') AS watch_status,
         COALESCE(ua.watched_episodes, 0)         AS watched_episodes,
@@ -385,6 +405,7 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
 <html lang="<?php echo htmlspecialchars(current_lang(), ENT_QUOTES, 'UTF-8'); ?>">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?php echo htmlspecialchars(t('index.page_title'), ENT_QUOTES, 'UTF-8'); ?></title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
@@ -607,6 +628,29 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
             border-color: #4a90e2;
         }
         .page-dots { color: #999; padding: 0 4px; }
+
+        /* Mobil tasma duzeltmesi: dar ekranda 6 sutunlu liste tablosu
+           container'a sigamayip sutunlar eziliyor; baslik (.list-anime-title
+           max-width:170px) ve Durum metni yan sutuna tasip ust uste biniyordu.
+           Cozum: telefonda tabloyu yatay kaydirilabilir yap ve sutunlara
+           gercek genislik birak (min-width). Hucre padding'i de kucultulur
+           (global th,td 12px dar sutunu eziyordu). Masaustu layout degismez. */
+        @media (max-width: 768px) {
+            .list-table-wrap {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            .list-table-wrap table {
+                min-width: 560px;
+            }
+            .list-table-wrap th,
+            .list-table-wrap td {
+                padding: 8px 6px;
+            }
+            .list-anime-title {
+                max-width: 110px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -771,7 +815,7 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                         </div>
                     </th>
                     <th>
-                        <?php echo htmlspecialchars(t('index.col.watched_episodes'), ENT_QUOTES, 'UTF-8'); ?>
+                        <?php echo htmlspecialchars(t($canPersonal ? 'index.col.watched_episodes' : 'index.col.episode_count'), ENT_QUOTES, 'UTF-8'); ?>
                         <div class="sort-buttons">
                             <a href="<?php echo getSortLink('watched_episodes', 'asc', $genre_filter, $watch_status_filter); ?>" 
                                class="sort-button <?php echo ($sort_column == 'watched_episodes' && $sort_order == 'asc') ? 'active' : ''; ?>">↑</a>
@@ -844,7 +888,14 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                                 $ec_has_controls = ($ec_ceiling !== null);
                                 $ec_at_min = ($ec_watched <= 0);
                                 $ec_at_max = ($ec_ceiling !== null && $ec_watched >= $ec_ceiling);
-                            ?><?php if ($ec_has_controls): ?><div class="ep-quick" data-anime-id="<?php echo (int)$anime['id']; ?>" data-ceiling="<?php echo (int)$ec_ceiling; ?>">
+                            ?><?php if (!$canPersonal): ?><?php
+                                // Anonymous (online, not logged in): no personal
+                                // watched state and no editing. Show only the total
+                                // episode count - no "watched/" prefix, no +/- controls.
+                                $ec_total_only = ($ec_total !== null) ? (string)$ec_total
+                                               : (($ec_aired !== null) ? (string)$ec_aired : '?');
+                                echo htmlspecialchars($ec_total_only);
+                            ?><?php if ($ec_badge !== ''): ?> <small><?php echo htmlspecialchars($ec_badge); ?></small><?php endif; ?><?php elseif ($ec_has_controls): ?><div class="ep-quick" data-anime-id="<?php echo (int)$anime['id']; ?>" data-ceiling="<?php echo (int)$ec_ceiling; ?>">
                                     <span class="ep-text"><?php echo $ec_text; ?></span>
                                     <?php if ($ec_badge !== ''): ?><span class="ep-badge"><?php echo htmlspecialchars($ec_badge); ?></span><?php endif; ?>
                                     <div class="ep-controls">
@@ -868,6 +919,7 @@ if ($anime['status'] == 'Yayın Tamamlandı') {
                             <td>
                                 <div class="action-buttons">
                                     <a href="anime_details.php?id=<?php echo $anime['id']; ?>" class="more-button"><?php echo htmlspecialchars(t('index.row.more_button'), ENT_QUOTES, 'UTF-8'); ?></a>
+                                    <?php if ($canModerate): ?>
                                     <a href="edit_anime.php?id=<?php echo $anime['id']; ?>" class="edit-button"><?php echo htmlspecialchars(t('index.row.edit_button'), ENT_QUOTES, 'UTF-8'); ?></a>
                                     <form method="POST" action="index.php"
                                           onsubmit="return confirm(<?php echo htmlspecialchars(json_encode(t('index.row.delete_confirm'), JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8'); ?>);">
@@ -875,6 +927,7 @@ if ($anime['status'] == 'Yayın Tamamlandı') {
                                         <input type="hidden" name="delete_id" value="<?php echo (int)$anime['id']; ?>">
                                         <button type="submit" class="delete-button"><?php echo htmlspecialchars(t('index.row.delete_button'), ENT_QUOTES, 'UTF-8'); ?></button>
                                     </form>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>
