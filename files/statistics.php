@@ -32,19 +32,25 @@ $by_status = $pdo->query("
 // 4. ozelligin var oldugunu gorsun. Bunu yapmak icin SQL sonucunu ASCII
 // degerine gore lookup'a cevirip helper'in sirasiyla doluyoruz.
 // watch_status is personal (user_anime, 1.0.1). Count every catalog anime
-// grouped by the current user's status, defaulting un-tracked animes to
-// PlanToWatch (matches the old animes default).
+// grouped by the current user's status. A missing user_anime row means the
+// user has made no choice yet; we surface it as its own "unselected" bucket
+// (NULL -> '' via COALESCE) instead of folding it into PlanToWatch.
 $by_watch_stmt = $pdo->prepare("
-    SELECT COALESCE(ua.watch_status, 'PlanToWatch') AS watch_status,
+    SELECT COALESCE(ua.watch_status, '') AS watch_status,
            COUNT(*) AS cnt
     FROM animes a
     LEFT JOIN user_anime ua
            ON ua.anime_id = a.id AND ua.user_id = :uid
-    GROUP BY COALESCE(ua.watch_status, 'PlanToWatch')
+    GROUP BY COALESCE(ua.watch_status, '')
 ");
 $by_watch_stmt->execute([':uid' => current_user_id()]);
 $by_watch_raw = $by_watch_stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 $by_watch = [];
+// '' key = no user_anime row = secim yapilmamis (en uste konur).
+$by_watch[] = [
+    'label' => t('index.watch_status.unselected'),
+    'cnt'   => (int)($by_watch_raw[''] ?? 0),
+];
 foreach (watch_status_options() as $ws_value => $ws_label) {
     $by_watch[] = [
         'label' => $ws_label,
@@ -90,12 +96,28 @@ $emotion_anime_count_stmt = $pdo->prepare(
 );
 $emotion_anime_count_stmt->execute([':uid' => current_user_id()]);
 $emotion_anime_count = (int)$emotion_anime_count_stmt->fetchColumn();
+
+// Global duygu dagilimi: tum kullanicilarin isaretleri (user_id filtresi YOK).
+// Global sekmede gosterilir. Self-host'ta (tek kullanici) kullanici dagilimiyla
+// ayni cikar; online'da herkesin toplamidir.
+$by_emotion_global = $pdo->query("
+    SELECT emotion, COUNT(*) AS cnt
+    FROM user_anime_emotion
+    GROUP BY emotion
+    ORDER BY cnt DESC
+")->fetchAll(PDO::FETCH_ASSOC);
+$emotion_total_marks_global = 0;
+foreach ($by_emotion_global as $er) {
+    $emotion_total_marks_global += (int)$er['cnt'];
+}
+$emotion_anime_count_global = (int)$pdo->query(
+    "SELECT COUNT(DISTINCT anime_id) FROM user_anime_emotion"
+)->fetchColumn();
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo current_lang(); ?>">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?php echo htmlspecialchars(t('statistics.page_title'), ENT_QUOTES, 'UTF-8'); ?></title>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -117,6 +139,12 @@ $emotion_anime_count = (int)$emotion_anime_count_stmt->fetchColumn();
         .stats-emotion-summary { color: #4a5568; margin: 0 0 12px; }
         .stats-emotion-empty { color: #4a5568; margin: 6px 0; }
         table.stats-table td .emotion-badge { font-size: 0.95em; }
+        .stats-tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid #cbd5e0; }
+        .stats-tab-btn { appearance: none; background: transparent; border: none; border-bottom: 3px solid transparent; padding: 10px 18px; font-size: 1.05em; color: #4a5568; cursor: pointer; margin-bottom: -2px; }
+        .stats-tab-btn:hover { color: #2b6cb0; }
+        .stats-tab-btn.active { color: #2b6cb0; border-bottom-color: #2b6cb0; font-weight: bold; }
+        .stats-tab-panel { display: none; }
+        .stats-tab-panel.active { display: block; }
     </style>
 </head>
 <body>
@@ -124,78 +152,134 @@ $emotion_anime_count = (int)$emotion_anime_count_stmt->fetchColumn();
     <a href="index.php" class="back-link"><?php echo t('help.back_to_home'); ?></a>
     <h1><?php echo htmlspecialchars(t('statistics.heading'), ENT_QUOTES, 'UTF-8'); ?></h1>
 
-    <div class="stats-card">
-        <div class="stats-big"><?php echo $total; ?></div>
-        <div class="stats-label"><?php echo htmlspecialchars(t('statistics.label.total_anime'), ENT_QUOTES, 'UTF-8'); ?></div>
-        <div class="stats-big" style="margin-top:20px;"><?php echo $total_watched; ?></div>
-        <div class="stats-label"><?php echo htmlspecialchars(t('statistics.label.total_watched'), ENT_QUOTES, 'UTF-8'); ?></div>
+    <div class="stats-tabs">
+        <button type="button" class="stats-tab-btn active" data-tab="user"><?php echo htmlspecialchars(t('statistics.tab.user'), ENT_QUOTES, 'UTF-8'); ?></button>
+        <button type="button" class="stats-tab-btn" data-tab="global"><?php echo htmlspecialchars(t('statistics.tab.global'), ENT_QUOTES, 'UTF-8'); ?></button>
     </div>
 
-    <div class="stats-grid">
-    <div class="stats-card">
-        <h2><?php echo htmlspecialchars(t('statistics.section.by_media'), ENT_QUOTES, 'UTF-8'); ?></h2>
-        <table class="stats-table">
-            <tr><th><?php echo htmlspecialchars(t('statistics.col.type'), ENT_QUOTES, 'UTF-8'); ?></th><th><?php echo htmlspecialchars(t('statistics.col.count'), ENT_QUOTES, 'UTF-8'); ?></th></tr>
-            <?php foreach ($by_media as $row): ?>
-                <tr><td><?php
-                    $mt = $row['media_type'];
-                    echo htmlspecialchars($mt === 'Belirtilmemis' ? t('statistics.value.unspecified') : $mt);
-                ?></td><td><?php echo $row['cnt']; ?></td></tr>
-            <?php endforeach; ?>
-        </table>
-    </div>
+    <!-- Kullanici istatistigi: kisiye ozel veriler (izlenen bolum, izleme durumu, duygular) -->
+    <div class="stats-tab-panel active" id="stats-panel-user">
+        <div class="stats-card">
+            <div class="stats-big"><?php echo $total_watched; ?></div>
+            <div class="stats-label"><?php echo htmlspecialchars(t('statistics.label.total_watched'), ENT_QUOTES, 'UTF-8'); ?></div>
+        </div>
 
-    <div class="stats-card">
-        <h2><?php echo htmlspecialchars(t('statistics.section.by_broadcast'), ENT_QUOTES, 'UTF-8'); ?></h2>
-        <table class="stats-table">
-            <tr><th><?php echo htmlspecialchars(t('statistics.col.status'), ENT_QUOTES, 'UTF-8'); ?></th><th><?php echo htmlspecialchars(t('statistics.col.count'), ENT_QUOTES, 'UTF-8'); ?></th></tr>
-            <?php foreach ($by_status as $row): ?>
-                <tr><td><?php
-                    // animes.status DB enum: Yayin Tamamlandi / Yayin Devam Ediyor (TR)
-                    // Index sayfasinin broadcast.* anahtarlarini yeniden kullaniriz.
-                    $s = $row['status'];
-                    if ($s === 'Yayın Tamamlandı') {
-                        $sLabel = t('index.broadcast.finished');
-                    } elseif ($s === 'Yayın Devam Ediyor') {
-                        $sLabel = t('index.broadcast.ongoing');
-                    } else {
-                        $sLabel = $s; // bilinmeyen deger ham gosterilir
-                    }
-                    echo htmlspecialchars($sLabel);
-                ?></td><td><?php echo $row['cnt']; ?></td></tr>
-            <?php endforeach; ?>
-        </table>
-    </div>
-
-    <div class="stats-card">
-        <h2><?php echo htmlspecialchars(t('statistics.section.by_watch'), ENT_QUOTES, 'UTF-8'); ?></h2>
-        <table class="stats-table">
-            <tr><th><?php echo htmlspecialchars(t('statistics.col.status'), ENT_QUOTES, 'UTF-8'); ?></th><th><?php echo htmlspecialchars(t('statistics.col.count'), ENT_QUOTES, 'UTF-8'); ?></th></tr>
-            <?php foreach ($by_watch as $row): ?>
-                <tr><td><?php echo htmlspecialchars($row['label']); ?></td><td><?php echo $row['cnt']; ?></td></tr>
-            <?php endforeach; ?>
-        </table>
-    </div>
-
-    <div class="stats-card">
-        <h2><?php echo htmlspecialchars(t('statistics.section.by_emotion'), ENT_QUOTES, 'UTF-8'); ?></h2>
-        <?php if ($emotion_total_marks === 0): ?>
-            <p class="stats-emotion-empty"><?php echo htmlspecialchars(t('statistics.emotion.empty'), ENT_QUOTES, 'UTF-8'); ?></p>
-        <?php else: ?>
-            <p class="stats-emotion-summary"><?php
-                echo htmlspecialchars(sprintf(t('statistics.emotion.summary'), $emotion_total_marks, $emotion_anime_count), ENT_QUOTES, 'UTF-8');
-            ?></p>
+        <div class="stats-grid">
+        <div class="stats-card">
+            <h2><?php echo htmlspecialchars(t('statistics.section.by_watch'), ENT_QUOTES, 'UTF-8'); ?></h2>
             <table class="stats-table">
-                <tr><th><?php echo htmlspecialchars(t('statistics.col.emotion'), ENT_QUOTES, 'UTF-8'); ?></th><th><?php echo htmlspecialchars(t('statistics.col.count'), ENT_QUOTES, 'UTF-8'); ?></th></tr>
-                <?php foreach ($by_emotion as $row): ?>
-                    <tr>
-                        <td><span class="emotion-badge emotion-badge-<?php echo emotion_css_class($row['emotion']); ?>"><?php echo htmlspecialchars(emotion_label($row['emotion'])); ?></span></td>
-                        <td><?php echo (int)$row['cnt']; ?></td>
-                    </tr>
+                <tr><th><?php echo htmlspecialchars(t('statistics.col.status'), ENT_QUOTES, 'UTF-8'); ?></th><th><?php echo htmlspecialchars(t('statistics.col.count'), ENT_QUOTES, 'UTF-8'); ?></th></tr>
+                <?php foreach ($by_watch as $row): ?>
+                    <tr><td><?php echo htmlspecialchars($row['label']); ?></td><td><?php echo $row['cnt']; ?></td></tr>
                 <?php endforeach; ?>
             </table>
-        <?php endif; ?>
+        </div>
+
+        <div class="stats-card">
+            <h2><?php echo htmlspecialchars(t('statistics.section.by_emotion'), ENT_QUOTES, 'UTF-8'); ?></h2>
+            <?php if ($emotion_total_marks === 0): ?>
+                <p class="stats-emotion-empty"><?php echo htmlspecialchars(t('statistics.emotion.empty'), ENT_QUOTES, 'UTF-8'); ?></p>
+            <?php else: ?>
+                <p class="stats-emotion-summary"><?php
+                    echo htmlspecialchars(sprintf(t('statistics.emotion.summary'), $emotion_total_marks, $emotion_anime_count), ENT_QUOTES, 'UTF-8');
+                ?></p>
+                <table class="stats-table">
+                    <tr><th><?php echo htmlspecialchars(t('statistics.col.emotion'), ENT_QUOTES, 'UTF-8'); ?></th><th><?php echo htmlspecialchars(t('statistics.col.count'), ENT_QUOTES, 'UTF-8'); ?></th></tr>
+                    <?php foreach ($by_emotion as $row): ?>
+                        <tr>
+                            <td><span class="emotion-badge emotion-badge-<?php echo emotion_css_class($row['emotion']); ?>"><?php echo htmlspecialchars(emotion_label($row['emotion'])); ?></span></td>
+                            <td><?php echo (int)$row['cnt']; ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </table>
+            <?php endif; ?>
+        </div>
+        </div>
+    </div>
+
+    <!-- Global istatistik: katalog geneli veriler. Izlenen bolum sayisi BURADA YOK (kisisel veridir). -->
+    <div class="stats-tab-panel" id="stats-panel-global">
+        <div class="stats-card">
+            <div class="stats-big"><?php echo $total; ?></div>
+            <div class="stats-label"><?php echo htmlspecialchars(t('statistics.label.total_anime'), ENT_QUOTES, 'UTF-8'); ?></div>
+        </div>
+
+        <div class="stats-grid">
+        <div class="stats-card">
+            <h2><?php echo htmlspecialchars(t('statistics.section.by_media'), ENT_QUOTES, 'UTF-8'); ?></h2>
+            <table class="stats-table">
+                <tr><th><?php echo htmlspecialchars(t('statistics.col.type'), ENT_QUOTES, 'UTF-8'); ?></th><th><?php echo htmlspecialchars(t('statistics.col.count'), ENT_QUOTES, 'UTF-8'); ?></th></tr>
+                <?php foreach ($by_media as $row): ?>
+                    <tr><td><?php
+                        $mt = $row['media_type'];
+                        echo htmlspecialchars($mt === 'Belirtilmemis' ? t('statistics.value.unspecified') : $mt);
+                    ?></td><td><?php echo $row['cnt']; ?></td></tr>
+                <?php endforeach; ?>
+            </table>
+        </div>
+
+        <div class="stats-card">
+            <h2><?php echo htmlspecialchars(t('statistics.section.by_broadcast'), ENT_QUOTES, 'UTF-8'); ?></h2>
+            <table class="stats-table">
+                <tr><th><?php echo htmlspecialchars(t('statistics.col.status'), ENT_QUOTES, 'UTF-8'); ?></th><th><?php echo htmlspecialchars(t('statistics.col.count'), ENT_QUOTES, 'UTF-8'); ?></th></tr>
+                <?php foreach ($by_status as $row): ?>
+                    <tr><td><?php
+                        // animes.status DB enum: Yayin Tamamlandi / Yayin Devam Ediyor (TR)
+                        // Index sayfasinin broadcast.* anahtarlarini yeniden kullaniriz.
+                        $s = $row['status'];
+                        if ($s === 'Yayın Tamamlandı') {
+                            $sLabel = t('index.broadcast.finished');
+                        } elseif ($s === 'Yayın Devam Ediyor') {
+                            $sLabel = t('index.broadcast.ongoing');
+                        } else {
+                            $sLabel = $s; // bilinmeyen deger ham gosterilir
+                        }
+                        echo htmlspecialchars($sLabel);
+                    ?></td><td><?php echo $row['cnt']; ?></td></tr>
+                <?php endforeach; ?>
+            </table>
+        </div>
+
+        <div class="stats-card">
+            <h2><?php echo htmlspecialchars(t('statistics.section.by_emotion'), ENT_QUOTES, 'UTF-8'); ?></h2>
+            <?php if ($emotion_total_marks_global === 0): ?>
+                <p class="stats-emotion-empty"><?php echo htmlspecialchars(t('statistics.emotion.empty_global'), ENT_QUOTES, 'UTF-8'); ?></p>
+            <?php else: ?>
+                <p class="stats-emotion-summary"><?php
+                    echo htmlspecialchars(sprintf(t('statistics.emotion.summary'), $emotion_total_marks_global, $emotion_anime_count_global), ENT_QUOTES, 'UTF-8');
+                ?></p>
+                <table class="stats-table">
+                    <tr><th><?php echo htmlspecialchars(t('statistics.col.emotion'), ENT_QUOTES, 'UTF-8'); ?></th><th><?php echo htmlspecialchars(t('statistics.col.count'), ENT_QUOTES, 'UTF-8'); ?></th></tr>
+                    <?php foreach ($by_emotion_global as $row): ?>
+                        <tr>
+                            <td><span class="emotion-badge emotion-badge-<?php echo emotion_css_class($row['emotion']); ?>"><?php echo htmlspecialchars(emotion_label($row['emotion'])); ?></span></td>
+                            <td><?php echo (int)$row['cnt']; ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </table>
+            <?php endif; ?>
+        </div>
+        </div>
     </div>
 </div>
+<script>
+(function () {
+    var buttons = document.querySelectorAll('.stats-tab-btn');
+    var panels = {
+        user: document.getElementById('stats-panel-user'),
+        global: document.getElementById('stats-panel-global')
+    };
+    buttons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var tab = btn.getAttribute('data-tab');
+            buttons.forEach(function (b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            Object.keys(panels).forEach(function (key) {
+                if (panels[key]) { panels[key].classList.toggle('active', key === tab); }
+            });
+        });
+    });
+})();
+</script>
 </body>
 </html>

@@ -52,6 +52,7 @@ return [
 
     'index.filter.genre'            => 'Filter by Genre:',
     'index.filter.watch_status'     => 'Filter by Watch Status:',
+    'index.watch_status.unselected' => 'Not Selected',
     'index.filter.broadcast'        => 'Filter by Broadcast Status:',
     'index.filter.letter'           => 'Filter by Letter',
     'index.filter.per_page'         => 'Show per Page:',
@@ -555,6 +556,8 @@ return [
     // -----------------------------------------------------------------
     'statistics.page_title'                  => 'Statistics - Anime Tracker',
     'statistics.heading'                     => 'Statistics',
+    'statistics.tab.user'                    => 'User Statistics',
+    'statistics.tab.global'                  => 'Global Statistics',
     'statistics.label.total_anime'           => 'Total Anime',
     'statistics.label.total_watched'         => 'Total Watched Episodes',
     'statistics.label.total_episodes'        => 'Total Episodes',
@@ -569,6 +572,7 @@ return [
     'statistics.col.emotion'                 => 'Emotion',
     'statistics.emotion.summary'             => '%d marks across %d anime.',
     'statistics.emotion.empty'               => 'You have not marked any anime with emotions yet. Open an anime detail page and use the emotion buttons to add marks.',
+    'statistics.emotion.empty_global'        => 'No emotion marks have been added to any anime yet.',
 
     // -----------------------------------------------------------------
     // recent.php - son duzenlenen 5 anime

@@ -148,6 +148,7 @@ $canPersonal = can($pdo, 'personal');
 $canModerate = can($pdo, 'moderate');
 $select_from = "SELECT a.*,
         COALESCE(ua.watch_status, 'PlanToWatch') AS watch_status,
+        ua.watch_status     AS watch_status_raw,
         COALESCE(ua.watched_episodes, 0)         AS watched_episodes,
         ua.notes            AS notes,
         ua.user_synopsis    AS user_synopsis,
@@ -176,7 +177,12 @@ if ($genre_filter) {
 }
 
 if ($watch_status_filter) {
-    $sql .= " AND COALESCE(ua.watch_status, 'PlanToWatch') = :status";
+    if ($watch_status_filter === '__unselected__') {
+        // user_anime satiri olmayan (hic secim yapilmamis) animeler
+        $sql .= " AND ua.watch_status IS NULL";
+    } else {
+        $sql .= " AND COALESCE(ua.watch_status, 'PlanToWatch') = :status";
+    }
 }
 
 if ($broadcast_status_filter) {
@@ -222,7 +228,11 @@ if ($sort_column == 'watched_episodes') {
     }
     
     if ($watch_status_filter) {
-        $sql .= " AND COALESCE(ua.watch_status, 'PlanToWatch') = :status";
+        if ($watch_status_filter === '__unselected__') {
+            $sql .= " AND ua.watch_status IS NULL";
+        } else {
+            $sql .= " AND COALESCE(ua.watch_status, 'PlanToWatch') = :status";
+        }
     }
     
     if ($broadcast_status_filter) {
@@ -259,7 +269,7 @@ if ($genre_filter) {
     // makes those collisions impossible.
     $stmt->bindValue(':genre', $genre_filter);
 }
-if ($watch_status_filter) {
+if ($watch_status_filter && $watch_status_filter !== '__unselected__') {
     $stmt->bindValue(':status', $watch_status_filter);
 }
 if ($broadcast_status_filter) {
@@ -712,6 +722,7 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                         <?php foreach (watch_status_options() as $ws_value => $ws_label): ?>
                             <option value="<?php echo htmlspecialchars($ws_value); ?>" <?php echo $watch_status_filter === $ws_value ? 'selected' : ''; ?>><?php echo htmlspecialchars($ws_label); ?></option>
                         <?php endforeach; ?>
+                        <option value="__unselected__" <?php echo $watch_status_filter === '__unselected__' ? 'selected' : ''; ?>><?php echo htmlspecialchars(t('index.watch_status.unselected'), ENT_QUOTES, 'UTF-8'); ?></option>
                     </select>
                 </div>
                 <div style="margin-top: 20px;"></div>
@@ -841,7 +852,17 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                     <?php foreach ($animes as $anime): ?>
                         <tr>
                             <td><span class="list-anime-title" onclick="toggleAnimeTitle(this)" title="<?php echo htmlspecialchars(t('index.row.title_tooltip'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(display_title($anime)); ?></span></td>
-                            <td class="watch-status-cell"><?php echo htmlspecialchars(watch_status_label($anime['watch_status'])); ?></td>
+                            <td class="watch-status-cell"><?php
+                                // user_anime satiri yoksa (watch_status_raw null) kullanici
+                                // henuz secim yapmamistir -> "Secim Yapilmamis" goster.
+                                // Satir varsa gercek durum etiketi. + ile satir olusunca
+                                // JS hucreyi gercek etiketle gunceller (asagidaki updateWatched).
+                                echo htmlspecialchars(
+                                    $anime['watch_status_raw'] === null
+                                        ? t('index.watch_status.unselected')
+                                        : watch_status_label($anime['watch_status'])
+                                );
+                            ?></td>
                             <td class="episode-count"><?php
                                 // Episode display logic (v0.5+):
                                 //  - total_episodes set  -> watched/total (finished or short series)

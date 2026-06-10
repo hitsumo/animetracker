@@ -231,6 +231,9 @@ if (MULTI_USER_MODE && $catalogRequestsAvailable) {
             <p style="color: #666; margin-top: 0;">
                 <?php echo t('admin.intro'); ?>
             </p>
+            <p style="margin-top: 0;">
+                <strong><?php echo htmlspecialchars(t('admin.intro_image_note'), ENT_QUOTES, 'UTF-8'); ?></strong>
+            </p>
 
             <div class="tools-grid">
 

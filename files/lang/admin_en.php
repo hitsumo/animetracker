@@ -26,6 +26,7 @@ return [
     'admin.heading'                          => 'Admin Dashboard',
     'admin.subtitle'                         => 'localhost only - regular users cannot access this',
     'admin.intro'                            => 'This page hosts admin tools for the catalog owner. It is reachable only from localhost (remote requests are refused) and is not linked from any page. It is NOT bundled into the .exe installer, so end users never receive it - but the source IS public on GitHub, so keep real secrets in <code>admin_secret.php</code>, not here.',
+    'admin.intro_image_note'                 => 'If an anime is added online or offline, its image must be uploaded to the central server manually.',
     'admin.tool.sync.h3'                     => 'Push Catalog to Server',
     'admin.tool.sync.desc'                   => 'Pushes the local catalog to the server. Newly added anime and chronology markers are delivered via HMAC-signed POST. Personal data (watch progress, notes) is not sent.',
     'admin.tool.sync.link.disabled'          => 'Setup incomplete',

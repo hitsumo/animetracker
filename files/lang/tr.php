@@ -72,6 +72,7 @@ return [
     // Filter labels
     'index.filter.genre'            => 'Türe Göre Filtrele:',
     'index.filter.watch_status'     => 'İzleme Durumuna Göre Filtrele:',
+    'index.watch_status.unselected' => 'Seçim Yapılmamış',
     'index.filter.broadcast'        => 'Yayın Durumuna Göre Filtrele:',
     'index.filter.letter'           => 'Harfe Göre Filtrele',
     'index.filter.per_page'         => 'Sayfada Göster:',
@@ -587,6 +588,8 @@ return [
     // -----------------------------------------------------------------
     'statistics.page_title'                  => 'İstatistikler - Anime Tracker',
     'statistics.heading'                     => 'İstatistikler',
+    'statistics.tab.user'                    => 'Kullanıcı İstatistiği',
+    'statistics.tab.global'                  => 'Global İstatistik',
     'statistics.label.total_anime'           => 'Toplam Anime',
     'statistics.label.total_watched'         => 'Toplam İzlenen Bölüm',
     'statistics.label.total_episodes'        => 'Toplam Bölüm',
@@ -601,6 +604,7 @@ return [
     'statistics.col.emotion'                 => 'Duygu',
     'statistics.emotion.summary'             => 'Toplam %d işaret, %d anime.',
     'statistics.emotion.empty'               => 'Henüz hiçbir animeye duygu işareti koymamışsın. Anime detay sayfasındaki duygu butonlarıyla işaret ekleyebilirsin.',
+    'statistics.emotion.empty_global'        => 'Henüz hiçbir animeye duygu işareti konmamış.',
 
     // -----------------------------------------------------------------
     // recent.php - son duzenlenen 5 anime

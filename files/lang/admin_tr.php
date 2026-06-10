@@ -37,6 +37,7 @@ return [
     'admin.heading'                          => 'Admin Dashboard',
     'admin.subtitle'                         => 'Sadece localhost - normal kullanıcılar erişemez',
     'admin.intro'                            => 'Bu sayfa katalog sahibi için admin araçlarını barındırır. Yalnızca localhost\'tan erişilebilir (uzaktan istekler reddedilir) ve hiçbir sayfadan link verilmemiştir. <code>.exe</code> installer\'a dahil edilmez, yani son kullanıcılar bu dosyayı almaz; ancak kaynak GitHub\'da herkese açıktır, bu yüzden gerçek sırları burada değil <code>admin_secret.php</code>\'de tutun.',
+    'admin.intro_image_note'                 => 'Online veya offline şekilde anime eklendiyse görseli merkez sunucuya elle yüklenmelidir.',
     'admin.tool.sync.h3'                     => 'Sunucuya Katalog Gönder',
     'admin.tool.sync.desc'                   => 'Local DB\'deki katalogu sunucuya gönderir. Yeni eklenen animeler ve kronoloji notları HMAC imzalı POST ile iletilir. Kişisel veriler (izleme durumu, notlar) gönderilmez.',
     'admin.tool.sync.link.disabled'          => 'Kurulum eksik',
