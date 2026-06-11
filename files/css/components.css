@@ -75,6 +75,16 @@
     color: white;
 }
 
+.status-badge.dropped {
+    background-color: #dc3545;
+    color: white;
+}
+
+.status-badge.unselected {
+    background-color: #ced4da;
+    color: #495057;
+}
+
 /* Yayın bilgileri bölümü için stil */
 .broadcast-info {
     margin-top: 30px;

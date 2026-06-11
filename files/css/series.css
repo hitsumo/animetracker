@@ -33,6 +33,14 @@
     color: #e0a000;
     font-weight: 600;
 }
+.ws-dropped {
+    color: #dc3545;
+    font-weight: 600;
+}
+.ws-unselected {
+    color: #8a939b;
+    font-weight: 600;
+}
 
 /* --- 1. Kronoloji Uyarisi -------------------------------------------- */
 .chronology-alert {

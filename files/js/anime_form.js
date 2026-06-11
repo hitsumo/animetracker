@@ -112,9 +112,12 @@ function toggleEndDateBySingleEpisode() {
 function toggleWatchedEpisodes() {
     const watchStatus = document.querySelector('select[name="watch_status"]').value;
     const watchedEpisodesDiv = document.getElementById('watched-episodes-section');
-    // Watching ve OnHold: izlenen bolum input'u gorunur, mevcut deger KORUNUR.
-    // Watching = aktif izleme, OnHold = ara verme; ikisinde de ilerleme saklanir.
-    if (watchStatus === 'Watching' || watchStatus === 'OnHold') {
+    // Watching, OnHold ve Dropped: izlenen bolum input'u gorunur, mevcut
+    // deger KORUNUR. Watching = aktif izleme, OnHold = ara verme,
+    // Dropped (1.0.10) = birakma; ucunde de ilerleme saklanir (kacinci
+    // bolumde birakildigi anlamli bilgidir).
+    if (watchStatus === 'Watching' || watchStatus === 'OnHold'
+        || watchStatus === 'Dropped') {
         watchedEpisodesDiv.style.display = 'block';
     } else {
         watchedEpisodesDiv.style.display = 'none';

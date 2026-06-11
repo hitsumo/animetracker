@@ -24,7 +24,7 @@
  * Falls back to the raw status if the value is unknown (defensive -
  * a stray enum value never produces an empty cell).
  *
- * @param string $status One of 'Watched', 'Watching', 'PlanToWatch', 'OnHold'.
+ * @param string $status One of 'Watched', 'Watching', 'PlanToWatch', 'OnHold', 'Dropped'.
  * @param string $lang   'tr' (default) or 'en'.
  * @return string        Localized label, or $status itself if unmapped.
  */
@@ -35,18 +35,31 @@ function watch_status_label($status, $lang = null) {
     if ($lang === null) {
         $lang = current_lang();
     }
+    // 1.0.10: NULL / '' (no user_anime row, or an explicit "not
+    // selected" row) folds to the '__unselected__' pseudo-status so
+    // every render surface shows the same label without repeating the
+    // null check. The strings deliberately match the
+    // 'index.watch_status.unselected' entries in lang/tr.php and
+    // lang/en.php - change them together.
+    if ($status === null || $status === '') {
+        $status = '__unselected__';
+    }
     static $map = [
         'tr' => [
-            'Watched'     => 'İzlendi',
-            'Watching'    => 'İzleniyor',
-            'PlanToWatch' => 'İzlenme Planlandı',
-            'OnHold'      => 'İzleme Ertelendi',
+            'Watched'        => 'İzlendi',
+            'Watching'       => 'İzleniyor',
+            'PlanToWatch'    => 'İzlenme Planlandı',
+            'OnHold'         => 'İzleme Ertelendi',
+            'Dropped'        => 'İzleme Bırakıldı',
+            '__unselected__' => 'Seçim Yapılmamış',
         ],
         'en' => [
-            'Watched'     => 'Watched',
-            'Watching'    => 'Watching',
-            'PlanToWatch' => 'Plan to Watch',
-            'OnHold'      => 'On Hold',
+            'Watched'        => 'Watched',
+            'Watching'       => 'Watching',
+            'PlanToWatch'    => 'Plan to Watch',
+            'OnHold'         => 'On Hold',
+            'Dropped'        => 'Dropped',
+            '__unselected__' => 'Not Selected',
         ],
     ];
     return $map[$lang][$status] ?? $status;
@@ -55,11 +68,13 @@ function watch_status_label($status, $lang = null) {
 /**
  * Return the watch_status options for a dropdown, in display order.
  *
- * Order: Watched, Watching, PlanToWatch, OnHold.
+ * Order: Watched, Watching, PlanToWatch, OnHold, Dropped.
  *   - First three preserve the existing UI order from 0.5.x (filter
  *     dropdown in index.php was Watched / Watching / PlanToWatch).
- *   - OnHold is appended at the end as the newest, least-used value -
- *     keeps existing user muscle memory intact.
+ *   - OnHold and Dropped are appended at the end as the newest,
+ *     least-used values - keeps existing user muscle memory intact.
+ *     Dropped (1.0.10) was born in the user_anime enum at 1.0.1 but
+ *     had no label/option until now.
  *
  * Use as:
  *   foreach (watch_status_options() as $value => $label) {
@@ -73,7 +88,7 @@ function watch_status_options($lang = null) {
     if ($lang === null) {
         $lang = current_lang();
     }
-    $order = ['Watched', 'Watching', 'PlanToWatch', 'OnHold'];
+    $order = ['Watched', 'Watching', 'PlanToWatch', 'OnHold', 'Dropped'];
     $options = [];
     foreach ($order as $status) {
         $options[$status] = watch_status_label($status, $lang);
@@ -103,15 +118,93 @@ function watch_status_options($lang = null) {
  * Unknown values fall back to 'unknown' so a stray DB value never
  * produces an empty class attribute.
  *
- * @param string $status One of 'Watched', 'Watching', 'PlanToWatch', 'OnHold'.
+ * @param string $status One of 'Watched', 'Watching', 'PlanToWatch', 'OnHold', 'Dropped'.
  * @return string        CSS suffix (no prefix). Caller adds its own prefix.
  */
 function watch_status_css_class($status) {
+    // 1.0.10: NULL / '' folds to the unselected pseudo-status, same
+    // normalization as watch_status_label().
+    if ($status === null || $status === '') {
+        $status = '__unselected__';
+    }
     static $map = [
-        'Watched'     => 'watched',
-        'Watching'    => 'watching',
-        'PlanToWatch' => 'plantowatch',
-        'OnHold'      => 'onhold',
+        'Watched'        => 'watched',
+        'Watching'       => 'watching',
+        'PlanToWatch'    => 'plantowatch',
+        'OnHold'         => 'onhold',
+        'Dropped'        => 'dropped',
+        '__unselected__' => 'unselected',
     ];
     return $map[$status] ?? 'unknown';
+}
+
+/**
+ * Build the ORDER BY expression used when the list is sorted by the
+ * watch status column (index.php "Durum").
+ *
+ * 1.0.10: the column used to sort on the raw ASCII enum value
+ * (COALESCE(ua.watch_status, 'PlanToWatch')), which is alphabetical in
+ * English only and silently folded the "not selected" state (no
+ * user_anime row) into PlanToWatch. Instead, sort by the LOCALIZED
+ * label, alphabetically in the active UI language; the virtual "not
+ * selected" entry takes its own alphabetical place like any other
+ * label. Switching the UI language changes the order with it.
+ *
+ * Implementation: the label order is computed in PHP and baked into a
+ * FIELD() expression. NULL watch_status (no user_anime row) is folded
+ * to the sentinel '__unselected__' so it can participate in FIELD().
+ * Every FIELD() argument is an internal ASCII enum value from this
+ * file plus that sentinel - no user input, safe to inline. A DB value
+ * missing from the list (defensive case) makes FIELD() return 0 and
+ * sort first.
+ *
+ * Collation: with the intl extension, Collator gives correct Turkish
+ * alphabet order. Without intl, raw UTF-8 byte order is wrong for
+ * Turkish (e.g. 'S' < dotted capital I byte-wise), so a manual sort
+ * key mapping is used for TR; EN falls back to strcasecmp.
+ *
+ * DESC simply reverses the whole FIELD() order - the "not selected"
+ * group is not pinned to either end.
+ *
+ * @return string SQL ORDER BY expression (no direction suffix).
+ */
+function watch_status_sort_expr() {
+    $labels = watch_status_options();
+    $labels['__unselected__'] = watch_status_label('__unselected__');
+
+    if (class_exists('Collator')) {
+        $collator = new Collator(current_lang() === 'tr' ? 'tr_TR' : 'en_US');
+        uasort($labels, function ($a, $b) use ($collator) {
+            return $collator->compare($a, $b);
+        });
+    } elseif (current_lang() === 'tr') {
+        // No intl: build byte-comparable sort keys that follow the
+        // Turkish alphabet. '~' (0x7E) sorts after 'z' (0x7A), so a
+        // mapped pair like 'c~' lands after every plain 'c*' word and
+        // before 'd*' - exactly where the corresponding Turkish letter
+        // belongs. Undotted i maps to 'h~' (between 'h*' and 'i*').
+        $trKey = function ($s) {
+            $s = strtr($s, [
+                'Ç' => 'ç', 'Ğ' => 'ğ', 'I' => 'ı', 'İ' => 'i',
+                'Ö' => 'ö', 'Ş' => 'ş', 'Ü' => 'ü',
+            ]);
+            $s = mb_strtolower($s, 'UTF-8');
+            return strtr($s, [
+                'ç' => 'c~', 'ğ' => 'g~', 'ı' => 'h~',
+                'ö' => 'o~', 'ş' => 's~', 'ü' => 'u~',
+            ]);
+        };
+        uasort($labels, function ($a, $b) use ($trKey) {
+            return strcmp($trKey($a), $trKey($b));
+        });
+    } else {
+        uasort($labels, 'strcasecmp');
+    }
+
+    $quoted = [];
+    foreach (array_keys($labels) as $value) {
+        $quoted[] = "'" . $value . "'";
+    }
+    return "FIELD(COALESCE(ua.watch_status, '__unselected__'), "
+         . implode(', ', $quoted) . ")";
 }

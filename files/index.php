@@ -181,7 +181,7 @@ if ($watch_status_filter) {
         // user_anime satiri olmayan (hic secim yapilmamis) animeler
         $sql .= " AND ua.watch_status IS NULL";
     } else {
-        $sql .= " AND COALESCE(ua.watch_status, 'PlanToWatch') = :status";
+        $sql .= " AND ua.watch_status = :status";
     }
 }
 
@@ -202,13 +202,17 @@ if ($letter_filter) {
 
 // Add sorting.
 // Map the (already validated) sort column to a SQL expression.
-// watch_status / watched_episodes are user_anime-backed, so they sort on
-// the COALESCE expression; title / next_episode_date are catalog columns
-// on animes (a). This also avoids the bare-column ambiguity between a.*
-// and the user_anime join.
+// watch_status sorts by the LOCALIZED label alphabet via
+// watch_status_sort_expr() (1.0.10) - the order follows the active UI
+// language and the "not selected" state (NULL, no user_anime row) takes
+// its own alphabetical place instead of being folded into PlanToWatch.
+// watched_episodes is user_anime-backed and sorts on the COALESCE
+// expression; title / next_episode_date are catalog columns on animes
+// (a). This also avoids the bare-column ambiguity between a.* and the
+// user_anime join.
 $sort_expr_map = [
     'title'             => 'a.title',
-    'watch_status'      => "COALESCE(ua.watch_status, 'PlanToWatch')",
+    'watch_status'      => watch_status_sort_expr(),
     'watched_episodes'  => 'COALESCE(ua.watched_episodes, 0)',
     'next_episode_date' => 'a.next_episode_date',
 ];
@@ -231,7 +235,7 @@ if ($sort_column == 'watched_episodes') {
         if ($watch_status_filter === '__unselected__') {
             $sql .= " AND ua.watch_status IS NULL";
         } else {
-            $sql .= " AND COALESCE(ua.watch_status, 'PlanToWatch') = :status";
+            $sql .= " AND ua.watch_status = :status";
         }
     }
     

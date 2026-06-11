@@ -21,14 +21,18 @@
  * is byte-for-byte the same as before the split.
  *
  * READ PATTERN FOR LIST PAGES (index, recent, recommendations, ...):
- * pages that previously did "SELECT * FROM animes" join user_anime and
- * COALESCE to the per-row defaults, so a catalog anime with no personal
- * row still renders (single-user: every anime has a row after the copy,
- * so this is just defensive; multi-user "my list" later switches the
- * LEFT JOIN to an INNER JOIN or adds a WHERE ua.user_id filter):
+ * pages that previously did "SELECT * FROM animes" join user_anime, so a
+ * catalog anime with no personal row still renders. 1.0.10: watch_status
+ * is selected RAW (NULL = "not selected"; the watch_status_label /
+ * watch_status_css_class helpers map NULL to the unselected label and
+ * class). COALESCE stays only where a missing value must ACT as one in
+ * logic, e.g. != 'Watched' filters. watched_episodes still COALESCEs
+ * to 0 (single-user: every anime has a row after the copy, so this is
+ * just defensive; multi-user "my list" later switches the LEFT JOIN to
+ * an INNER JOIN or adds a WHERE ua.user_id filter):
  *
  *     SELECT a.*,
- *            COALESCE(ua.watch_status, 'PlanToWatch') AS watch_status,
+ *            ua.watch_status,
  *            COALESCE(ua.watched_episodes, 0)         AS watched_episodes,
  *            ua.notes, ua.user_synopsis, ua.user_synopsis_en
  *       FROM animes a
@@ -45,12 +49,14 @@
 /**
  * The personal state of an anime that has no user_anime row yet. Matches
  * the user_anime column DEFAULTs so a missing row and a default row look
- * identical to the rest of the application.
+ * identical to the rest of the application. 1.0.10: watch_status is NULL
+ * (column DEFAULT NULL) - a missing row means "not selected", not
+ * PlanToWatch; callers that need a concrete value must decide explicitly.
  */
 function ua_default_state()
 {
     return [
-        'watch_status'     => 'PlanToWatch',
+        'watch_status'     => null,
         'watched_episodes' => 0,
         'notes'            => null,
         'user_synopsis'    => null,
@@ -89,7 +95,8 @@ function ua_get_state($pdo, $userId, $animeId)
  * exist (a "+" on an anime not yet in the list creates the row). Columns
  * not listed keep their value (existing row) or their column DEFAULT (new
  * row), so partial writes are safe - e.g. writing only 'notes' on a new
- * row leaves watch_status='PlanToWatch' and watched_episodes=0.
+ * row leaves watch_status NULL ("not selected", 1.0.10) and
+ * watched_episodes=0.
  *
  * Allowed keys: watch_status, watched_episodes, notes, user_synopsis,
  * user_synopsis_en. Anything else is ignored.

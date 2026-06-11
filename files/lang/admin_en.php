@@ -80,7 +80,6 @@ return [
     'admin_pending.confirm.promote_all'      => 'Are you sure you want to promote ALL %d anime to the catalog?',
     'admin_pending.col.title'                => 'Title',
     'admin_pending.col.broadcast_status'     => 'Broadcast Status',
-    'admin_pending.col.watch_status'         => 'Watch Status',
     'admin_pending.col.external_ids'         => 'MAL / AniDB',
     'admin_pending.col.added'                => 'Added',
     'admin_pending.back_to_dashboard'        => 'Admin dashboard',

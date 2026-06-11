@@ -79,7 +79,7 @@ if (!empty($anime['next_in_series'])) {
     // user's row so the "next in series" card shows their progress.
     $nextStmt = $pdo->prepare(
         "SELECT a.id, a.title, a.title_english,
-                COALESCE(ua.watch_status, 'PlanToWatch') AS watch_status,
+                ua.watch_status,
                 a.media_type, a.image_path
          FROM animes a
          LEFT JOIN user_anime ua

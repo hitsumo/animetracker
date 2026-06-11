@@ -124,9 +124,10 @@
  * personal watched/status from user_anime via ua_get_state(), and writes
  * back with ua_set_state(), both keyed by current_user_id(). With
  * MULTI_USER_MODE off, current_user_id() is 1, so behaviour is unchanged.
- * The 'Dropped' watch_status value exists in the user_anime enum but is
- * not produced by the +/- rules below (parked for the personal-state
- * milestone); the four-value automation here is unchanged.
+ * The 'Dropped' watch_status value (in the user_anime enum since 1.0.1)
+ * joined the rules in 1.0.10: it behaves exactly like 'OnHold' - a "+"
+ * is a resume signal (Rule 5 flips it to 'Watching'); a "-" leaves the
+ * status alone, only the count decrements.
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -289,11 +290,13 @@ if ($delta === 1) {
 //         for ceiling-unknown animes too. Reads Rule 3's just-set
 //         target, which is what makes the Watched -> Watching ->
 //         PlanToWatch chain on the -1 edge work in one click.
-// Rule 5 (0.6):   'OnHold' + (any +) -> 'Watching'. Resume signal -
-//         analogous to Rule 1 but from a different source (paused
-//         mid-series rather than not started). Combined with Rule 1 in
-//         code (same target). OnHold + (ceiling-1)/ceiling + 1 chain
-//         lands on 'Watched' via Rule 5 then Rule 2 in one click.
+// Rule 5 (0.6):   'OnHold' or 'Dropped' + (any +) -> 'Watching'. Resume
+//         signal - analogous to Rule 1 but from a different source
+//         (paused or abandoned mid-series rather than not started).
+//         'Dropped' joined in 1.0.10, mirroring 'OnHold' exactly.
+//         Combined with Rule 1 in code (same target). OnHold/Dropped +
+//         (ceiling-1)/ceiling + 1 chain lands on 'Watched' via Rule 5
+//         then Rule 2.
 //
 // Deliberate asymmetries still left as user-controlled (post-rules):
 //   - 'Watching' + - with new > 0 stays 'Watching' (Rule 4 needs
@@ -302,24 +305,33 @@ if ($delta === 1) {
 //     the pause intent is preserved across decrement attempts).
 //   - 'OnHold' + - stays 'OnHold' (mirror of PlanToWatch + -; pause
 //     intent preserved, watched_episodes simply decrements).
+//   - 'Dropped' + - stays 'Dropped' (1.0.10, mirror of OnHold + -;
+//     decrementing an abandoned series is not a resume signal, the
+//     abandon intent is preserved).
+//   - NULL ("not selected", 1.0.10) + - stays NULL: no rule fires,
+//     only the count changes; '' is mapped back to NULL at write time.
 //   - 'Watched' + + below ceiling stays 'Watched' (a stuck-Watched
 //     state is not auto-corrected on +; the user can manually edit).
 //
-// Enum values are matched verbatim against schema.sql (0.6 ASCII):
-//   watch_status enum('Watched','Watching','PlanToWatch','OnHold')
+// Enum values are matched verbatim against schema.sql (1.0.1):
+//   watch_status enum('Watched','Watching','PlanToWatch','OnHold','Dropped')
 
 $target_watch_status = $current_watch_status;
 if ($delta === 1) {
-    // Rule 1 (0.5.6) + Rule 5 (0.6): 'PlanToWatch' or 'OnHold' + (+) ->
-    // 'Watching'. The "+" press is the "started / resumed watching"
-    // signal. Rule 1 covers the first time the user opens an anime;
-    // Rule 5 covers resuming after a manual OnHold pause. Both produce
-    // 'Watching' so they are combined here; the subsequent Rule 2 can
-    // still fire in the same call if the new count hits the ceiling
-    // (single-click chain like OnHold + 11/12 -> +1 -> 12/12 lands on
-    // 'Watched' via Rule 5 then Rule 2).
+    // Rule 1 (0.5.6) + Rule 5 (0.6 / 1.0.10): 'PlanToWatch', 'OnHold',
+    // 'Dropped' or NULL ('' after the string cast; "not selected",
+    // 1.0.10) + (+) -> 'Watching'. The "+" press is the "started /
+    // resumed watching" signal. Rule 1 covers the first time the user
+    // opens an anime (including one with no status choice yet); Rule 5
+    // covers resuming after a manual OnHold pause or (1.0.10) after a
+    // Dropped abandon. All produce 'Watching' so they are combined
+    // here; the subsequent Rule 2 can still fire in the same call if
+    // the new count hits the ceiling (single-click chain like OnHold +
+    // 11/12 -> +1 -> 12/12 lands on 'Watched' via Rule 5 then Rule 2).
     if ($target_watch_status === 'PlanToWatch'
-        || $target_watch_status === 'OnHold') {
+        || $target_watch_status === 'OnHold'
+        || $target_watch_status === 'Dropped'
+        || $target_watch_status === '') {
         $target_watch_status = 'Watching';
     }
     if ($ceiling !== null && $new === $ceiling
@@ -344,9 +356,15 @@ $watch_status_changed = ($target_watch_status !== $current_watch_status);
 // have one yet, otherwise updates it in place. Writing the same
 // watch_status value is harmless.
 
+// 1.0.10: $current_watch_status casts NULL to '' for the rule
+// comparisons above; '' written back must become NULL again (the enum
+// has no '' member). Reached only when no rule fired (e.g. "-" on a
+// "not selected" row) - a "+" always converts '' to 'Watching' first.
+$write_watch_status = ($target_watch_status === '') ? null : $target_watch_status;
+
 $ok = ua_set_state($pdo, $uid, $animeId, [
     'watched_episodes' => $new,
-    'watch_status'     => $target_watch_status,
+    'watch_status'     => $write_watch_status,
 ]);
 
 if (!$ok) {

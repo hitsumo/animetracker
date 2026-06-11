@@ -59,7 +59,7 @@ function getSeriesChain($pdo, $start_id) {
         $stmt = $pdo->prepare("
             SELECT a.id, a.title, a.title_english, a.media_type, a.total_episodes, a.aired_episodes,
                    COALESCE(ua.watched_episodes, 0) AS watched_episodes,
-                   COALESCE(ua.watch_status, 'PlanToWatch') AS watch_status,
+                   ua.watch_status,
                    a.status, a.image_path,
                    a.release_date, a.next_in_series, a.series_name
             FROM animes a
@@ -190,6 +190,14 @@ function seriesMediaIcon($type) {
             background: #e0a000;
             border-color: #e0a000;
         }
+        .st-item.is-dropped::before {
+            background: #e74c3c;
+            border-color: #e74c3c;
+        }
+        .st-item.is-unselected::before {
+            background: #fff;
+            border-color: #ddd;
+        }
 
         /* Card */
         .st-card {
@@ -269,6 +277,8 @@ function seriesMediaIcon($type) {
         .badge-watching { background: #dbeafe; color: #1e40af; }
         .badge-plantowatch { background: #f3f4f6; color: #4b5563; }
         .badge-onhold { background: #fef3c7; color: #92400e; }
+        .badge-dropped { background: #fee2e2; color: #991b1b; }
+        .badge-unselected { background: #e5e7eb; color: #6b7280; }
 
         .st-order {
             color: #bbb;

@@ -91,7 +91,6 @@ return [
     'admin_pending.confirm.promote_all'      => '%d animenin TÜMÜNÜ kataloğa almak istediğinize emin misiniz?',
     'admin_pending.col.title'                => 'Başlık',
     'admin_pending.col.broadcast_status'     => 'Yayın Durumu',
-    'admin_pending.col.watch_status'         => 'İzleme Durumu',
     'admin_pending.col.external_ids'         => 'MAL / AniDB',
     'admin_pending.col.added'                => 'Eklenme',
     'admin_pending.back_to_dashboard'        => 'Admin dashboard',

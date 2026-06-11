@@ -435,6 +435,12 @@ CREATE TABLE IF NOT EXISTS `users` (
 --     ("paused, will return"); neither replaces the other. The enum is
 --     born with 5 values here (the animes.watch_status enum had 4 and is
 --     dropped with that column in a later migration).
+--     1.0.10: the column is NULLable, DEFAULT NULL. NULL = "not
+--     selected" - the user has the anime (row may exist for notes /
+--     episodes) but made no watch-status choice. A missing row reads
+--     the same as NULL through LEFT JOINs, so both forms of "not
+--     selected" render identically. Partial writes (e.g. notes only on
+--     a fresh row) no longer fabricate a PlanToWatch choice.
 --   - notes, user_synopsis, user_synopsis_en are PRIVATE: never synced,
 --     never public. user_synopsis = "Kisisel Konu" (TR), _en its EN side.
 --   - idx_anime: "who follows this anime" / aggregation.
@@ -449,7 +455,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 CREATE TABLE IF NOT EXISTS `user_anime` (
   `user_id`          int(11) NOT NULL,
   `anime_id`         int(11) NOT NULL,
-  `watch_status`     enum('Watched','Watching','PlanToWatch','OnHold','Dropped') NOT NULL DEFAULT 'PlanToWatch',
+  `watch_status`     enum('Watched','Watching','PlanToWatch','OnHold','Dropped') DEFAULT NULL,
   `watched_episodes` int(11) NOT NULL DEFAULT 0,
   `notes`            text    DEFAULT NULL,
   `user_synopsis`    text    DEFAULT NULL,

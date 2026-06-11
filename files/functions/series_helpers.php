@@ -28,12 +28,13 @@ function getRelatedAnimes($pdo, $series_name, $exclude_id) {
         return [];
     }
     // watch_status / watched_episodes are personal (user_anime, 1.0.1):
-    // join the current user's rows and default un-tracked related animes to
-    // PlanToWatch / 0. The :uid param is first because it appears first in
-    // the statement (JOIN ON clause).
+    // join the current user's rows. 1.0.10: watch_status comes RAW -
+    // NULL means "not selected" and the label/css helpers render it as
+    // such; watched_episodes still defaults to 0. The :uid param is
+    // first because it appears first in the statement (JOIN ON clause).
     $stmt = $pdo->prepare("
         SELECT a.id, a.title, a.title_english, a.media_type,
-               COALESCE(ua.watch_status, 'PlanToWatch') AS watch_status,
+               ua.watch_status,
                COALESCE(ua.watched_episodes, 0) AS watched_episodes,
                a.total_episodes, a.release_date, a.image_path
         FROM animes a
@@ -61,7 +62,7 @@ function getChronologyMarkers($pdo, $anime_id) {
         SELECT cm.id, cm.after_episode, cm.related_anime_id, cm.note,
                a.title AS related_title,
                a.title_english AS related_title_english,
-               COALESCE(ua.watch_status, 'PlanToWatch') AS related_watch_status,
+               ua.watch_status AS related_watch_status,
                a.media_type AS related_media_type
         FROM chronology_markers cm
         JOIN animes a ON a.id = cm.related_anime_id
@@ -95,7 +96,7 @@ function getActiveChronologyAlert($pdo, $anime_id, $watched_episodes) {
         SELECT cm.id, cm.after_episode, cm.related_anime_id, cm.note,
                a.title AS related_title,
                a.title_english AS related_title_english,
-               COALESCE(ua.watch_status, 'PlanToWatch') AS related_watch_status,
+               ua.watch_status AS related_watch_status,
                a.media_type AS related_media_type, a.id AS related_id
         FROM chronology_markers cm
         JOIN animes a ON a.id = cm.related_anime_id

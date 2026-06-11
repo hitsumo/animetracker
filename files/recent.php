@@ -23,7 +23,7 @@ lang_init($pdo);
 // have no user_anime row yet (falls back to the catalog timestamp).
 $stmt = $pdo->prepare("
     SELECT a.id, a.title, a.image_path,
-           COALESCE(ua.watch_status, 'PlanToWatch') AS watch_status,
+           ua.watch_status,
            a.status,
            COALESCE(ua.watched_episodes, 0) AS watched_episodes,
            a.total_episodes, a.aired_episodes,
@@ -145,6 +145,8 @@ $recent = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .badge-watched { background: #d1fae5; color: #065f46; }
         .badge-plantowatch { background: #f3f4f6; color: #4b5563; }
         .badge-onhold { background: #fef3c7; color: #92400e; }
+        .badge-dropped { background: #fee2e2; color: #991b1b; }
+        .badge-unselected { background: #e5e7eb; color: #6b7280; }
         .recent-time {
             text-align: right;
             font-size: 0.8em;

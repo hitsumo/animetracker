@@ -73,6 +73,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // tum turler listesi silinirdi (variable shadowing).
     $posted_genres = !empty($_POST['genres']) ? explode(',', $_POST['genres']) : [];
     $watch_status = $_POST['watch_status'];
+    // 1.0.10: '__unselected__' form sentineli NULL'a cevrilir - kullanici
+    // bilincli olarak izleme durumu secmemistir; user_anime satiri NULL
+    // watch_status ile dogar ("secim yapilmamis").
+    if ($watch_status === '__unselected__') {
+        $watch_status = null;
+    }
     $next_episode_date = $_POST['next_episode_date'] ?? null;
     $anidb_link = $_POST['anidb_link'] ?? '';
     $mal_link = $_POST['mal_link'] ?? '';
@@ -630,6 +636,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     <?php foreach (watch_status_options() as $ws_value => $ws_label): ?>
                         <option value="<?php echo htmlspecialchars($ws_value); ?>"><?php echo htmlspecialchars($ws_label); ?></option>
                     <?php endforeach; ?>
+                    <option value="__unselected__"><?php echo htmlspecialchars(watch_status_label('__unselected__')); ?></option>
                 </select>
             </div>
         </div>

@@ -140,20 +140,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // --- Fetch the pending list --------------------------------------------
 
-// watch_status is personal (user_anime, 1.0.1). Join the current admin's
-// row so the pending list shows their status; default un-tracked rows to
-// PlanToWatch.
+// 1.0.10: the watch-status column was dropped from this list. It showed
+// the admin's PERSONAL status (raw enum value) on a page whose job is
+// pending -> catalog promotion - irrelevant side data, and misleading
+// once NULL ("not selected") became a real state. Catalog columns only.
 $pendingStmt = $pdo->prepare(
     "SELECT a.id, a.title, a.status,
-            COALESCE(ua.watch_status, 'PlanToWatch') AS watch_status,
             a.created_at, a.mal_id, a.anidb_id
      FROM animes a
-     LEFT JOIN user_anime ua
-            ON ua.anime_id = a.id AND ua.user_id = ?
      WHERE a.source = 'local'
      ORDER BY a.created_at DESC, a.id DESC"
 );
-$pendingStmt->execute([current_user_id()]);
+$pendingStmt->execute();
 $pending = $pendingStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Quick totals for the header
@@ -313,7 +311,6 @@ $localCount   = (int)($totals['local']   ?? 0);
                         </th>
                         <th><?php echo htmlspecialchars(t('admin_pending.col.title'), ENT_QUOTES, 'UTF-8'); ?></th>
                         <th><?php echo htmlspecialchars(t('admin_pending.col.broadcast_status'), ENT_QUOTES, 'UTF-8'); ?></th>
-                        <th><?php echo htmlspecialchars(t('admin_pending.col.watch_status'), ENT_QUOTES, 'UTF-8'); ?></th>
                         <th><?php echo htmlspecialchars(t('admin_pending.col.external_ids'), ENT_QUOTES, 'UTF-8'); ?></th>
                         <th><?php echo htmlspecialchars(t('admin_pending.col.added'), ENT_QUOTES, 'UTF-8'); ?></th>
                     </tr>
@@ -333,7 +330,6 @@ $localCount   = (int)($totals['local']   ?? 0);
                                 </a>
                             </td>
                             <td><?php echo htmlspecialchars($a['status']); ?></td>
-                            <td><?php echo htmlspecialchars($a['watch_status']); ?></td>
                             <td style="font-size: 0.85em; color: #666;">
                                 <?php echo $a['mal_id'] ? 'MAL: ' . (int)$a['mal_id'] : '-'; ?><br>
                                 <?php echo $a['anidb_id'] ? 'AniDB: ' . (int)$a['anidb_id'] : '-'; ?>

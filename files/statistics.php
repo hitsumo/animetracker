@@ -46,7 +46,8 @@ $by_watch_stmt = $pdo->prepare("
 $by_watch_stmt->execute([':uid' => current_user_id()]);
 $by_watch_raw = $by_watch_stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 $by_watch = [];
-// '' key = no user_anime row = secim yapilmamis (en uste konur).
+// '' key = secim yapilmamis: no user_anime row OR an explicit NULL
+// watch_status row (1.0.10) - COALESCE folds both to ''. En uste konur.
 $by_watch[] = [
     'label' => t('index.watch_status.unselected'),
     'cnt'   => (int)($by_watch_raw[''] ?? 0),

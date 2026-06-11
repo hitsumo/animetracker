@@ -112,7 +112,7 @@ if ($mode === 'surprise') {
     // THIS user has watched.
     $stmt = $pdo->prepare(
         "SELECT a.*,
-                COALESCE(ua.watch_status, 'PlanToWatch') AS watch_status,
+                ua.watch_status,
                 COALESCE(ua.watched_episodes, 0) AS watched_episodes
          FROM animes a
          LEFT JOIN user_anime ua
@@ -127,7 +127,7 @@ if ($mode === 'surprise') {
         // Everything is watched - just pick something at random
         $stmt = $pdo->prepare(
             "SELECT a.*,
-                    COALESCE(ua.watch_status, 'PlanToWatch') AS watch_status,
+                    ua.watch_status,
                     COALESCE(ua.watched_episodes, 0) AS watched_episodes
              FROM animes a
              LEFT JOIN user_anime ua
@@ -270,11 +270,17 @@ if ($mode === 'surprise') {
 // 0.6 ASCII enum keys; label and CSS class come from the central
 // functions.php helpers (single source of truth for naming).
 function watch_status_badge($status) {
+    // 1.0.10: NULL/'' -> unselected pseudo-status; Dropped added.
+    if ($status === null || $status === '') {
+        $status = '__unselected__';
+    }
     $colors = [
-        'Watched'     => '#28a745',
-        'Watching'    => '#007bff',
-        'PlanToWatch' => '#6c757d',
-        'OnHold'      => '#e0a000',
+        'Watched'        => '#28a745',
+        'Watching'       => '#007bff',
+        'PlanToWatch'    => '#6c757d',
+        'OnHold'         => '#e0a000',
+        'Dropped'        => '#dc3545',
+        '__unselected__' => '#adb5bd',
     ];
     $color = $colors[$status] ?? '#6c757d';
     $label = watch_status_label($status);
