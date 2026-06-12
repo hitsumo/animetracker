@@ -53,6 +53,7 @@ return [
     'index.filter.genre'            => 'Filter by Genre:',
     'index.filter.watch_status'     => 'Filter by Watch Status:',
     'index.watch_status.unselected' => 'Not Selected',
+    'index.warn.catalog_push_failed' => 'Saved, but the change could not be pushed to the central catalog. It is stored on this installation; saving the anime again will retry the push.',
     'index.filter.broadcast'        => 'Filter by Broadcast Status:',
     'index.filter.letter'           => 'Filter by Letter',
     'index.filter.per_page'         => 'Show per Page:',

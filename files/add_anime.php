@@ -428,7 +428,33 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         setAnimeTags($pdo, $new_anime_id, $tag_ids);
     }
 
-    header("Location: index.php");
+    // 1.0.11: moderator/admin'in DOGRUDAN kataloga ekledigi anime
+    // (source='catalog', pending'e ugramaz) merkez sunucuya otomatik
+    // gider - karar 14'te "sonraki adim" diye ertelenen kapsam burada
+    // kapanir. Normal kullanici eklemesi (source='local') push ETMEZ;
+    // o kayit terfi aninda admin_pending uzerinden gonderilir.
+    // Self-host'ta source her zaman 'local' oldugundan blok hic calismaz.
+    // Basarisiz push kaydi geri almaz; index'te uyari bandi gosterilir,
+    // ayrinti error_log'a yazilir; animeyi edit'ten yeniden kaydetmek
+    // push'u tekrar dener.
+    $pushFailed = false;
+    if (MULTI_USER_MODE && $source === 'catalog') {
+        $pushHelper = __DIR__ . '/admin/catalog_push.php';
+        if (is_file($pushHelper)) {
+            require_once $pushHelper;
+            $push = catalog_push_to_server($pdo);
+            if (empty($push['ok'])) {
+                $pushFailed = true;
+                error_log('[anime_tracker] add_anime catalog push failed: '
+                    . (isset($push['message']) ? $push['message'] : 'unknown'));
+            }
+        } else {
+            $pushFailed = true;
+            error_log('[anime_tracker] add_anime catalog push skipped: helper missing');
+        }
+    }
+
+    header("Location: index.php" . ($pushFailed ? '?catalog_push=failed' : ''));
     exit();
 }
 ?>

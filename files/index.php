@@ -669,6 +669,15 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
 </head>
 <body>
     <div class="container">
+        <?php if (isset($_GET['catalog_push']) && $_GET['catalog_push'] === 'failed'): ?>
+            <!-- 1.0.11: add/edit sonrasi merkez katalog push'u basarisiz
+                 oldugunda tek seferlik uyari. Kayit yereldedir, kaybolmaz;
+                 ayrinti error_log'dadir. Yalniz online'da olusan bir GET
+                 parametresiyle gelir; self-host bu parametreyi hic uretmez. -->
+            <div style="max-width: 700px; margin: 15px auto; background: #fff3cd; border: 1px solid #ffe69c; color: #664d03; padding: 12px 16px; border-radius: 8px;">
+                <?php echo htmlspecialchars(t('index.warn.catalog_push_failed'), ENT_QUOTES, 'UTF-8'); ?>
+            </div>
+        <?php endif; ?>
         <div class="header-section">
             <a href="recommendations.php" class="about-link"><?php echo htmlspecialchars(t('nav.what_to_watch'), ENT_QUOTES, 'UTF-8'); ?></a>
             <a href="recent.php" class="about-link"><?php echo htmlspecialchars(t('nav.recent_edits'), ENT_QUOTES, 'UTF-8'); ?></a>

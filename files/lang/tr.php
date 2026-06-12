@@ -73,6 +73,7 @@ return [
     'index.filter.genre'            => 'Türe Göre Filtrele:',
     'index.filter.watch_status'     => 'İzleme Durumuna Göre Filtrele:',
     'index.watch_status.unselected' => 'Seçim Yapılmamış',
+    'index.warn.catalog_push_failed' => 'Kayıt yapıldı ancak merkez kataloğa gönderilemedi. Değişiklik bu kurulumda saklı; animeyi yeniden kaydederek göndermeyi tekrar deneyebilirsiniz.',
     'index.filter.broadcast'        => 'Yayın Durumuna Göre Filtrele:',
     'index.filter.letter'           => 'Harfe Göre Filtrele',
     'index.filter.per_page'         => 'Sayfada Göster:',

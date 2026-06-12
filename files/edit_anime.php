@@ -557,7 +557,34 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
     setAnimeTags($pdo, $id, $tag_ids);
 
-    header("Location: index.php");
+    // 1.0.11: online katalog duzenlemesi merkez sunucuya otomatik gider.
+    // Karar 14'teki terfi push sozlesmesinin ek tetikleyicisi: yalniz
+    // MULTI_USER_MODE'da ve yalniz katalog kaydi (source='catalog')
+    // duzenlendiginde calisir - pending (source='local') kayit terfi
+    // aninda admin_pending uzerinden zaten gonderilir, burada gonderilmez.
+    // Self-host'ta blok hic calismaz; admin/catalog_push.php pakete
+    // girmedigi icin require lazy ve dosya-varlik kosulu icindedir.
+    // Basarisiz push kaydi GERI ALMAZ (terfi sozlesmesinin aynisi):
+    // kullanici index'te uyari bandiyla bilgilendirilir, ayrinti
+    // error_log'a yazilir; animeyi yeniden kaydetmek push'u tekrar dener.
+    $pushFailed = false;
+    if (MULTI_USER_MODE && ($anime['source'] ?? '') === 'catalog') {
+        $pushHelper = __DIR__ . '/admin/catalog_push.php';
+        if (is_file($pushHelper)) {
+            require_once $pushHelper;
+            $push = catalog_push_to_server($pdo);
+            if (empty($push['ok'])) {
+                $pushFailed = true;
+                error_log('[anime_tracker] edit_anime catalog push failed: '
+                    . (isset($push['message']) ? $push['message'] : 'unknown'));
+            }
+        } else {
+            $pushFailed = true;
+            error_log('[anime_tracker] edit_anime catalog push skipped: helper missing');
+        }
+    }
+
+    header("Location: index.php" . ($pushFailed ? '?catalog_push=failed' : ''));
     exit();
 }
 
