@@ -275,7 +275,7 @@ function mapAnimeScheduleToFormFields($apiData) {
 //
 // These helpers power the "Senkronize Et" button on edit_anime.php and the
 // once-a-day silent sync on list_settings.php. They query the
-// /timetables/sub endpoint to learn how many episodes have aired so far
+// /timetables/raw endpoint to learn how many episodes have aired so far
 // for an ongoing show, since /anime/{slug} does not give us that count
 // reliably.
 //
@@ -324,7 +324,7 @@ function buildIsoWeekWindow($weeks = 3) {
 }
 
 /**
- * Fetch the full sub timetable for a given ISO week. No filters - we
+ * Fetch the full raw timetable for a given ISO week. No filters - we
  * always pull the complete week's anime list and match client side.
  *
  * Returns either:
@@ -353,7 +353,10 @@ function fetchAnimeScheduleTimetable($week, $year) {
         return ['error' => 'bad_input'];
     }
 
-    $url = 'https://animeschedule.net/api/v3/timetables/sub'
+    // Phase 1: raw track is authoritative (matches the countdown, which is
+    // built from the Japanese broadcast schedule premier/jpnTime). Phase 2
+    // will add the sub track alongside and surface both.
+    $url = 'https://animeschedule.net/api/v3/timetables/raw'
          . '?week=' . $week . '&year=' . $year;
 
     $ch = curl_init($url);
@@ -496,7 +499,7 @@ function syncSingleAiredEpisodes($pdo, $animeId, $maxWeeksBack = 3) {
     if ($animeId <= 0) return ['error' => 'not_found'];
 
     $stmt = $pdo->prepare("
-        SELECT id, mal_id, status, aired_episodes, anime_schedule_link
+        SELECT id, mal_id, status, aired_episodes, total_episodes, anime_schedule_link
           FROM animes
          WHERE id = ?
          LIMIT 1
@@ -527,19 +530,36 @@ function syncSingleAiredEpisodes($pdo, $animeId, $maxWeeksBack = 3) {
             $epNum = (int)$row['episodeNumber'];
             if ($epNum > 0) {
                 $oldValue = isset($anime['aired_episodes']) ? (int)$anime['aired_episodes'] : null;
-                $changed  = ($oldValue !== $epNum);
 
-                if ($changed) {
+                // Resolve total: timetable row 'episodes' (0=unknown) first,
+                // then our DB value. Auto-finish when the raw run is complete.
+                $total = 0;
+                if (isset($row['episodes']) && (int)$row['episodes'] > 0) {
+                    $total = (int)$row['episodes'];
+                } elseif (!empty($anime['total_episodes'])) {
+                    $total = (int)$anime['total_episodes'];
+                }
+                $finished     = ($total > 0 && $epNum >= $total);
+                $airedToWrite = $finished ? $total : $epNum;
+                $changed      = ($oldValue !== $airedToWrite);
+
+                if ($finished) {
+                    $upd = $pdo->prepare("UPDATE animes SET aired_episodes = ?, status = 'Yayın Tamamlandı' WHERE id = ?");
+                    $upd->execute([$airedToWrite, $animeId]);
+                    error_log('[anime_tracker] auto-finish anime#' . $animeId
+                        . ' raw run complete at ep ' . $epNum . '/' . $total);
+                } elseif ($changed) {
                     $upd = $pdo->prepare("UPDATE animes SET aired_episodes = ? WHERE id = ?");
-                    $upd->execute([$epNum, $animeId]);
+                    $upd->execute([$airedToWrite, $animeId]);
                 }
 
                 return [
                     'success'        => true,
-                    'aired_episodes' => $epNum,
+                    'aired_episodes' => $airedToWrite,
                     'week_offset'    => $offset,
                     'old_value'      => $oldValue,
                     'changed'        => $changed,
+                    'finished'       => $finished,
                 ];
             }
         }
@@ -577,6 +597,7 @@ function syncAllOngoingAiredEpisodes($pdo, $maxWeeksBack = 3) {
     $stats = [
         'updated'      => 0,
         'unchanged'    => 0,
+        'finished'     => 0,
         'not_in_table' => 0,
         'no_slug'      => 0,
         'errors'       => 0,
@@ -586,7 +607,7 @@ function syncAllOngoingAiredEpisodes($pdo, $maxWeeksBack = 3) {
     // require mal_id (project-wide convention for ongoing animes) and
     // we will additionally check anime_schedule_link per row.
     $stmt = $pdo->query("
-        SELECT id, mal_id, aired_episodes, anime_schedule_link
+        SELECT id, mal_id, aired_episodes, total_episodes, anime_schedule_link
           FROM animes
          WHERE status = 'Yayın Devam Ediyor'
            AND mal_id IS NOT NULL
@@ -623,6 +644,10 @@ function syncAllOngoingAiredEpisodes($pdo, $maxWeeksBack = 3) {
 
     // Update statement reused inside the loop
     $upd = $pdo->prepare("UPDATE animes SET aired_episodes = ? WHERE id = ?");
+
+    // Reused when a show's full raw run has aired (auto-finish): clamp
+    // aired to total and flip the broadcast status in one write.
+    $updFin = $pdo->prepare("UPDATE animes SET aired_episodes = ?, status = 'Yayın Tamamlandı' WHERE id = ?");
 
     // Walk weeks backwards. Once a slug is matched in some week we drop
     // it from the remaining set so older weeks do not overwrite newer
@@ -673,17 +698,34 @@ function syncAllOngoingAiredEpisodes($pdo, $maxWeeksBack = 3) {
             $anime    = $remaining[$rowSlug];
             $oldValue = isset($anime['aired_episodes']) ? (int)$anime['aired_episodes'] : null;
 
-            if ($oldValue !== $epNum) {
-                try {
-                    $upd->execute([$epNum, (int)$anime['id']]);
+            // Resolve total: timetable row 'episodes' (0=unknown) first,
+            // then our DB value. Auto-finish when the raw run is complete.
+            $total = 0;
+            if (isset($row['episodes']) && (int)$row['episodes'] > 0) {
+                $total = (int)$row['episodes'];
+            } elseif (!empty($anime['total_episodes'])) {
+                $total = (int)$anime['total_episodes'];
+            }
+            $finished     = ($total > 0 && $epNum >= $total);
+            $airedToWrite = $finished ? $total : $epNum;
+
+            try {
+                if ($finished) {
+                    $updFin->execute([$airedToWrite, (int)$anime['id']]);
+                    $stats['finished']++;
+                    error_log('[anime_tracker] auto-finish anime#'
+                        . $anime['id'] . ' raw run complete at ep '
+                        . $epNum . '/' . $total);
+                } elseif ($oldValue !== $airedToWrite) {
+                    $upd->execute([$airedToWrite, (int)$anime['id']]);
                     $stats['updated']++;
-                } catch (PDOException $e) {
-                    $stats['errors']++;
-                    error_log('[anime_tracker] aired sync UPDATE anime#'
-                        . $anime['id'] . ': ' . $e->getMessage());
+                } else {
+                    $stats['unchanged']++;
                 }
-            } else {
-                $stats['unchanged']++;
+            } catch (PDOException $e) {
+                $stats['errors']++;
+                error_log('[anime_tracker] aired sync UPDATE anime#'
+                    . $anime['id'] . ': ' . $e->getMessage());
             }
 
             unset($remaining[$rowSlug]);

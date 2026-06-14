@@ -291,7 +291,7 @@ foreach ($animes as $key => $anime) {
     // Anime tamamlanmis mi kontrol et ve guncelle
     $animes[$key] = checkIfAnimeCompleted($pdo, $animes[$key]);
     
-    // Sonraki bolum tarihini kontrol et ve aired_episodes guncelle.
+    // Sonraki bolum tarihini kontrol et ve gerekiyorsa ilerlet.
     // Pass by reference: fonksiyon anime array'ini yerinde gunceller,
     // boylece ayni sayfa yuklemesinde guncel veri gosterilir.
     if (!empty($animes[$key]['next_episode_date'])) {

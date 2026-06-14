@@ -128,6 +128,15 @@ function calculateNextEpisodeDate($anime) {
 }
 
 function updateNextEpisodeDate($pdo, &$anime) {
+    // Safety brake: if the show's full run has already aired, do not keep
+    // rolling the countdown forward week after week. Display is handled by
+    // the completion logic / finished status from here.
+    $totalEp = isset($anime['total_episodes']) ? (int)$anime['total_episodes'] : 0;
+    $airedEp = isset($anime['aired_episodes']) ? (int)$anime['aired_episodes'] : 0;
+    if ($totalEp > 0 && $airedEp >= $totalEp) {
+        return;
+    }
+
     if (empty($anime['next_episode_date'])) {
         // Senkron/import ile gelen animelerde next_episode_date YOK
         // (catalog.php onu turetilmis diye haric tutar). Senkronla GELEN
