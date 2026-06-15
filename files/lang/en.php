@@ -666,6 +666,7 @@ return [
     'list_settings.aired.invalid_key'        => 'API key is invalid. Check config.php.',
     'list_settings.aired.result.updated'     => '%d anime updated',
     'list_settings.aired.result.unchanged'   => '%d unchanged',
+    'list_settings.aired.result.finished'    => '%d finished',
     'list_settings.aired.result.not_in_table' => '%d not found in schedule',
     'list_settings.aired.result.no_slug'     => '%d without AnimeSchedule URL',
     'list_settings.aired.result.errors'      => '%d errors',

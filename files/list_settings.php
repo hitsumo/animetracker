@@ -144,6 +144,7 @@ if (isset($_POST['sync_aired'])) {
         $parts = [
             sprintf(t('list_settings.aired.result.updated'), $stats['updated']),
             sprintf(t('list_settings.aired.result.unchanged'), $stats['unchanged']),
+            sprintf(t('list_settings.aired.result.finished'), $stats['finished']),
             sprintf(t('list_settings.aired.result.not_in_table'), $stats['not_in_table']),
         ];
         if ($stats['no_slug'] > 0) {

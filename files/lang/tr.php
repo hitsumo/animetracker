@@ -698,6 +698,7 @@ return [
     'list_settings.aired.invalid_key'        => 'API anahtari gecersiz. config.php yi kontrol edin.',
     'list_settings.aired.result.updated'     => '%d anime guncellendi',
     'list_settings.aired.result.unchanged'   => '%d degismedi',
+    'list_settings.aired.result.finished'    => '%d tamamlandi',
     'list_settings.aired.result.not_in_table' => '%d takvimde bulunamadi',
     'list_settings.aired.result.no_slug'     => '%d AnimeSchedule URL si yok',
     'list_settings.aired.result.errors'      => '%d hata',
