@@ -206,6 +206,28 @@ if (isset($_POST['export'])) {
     $exportEmoStmt = $pdo->prepare(
         "SELECT emotion FROM user_anime_emotion WHERE user_id = ? AND anime_id = ? ORDER BY emotion"
     );
+    // Chronology markers the user relies on have no other reliable
+    // transport: in a self-host backup the catalog is not guaranteed to be
+    // re-pulled on restore, so even source='catalog' markers would be lost.
+    // Export EVERY marker for the host anime and carry its source, so the
+    // backup is self-sufficient. Import restores the source verbatim:
+    // 'catalog' markers therefore stay under catalog authority (a later
+    // catalog pull may delete/replace them) while 'user' markers stay the
+    // user's. The marker is nested under its host anime below, so the host
+    // id is implicit; the RELATED anime is referenced by its stable
+    // identity (mal_id, anidb_id, catalog_uuid, title), never the local SQL
+    // id, which is install-specific (same rule the genres/tags export uses).
+    $exportMarkerStmt = $pdo->prepare(
+        "SELECT cm.after_episode, cm.note, cm.source,
+                r.mal_id       AS related_mal_id,
+                r.anidb_id     AS related_anidb_id,
+                r.catalog_uuid AS related_catalog_uuid,
+                r.title        AS related_title
+           FROM chronology_markers cm
+           JOIN animes r ON r.id = cm.related_anime_id
+          WHERE cm.anime_id = ?
+          ORDER BY cm.after_episode"
+    );
     foreach ($animes as &$a) {
         $gRows = getAnimeGenres($pdo, $a['id']);
         $tRows = getAnimeTags($pdo, $a['id']);
@@ -222,6 +244,8 @@ if (isset($_POST['export'])) {
         $a['user_synopsis_en'] = $ua['user_synopsis_en'];
         $exportEmoStmt->execute([current_user_id(), $a['id']]);
         $a['emotions']         = $exportEmoStmt->fetchAll(PDO::FETCH_COLUMN);
+        $exportMarkerStmt->execute([$a['id']]);
+        $a['markers']          = $exportMarkerStmt->fetchAll(PDO::FETCH_ASSOC);
     }
     unset($a);
 
@@ -362,6 +386,10 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
             // ===== SELF-HOST: tam yedek geri-yukleme (onceki davranis) =====
             $imported = 0;
             $skipped  = 0;
+            // Chronology markers are deferred to a second pass: a marker's
+            // related anime may not be imported yet when its host is
+            // processed. Collect them here, resolve after every anime exists.
+            $pendingMarkers = [];
 
             // Match-or-insert lookups: the catalog sync may already have filled
             // animes with the same mal_id/anidb_id/catalog_uuid, so a blind
@@ -457,6 +485,28 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                         setAnimeTags($pdo, $animeId, $tagIds);
 
                         emotion_import_set($pdo, current_user_id(), $animeId, $anime['emotions'] ?? []);
+
+                        // Record this anime's markers for the second pass.
+                        // The host id is known now; the related anime is
+                        // resolved by stable identity once all rows exist.
+                        foreach ((array)($anime['markers'] ?? []) as $mk) {
+                            if (!is_array($mk)) { continue; }
+                            // Preserve the carried source so a restored
+                            // catalog marker stays catalog-managed. Whitelist
+                            // it (schema enum is user|catalog); default to
+                            // 'user' for older files that predate this field.
+                            $mkSource = ($mk['source'] ?? 'user') === 'catalog' ? 'catalog' : 'user';
+                            $pendingMarkers[] = [
+                                'host'   => $animeId,
+                                'after'  => max(0, (int)($mk['after_episode'] ?? 0)),
+                                'note'   => $mk['note'] ?? null,
+                                'source' => $mkSource,
+                                'mal'    => !empty($mk['related_mal_id'])       ? (int)$mk['related_mal_id']   : null,
+                                'anidb'  => !empty($mk['related_anidb_id'])     ? (int)$mk['related_anidb_id'] : null,
+                                'uuid'   => !empty($mk['related_catalog_uuid']) ? $mk['related_catalog_uuid']  : null,
+                                'title'  => $mk['related_title'] ?? null,
+                            ];
+                        }
                     }
                     $imported++;
                 } catch (Exception $e) {
@@ -465,8 +515,50 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                 }
             }
 
+            // Second pass: every anime row now exists, so resolve each
+            // pending marker's RELATED anime by the same stable-identity
+            // chain the anime import uses (mal -> anidb -> uuid -> title)
+            // and create the marker, preserving its carried source. A marker
+            // needs BOTH ends present; if the related anime is absent on this
+            // install the marker is skipped and counted.
+            $markersLinked  = 0;
+            $markersSkipped = 0;
+            if (!empty($pendingMarkers)) {
+                $matchTitle = $pdo->prepare("SELECT id FROM animes WHERE title = ? LIMIT 1");
+                $markerIns  = $pdo->prepare(
+                    "INSERT INTO chronology_markers (anime_id, after_episode, related_anime_id, note, source)
+                     VALUES (?, ?, ?, ?, ?)"
+                );
+                foreach ($pendingMarkers as $pm) {
+                    $relId = 0;
+                    if ($pm['mal'] !== null)              { $matchMal->execute([$pm['mal']]);     $relId = (int)$matchMal->fetchColumn(); }
+                    if (!$relId && $pm['anidb'] !== null) { $matchAnidb->execute([$pm['anidb']]); $relId = (int)$matchAnidb->fetchColumn(); }
+                    if (!$relId && $pm['uuid'] !== null)  { $matchUuid->execute([$pm['uuid']]);   $relId = (int)$matchUuid->fetchColumn(); }
+                    if (!$relId && !empty($pm['title']))  { $matchTitle->execute([$pm['title']]); $relId = (int)$matchTitle->fetchColumn(); }
+
+                    // Both ends required; a self-referential marker is
+                    // meaningless. Skip (and count) otherwise.
+                    if ($relId <= 0 || $relId === $pm['host']) { $markersSkipped++; continue; }
+                    try {
+                        $markerIns->execute([$pm['host'], $pm['after'], $relId, $pm['note'], $pm['source']]);
+                        $markersLinked++;
+                    } catch (PDOException $e) {
+                        // UNIQUE (anime_id, after_episode, related_anime_id):
+                        // the marker already exists (re-import). Not an error.
+                        $markersLinked++;
+                    }
+                }
+            }
+
             if ($imported > 0) {
                 $success_message = sprintf(t('list_settings.import.result'), $imported, $skipped);
+                // Only mention markers when the file actually carried some,
+                // so older backups (no markers key) show no extra clause.
+                if (!empty($pendingMarkers)) {
+                    $success_message .= ' ' . sprintf(
+                        t('list_settings.import.markers'), $markersLinked, $markersSkipped
+                    );
+                }
             } else {
                 $error_message = t('list_settings.import.invalid_format');
             }

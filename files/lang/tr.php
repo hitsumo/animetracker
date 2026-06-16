@@ -703,6 +703,7 @@ return [
     'list_settings.aired.result.no_slug'     => '%d AnimeSchedule URL si yok',
     'list_settings.aired.result.errors'      => '%d hata',
     'list_settings.import.result'            => '%d anime içe aktarıldı, %d atlandı.',
+    'list_settings.import.markers'           => '%d kronoloji notu bağlandı, %d atlandı.',
     'list_settings.import.invalid_format'    => 'Lütfen geçerli bir JSON dosyası yükleyin!',
     'list_settings.import.online_result'     => 'İçe aktarma tamamlandı: %d anime listenize eklendi, %d yeni katalog önerisi oluşturuldu, %d zaten önerilmişti.',
     'list_settings.import.upload_error'      => 'Dosya yüklenemedi (hata kodu: %d). Lütfen tekrar deneyin.',

@@ -671,6 +671,7 @@ return [
     'list_settings.aired.result.no_slug'     => '%d without AnimeSchedule URL',
     'list_settings.aired.result.errors'      => '%d errors',
     'list_settings.import.result'            => '%d anime imported, %d skipped.',
+    'list_settings.import.markers'           => '%d chronology note linked, %d skipped.',
     'list_settings.import.invalid_format'    => 'Please upload a valid JSON file!',
     'list_settings.import.online_result'     => 'Import complete: %d anime added to your list, %d new catalog requests created, %d were already suggested.',
     'list_settings.import.upload_error'      => 'File upload failed (error code: %d). Please try again.',
