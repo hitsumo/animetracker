@@ -608,6 +608,7 @@ CREATE TABLE IF NOT EXISTS `catalog_requests` (
   `created_at`          timestamp NOT NULL DEFAULT current_timestamp(),
   `reviewed_at`         timestamp NULL DEFAULT NULL,
   `reviewed_by`         int(11) DEFAULT NULL,
+  `pending_markers`     text DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_creq_status` (`suggestion_status`),
   KEY `idx_creq_mal`    (`mal_id`),

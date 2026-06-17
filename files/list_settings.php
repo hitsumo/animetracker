@@ -308,9 +308,10 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                     status, total_episodes, mal_link, anidb_link,
                     anime_schedule_link, episode_interval, broadcast_day,
                     broadcast_time, broadcast_timezone, synopsis_tr, synopsis_en,
-                    release_date, end_date, series_name, media_type, suggested_by
+                    release_date, end_date, series_name, media_type, suggested_by,
+                    pending_markers
                 ) VALUES (
-                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
                 )");
 
             $validStatus = ['Watched', 'Watching', 'PlanToWatch', 'OnHold', 'Dropped'];
@@ -352,6 +353,31 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                 $mtype = $anime['media_type'] ?? null;
                 if (!in_array($mtype, ['TV', 'Film', 'OVA', 'Special', 'ONA'], true)) { $mtype = null; }
 
+                // Carry any chronology markers attached to this anime so the
+                // moderator can re-link them on approval (admin_catalog_requests).
+                // The related anime is referenced by stable identity (mal_id,
+                // anidb_id, catalog_uuid, title), never a local SQL id, which is
+                // install-specific. The carried source is dropped on purpose: a
+                // moderator promoting the suggestion into the shared catalog
+                // makes these catalog-authoritative (source='catalog' is written
+                // at approval). NULL when there are no markers, so an anime
+                // without markers stores nothing.
+                $mkPayload = [];
+                foreach ((array)($anime['markers'] ?? []) as $mk) {
+                    if (!is_array($mk)) { continue; }
+                    $mkPayload[] = [
+                        'after_episode'        => max(0, (int)($mk['after_episode'] ?? 0)),
+                        'note'                 => $mk['note'] ?? null,
+                        'related_mal_id'       => !empty($mk['related_mal_id'])       ? (int)$mk['related_mal_id']   : null,
+                        'related_anidb_id'     => !empty($mk['related_anidb_id'])     ? (int)$mk['related_anidb_id'] : null,
+                        'related_catalog_uuid' => !empty($mk['related_catalog_uuid']) ? $mk['related_catalog_uuid']  : null,
+                        'related_title'        => $mk['related_title'] ?? null,
+                    ];
+                }
+                $markersJson = !empty($mkPayload)
+                    ? json_encode($mkPayload, JSON_UNESCAPED_UNICODE)
+                    : null;
+
                 $suggInsert->execute([
                     $mal, $anidb,
                     $anime['title'],
@@ -373,6 +399,7 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                     $anime['series_name']         ?? null,
                     $mtype,
                     $uid,
+                    $markersJson,
                 ]);
                 $suggested++;
             }

@@ -82,9 +82,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   WHERE id = ?"
             );
 
+            // Identity lookups for resolving an anime by its stable identity
+            // (mal_id -> anidb_id -> catalog_uuid -> title). Used for the host
+            // (when the row already existed) and for each marker's related
+            // anime in the second pass.
+            $findByMal   = $pdo->prepare("SELECT id FROM animes WHERE mal_id = ? LIMIT 1");
+            $findByAnidb = $pdo->prepare("SELECT id FROM animes WHERE anidb_id = ? LIMIT 1");
+            $findByUuid  = $pdo->prepare("SELECT id FROM animes WHERE catalog_uuid = ? LIMIT 1");
+            $findByTitle = $pdo->prepare("SELECT id FROM animes WHERE title = ? LIMIT 1");
+            $resolveId = function ($mal, $anidb, $uuid, $title) use ($findByMal, $findByAnidb, $findByUuid, $findByTitle) {
+                $id = 0;
+                if (!empty($mal))           { $findByMal->execute([(int)$mal]);    $id = (int)$findByMal->fetchColumn(); }
+                if (!$id && !empty($anidb)) { $findByAnidb->execute([(int)$anidb]); $id = (int)$findByAnidb->fetchColumn(); }
+                if (!$id && !empty($uuid))  { $findByUuid->execute([$uuid]);        $id = (int)$findByUuid->fetchColumn(); }
+                if (!$id && !empty($title)) { $findByTitle->execute([$title]);      $id = (int)$findByTitle->fetchColumn(); }
+                return $id;
+            };
+
             $approved = 0;
             $uidR = current_user_id();
+
+            // First pass: create (or locate) each anime and collect the markers
+            // it carried. The related end is resolved only in the second pass,
+            // after every approved anime exists, so a marker pointing at another
+            // anime approved in the same batch still links.
+            $pendingMarkers = [];
             foreach ($rows as $s) {
+                $hostId = 0;
                 try {
                     $ins->execute([
                         $s['title'], $s['alternative_titles'], $s['title_english'],
@@ -98,16 +122,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $s['release_date'], $s['end_date'], $s['series_name'],
                         $s['media_type'], $s['mal_id'], $s['anidb_id'],
                     ]);
+                    $hostId = (int)$pdo->lastInsertId();
                 } catch (PDOException $e) {
                     // animes.mal_id/anidb_id UNIQUE: bu arada katalogda
                     // olusmus olabilir. Anime zaten var demektir -> oneriyi
                     // yine de onaylanmis isaretle, satir eklemeyi atla.
                     error_log('admin_catalog_requests approve: anime exists/insert failed - ' . $e->getMessage());
+                    // Resolve the existing row so its markers can still link.
+                    $hostId = $resolveId($s['mal_id'], $s['anidb_id'], null, $s['title']);
                 }
                 $mark->execute([$uidR, (int)$s['id']]);
                 $approved++;
+
+                // Stash this anime's carried markers for the second pass.
+                if ($hostId > 0 && !empty($s['pending_markers'])) {
+                    $decoded = json_decode($s['pending_markers'], true);
+                    if (is_array($decoded)) {
+                        foreach ($decoded as $mk) {
+                            if (!is_array($mk)) { continue; }
+                            $pendingMarkers[] = [
+                                'host'  => $hostId,
+                                'after' => max(0, (int)($mk['after_episode'] ?? 0)),
+                                'note'  => $mk['note'] ?? null,
+                                'mal'   => $mk['related_mal_id']       ?? null,
+                                'anidb' => $mk['related_anidb_id']     ?? null,
+                                'uuid'  => $mk['related_catalog_uuid'] ?? null,
+                                'title' => $mk['related_title']        ?? null,
+                            ];
+                        }
+                    }
+                }
             }
+
+            // Second pass: resolve each marker's related anime by identity and
+            // write it as a shared catalog marker (source='catalog'); the
+            // approving moderator is the curator, so this respects the
+            // "shared mutation needs authority" rule. Both ends must exist; a
+            // self-referential or unresolvable marker is skipped and counted.
+            // UNIQUE (anime_id, after_episode, related_anime_id) makes a
+            // re-approval idempotent (already-present markers count as linked).
+            $markersLinked  = 0;
+            $markersSkipped = 0;
+            if (!empty($pendingMarkers)) {
+                $markerIns = $pdo->prepare(
+                    "INSERT INTO chronology_markers (anime_id, after_episode, related_anime_id, note, source)
+                     VALUES (?, ?, ?, ?, 'catalog')"
+                );
+                foreach ($pendingMarkers as $pm) {
+                    $relId = $resolveId($pm['mal'], $pm['anidb'], $pm['uuid'], $pm['title']);
+                    if ($relId <= 0 || $relId === $pm['host']) { $markersSkipped++; continue; }
+                    try {
+                        $markerIns->execute([$pm['host'], $pm['after'], $relId, $pm['note']]);
+                        $markersLinked++;
+                    } catch (PDOException $e) {
+                        // UNIQUE violation = marker already exists (re-approval).
+                        $markersLinked++;
+                    }
+                }
+            }
+
             $message = sprintf(t('admin_catalog_requests.success.approved'), $approved);
+            if ($markersLinked > 0 || $markersSkipped > 0) {
+                $message .= ' ' . sprintf(
+                    t('admin_catalog_requests.success.markers'),
+                    $markersLinked, $markersSkipped
+                );
+            }
             $messageType = 'success';
 
         } elseif ($action === 'reject_selected') {
@@ -134,6 +214,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // --- Bekleyen onerileri getir -----------------------------------------
 $pendingStmt = $pdo->query(
     "SELECT s.id, s.title, s.status, s.mal_id, s.anidb_id, s.created_at,
+            s.pending_markers,
             COALESCE(u.username, '-') AS suggester
        FROM catalog_requests s
        LEFT JOIN users u ON u.id = s.suggested_by
@@ -226,6 +307,7 @@ $pendingCount = count($pending);
                         <th><?php echo htmlspecialchars(t('admin_catalog_requests.col.title'), ENT_QUOTES, 'UTF-8'); ?></th>
                         <th><?php echo htmlspecialchars(t('admin_catalog_requests.col.broadcast_status'), ENT_QUOTES, 'UTF-8'); ?></th>
                         <th><?php echo htmlspecialchars(t('admin_catalog_requests.col.external_ids'), ENT_QUOTES, 'UTF-8'); ?></th>
+                        <th><?php echo htmlspecialchars(t('admin_catalog_requests.col.chronology'), ENT_QUOTES, 'UTF-8'); ?></th>
                         <th><?php echo htmlspecialchars(t('admin_catalog_requests.col.suggested_by'), ENT_QUOTES, 'UTF-8'); ?></th>
                         <th><?php echo htmlspecialchars(t('admin_catalog_requests.col.created'), ENT_QUOTES, 'UTF-8'); ?></th>
                     </tr>
@@ -239,6 +321,18 @@ $pendingCount = count($pending);
                             <td style="font-size: 0.85em; color: #666;">
                                 <?php echo $s['mal_id'] ? 'MAL: ' . (int)$s['mal_id'] : '-'; ?><br>
                                 <?php echo $s['anidb_id'] ? 'AniDB: ' . (int)$s['anidb_id'] : '-'; ?>
+                            </td>
+                            <td style="font-size: 0.85em; color: #666;">
+                                <?php
+                                    $mkCount = 0;
+                                    if (!empty($s['pending_markers'])) {
+                                        $mkArr = json_decode($s['pending_markers'], true);
+                                        if (is_array($mkArr)) { $mkCount = count($mkArr); }
+                                    }
+                                    echo $mkCount > 0
+                                        ? '<i class="fas fa-sitemap" style="color:#28a745;"></i> ' . (int)$mkCount
+                                        : '-';
+                                ?>
                             </td>
                             <td style="font-size: 0.9em;"><?php echo htmlspecialchars($s['suggester']); ?></td>
                             <td style="font-size: 0.85em; color: #666;"><?php echo htmlspecialchars((string)$s['created_at']); ?></td>

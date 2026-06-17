@@ -221,6 +221,7 @@ return [
     'admin_catalog_requests.empty'               => 'No pending catalog requests.',
     'admin_catalog_requests.col.title'           => 'Anime',
     'admin_catalog_requests.col.external_ids'    => 'External IDs',
+    'admin_catalog_requests.col.chronology'      => 'Chronology',
     'admin_catalog_requests.col.broadcast_status'=> 'Status / Broadcast',
     'admin_catalog_requests.col.suggested_by'    => 'Suggested by',
     'admin_catalog_requests.col.created'         => 'Date',
@@ -233,6 +234,7 @@ return [
     'admin_catalog_requests.error.no_selection'  => 'No request selected.',
     'admin_catalog_requests.error.unknown_action'=> 'Unknown action.',
     'admin_catalog_requests.success.approved'    => '%d request(s) approved and added to the catalog.',
+    'admin_catalog_requests.success.markers'     => '%d chronology note(s) linked, %d skipped.',
     'admin_catalog_requests.success.rejected'    => '%d request(s) rejected.',
     'admin_catalog_requests.back_to_dashboard'   => 'Back to admin panel',
 

@@ -233,6 +233,7 @@ return [
     'admin_catalog_requests.empty'               => 'Bekleyen katalog önerisi yok.',
     'admin_catalog_requests.col.title'           => 'Anime',
     'admin_catalog_requests.col.external_ids'    => 'Dış kaynak ID',
+    'admin_catalog_requests.col.chronology'      => 'Kronoloji',
     'admin_catalog_requests.col.broadcast_status'=> 'Durum / Yayın',
     'admin_catalog_requests.col.suggested_by'    => 'Öneren',
     'admin_catalog_requests.col.created'         => 'Tarih',
@@ -245,6 +246,7 @@ return [
     'admin_catalog_requests.error.no_selection'  => 'Hiçbir öneri seçilmedi.',
     'admin_catalog_requests.error.unknown_action'=> 'Bilinmeyen işlem.',
     'admin_catalog_requests.success.approved'    => '%d öneri onaylandı ve kataloğa eklendi.',
+    'admin_catalog_requests.success.markers'     => '%d kronoloji notu bağlandı, %d atlandı.',
     'admin_catalog_requests.success.rejected'    => '%d öneri reddedildi.',
     'admin_catalog_requests.back_to_dashboard'   => 'Yönetici paneline dön',
 
