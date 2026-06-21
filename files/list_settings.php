@@ -723,10 +723,15 @@ if (isset($_POST['clear'])) {
                 </form>
             </div>
 
+            <?php if ($canModerate): ?>
             <div class="settings-section">
-    </a>
-	
-		</div>
+                <h3><?php echo htmlspecialchars(t('list_settings.section.genres'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                <p><?php echo htmlspecialchars(t('list_settings.section.genres.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
+                <a href="manage_genres.php" class="settings-button">
+                    <i class="fas fa-tags"></i> <?php echo htmlspecialchars(t('list_settings.btn.manage_genres'), ENT_QUOTES, 'UTF-8'); ?>
+                </a>
+            </div>
+            <?php endif; ?>
 
             <?php if ($canModerate): ?>
             <div class="settings-section">

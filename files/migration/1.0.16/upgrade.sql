@@ -1,0 +1,14 @@
+-- Anime Tracker 1.0.16 migration (no-op ring / version bumper).
+--
+-- 1.0.16 is a UI-only fix release. It restores the Genre Management section
+-- in list_settings.php (an accidentally removed entry point to
+-- manage_genres.php) and applies the moderator-only "hide" gate to the
+-- chronology marker add/delete controls in anime_details.php. No schema
+-- change is required by either fix.
+--
+-- This file is intentionally free of DDL but must still exist.
+-- migration_manager.php advances settings.version by walking the migration/
+-- folders. A missing migration/1.0.16/ would strand any install that skips
+-- into 1.0.16: settings.version would stay pinned at the previous version.
+-- This mirrors the 0.5.5 empty-ring lesson. Keep the ring even with no schema
+-- change.

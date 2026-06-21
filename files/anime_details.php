@@ -72,6 +72,15 @@ $relatedAnimes = getRelatedAnimes($pdo, $anime['series_name'] ?? null, $anime['i
 $chronologyMarkers = getChronologyMarkers($pdo, $anime['id']);
 $chronologyAlert = getActiveChronologyAlert($pdo, $anime['id'], $anime['watched_episodes']);
 
+// Chronology markers are shared catalog structure: only a moderator+ may add
+// or remove them. KORU is enforced server-side in add_chronology_marker.php
+// and delete_chronology_marker.php via require_role('moderator'). Gizle: hide
+// the add and delete controls from members who cannot moderate, so they never
+// see a form the endpoint would reject. In self-host can() is always true
+// (owner), so the owner's view is unchanged. The read-only marker list stays
+// visible to everyone (detail viewing is free).
+$canModerate = can($pdo, 'moderate');
+
 // Siradaki anime bilgisi (next_in_series foreign key)
 $nextAnime = null;
 if (!empty($anime['next_in_series'])) {
@@ -603,7 +612,7 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                   // Marker ekleme formu da burada (ayni seri icerisinden secer).
                   // ============================================================
             ?>
-            <?php if (!empty($chronologyMarkers) || !empty($sameSeriesAnimes)): ?>
+            <?php if (!empty($chronologyMarkers) || ($canModerate && !empty($sameSeriesAnimes))): ?>
             <div class="chronology-section">
                 <h3><i class="fas fa-clock"></i> <?php echo htmlspecialchars(t('anime_details.section.chronology'), ENT_QUOTES, 'UTF-8'); ?></h3>
 
@@ -625,6 +634,7 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                             <?php if (!empty($cm['note'])): ?>
                                 <small class="marker-note">(<?php echo htmlspecialchars($cm['note']); ?>)</small>
                             <?php endif; ?>
+                            <?php if ($canModerate): ?>
                             <form method="POST" action="delete_chronology_marker.php" class="marker-delete-form"
                                   onsubmit="return confirm(<?php echo htmlspecialchars(json_encode(t('anime_details.marker.delete_confirm'), JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8'); ?>);">
                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
@@ -632,12 +642,13 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                                 <input type="hidden" name="anime_id" value="<?php echo (int)$anime['id']; ?>">
                                 <button type="submit" class="marker-delete-btn" title="<?php echo htmlspecialchars(t('anime_details.marker.delete_tooltip'), ENT_QUOTES, 'UTF-8'); ?>"><i class="fas fa-times"></i></button>
                             </form>
+                            <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                 </div>
                 <?php endif; ?>
 
-                <?php if (!empty($sameSeriesAnimes)): ?>
+                <?php if ($canModerate && !empty($sameSeriesAnimes)): ?>
                 <div class="marker-add-form">
                     <h4><?php echo htmlspecialchars(t('anime_details.marker_form.title'), ENT_QUOTES, 'UTF-8'); ?></h4>
                     <form method="POST" action="add_chronology_marker.php">
