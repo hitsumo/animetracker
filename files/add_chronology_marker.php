@@ -89,18 +89,19 @@ if (!$relatedAnime) {
 // Insert the marker. The UNIQUE KEY (anime_id, after_episode,
 // related_anime_id) will prevent exact duplicates from a double-submit.
 //
-// source is set explicitly to 'user' (Karar 1B). The schema default is
-// also 'user', but stating it here keeps the intent in the code: a
-// locally-created marker must never be wiped by catalog_import.php,
-// which only deletes WHERE source='catalog'. Relying on the schema
-// default alone would silently break this contract if the default ever
-// changed.
+// source starts as 'user' (Karar 1B). The schema default is also 'user',
+// but stating it here keeps the intent in the code: a locally-created
+// marker must never be wiped by catalog_import.php, which only deletes
+// WHERE source='catalog'. After a SUCCESSFUL central push below the row is
+// promoted to 'catalog' (method B); on push failure - or on self-host -
+// it stays 'user', so import never wipes an unsynced marker.
 try {
     $insertStmt = $pdo->prepare("
         INSERT INTO chronology_markers (anime_id, after_episode, related_anime_id, note, source)
         VALUES (?, ?, ?, ?, 'user')
     ");
     $insertStmt->execute([$anime_id, $after_episode, $related_anime_id, $note]);
+    $markerId = (int)$pdo->lastInsertId();
 } catch (PDOException $e) {
     // Error code 23000 = integrity constraint violation (duplicate entry)
     if ($e->getCode() == '23000') {
@@ -110,6 +111,58 @@ try {
     die('Kronoloji notu eklenirken bir hata olustu.');
 }
 
-// Redirect back to the anime detail page
-header('Location: anime_details.php?id=' . $anime_id);
+// Online: a new chronology marker is pushed to the central catalog
+// automatically. This is the FOURTH trigger of the Karar 14 / 1.0.11 push
+// contract (the other three are add_anime, edit_anime and admin_pending
+// promote). Runs only in MULTI_USER_MODE; on self-host the block never
+// executes and behavior is unchanged. admin/catalog_push.php is not in the
+// self-host package, so the require is lazy and guarded by is_file.
+//
+// Failure contract (same as edit_anime / promote): a failed push NEVER rolls
+// back the local insert. The detail is written to error_log (no emoji) and
+// the user is sent to index.php with the shared warning band. Any later
+// catalog save (edit_anime / add_anime / promote) retries the push, because
+// the push payload carries ALL markers.
+//
+// Method B: on a CONFIRMED push the marker is promoted to source='catalog'.
+// This immediately clears the "not synced" warning in list_settings.php and
+// makes the local state reflect reality - the moderator is the curator of the
+// shared chronology. On failure the row stays 'user' (import-safe) and the
+// warning correctly remains.
+$pushFailed = false;
+if (MULTI_USER_MODE) {
+    $pushHelper = __DIR__ . '/admin/catalog_push.php';
+    if (is_file($pushHelper)) {
+        require_once $pushHelper;
+        $push = catalog_push_to_server($pdo);
+        if (!empty($push['ok'])) {
+            // Promote ONLY this marker after a successful push. Promotion is
+            // cosmetic (clears the unsynced warning); a failure here must not
+            // break the flow - the marker is already on the central catalog
+            // and reconverges to 'catalog' on the next pull anyway.
+            try {
+                $promote = $pdo->prepare("UPDATE chronology_markers SET source = 'catalog' WHERE id = ?");
+                $promote->execute([$markerId]);
+            } catch (PDOException $e) {
+                error_log('[anime_tracker] add_chronology_marker promote failed: ' . $e->getMessage());
+            }
+        } else {
+            $pushFailed = true;
+            error_log('[anime_tracker] add_chronology_marker catalog push failed: '
+                . (isset($push['message']) ? $push['message'] : 'unknown'));
+        }
+    } else {
+        $pushFailed = true;
+        error_log('[anime_tracker] add_chronology_marker catalog push skipped: helper missing');
+    }
+}
+
+// On push failure, send the user to index.php with the shared warning band
+// (same contract as edit_anime / add_anime). Otherwise return to the detail
+// page so the moderator sees the new marker.
+if ($pushFailed) {
+    header('Location: index.php?catalog_push=failed');
+} else {
+    header('Location: anime_details.php?id=' . $anime_id);
+}
 exit;

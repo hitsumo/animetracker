@@ -1,0 +1,13 @@
+-- Anime Tracker 1.0.17 migration (no-op ring / version bumper).
+--
+-- 1.0.17 is a behavior-only change on the online (multi-user) install: a new
+-- chronology marker is now pushed to the central catalog automatically at the
+-- moment it is added, and the local row is promoted to source='catalog' after
+-- a confirmed push. No schema change is required.
+--
+-- This file is intentionally free of DDL but must still exist.
+-- migration_manager.php advances settings.version by walking the migration/
+-- folders. A missing migration/1.0.17/ would strand any install that skips
+-- into 1.0.17: settings.version would stay pinned at the previous version.
+-- This mirrors the 0.5.5 empty-ring lesson. Keep the ring even with no schema
+-- change.
