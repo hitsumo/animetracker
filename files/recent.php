@@ -3,10 +3,13 @@
 /**
  * Anime Tracker - Son Duzenlenen Animeler
  *
- * Shows the 5 most recently edited anime entries. Any change to an
- * anime record (watched_episodes, status, notes, etc.) updates the
- * updated_at timestamp automatically (MySQL ON UPDATE), so this page
- * always reflects the latest activity.
+ * Shows the 5 most recently ADDED or EDITED anime entries - that is,
+ * catalog-level activity only. add_anime inserts an animes row and
+ * edit_anime updates one, both bumping animes.updated_at (MySQL ON
+ * UPDATE). Personal watch progress does NOT belong here: a quick
+ * "+1 watched" writes only user_anime (update_watched.php) and must
+ * not push the anime to the top of this list. So the ordering uses
+ * animes.updated_at alone, never user_anime.updated_at.
  */
 
 require_once __DIR__ . '/db.php';
@@ -15,23 +18,24 @@ require_once __DIR__ . '/functions.php';
 // Sayfa dilini baslat
 lang_init($pdo);
 
-// watch_status / watched_episodes are personal (user_anime, 1.0.1), and so
-// is the recency of personal edits: a "+1 watched" now bumps
-// user_anime.updated_at, not animes.updated_at. To keep this page meaning
-// "recently touched" (catalog OR personal edit), order by the most recent
-// of the two timestamps for the current user. COALESCE handles animes that
-// have no user_anime row yet (falls back to the catalog timestamp).
+// watch_status / watched_episodes are personal (user_anime, 1.0.1). The
+// user_anime JOIN below is kept ONLY to display the personal badge and
+// episode count - it is NOT used for ordering. This page means "recently
+// added or edited (catalog)", so a personal "+1 watched" (which bumps
+// user_anime.updated_at, not animes.updated_at) must not move the anime
+// up. Therefore both the selected timestamp and the ORDER BY use
+// a.updated_at alone.
 $stmt = $pdo->prepare("
     SELECT a.id, a.title, a.image_path,
            ua.watch_status,
            a.status,
            COALESCE(ua.watched_episodes, 0) AS watched_episodes,
            a.total_episodes, a.aired_episodes,
-           GREATEST(a.updated_at, COALESCE(ua.updated_at, a.updated_at)) AS updated_at
+           a.updated_at AS updated_at
     FROM animes a
     LEFT JOIN user_anime ua
            ON ua.anime_id = a.id AND ua.user_id = :uid
-    ORDER BY GREATEST(a.updated_at, COALESCE(ua.updated_at, a.updated_at)) DESC
+    ORDER BY a.updated_at DESC
     LIMIT 5
 ");
 $stmt->execute([':uid' => current_user_id()]);

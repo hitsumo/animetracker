@@ -39,7 +39,7 @@ return [
     // -----------------------------------------------------------------
 
     'nav.what_to_watch'   => 'Ne İzlesem?',
-    'nav.recent_edits'    => 'Son Düzenlenenler',
+    'nav.recent_edits'    => 'Son Güncellenenler',
     'nav.list_settings'   => 'Liste Ayarları',
     'nav.statistics'      => 'İstatistikler',
     'nav.help'            => 'Yardım',
@@ -88,9 +88,9 @@ return [
 
     // Add button above the list
     'index.add_anime'               => 'Yeni Anime Ekle',
-    'index.pending_link'            => 'Onay bekleyen eklemeler (%d)',
-    'pending.page_title'            => 'Onay Bekleyen Eklemeler',
-    'pending.heading'               => 'Onay Bekleyen Eklemeler',
+    'index.pending_link'            => 'Onay bekleyenler (%d)',
+    'pending.page_title'            => 'Onay Bekleyenler',
+    'pending.heading'               => 'Onay Bekleyenler',
     'pending.intro'                 => 'Kullanıcıların eklediği, moderatör onayı bekleyen animeler. Onaylandıklarında katalogda görünür olurlar.',
     'pending.badge'                 => 'Onay bekliyor',
     'pending.empty'                 => 'Şu anda onay bekleyen ekleme yok.',
@@ -591,6 +591,7 @@ return [
     'statistics.heading'                     => 'İstatistikler',
     'statistics.tab.user'                    => 'Kullanıcı İstatistiği',
     'statistics.tab.global'                  => 'Global İstatistik',
+    'statistics.tab.recent_watched'          => 'Son İzlenenler',
     'statistics.label.total_anime'           => 'Toplam Anime',
     'statistics.label.total_watched'         => 'Toplam İzlenen Bölüm',
     'statistics.label.total_episodes'        => 'Toplam Bölüm',
@@ -600,18 +601,20 @@ return [
     'statistics.col.type'                    => 'Tür',
     'statistics.col.status'                  => 'Durum',
     'statistics.col.count'                   => 'Adet',
+    'statistics.col.last_watched'            => 'Son İzleme',
     'statistics.value.unspecified'           => 'Belirtilmemiş',
     'statistics.section.by_emotion'          => 'Duygulara Göre',
     'statistics.col.emotion'                 => 'Duygu',
     'statistics.emotion.summary'             => 'Toplam %d işaret, %d anime.',
     'statistics.emotion.empty'               => 'Henüz hiçbir animeye duygu işareti koymamışsın. Anime detay sayfasındaki duygu butonlarıyla işaret ekleyebilirsin.',
     'statistics.emotion.empty_global'        => 'Henüz hiçbir animeye duygu işareti konmamış.',
+    'statistics.recent_watched.empty'        => 'Henüz izleme aktiviten yok. Bir animenin bölümünü izlediğinde burada görünür.',
 
     // -----------------------------------------------------------------
     // recent.php - son duzenlenen 5 anime
     // -----------------------------------------------------------------
-    'recent.page_title'                      => 'Son Düzenlenenler - Anime Tracker',
-    'recent.heading'                         => 'Son Düzenlenenler',
+    'recent.page_title'                      => 'Son Güncellenenler - Anime Tracker',
+    'recent.heading'                         => 'Son Güncellenenler',
     'recent.back_to_list'                    => 'Listeye Dön',
     'recent.empty_state'                     => 'Henüz anime eklenmemiş.',
     'recent.time.now'                        => 'Az önce',

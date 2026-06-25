@@ -25,7 +25,7 @@ return [
     // -----------------------------------------------------------------
 
     'nav.what_to_watch'   => 'What Should I Watch?',
-    'nav.recent_edits'    => 'Recently Edited',
+    'nav.recent_edits'    => 'Recently Updated',
     'nav.list_settings'   => 'List Settings',
     'nav.statistics'      => 'Statistics',
     'nav.help'            => 'Help',
@@ -68,9 +68,9 @@ return [
     'index.broadcast.finished'      => 'Finished Airing',
 
     'index.add_anime'               => 'Add New Anime',
-    'index.pending_link'            => 'Pending additions (%d)',
-    'pending.page_title'            => 'Pending Additions',
-    'pending.heading'               => 'Pending Additions',
+    'index.pending_link'            => 'Pending (%d)',
+    'pending.page_title'            => 'Pending',
+    'pending.heading'               => 'Pending',
     'pending.intro'                 => 'Anime added by users that are awaiting moderator approval. Once approved they appear in the catalog.',
     'pending.badge'                 => 'Pending approval',
     'pending.empty'                 => 'There are no pending additions right now.',
@@ -559,6 +559,7 @@ return [
     'statistics.heading'                     => 'Statistics',
     'statistics.tab.user'                    => 'User Statistics',
     'statistics.tab.global'                  => 'Global Statistics',
+    'statistics.tab.recent_watched'          => 'Recently Watched',
     'statistics.label.total_anime'           => 'Total Anime',
     'statistics.label.total_watched'         => 'Total Watched Episodes',
     'statistics.label.total_episodes'        => 'Total Episodes',
@@ -568,18 +569,20 @@ return [
     'statistics.col.type'                    => 'Type',
     'statistics.col.status'                  => 'Status',
     'statistics.col.count'                   => 'Count',
+    'statistics.col.last_watched'            => 'Last Watched',
     'statistics.value.unspecified'           => 'Unspecified',
     'statistics.section.by_emotion'          => 'By Emotion',
     'statistics.col.emotion'                 => 'Emotion',
     'statistics.emotion.summary'             => '%d marks across %d anime.',
     'statistics.emotion.empty'               => 'You have not marked any anime with emotions yet. Open an anime detail page and use the emotion buttons to add marks.',
     'statistics.emotion.empty_global'        => 'No emotion marks have been added to any anime yet.',
+    'statistics.recent_watched.empty'        => 'No watch activity yet. Once you watch an episode of an anime it will show up here.',
 
     // -----------------------------------------------------------------
     // recent.php - son duzenlenen 5 anime
     // -----------------------------------------------------------------
-    'recent.page_title'                      => 'Recently Edited - Anime Tracker',
-    'recent.heading'                         => 'Recently Edited',
+    'recent.page_title'                      => 'Recently Updated - Anime Tracker',
+    'recent.heading'                         => 'Recently Updated',
     'recent.back_to_list'                    => 'Back to List',
     'recent.empty_state'                     => 'No anime added yet.',
     'recent.time.now'                        => 'Just now',
