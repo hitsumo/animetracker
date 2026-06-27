@@ -97,6 +97,10 @@ function fetchAnimeScheduleData($slug) {
         ],
         CURLOPT_TIMEOUT        => 10,
         CURLOPT_CONNECTTIMEOUT => 5,
+        // Force IPv4. Some hosts resolve animeschedule.net to an IPv6 (AAAA)
+        // address but have no working IPv6 egress, so a default request first
+        // tries IPv6 and stalls until timeout. IPv4 is reachable, so pin it.
+        CURLOPT_IPRESOLVE      => CURL_IPRESOLVE_V4,
         CURLOPT_FOLLOWLOCATION => false,
         // Cert verification on - we never want to talk to a MITM
         CURLOPT_SSL_VERIFYPEER => true,
@@ -368,6 +372,9 @@ function fetchAnimeScheduleTimetable($week, $year) {
         ],
         CURLOPT_TIMEOUT        => 15,
         CURLOPT_CONNECTTIMEOUT => 5,
+        // Force IPv4 (see fetchAnimeScheduleData) - avoids IPv6-only DNS
+        // results stalling on hosts without working IPv6 egress.
+        CURLOPT_IPRESOLVE      => CURL_IPRESOLVE_V4,
         CURLOPT_FOLLOWLOCATION => false,
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_SSL_VERIFYHOST => 2,

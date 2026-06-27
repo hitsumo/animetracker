@@ -1,0 +1,15 @@
+-- Anime Tracker 1.0.19 migration (no-op ring / version bumper).
+--
+-- 1.0.19 adds a command-line entry point (sync_aired.php) for the daily
+-- aired-episode sync, so it can run from cron (Linux) or Task Scheduler
+-- (Windows) instead of only when the List Settings page is opened. The web
+-- trigger and the shared settings.last_aired_sync daily gate are unchanged.
+-- db.php gained two CLI-only guards (skip session start, fail loudly if not
+-- installed); the web path is byte-identical. No schema change is required.
+--
+-- This file is intentionally free of DDL but must still exist.
+-- migration_manager.php advances settings.version by walking the migration/
+-- folders. A missing migration/1.0.19/ would strand any install that skips
+-- into 1.0.19: settings.version would stay pinned at the previous version.
+-- This mirrors the 0.5.5 empty-ring lesson. Keep the ring even with no schema
+-- change.

@@ -50,7 +50,7 @@ date_default_timezone_set('UTC');
 //     (XAMPP) still receives the cookie and self-host keeps working. Behind a
 //     TLS-terminating proxy that does not set $_SERVER['HTTPS'], a forwarded-
 //     proto check would be needed; the production host sets HTTPS directly.
-if (session_status() === PHP_SESSION_NONE) {
+if (PHP_SAPI !== 'cli' && session_status() === PHP_SESSION_NONE) {
     $is_https = (
         (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off')
         || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443)
@@ -66,6 +66,13 @@ if (session_status() === PHP_SESSION_NONE) {
 // Step 1: Make sure the application has been installed.
 // If config.php is missing, send the user to the setup wizard.
 if (!file_exists(__DIR__ . '/config.php')) {
+    // CLI (e.g. cron) cannot run the web setup wizard, so a Location header
+    // is meaningless there. Fail loudly to STDERR instead, so a scheduled
+    // job's log shows the real cause. The web path is unchanged.
+    if (PHP_SAPI === 'cli') {
+        fwrite(STDERR, "config.php not found - run the web setup first.\n");
+        exit(1);
+    }
     header('Location: setup.php');
     exit;
 }
