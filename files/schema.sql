@@ -567,6 +567,39 @@ CREATE TABLE IF NOT EXISTS `suggestions` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
+-- Table: invite_requests (1.0.20)
+-- Public invite requests. A visitor without an invite submits an email plus a
+-- free-text reason via request_invite.php; every submission lands here as
+-- status='pending' for the operator to review on admin_invites.php. The
+-- operator can generate an invite for a request (status -> 'invited') or
+-- reject it (status -> 'rejected'). A best-effort notification mail is sent on
+-- submit, but this table is the source of truth.
+--
+--   - email: the requester's email address (NOT a users row; no FK).
+--   - reason: the free-text justification (also a light spam check).
+--   - ip: submitter IP (IPv6-safe length). Used only for per-IP rate limiting
+--     on submit; not shown to end users.
+--   - status: pending (queue) -> invited / rejected by the operator.
+--
+-- idx_ip_created backs the per-IP rate-limit lookup (count this IP's recent
+-- rows). idx_status backs the review queue. Mirrors the suggestions protection
+-- model. Invite requests are a multi-user feature only.
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `invite_requests` (
+  `id`          int(11)      NOT NULL AUTO_INCREMENT,
+  `email`       varchar(255) NOT NULL,
+  `reason`      text         NOT NULL,
+  `ip`          varchar(45)  DEFAULT NULL,
+  `status`      enum('pending','invited','rejected') NOT NULL DEFAULT 'pending',
+  `created_at`  timestamp    NOT NULL DEFAULT current_timestamp(),
+  `updated_at`  timestamp    NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_ip_created` (`ip`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
 -- Table: catalog_requests
 -- Online member suggestion / pending queue (Faz 2). When an online
 -- member imports a list, animes NOT present in the shared catalog are

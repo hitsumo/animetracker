@@ -271,6 +271,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <div class="auth-alt">
             <a href="login.php"><?php echo htmlspecialchars(t('auth.register.have_account'), ENT_QUOTES, 'UTF-8'); ?></a>
+            <?php if ($inviteMode): ?>
+            <br><a href="request_invite.php"><?php echo htmlspecialchars(t('auth.register.request_invite'), ENT_QUOTES, 'UTF-8'); ?></a>
+            <?php endif; ?>
         </div>
     </div>
 </body>

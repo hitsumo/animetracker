@@ -278,3 +278,86 @@ function auth_nav_links()
     }
     return $link('login.php', 'nav.login') . $link('register.php', 'nav.register');
 }
+
+/**
+ * Store a public invite request after anti-spam checks (1.0.20). Mirrors the
+ * suggest.php protection model: a per-IP rate limit backed by idx_ip_created.
+ * CSRF + honeypot are handled by the calling page (request_invite.php), the
+ * same split as suggest.php.
+ *
+ * Returns 'ok' on a stored request, 'rate' if the per-IP hourly limit is hit,
+ * or 'err' on a validation problem. Invite requests are a multi-user feature
+ * only; the caller gates MULTI_USER_MODE and registration_mode.
+ */
+function invite_request_submit($pdo, $email, $reason, $ip)
+{
+    $email  = trim((string)$email);
+    $reason = trim((string)$reason);
+
+    // The email must be syntactically valid and the reason non-empty.
+    if ($email === '' || $reason === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return 'err';
+    }
+    if (mb_strlen($reason) > 2000) {
+        $reason = mb_substr($reason, 0, 2000);
+    }
+
+    // Per-IP rate limit: at most 5 requests per IP in the trailing hour,
+    // backed by idx_ip_created. Skipped if the IP is somehow unavailable.
+    if ($ip !== '') {
+        $rl = $pdo->prepare(
+            "SELECT COUNT(*) FROM invite_requests
+             WHERE ip = ? AND created_at >= (NOW() - INTERVAL 1 HOUR)"
+        );
+        $rl->execute([$ip]);
+        if ((int)$rl->fetchColumn() >= 5) {
+            return 'rate';
+        }
+    }
+
+    $ins = $pdo->prepare(
+        "INSERT INTO invite_requests (email, reason, ip) VALUES (?, ?, ?)"
+    );
+    $ins->execute([$email, $reason, ($ip !== '' ? $ip : null)]);
+    return 'ok';
+}
+
+/**
+ * Best-effort notification mail to the operator-configured address
+ * (settings.invite_notify_email). The stored request is the source of truth:
+ * if no address is set, the address is invalid, or mail() fails, the request
+ * still sits in the admin queue. Returns true only when mail() accepted the
+ * message; failures are logged (no emoji) and never block the request.
+ *
+ * From is derived from the request host so SPF/DKIM align on a self-hosted
+ * server; Reply-To is the requester so the operator can answer directly. The
+ * subject is plain ASCII per language, so no MIME word-encoding is needed; the
+ * body is UTF-8 (declared in the Content-Type header).
+ */
+function invite_request_notify($pdo, $email, $reason)
+{
+    $to = trim((string)get_setting($pdo, 'invite_notify_email', ''));
+    if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
+        return false; // no destination configured -> queue only
+    }
+
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $host = preg_replace('/:\d+$/', '', $host);  // strip a :port suffix
+    $host = preg_replace('/^www\./', '', $host); // strip a leading www.
+    $from = 'no-reply@' . $host;
+
+    $subject = t('invite_request.mail.subject');
+    $body = t('invite_request.mail.line_email') . ' ' . $email . "\n\n"
+          . t('invite_request.mail.line_reason') . "\n" . $reason . "\n";
+
+    $headers = 'From: ' . $from . "\r\n"
+             . 'Reply-To: ' . $email . "\r\n"
+             . "MIME-Version: 1.0\r\n"
+             . "Content-Type: text/plain; charset=UTF-8\r\n";
+
+    $ok = @mail($to, $subject, $body, $headers);
+    if (!$ok) {
+        error_log('[anime_tracker] invite request notify mail failed for ' . $to);
+    }
+    return $ok;
+}
