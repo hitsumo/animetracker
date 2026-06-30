@@ -41,6 +41,13 @@
  *           is not already 'Watched', flip to 'Watched'. Ceiling-known
  *           anime only - for unknown-ceiling animes the + is refused
  *           before reaching this point.
+ *           (1.0.21: Rule 2 now uses a separate COMPLETION ceiling, not
+ *           the "+" ceiling. An ongoing show with an unknown total has no
+ *           completion ceiling, so catching up to the latest aired episode
+ *           stays 'Watching' instead of wrongly flipping to 'Watched'.
+ *           Auto-finish fires only at the real series end: a known total,
+ *           or aired on a broadcast-finished show. See $completion_ceiling
+ *           below.)
  *   The two rules apply sequentially in the same request, so the edge
  *   case "PlanToWatch + 11/12 -> +1 -> 12/12" yields 'Watched' in one
  *   click (PlanToWatch -> Watching -> Watched via the same call).
@@ -193,7 +200,7 @@ if ($delta !== 1 && $delta !== -1) {
 $uid = current_user_id();
 
 $catStmt = $pdo->prepare(
-    "SELECT total_episodes, aired_episodes
+    "SELECT total_episodes, aired_episodes, status
        FROM animes
       WHERE id = ?"
 );
@@ -223,6 +230,21 @@ $current_watch_status = (string)$state['watch_status'];
 
 // Ceiling: total wins if set, else aired, else unknown (null).
 $ceiling = ($total !== null) ? $total : (($aired !== null) ? $aired : null);
+
+// Completion ceiling (auto-"Watched" trigger) is NOT the same as the "+"
+// button ceiling above. The "+" ceiling is the most you can watch right
+// now (aired when total is unknown). The completion ceiling is the real
+// END of the series, used only to auto-flip to 'Watched':
+//   - total_episodes when known (authoritative final count), or
+//   - aired_episodes only when the catalog says the broadcast is finished
+//     (a finished show: aired == final), or
+//   - null while still airing with an unknown total. In that case catching
+//     up to the latest aired episode is "caught up", NOT "watched the whole
+//     series", so no auto-finish fires (Rule 2 is skipped).
+$is_finished = (($catRow['status'] ?? '') === 'Yayın Tamamlandı');
+$completion_ceiling = ($total !== null)
+    ? $total
+    : (($aired !== null && $is_finished) ? $aired : null);
 
 $new = $old + $delta;
 
@@ -276,14 +298,20 @@ if ($delta === 1) {
 // Rule 1 (0.5.6): 'PlanToWatch' + (any +) -> 'Watching'. The "+" press
 //         is the "started watching" signal. Covers the first time the
 //         user opens an anime.
-// Rule 2 (0.5.6): new watched == ceiling AND status not already
-//         'Watched' -> 'Watched'. Ceiling-known animes only; "+" above
-//         ceiling was already rejected above so this is safe to evaluate
-//         here.
-// Rule 3 (0.5.7): new watched < ceiling AND status === 'Watched'
-//         -> 'Watching'. Symmetric reverse of Rule 2. Ceiling-known
-//         animes only; if the ceiling is unknown the rule is skipped
-//         and a manual 'Watched' state is preserved.
+// Rule 2 (0.5.6; 1.0.21 fix): new watched == COMPLETION ceiling AND
+//         status not already 'Watched' -> 'Watched'. Uses
+//         $completion_ceiling, not the "+" ceiling: an ongoing show with
+//         an unknown total has a null completion ceiling, so catching up
+//         to the latest aired episode stays 'Watching' (caught up != whole
+//         series watched). Auto-finish fires only at the real series end
+//         (known total, or aired on a broadcast-finished show).
+// Rule 3 (0.5.7; 1.0.21 note): new watched < ceiling AND status ===
+//         'Watched' -> 'Watching'. Deliberately uses the "+" ceiling
+//         ($ceiling = aired/total), NOT $completion_ceiling: leaving a
+//         'Watched' state on "-" is always correct, and keeping it on the
+//         looser ceiling lets a "-" also rescue any record that was stuck
+//         at 'Watched' (e.g. saved before the 1.0.21 fix). If $ceiling is
+//         unknown the rule is skipped and a manual 'Watched' is preserved.
 // Rule 4 (0.5.7): new watched == 0 AND status === 'Watching'
 //         -> 'PlanToWatch'. Symmetric reverse of Rule 1. Triggers on
 //         absolute zero (not a ceiling-relative comparison), so it works
@@ -334,7 +362,7 @@ if ($delta === 1) {
         || $target_watch_status === '') {
         $target_watch_status = 'Watching';
     }
-    if ($ceiling !== null && $new === $ceiling
+    if ($completion_ceiling !== null && $new === $completion_ceiling
         && $target_watch_status !== 'Watched') {
         $target_watch_status = 'Watched';
     }

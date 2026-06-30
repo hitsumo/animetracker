@@ -1,0 +1,16 @@
+-- Anime Tracker - Migration 1.0.21
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- No-op migration (no schema change in 1.0.21).
+--
+-- 1.0.21 is a behaviour fix in update_watched.php: the watch_status
+-- auto-finish rule now uses a separate completion ceiling, so an ongoing
+-- show with an unknown total no longer flips to 'Watched' when the user
+-- catches up to the latest aired episode.
+--
+-- This file exists only to keep the migration ring continuous so an
+-- existing 1.0.20 database advances its recorded version to 1.0.21. The
+-- runner strips these comment lines, finds no SQL statements to execute,
+-- and bumps settings.version to 1.0.21.
