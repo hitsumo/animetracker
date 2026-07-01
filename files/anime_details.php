@@ -311,7 +311,7 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                         <?php if ($enLabeled): ?>
                         <span class="synopsis-meta">
                             <span class="synopsis-status synopsis-status-<?php echo htmlspecialchars($transStatus, ENT_QUOTES, 'UTF-8'); ?>"></span>
-                            <small><em><a href="help.php#translation" class="translation-note"><?php echo htmlspecialchars(t('anime_details.synopsis.auto_translated'), ENT_QUOTES, 'UTF-8'); ?></a></em></small>
+                            <small><em><a href="help/help_discovery.php#translation" class="translation-note"><?php echo htmlspecialchars(t('anime_details.synopsis.auto_translated'), ENT_QUOTES, 'UTF-8'); ?></a></em></small>
                         </span>
                         <?php elseif ($enFallback): ?>
                         <span class="synopsis-meta"><small><em><?php echo htmlspecialchars(t('anime_details.synopsis.en_unavailable'), ENT_QUOTES, 'UTF-8'); ?></em></small></span>

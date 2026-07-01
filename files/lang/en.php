@@ -362,15 +362,34 @@ return [
     'help.page_title'                        => 'Help - Anime Tracker',
     'help.heading'                           => 'Help',
     'help.back_to_home'                      => '&larr; Back to Home',
+    'help.back_to_index'                     => '&larr; Help Contents',
+
+    // Help sub-page group titles (1.0.22 split)
+    'help.group.basics.heading'              => 'Watching Basics — Statuses and Buttons',
+    'help.group.basics.page_title'           => 'Watching Basics - Anime Tracker',
+    'help.group.fields.heading'              => 'Fields and Personal Data',
+    'help.group.fields.page_title'           => 'Fields and Personal Data - Anime Tracker',
+    'help.group.sync.heading'                => 'Sync, Deletion and Updates',
+    'help.group.sync.page_title'             => 'Sync, Deletion and Updates - Anime Tracker',
+    'help.group.discovery.heading'           => 'Discovery and Interaction',
+    'help.group.discovery.page_title'        => 'Discovery and Interaction - Anime Tracker',
+    'help.group.series.heading'              => 'Series and Episode Info',
+    'help.group.series.page_title'           => 'Series and Episode Info - Anime Tracker',
+    'help.group.timezone.heading'            => 'Timezone',
+    'help.group.timezone.page_title'         => 'Timezone - Anime Tracker',
     'help.intro'                             => 'Here is how Anime Tracker works, what each field is for, and what to watch out for. If you are curious about a specific feature, jump to the relevant section.',
 
     // Table of contents
     'help.toc.heading'                       => 'Contents:',
     'help.toc.fields'                        => 'Anime Fields — What Does Each One Do?',
-    'help.toc.statuses'                      => 'Watch Statuses — Four Options',
+    'help.toc.statuses'                      => 'Watch Statuses — Five Options',
     'help.toc.quick_buttons'                 => 'Quick Watch Buttons (+/-)',
     'help.toc.sync'                          => 'Catalog Sync — How Does It Work?',
     'help.toc.personal'                      => 'Personal Fields — Notes and Personal Synopsis',
+    'help.toc.emotions'                      => 'Emotions — React to an Anime',
+    'help.toc.filler'                        => 'Filler and Canon Episodes',
+    'help.toc.statistics'                    => 'Statistics',
+    'help.toc.title_lang'                    => 'Title Language (English / Romaji)',
     'help.toc.translation'                   => 'Translation status',
     'help.toc.recommendations'               => 'What Should I Watch? — Recommendation System',
     'help.toc.chronology'                    => 'Series and Chronology',
@@ -392,7 +411,7 @@ return [
     'help.fields.catalog.note'               => 'If you edit these fields manually, the next sync will <strong>overwrite</strong> them (the server has the last word).',
     'help.fields.personal.h3'                => '<i class="fas fa-user icon-inline"></i> Personal Fields (not synced)',
     'help.fields.personal.list' => '<li><strong>Watched Episodes count</strong></li>
-        <li><strong>Watch Status</strong> (Watched / Watching / Plan to Watch / On Hold) — can change automatically via <a href="#hizli-butonlar">the <code>+/-</code> buttons in the list</a></li>
+        <li><strong>Watch Status</strong> (Watched / Watching / Plan to Watch / On Hold / Dropped) — can change automatically via <a href="#hizli-butonlar">the <code>+/-</code> buttons in the list</a></li>
         <li><strong>Notes</strong> — Your personal reminders, comments</li>
         <li><strong>Personal Synopsis</strong> — Your own take / description</li>
         <li><strong>Poster (if you uploaded one yourself)</strong></li>
@@ -401,11 +420,13 @@ return [
 
     // Section: Watch statuses
     'help.statuses.h2'                       => 'Watch Statuses',
-    'help.statuses.intro'                    => 'Every anime has a <strong>Watch Status</strong>. The four options cover different stages of watching:',
-    'help.statuses.list' => '<li><strong>Plan to Watch</strong> — You haven\'t started yet but want to in the future. Watched episodes: 0.</strong></li>
+    'help.statuses.intro'                    => 'Every anime has a <strong>Watch Status</strong>. Five options cover the different stages of watching, plus an initial state for anime you have not chosen yet:',
+    'help.statuses.list' => '<li><strong>Plan to Watch</strong> — You haven\'t started yet but want to in the future. Watched episodes: 0.</li>
         <li><strong>Watching</strong> — You are actively watching. Watched episodes are somewhere between zero and the total.</li>
-        <li><strong>Watched</strong> — Anime you have finished. Watched episodes = total episodes.</li>
-        <li><strong>On Hold</strong> — You started watching but took a break and want your progress preserved. <em>Difference from Plan to Watch:</em> Plan to Watch means "I have not started yet" (watched=0); On Hold means "I have watched some, currently taking a break" (watched&gt;0).</li>',
+        <li><strong>Watched</strong> — Anime you have finished. Watched episodes = total episodes (or every episode of a series whose broadcast has ended).</li>
+        <li><strong>On Hold</strong> — You started watching but took a break and want your progress preserved. <em>Difference from Plan to Watch:</em> Plan to Watch means "I have not started yet" (watched=0); On Hold means "I have watched some, currently taking a break" (watched&gt;0).</li>
+        <li><strong>Dropped</strong> — You decided to stop watching this anime entirely and do not plan to return. Difference from On Hold: On Hold means "I will continue later", Dropped means "I am done, I will not continue".</li>
+        <li><strong>Not Selected</strong> — You have not chosen a status for this anime yet. It still appears in your list but belongs to no watch group; the first <code>+</code> or an Edit assigns a status and moves it out of this initial state.</li>',
     'help.statuses.when_postponed'           => '<strong>When to use On Hold?</strong> If you set an anime aside for six months meaning to return to it later, set the status to On Hold. That keeps your active "Watching" list uncluttered without dropping the entry back to Plan to Watch (because you still have progress). When you are ready, hit <code>+</code> and the system pulls it back to Watching automatically.',
 
     // Section: Quick watch buttons (+/-)
@@ -426,7 +447,7 @@ return [
     'help.buttons.transitions.row4_new'      => 'Plan to Watch + 0/12',
     'help.buttons.transitions.row5_curr'     => 'On Hold + 5/12',
     'help.buttons.transitions.row5_new'      => 'Watching + 6/12',
-    'help.buttons.transitions.note'          => 'The logic is simple: the status changes automatically on boundary transitions (returning to zero, reaching the end); intermediate values are left alone.',
+    'help.buttons.transitions.note'          => 'The logic is simple: the status changes automatically on boundary transitions (returning to zero, reaching the end); intermediate values are left alone. Note: the automatic jump to "Watched" in the table applies to anime with a known total or a finished broadcast; for still-airing anime with an unknown total, the rule below applies instead.',
     'help.buttons.two_step.h3'               => 'Two Steps with One Click',
     'help.buttons.two_step.intro'            => 'Sometimes a single <code>+</code> or <code>-</code> press triggers two transitions at once:',
     'help.buttons.two_step.list' => '<li><strong>Plan to Watch + 11/12 → <code>+</code> → Watched + 12/12.</strong> First Plan to Watch flips to Watching, then because it reached the ceiling, Watching flips to Watched - all in one click.</li>
@@ -443,6 +464,10 @@ return [
     'help.buttons.unknown_count.list' => '<li><strong>Ceiling check cannot run</strong> — so the automatic transition to "Watched" via <code>+</code> does not work. You have to mark it manually via Edit.</li>
         <li><strong>The zero-floor check works independently of the ceiling</strong> — pressing <code>-</code> on Watching + 1/? still returns the status to Plan to Watch + 0/? automatically.</li>
         <li><strong>Pressing <code>-</code> on a ceiling-less anime that was manually marked Watched</strong> keeps the status as Watched — the system can\'t make a safe transition, so it leaves the manual state alone.</li>',
+    'help.buttons.airing_unknown.h3'         => 'Still-Airing Anime with an Unknown Total',
+    'help.buttons.airing_unknown.intro'      => 'If a series is still airing and its total episode count is not known yet (e.g. 11 episodes aired so far, the show continues), catching up to the latest aired episode does not count as "finished".',
+    'help.buttons.airing_unknown.box_title'  => '<i class="fas fa-info-circle"></i> Caught up is not the same as watched:',
+    'help.buttons.airing_unknown.box_body'   => 'Even if you reach the latest aired episode with <code>+</code> (e.g. 11/11), the status <strong>stays "Watching"</strong> and does not flip to "Watched" by mistake. When a new episode airs, it remains "Watching". The status only becomes "Watched" when the series truly ends: when the known total is reached, or when every episode of a finished-broadcast series has been watched. (This behaviour arrived in 1.0.21; on earlier versions a record stuck on "Watched" by mistake returns to "Watching" on its own after one <code>-</code> press.)',
     'help.buttons.manual.h3'                 => 'Manual Editing Is Always Available',
     'help.buttons.manual.text'               => 'Automatic status transitions only fire when you press the <code>+</code> and <code>-</code> buttons. You can <strong>always</strong> pick any status manually from the "Edit" form; the automation will not interfere.',
 
@@ -457,6 +482,10 @@ return [
     'help.sync.own_added.text'               => 'If anime you added have not been promoted to the catalog by the admin (i.e. they are still your private entries), the sync <strong>does not touch them at all</strong>. All their fields are preserved.',
     'help.sync.when.h3'                      => 'When Does Sync Run?',
     'help.sync.when.text'                    => 'Not automatic — only when you ask for it. Sync runs once each time you press List Settings → "Import from Catalog".',
+    'help.sync.aired.h3'                      => 'Episode-Count Sync (aired episodes)',
+    'help.sync.aired.text'                    => 'Separate from the catalog sync, the "how many episodes have aired" figure for still-airing anime is refreshed from AnimeSchedule. This runs by itself once a day in the background each time you open the List Settings page; you can also trigger it manually with "Sync Now".',
+    'help.sync.aired.box_title'               => '<i class="fas fa-shield-alt"></i> Does not touch your personal state:',
+    'help.sync.aired.box_body'                => 'This only updates the catalog\'s "aired episode count" field. It does not touch your watch status, your watched-episode count, or your notes. When a new episode airs, your watch status does not change on its own; you record progress yourself with <code>+</code>.',
 
     // Section: Personal fields (Notes + Personal Synopsis)
     'help.personal.h2'                       => 'Personal Fields — Notes and Personal Synopsis',
@@ -477,6 +506,49 @@ return [
         <li>From now on you will see both fields and anything you edit goes into "Personal Synopsis"</li>',
     'help.personal.warning_title'            => '<i class="fas fa-exclamation-triangle"></i> Heads up:',
     'help.personal.warning_body'             => 'If you delete the Personal Synopsis, <strong>sync will not bring it back</strong>. Likewise if you clear the Notes field, that does not come back either. These two fields are yours and permanently under your control.',
+
+    // Section: Emotions
+    'help.emotions.h2'                       => 'Emotions — React to an Anime',
+    'help.emotions.intro'                    => 'On an anime\'s detail page you can mark how it made you feel. There are nine emotion options:',
+    'help.emotions.list' => '<li><strong>Saddened</strong></li>
+        <li><strong>Excited</strong></li>
+        <li><strong>Bored</strong></li>
+        <li><strong>Made Me Laugh</strong></li>
+        <li><strong>Scared</strong></li>
+        <li><strong>Thought-provoking</strong></li>
+        <li><strong>Surprised</strong></li>
+        <li><strong>Relaxing</strong></li>
+        <li><strong>Motivating</strong></li>',
+    'help.emotions.cap_title'                => '<i class="fas fa-info-circle"></i> Up to 3 per anime:',
+    'help.emotions.cap_body'                 => 'An anime can have at most 3 emotions marked at once, so the marks stay meaningful. Pressing an emotion again removes it (toggle). Removing a mark is always allowed and is not subject to the 3-mark limit.',
+    'help.emotions.stats'                    => 'Your emotion marks are personal and are summarised on the Statistics page as a "By Emotion" distribution — you can see there which emotion you mark the most.',
+
+    // Section: Filler / canon episodes
+    'help.filler.h2'                         => 'Filler and Canon Episodes',
+    'help.filler.intro'                      => 'An anime\'s episodes can be classified by their relation to the source material. This helps people who wonder "which episodes can I skip". There are four types:',
+    'help.filler.list' => '<li><strong>Manga Canon</strong> — Episodes based on the source manga, part of the main story.</li>
+        <li><strong>Anime Canon</strong> — Episodes not in the manga but woven into the story by the production and treated as canon.</li>
+        <li><strong>Mixed</strong> — The same episode contains both canon and filler parts.</li>
+        <li><strong>Filler</strong> — Skippable filler episodes that do not affect the main story.</li>',
+    'help.filler.unmarked'                   => 'An unmarked episode means "assume canon" — that is, if an episode has no type label, it is treated as part of the main story.',
+    'help.filler.warning_title'              => '<i class="fas fa-exclamation-triangle"></i> Catalog data:',
+    'help.filler.warning_body'               => 'Episode classification is kept by the catalog; on sync the server\'s version wins. So if you change it yourself, the next sync may overwrite it.',
+
+    // Section: Statistics
+    'help.stats.h2'                          => 'Statistics',
+    'help.stats.intro'                       => 'The Statistics page gives you numbers that summarise your list, split across three tabs:',
+    'help.stats.user.h3'                     => 'User Statistics',
+    'help.stats.user.text'                   => 'Your personal summary: total anime, total episodes you have watched, total episodes; a breakdown by media type (TV / Movie / OVA, etc.), by broadcast status, by watch status (Watching / Watched / Plan to Watch / On Hold / Dropped / Not Selected), and a by-emotion distribution.',
+    'help.stats.recent.h3'                   => 'Recently Watched',
+    'help.stats.recent.text'                 => 'The anime you most recently logged progress on, newest at the top. Handy for checking "where was I".',
+    'help.stats.global.h3'                   => 'Global Statistics',
+    'help.stats.global.text'                 => 'Independent of your personal list, this shows the catalog\'s overall distribution (how many anime, which media types, etc.). It reflects the whole catalog, not your watch status.',
+
+    // Section: Title language
+    'help.title_lang.h2'                     => 'Title Language (English / Romaji)',
+    'help.title_lang.intro'                  => 'Anime titles are shown in Romaji by default (e.g. "Shingeki no Kyojin"). Under List Settings → "Title Language" you can choose to show anime that have an English title using that English title instead (e.g. "Attack on Titan").',
+    'help.title_lang.box_title'              => '<i class="fas fa-info-circle"></i> Independent of the interface language:',
+    'help.title_lang.box_body'               => 'This preference is yours alone and works independently of the site language (Turkish/English) — you can use a Turkish interface while preferring English titles. Anime without an English title stay in Romaji.',
 
     // Section: Recommendation system
     'help.translation.h2'                    => 'Translation Status',

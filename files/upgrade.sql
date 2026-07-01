@@ -1,0 +1,20 @@
+-- Anime Tracker - Migration 1.0.22
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- No-op migration (no schema change in 1.0.22).
+--
+-- 1.0.22 is a Help update. Two things happened: (1) the Help content was
+-- brought fully up to date (the watch-status list now covers Dropped and the
+-- Not Selected starting state, the 1.0.21 still-airing behaviour is explained,
+-- and sections were added for emotions, filler/canon episodes, statistics,
+-- title language and the daily aired-count sync); (2) the single Help page was
+-- split into an index plus topic-grouped sub-pages under help/, with shared
+-- styles in css/help.css (imported via style.css). Only views, styles, the two language files and one help
+-- link were touched. No data model is affected.
+--
+-- This file exists only to keep the migration ring continuous so an
+-- existing 1.0.21 database advances its recorded version to 1.0.22. The
+-- runner strips these comment lines, finds no SQL statements to execute,
+-- and bumps settings.version to 1.0.22.
