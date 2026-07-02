@@ -116,6 +116,8 @@ return [
     'anime_details.label.unset'          => 'Not set',
     'anime_details.label.broadcast_attribution' => 'Broadcast time data from %s',
     'anime_details.label.watched_episodes' => 'Watched Episodes:',
+    'anime_details.label.watch_start_date' => 'Started:',
+    'anime_details.label.watch_finish_date' => 'Finished:',
     'anime_details.label.synopsis'       => 'Synopsis:',
     'anime_details.synopsis.auto_translated' => 'Auto-translated from Turkish',
     'anime_details.synopsis.en_unavailable'  => 'English synopsis not available — showing the Turkish original.',
@@ -189,6 +191,9 @@ return [
     'add_anime.label.broadcast_timezone'     => 'Broadcast Timezone:',
     'add_anime.label.watch_status'           => 'Watch Status:',
     'add_anime.label.watched_episodes'       => 'Watched Episodes:',
+    'add_anime.label.watch_dates'            => 'Watch Dates (optional):',
+    'add_anime.label.watch_start_date'       => 'Start:',
+    'add_anime.label.watch_finish_date'      => 'Finish:',
     'add_anime.label.genres'                 => 'Genres:',
     'add_anime.label.tags'                   => 'Sentences:',
     'add_anime.label.notes'                  => 'Notes:',
@@ -252,6 +257,8 @@ return [
 
     // Form hints (small.form-text)
     'add_anime.hint.notes'                   => 'notes are not restored by sync if deleted',
+    'add_anime.hint.watch_dates'             => 'Entered manually, may be left blank. Personal; not shared via catalog sync.',
+    'add_anime.warn.date_order'              => 'Finish date is before start. It will still be saved.',
     'add_anime.hint.series_name'             => 'Anime in the same series share this name. Existing series are auto-suggested.',
     'add_anime.hint.tags'                    => 'Matching sentences appear as you type. Press Enter to create a new one if there is no match.',
     'add_anime.link.manage_tags'             => 'Manage sentences',

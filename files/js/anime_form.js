@@ -429,3 +429,20 @@ if (tagInput && tagSuggestions) {
         render();
     }
 })();
+
+// --- Kisisel izleme tarihleri: bitis < baslangic yumusak uyari (1.1.0) ---
+// Sadece uyarir, submit'i ENGELLEMEZ; sunucu degeri yine kaydeder. Uyari
+// metni sayfada (gizli <small id="watch-date-warning">) hazir durur, bu
+// fonksiyon yalnizca gorunurlugunu degistirir. ISO tarih string'leri
+// (YYYY-MM-DD) sozlukbilimsel = kronolojik karsilastirilir. Iki input'un
+// onchange handler'indan cagrilir; elemanlar yoksa sessizce cikar.
+function checkWatchDateOrder() {
+    const startEl = document.getElementById('watch_start_date');
+    const finishEl = document.getElementById('watch_finish_date');
+    const warnEl = document.getElementById('watch-date-warning');
+    if (!startEl || !finishEl || !warnEl) {
+        return;
+    }
+    const invalid = (startEl.value !== '' && finishEl.value !== '' && finishEl.value < startEl.value);
+    warnEl.style.display = invalid ? 'block' : 'none';
+}

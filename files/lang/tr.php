@@ -142,6 +142,8 @@ return [
     'anime_details.label.unset'          => 'Belirtilmemiş',
     'anime_details.label.broadcast_attribution' => 'Saat bilgisi %s\'den alınmıştır',
     'anime_details.label.watched_episodes' => 'İzlenen Bölüm:',
+    'anime_details.label.watch_start_date' => 'İzlemeye Başlama:',
+    'anime_details.label.watch_finish_date' => 'İzlemeyi Bitirme:',
     'anime_details.label.synopsis'       => 'Konu:',
     'anime_details.synopsis.auto_translated' => 'Türkçeden otomatik çevrildi',
     'anime_details.synopsis.en_unavailable'  => 'İngilizce konu mevcut değil — Türkçe orijinali gösteriliyor.',
@@ -222,6 +224,9 @@ return [
     'add_anime.label.broadcast_timezone'     => 'Yayın Saat Dilimi:',
     'add_anime.label.watch_status'           => 'İzleme Durumu:',
     'add_anime.label.watched_episodes'       => 'İzlenen Bölüm Sayısı:',
+    'add_anime.label.watch_dates'            => 'İzleme Tarihleri (opsiyonel):',
+    'add_anime.label.watch_start_date'       => 'Başlangıç:',
+    'add_anime.label.watch_finish_date'      => 'Bitiş:',
     'add_anime.label.genres'                 => 'Türler:',
     'add_anime.label.tags'                   => 'Cumleler:',
     'add_anime.label.notes'                  => 'Notlar:',
@@ -285,6 +290,8 @@ return [
 
     // Form hints (small.form-text)
     'add_anime.hint.notes'                   => 'notlar bolumu silinirse sync ile geri gelmez',
+    'add_anime.hint.watch_dates'             => 'Elle girilir, boş bırakılabilir. Kişiseldir; katalog senkronuyla paylaşılmaz.',
+    'add_anime.warn.date_order'              => 'Bitiş tarihi başlangıçtan önce. Yine de kaydedilir.',
     'add_anime.hint.series_name'             => 'Aynı seriye ait animeler bu adı paylaşır. Mevcut seriler otomatik önerilir.',
     'add_anime.hint.tags'                    => 'Yazinca eslesenler gozukur. Eslesme yoksa Enter ile yeni cumle olusturulur.',
     'add_anime.link.manage_tags'             => 'Cumleleri yonet',

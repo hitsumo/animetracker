@@ -61,6 +61,8 @@ function ua_default_state()
         'notes'            => null,
         'user_synopsis'    => null,
         'user_synopsis_en' => null,
+        'watch_start_date'  => null,
+        'watch_finish_date' => null,
     ];
 }
 
@@ -74,7 +76,8 @@ function ua_get_state($pdo, $userId, $animeId)
     try {
         $stmt = $pdo->prepare(
             "SELECT watch_status, watched_episodes, notes,
-                    user_synopsis, user_synopsis_en
+                    user_synopsis, user_synopsis_en,
+                    watch_start_date, watch_finish_date
                FROM user_anime
               WHERE user_id = ? AND anime_id = ?
               LIMIT 1"
@@ -99,7 +102,10 @@ function ua_get_state($pdo, $userId, $animeId)
  * watched_episodes=0.
  *
  * Allowed keys: watch_status, watched_episodes, notes, user_synopsis,
- * user_synopsis_en. Anything else is ignored.
+ * user_synopsis_en, watch_start_date, watch_finish_date. Anything else is
+ * ignored. Date columns expect a 'YYYY-MM-DD' string or null; callers must
+ * turn an empty form value into null (an empty string is an invalid DATE
+ * and would fail the whole upsert).
  *
  * Returns true on success, false on a logged DB error.
  */
@@ -108,6 +114,7 @@ function ua_set_state($pdo, $userId, $animeId, array $fields)
     $allowed = [
         'watch_status', 'watched_episodes', 'notes',
         'user_synopsis', 'user_synopsis_en',
+        'watch_start_date', 'watch_finish_date',
     ];
 
     // Keep only recognised columns, preserving caller order.

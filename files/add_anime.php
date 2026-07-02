@@ -79,6 +79,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if ($watch_status === '__unselected__') {
         $watch_status = null;
     }
+    // Kisisel izleme tarihleri (1.1.0, elle giris). Bos string -> NULL
+    // (DATE kolonu bos string kabul etmez).
+    $watch_start_date  = ($_POST['watch_start_date']  ?? '') !== '' ? $_POST['watch_start_date']  : null;
+    $watch_finish_date = ($_POST['watch_finish_date'] ?? '') !== '' ? $_POST['watch_finish_date'] : null;
     $next_episode_date = $_POST['next_episode_date'] ?? null;
     $anidb_link = $_POST['anidb_link'] ?? '';
     $mal_link = $_POST['mal_link'] ?? '';
@@ -393,9 +397,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // INSERT'ten cikarilan watched_episodes / notes / watch_status'un yeni
     // evi.
     ua_set_state($pdo, current_user_id(), $new_anime_id, [
-        'watch_status'     => $watch_status,
-        'watched_episodes' => $watched_episodes,
-        'notes'            => $notes,
+        'watch_status'      => $watch_status,
+        'watched_episodes'  => $watched_episodes,
+        'notes'             => $notes,
+        'watch_start_date'  => $watch_start_date,
+        'watch_finish_date' => $watch_finish_date,
     ]);
 
     // Turleri kaydet (kanonik taksonomi).
@@ -673,6 +679,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <div class="input-area">
                     <input type="number" name="watched_episodes" value="0" min="0">
                 </div>
+            </div>
+        </div>
+
+        <?php /* 1.1.0: kisisel izleme tarihleri (elle giris, opsiyonel). */ ?>
+        <div class="form-group">
+            <label><?php echo htmlspecialchars(t('add_anime.label.watch_dates'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <div class="input-area">
+                <div class="watch-date-row">
+                    <label for="watch_start_date" class="watch-date-sublabel"><?php echo htmlspecialchars(t('add_anime.label.watch_start_date'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <input type="date" name="watch_start_date" id="watch_start_date" value="" onchange="checkWatchDateOrder()">
+                </div>
+                <div class="watch-date-row">
+                    <label for="watch_finish_date" class="watch-date-sublabel"><?php echo htmlspecialchars(t('add_anime.label.watch_finish_date'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <input type="date" name="watch_finish_date" id="watch_finish_date" value="" onchange="checkWatchDateOrder()">
+                </div>
+                <small id="watch-date-warning" class="form-text" style="display:none; color:#d32f2f;"><?php echo htmlspecialchars(t('add_anime.warn.date_order'), ENT_QUOTES, 'UTF-8'); ?></small>
+                <small class="form-text text-muted"><?php echo htmlspecialchars(t('add_anime.hint.watch_dates'), ENT_QUOTES, 'UTF-8'); ?></small>
             </div>
         </div>
 

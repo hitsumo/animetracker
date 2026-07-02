@@ -253,6 +253,7 @@ input[type="text"],
 input[type="number"], 
 input[type="time"],
 input[type="url"],
+input[type="date"],
 textarea {
     padding: 8px 12px;
     border: 1px solid #ced4da;
@@ -267,10 +268,43 @@ input[type="text"]:focus,
 input[type="number"]:focus, 
 input[type="time"]:focus,
 input[type="url"]:focus,
+input[type="date"]:focus,
 textarea:focus {
     border-color: #80bdff;
     outline: none;
     box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+/* 1.1.0 - kisisel izleme tarihleri satirlari (add/edit formu). Ust
+   ".form-group label" kurali gruptaki TUM label'lara 200px/sag hizalama
+   uygular; alt etiketler bunu daha yuksek ozgullukle ezip kompakt kalir
+   (mobil override dahil). Iki satir ayni x'te hizalanir, tarih inputu
+   icerik kadar genis kalir (width:100% degil). */
+.watch-date-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.watch-date-row:last-of-type {
+    margin-bottom: 0;
+}
+
+.form-group .watch-date-sublabel {
+    width: 90px;
+    flex-shrink: 0;
+    padding-right: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    text-align: left;
+    font-weight: 500;
+    color: #555;
+}
+
+.watch-date-row input[type="date"] {
+    width: auto;
+    flex: 0 0 auto;
 }
 
 /* Filtre container */

@@ -242,6 +242,8 @@ if (isset($_POST['export'])) {
         $a['notes']            = $ua['notes'];
         $a['user_synopsis']    = $ua['user_synopsis'];
         $a['user_synopsis_en'] = $ua['user_synopsis_en'];
+        $a['watch_start_date']  = $ua['watch_start_date'];
+        $a['watch_finish_date'] = $ua['watch_finish_date'];
         $exportEmoStmt->execute([current_user_id(), $a['id']]);
         $a['emotions']         = $exportEmoStmt->fetchAll(PDO::FETCH_COLUMN);
         $exportMarkerStmt->execute([$a['id']]);
@@ -337,6 +339,8 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                         'notes'            => $anime['notes']            ?? null,
                         'user_synopsis'    => $anime['user_synopsis']    ?? null,
                         'user_synopsis_en' => $anime['user_synopsis_en'] ?? null,
+                        'watch_start_date'  => $anime['watch_start_date']  ?? null,
+                        'watch_finish_date' => $anime['watch_finish_date'] ?? null,
                     ]);
                     emotion_import_set($pdo, $uid, (int)$aid, $anime['emotions'] ?? []);
                     $applied++;
@@ -500,6 +504,8 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                             'notes'            => $anime['notes']             ?? null,
                             'user_synopsis'    => $anime['user_synopsis']     ?? null,
                             'user_synopsis_en' => $anime['user_synopsis_en']  ?? null,
+                            'watch_start_date'  => $anime['watch_start_date']  ?? null,
+                            'watch_finish_date' => $anime['watch_finish_date'] ?? null,
                         ]);
 
                         setAnimeGenresByNames($pdo, $animeId, $anime['genres'] ?? []);
