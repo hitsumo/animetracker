@@ -1,0 +1,16 @@
+-- Anime Tracker - Migration 1.1.1
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- No-op migration (no schema change in 1.1.1).
+--
+-- 1.1.1 adds MyAnimeList list import (Faz 1) on the list settings page.
+-- It reuses existing tables only: personal state is written to user_anime,
+-- and catalog misses go to catalog_requests (online) or a local animes add
+-- (self-host). No new columns or tables, so there is nothing to alter.
+--
+-- This file exists only to keep the migration ring continuous so an
+-- existing 1.1.0 database advances its recorded version to 1.1.1. The
+-- runner strips these comment lines, finds no SQL statements to execute,
+-- and migration_manager bumps settings.version to 1.1.1.

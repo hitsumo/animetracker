@@ -599,6 +599,236 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
     }
 }
 
+// ===== MAL List Import (1.1.1) - two-step, session-backed dry-run =====
+//
+// Personal feature: every signed-in user imports their own MyAnimeList XML
+// export into their own user_anime rows. Matches (by mal_id) are written;
+// catalog misses become a pending catalog_request (online) or a local
+// animes add (self-host). The preview (dry-run) is mandatory - the upload
+// step writes NOTHING; it only parses, matches, and stashes the result in
+// the session. The commit step reads that stash and writes.
+//
+// This section is intentionally NOT gated behind moderator/admin: bringing
+// your own list in is a per-user action (unlike the JSON full-backup import
+// above, which is an owner/restore tool). require_login() is the only gate
+// (no-op in self-host).
+$malPreview = null; // set below when a dry-run is ready for the HTML render
+
+if (isset($_POST['mal_preview']) || isset($_POST['mal_commit']) || isset($_POST['mal_cancel'])) {
+    require_login();
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+}
+
+// --- Step 1: parse + match + stash a dry-run in the session -------------
+if (isset($_POST['mal_preview'])) {
+    $file = $_FILES['mal_file'] ?? null;
+    if ($file === null || $file['error'] !== UPLOAD_ERR_OK) {
+        $error_message = sprintf(t('list_settings.mal.err.upload'), (int)($file['error'] ?? -1));
+    } else {
+        $bytes = @file_get_contents($file['tmp_name']);
+        if ($bytes === false) {
+            $error_message = t('list_settings.mal.err.read');
+        } else {
+            $parsed = mal_parse_export($bytes);
+            if (!$parsed['ok']) {
+                $error_message = ($parsed['error'] === 'empty')
+                    ? t('list_settings.mal.err.empty')
+                    : t('list_settings.mal.err.parse');
+            } else {
+                // Match each entry against the catalog by mal_id and bucket
+                // it: matched (in catalog, not yet in the user's list),
+                // already (in catalog AND already in the user's list, skipped
+                // by default), or unmatched (not in catalog).
+                $uid    = current_user_id();
+                $byMal  = $pdo->prepare("SELECT id FROM animes WHERE mal_id = ? LIMIT 1");
+                $hasRow = $pdo->prepare(
+                    "SELECT 1 FROM user_anime WHERE user_id = ? AND anime_id = ? LIMIT 1"
+                );
+
+                $counts = [
+                    'total'     => count($parsed['entries']),
+                    'matched'   => 0,
+                    'already'   => 0,
+                    'unmatched' => 0,
+                ];
+                // Per source-status tally, powering the filter checkboxes.
+                $byStatus = [];
+
+                foreach ($parsed['entries'] as &$e) {
+                    $aid = 0;
+                    if ($e['mal_id'] !== null) {
+                        $byMal->execute([$e['mal_id']]);
+                        $aid = (int)$byMal->fetchColumn();
+                    }
+                    $e['anime_id'] = $aid ?: null;
+
+                    if ($aid) {
+                        $hasRow->execute([$uid, $aid]);
+                        if ($hasRow->fetchColumn()) {
+                            $e['bucket'] = 'already';
+                            $counts['already']++;
+                        } else {
+                            $e['bucket'] = 'matched';
+                            $counts['matched']++;
+                        }
+                    } else {
+                        $e['bucket'] = 'unmatched';
+                        $counts['unmatched']++;
+                    }
+
+                    $sk = $e['watch_status'] ?? '__unselected__';
+                    $byStatus[$sk] = ($byStatus[$sk] ?? 0) + 1;
+                }
+                unset($e);
+
+                $_SESSION['mal_import'] = [
+                    'entries'  => $parsed['entries'],
+                    'counts'   => $counts,
+                    'byStatus' => $byStatus,
+                    'ts'       => time(),
+                ];
+                $malPreview = $_SESSION['mal_import'];
+            }
+        }
+    }
+}
+
+// --- Step 2: commit the stashed dry-run --------------------------------
+if (isset($_POST['mal_commit'])) {
+    if (empty($_SESSION['mal_import']['entries'])) {
+        // Session expired or the user reached this step without a preview.
+        $error_message = t('list_settings.mal.err.session');
+    } else {
+        $entries = $_SESSION['mal_import']['entries'];
+
+        // Which source-statuses did the user keep checked? Values are our
+        // enum plus the '__unselected__' sentinel (MAL rows we could not
+        // map). Absent from the POST array = unchecked = skip.
+        $keep = [];
+        foreach ((array)($_POST['mal_status'] ?? []) as $ks) {
+            $keep[$ks] = true;
+        }
+        $overwrite = isset($_POST['mal_overwrite']);
+
+        $uid = current_user_id();
+        $written = 0; $skipped = 0; $requested = 0;
+
+        $byMal  = $pdo->prepare("SELECT id FROM animes WHERE mal_id = ? LIMIT 1");
+        $hasRow = $pdo->prepare(
+            "SELECT 1 FROM user_anime WHERE user_id = ? AND anime_id = ? LIMIT 1"
+        );
+
+        if (defined('MULTI_USER_MODE') && MULTI_USER_MODE) {
+            // ONLINE: matched -> user_anime; unmatched -> catalog_requests
+            // (ince stub, Yol A) with per-user dedup. The shared catalog is
+            // never touched here; a moderator promotes requests later.
+            $suggExists = $pdo->prepare(
+                "SELECT id FROM catalog_requests
+                  WHERE suggested_by = ? AND suggestion_status = 'pending'
+                    AND mal_id IS NOT NULL AND mal_id = ? LIMIT 1"
+            );
+            $suggInsert = $pdo->prepare(
+                "INSERT INTO catalog_requests (mal_id, title, suggested_by) VALUES (?, ?, ?)"
+            );
+
+            foreach ($entries as $e) {
+                $sk = $e['watch_status'] ?? '__unselected__';
+                if (!isset($keep[$sk])) {
+                    continue;
+                }
+
+                $aid = $e['anime_id'] ?? null;
+                if (!$aid && $e['mal_id'] !== null) {
+                    $byMal->execute([$e['mal_id']]);
+                    $aid = (int)$byMal->fetchColumn();
+                }
+
+                if ($aid) {
+                    $hasRow->execute([$uid, $aid]);
+                    if ($hasRow->fetchColumn() && !$overwrite) {
+                        $skipped++;
+                        continue;
+                    }
+                    ua_set_state($pdo, $uid, (int)$aid, mal_ua_payload($e));
+                    $written++;
+                    continue;
+                }
+
+                // Unmatched: needs a mal_id (dedup key) and a title.
+                if ($e['mal_id'] === null || $e['title'] === '') {
+                    continue;
+                }
+                $suggExists->execute([$uid, $e['mal_id']]);
+                if ($suggExists->fetchColumn()) {
+                    continue;
+                }
+                $suggInsert->execute([$e['mal_id'], $e['title'], $uid]);
+                $requested++;
+            }
+        } else {
+            // SELF-HOST: matched -> user_anime; unmatched -> add a local
+            // anime (source='local', title + mal_id) then write user_anime.
+            // Same match-or-add shape the JSON self-host restore uses.
+            $addAnime = $pdo->prepare(
+                "INSERT INTO animes (title, mal_id, status, source)
+                 VALUES (?, ?, 'Yayın Tamamlandı', 'local')"
+            );
+
+            foreach ($entries as $e) {
+                $sk = $e['watch_status'] ?? '__unselected__';
+                if (!isset($keep[$sk])) {
+                    continue;
+                }
+
+                $aid = $e['anime_id'] ?? null;
+                if (!$aid && $e['mal_id'] !== null) {
+                    $byMal->execute([$e['mal_id']]);
+                    $aid = (int)$byMal->fetchColumn();
+                }
+
+                if ($aid) {
+                    $hasRow->execute([$uid, $aid]);
+                    if ($hasRow->fetchColumn() && !$overwrite) {
+                        $skipped++;
+                        continue;
+                    }
+                    ua_set_state($pdo, $uid, (int)$aid, mal_ua_payload($e));
+                    $written++;
+                    continue;
+                }
+
+                if ($e['title'] === '') {
+                    continue;
+                }
+                try {
+                    $addAnime->execute([$e['title'], $e['mal_id']]);
+                    $newId = (int)$pdo->lastInsertId();
+                    if ($newId > 0) {
+                        ua_set_state($pdo, $uid, $newId, mal_ua_payload($e));
+                        $requested++;
+                    }
+                } catch (PDOException $ex) {
+                    // A UNIQUE clash can happen if the same mal_id appears
+                    // twice in one file; skip the duplicate quietly.
+                    error_log('[anime_tracker] mal import self-host add skipped: ' . $ex->getMessage());
+                }
+            }
+        }
+
+        unset($_SESSION['mal_import']);
+        $success_message = sprintf(
+            t('list_settings.mal.result'), $written, $skipped, $requested
+        );
+    }
+}
+
+// Cancel: drop the stashed dry-run and fall through to a clean page.
+if (isset($_POST['mal_cancel'])) {
+    unset($_SESSION['mal_import']);
+}
+
 // List Clear Operation
 if (isset($_POST['clear'])) {
     // Clearing the list runs DELETE FROM animes, which wipes the entire shared
@@ -695,6 +925,73 @@ if (isset($_POST['clear'])) {
                 </form>
             </div>
             <?php endif; ?>
+
+            <!-- MAL List Import (1.1.1) - personal, no moderator/admin gate -->
+            <div class="settings-section">
+                <h3><?php echo htmlspecialchars(t('list_settings.section.mal_import'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                <p><?php echo htmlspecialchars(t('list_settings.section.mal_import.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
+
+                <?php if (empty($malPreview)): ?>
+                    <!-- Step 1: choose file + preview -->
+                    <form method="post" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                        <div class="file-upload">
+                            <input type="file" name="mal_file" id="mal_file" accept=".xml,.gz" required>
+                            <label for="mal_file" class="file-upload-label">
+                                <i class="fas fa-upload"></i> <?php echo htmlspecialchars(t('list_settings.mal.btn.choose_file'), ENT_QUOTES, 'UTF-8'); ?>
+                            </label>
+                        </div>
+                        <button type="submit" name="mal_preview" class="settings-button">
+                            <i class="fas fa-search"></i> <?php echo htmlspecialchars(t('list_settings.mal.btn.preview'), ENT_QUOTES, 'UTF-8'); ?>
+                        </button>
+                    </form>
+                <?php else: ?>
+                    <!-- Step 2: dry-run preview + confirm -->
+                    <?php $c = $malPreview['counts']; ?>
+                    <p><?php echo htmlspecialchars(sprintf(
+                        t('list_settings.mal.preview.summary'),
+                        (int)$c['total'], (int)$c['matched'], (int)$c['already'], (int)$c['unmatched']
+                    ), ENT_QUOTES, 'UTF-8'); ?></p>
+
+                    <form method="post">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+
+                        <fieldset class="mal-status-filter">
+                            <legend><?php echo htmlspecialchars(t('list_settings.mal.preview.status_filter'), ENT_QUOTES, 'UTF-8'); ?></legend>
+                            <?php foreach ($malPreview['byStatus'] as $sk => $n): ?>
+                                <label style="display:block; margin:4px 0;">
+                                    <input type="checkbox" name="mal_status[]" value="<?php echo htmlspecialchars($sk, ENT_QUOTES, 'UTF-8'); ?>" checked>
+                                    <?php echo htmlspecialchars(
+                                        watch_status_label($sk === '__unselected__' ? null : $sk) . ' (' . (int)$n . ')',
+                                        ENT_QUOTES, 'UTF-8'
+                                    ); ?>
+                                </label>
+                            <?php endforeach; ?>
+                        </fieldset>
+
+                        <label style="display:block; margin:8px 0;">
+                            <input type="checkbox" name="mal_overwrite" value="1">
+                            <?php echo htmlspecialchars(t('list_settings.mal.preview.overwrite'), ENT_QUOTES, 'UTF-8'); ?>
+                        </label>
+
+                        <p class="mal-unmatched-note">
+                            <?php echo htmlspecialchars(
+                                (defined('MULTI_USER_MODE') && MULTI_USER_MODE)
+                                    ? t('list_settings.mal.preview.unmatched_note.online')
+                                    : t('list_settings.mal.preview.unmatched_note.selfhost'),
+                                ENT_QUOTES, 'UTF-8'
+                            ); ?>
+                        </p>
+
+                        <button type="submit" name="mal_commit" class="settings-button">
+                            <i class="fas fa-file-import"></i> <?php echo htmlspecialchars(t('list_settings.mal.btn.commit'), ENT_QUOTES, 'UTF-8'); ?>
+                        </button>
+                        <button type="submit" name="mal_cancel" class="settings-button danger" formnovalidate>
+                            <i class="fas fa-times"></i> <?php echo htmlspecialchars(t('list_settings.mal.btn.cancel'), ENT_QUOTES, 'UTF-8'); ?>
+                        </button>
+                    </form>
+                <?php endif; ?>
+            </div>
 
             <!-- Liste Temizleme Formu -->
             <?php if ($canAdmin): ?>
