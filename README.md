@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <a href="https://animetracker.uzakdiyarlar.com/"><b>Canlı Demo / Live Demo</b></a> ·
+  <a href="https://animetracker.uzakdiyarlar.com/"><b>Online Site / Live Site</b></a> ·
   <a href="https://github.com/hitsumo/animetracker/releases">Sürümler / Releases</a> ·
   <a href="https://www.sicakcikolata.com">sicakcikolata.com</a> ·
   <a href="#türkçe">Türkçe</a> ·
@@ -21,6 +21,7 @@
 
 <p align="center">
   <a href="LICENSE.txt"><img src="https://img.shields.io/badge/license-GPL--2.0-blue.svg" alt="License: GPL-2.0"></a>
+  <a href="https://animetracker.uzakdiyarlar.com/"><img src="https://img.shields.io/website?url=https%3A%2F%2Fanimetracker.uzakdiyarlar.com%2F&up_message=online&down_message=offline&label=online%20site" alt="Online site status"></a>
   <img src="https://img.shields.io/badge/self--hostable-yes-success.svg" alt="Self-hostable">
   <img src="https://img.shields.io/badge/Docker-ready-2496ED.svg" alt="Docker ready">
   <img src="https://img.shields.io/badge/i18n-TR%20%2F%20EN-orange.svg" alt="TR / EN">
