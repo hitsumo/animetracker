@@ -12,10 +12,18 @@
 </p>
 
 <p align="center">
+  <a href="https://animetracker.uzakdiyarlar.com/"><b>Canlı Demo / Live Demo</b></a> ·
   <a href="https://github.com/hitsumo/animetracker/releases">Sürümler / Releases</a> ·
   <a href="https://www.sicakcikolata.com">sicakcikolata.com</a> ·
   <a href="#türkçe">Türkçe</a> ·
   <a href="#english">English</a>
+</p>
+
+<p align="center">
+  <a href="LICENSE.txt"><img src="https://img.shields.io/badge/license-GPL--2.0-blue.svg" alt="License: GPL-2.0"></a>
+  <img src="https://img.shields.io/badge/self--hostable-yes-success.svg" alt="Self-hostable">
+  <img src="https://img.shields.io/badge/Docker-ready-2496ED.svg" alt="Docker ready">
+  <img src="https://img.shields.io/badge/i18n-TR%20%2F%20EN-orange.svg" alt="TR / EN">
 </p>
 
 <!-- Ekran goruntuleri / Screenshots: docs/screenshots/ altina koy -->
@@ -43,6 +51,9 @@ değilsin.
 
 - **Liste ve takip:** anime ekle/düzenle, izleme durumu (İzleniyor, Tamamlandı,
   Bırakıldı, Beklemede, İzlenecek), izlenen bölüm sayısı.
+- **MyAnimeList içe aktarma:** MAL'dan dışa aktardığın listeyi (XML) yükle;
+  katalogda eşleşenler listene işlenir, eşleşmeyenler öneri/onaya düşer.
+  (AniList içe aktarma planlanıyor.)
 - **Kişisel notlar:** her animeye kendi notunu, kendi özetini/çevirini ekle.
 - **Yayın takibi:** devam eden serilerin yeni bölüm tarihleri; yayın günü/saati
   (UTC saklanır, kendi saat dilimine çevrilir), AnimeSchedule entegrasyonu.
@@ -133,6 +144,8 @@ cloud account.
 
 - **List and tracking:** add/edit anime, watch status (Watching, Completed,
   Dropped, On-Hold, Plan to Watch), watched-episode count.
+- **MyAnimeList import:** upload your exported MAL list (XML); matches are written
+  to your list, misses go to suggestions/approval. (AniList import planned.)
 - **Personal notes:** add your own note, your own summary/translation per anime.
 - **Airing tracking:** next-episode dates for ongoing series; broadcast day/time
   (stored in UTC, shown in your timezone), AnimeSchedule integration.
