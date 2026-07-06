@@ -57,6 +57,11 @@ lang_init($pdo);
 // the surprise card and result cards below.
 title_pref_init($pdo);
 
+// Adult-content visibility preference (1.1.2). When off (default) all four
+// recommendation queries below hide is_adult=1 rows so +18 anime are not
+// suggested. adult_filter_where('a') is appended to each query's WHERE.
+adult_pref_init($pdo);
+
 // --------------------------------------------------------
 // Load every available sentence so the form can render checkboxes.
 // Emotion options come from emotion_options() helper (functions.php
@@ -117,7 +122,7 @@ if ($mode === 'surprise') {
          FROM animes a
          LEFT JOIN user_anime ua
                 ON ua.anime_id = a.id AND ua.user_id = :uid
-         WHERE COALESCE(ua.watch_status, 'PlanToWatch') != 'Watched'
+         WHERE COALESCE(ua.watch_status, 'PlanToWatch') != 'Watched'" . adult_filter_where('a') . "
          ORDER BY RAND()
          LIMIT 1"
     );
@@ -132,6 +137,7 @@ if ($mode === 'surprise') {
              FROM animes a
              LEFT JOIN user_anime ua
                     ON ua.anime_id = a.id AND ua.user_id = :uid
+             WHERE 1=1" . adult_filter_where('a') . "
              ORDER BY RAND() LIMIT 1"
         );
         $stmt->execute([':uid' => $uid]);
@@ -156,7 +162,7 @@ if ($mode === 'surprise') {
             FROM animes a
             INNER JOIN anime_tags at ON at.anime_id = a.id
             INNER JOIN tags t ON t.id = at.tag_id
-            WHERE at.tag_id IN ($placeholders)
+            WHERE at.tag_id IN ($placeholders)" . adult_filter_where('a') . "
             GROUP BY a.id
         ";
         $stmt = $pdo->prepare($sql);
@@ -199,7 +205,7 @@ if ($mode === 'surprise') {
                    GROUP_CONCAT(DISTINCT uae.emotion ORDER BY uae.emotion SEPARATOR '|') AS matched_emos
             FROM animes a
             INNER JOIN user_anime_emotion uae ON uae.anime_id = a.id
-            WHERE uae.user_id = ? AND uae.emotion IN ($eph)
+            WHERE uae.user_id = ? AND uae.emotion IN ($eph)" . adult_filter_where('a') . "
             GROUP BY a.id
         ";
         $stmt = $pdo->prepare($sql);

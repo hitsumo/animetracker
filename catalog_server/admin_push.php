@@ -259,6 +259,7 @@ try {
             broadcast_timezone = :broadcast_timezone,
             series_name = :series_name,
             media_type = :media_type,
+            is_adult = :is_adult,
             mal_id = :mal_id,
             anidb_id = :anidb_id,
             catalog_uuid = :catalog_uuid,
@@ -279,7 +280,7 @@ try {
             episode_interval, broadcast_day, broadcast_time, broadcast_timezone,
             synopsis_tr, synopsis_en, translation_status, release_date, end_date,
             series_name, media_type,
-            mal_id, anidb_id, catalog_uuid, source, title_english
+            mal_id, anidb_id, catalog_uuid, source, title_english, is_adult
         ) VALUES (
             :title, :alternative_titles, :status, :total_episodes, :aired_episodes,
             0, NULL, :image_path,
@@ -288,7 +289,7 @@ try {
             :episode_interval, :broadcast_day, :broadcast_time, :broadcast_timezone,
             :synopsis_tr, :synopsis_en, :translation_status, :release_date, :end_date,
             :series_name, :media_type,
-            :mal_id, :anidb_id, :catalog_uuid, 'catalog', :title_english
+            :mal_id, :anidb_id, :catalog_uuid, 'catalog', :title_english, :is_adult
         )
     ";
     $insertStmt = $pdo->prepare($insertSql);
@@ -335,6 +336,9 @@ try {
             ':broadcast_timezone'  => $a['broadcast_timezone']  ?? 'Asia/Tokyo',
             ':series_name'         => $a['series_name']         ?? null,
             ':media_type'          => $a['media_type']          ?? null,
+            // 1.1.2 - yetiskin bayragi. Eski/alansiz yuk gonderen istemcilerde
+            // is_adult gelmez; eksikse 0 (yetiskin degil) - geriye uyumlu.
+            ':is_adult'            => !empty($a['is_adult']) ? 1 : 0,
             ':mal_id'              => !empty($a['mal_id'])      ? (int)$a['mal_id']   : null,
             ':anidb_id'            => !empty($a['anidb_id'])    ? (int)$a['anidb_id'] : null,
             ':catalog_uuid'        => $a['catalog_uuid']        ?? null,

@@ -164,6 +164,7 @@ CREATE TABLE IF NOT EXISTS `animes` (
   `catalog_uuid` varchar(36) DEFAULT NULL,
   `source` enum('catalog','local') NOT NULL DEFAULT 'local',
   `filler_tracking` tinyint(1) NOT NULL DEFAULT 0,
+  `is_adult` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
@@ -443,10 +444,6 @@ CREATE TABLE IF NOT EXISTS `users` (
 --     a fresh row) no longer fabricate a PlanToWatch choice.
 --   - notes, user_synopsis, user_synopsis_en are PRIVATE: never synced,
 --     never public. user_synopsis = "Kisisel Konu" (TR), _en its EN side.
---   - watch_start_date, watch_finish_date (1.1.0): personal manual watch
---     dates, nullable DATE, NULL = not entered. PRIVATE like notes - never
---     synced, carried only in the list export/import backup. No auto-fill;
---     update_watched.php never touches them.
 --   - idx_anime: "who follows this anime" / aggregation.
 --   - FK user_id -> users(id) ON DELETE CASCADE: safety net only; user
 --     deletion is a soft-delete routine (see users), this cascade guards
@@ -464,8 +461,6 @@ CREATE TABLE IF NOT EXISTS `user_anime` (
   `notes`            text    DEFAULT NULL,
   `user_synopsis`    text    DEFAULT NULL,
   `user_synopsis_en` text    DEFAULT NULL,
-  `watch_start_date`  date   DEFAULT NULL,
-  `watch_finish_date` date   DEFAULT NULL,
   `created_at`       timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at`       timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`user_id`, `anime_id`),

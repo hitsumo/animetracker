@@ -18,6 +18,10 @@ require_once __DIR__ . '/functions.php';
 // Sayfa dilini baslat
 lang_init($pdo);
 
+// 1.1.2 - yetiskin (+18) gorunurluk tercihi. Kapaliyken (varsayilan) asagidaki
+// sorgu is_adult=1 animeleri son guncellenenler listesinden dislar.
+adult_pref_init($pdo);
+
 // watch_status / watched_episodes are personal (user_anime, 1.0.1). The
 // user_anime JOIN below is kept ONLY to display the personal badge and
 // episode count - it is NOT used for ordering. This page means "recently
@@ -35,6 +39,7 @@ $stmt = $pdo->prepare("
     FROM animes a
     LEFT JOIN user_anime ua
            ON ua.anime_id = a.id AND ua.user_id = :uid
+    WHERE 1=1" . adult_filter_where('a') . "
     ORDER BY a.updated_at DESC
     LIMIT 5
 ");

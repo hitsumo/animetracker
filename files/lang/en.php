@@ -167,6 +167,10 @@ return [
     'anime_details.js.connection_error'  => 'Connection error. Please try again.',
 
     'anime_details.error.not_found'      => 'Anime not found.',
+    // 1.1.2 - adult (18+) content neutral hidden notice (detail page gate)
+    'anime_details.adult.hidden'         => 'This content is hidden. To view it, turn on "Show adult content" in List Settings.',
+    // 1.1.2 - neutral placeholder title for +18 nodes in ordered relations (chronology/series)
+    'adult.hidden_node_title'            => 'Hidden content',
 
     // -----------------------------------------------------------------
     // add_anime.php - new anime entry form
@@ -793,6 +797,12 @@ return [
     'list_settings.section.title_lang.desc'  => 'When an anime has an English title, show it instead of the Romaji title on the list and detail pages. This preference is independent of the interface language.',
     'list_settings.title_lang.checkbox'      => 'Show English titles',
     'list_settings.title_lang.save'          => 'Save',
+
+    // 1.1.2 - adult (18+) content visibility toggle (list_settings)
+    'list_settings.section.adult'            => 'Adult Content',
+    'list_settings.section.adult.desc'       => 'Off by default. When on, anime marked 18+ appear in lists, search, recommendations and statistics. This preference affects only you.',
+    'list_settings.adult.checkbox'           => 'Show adult content',
+    'list_settings.adult.save'               => 'Save',
     'list_settings.section.genres'           => 'Genre Management',
     'list_settings.section.genres.desc'      => 'Manage misspelled or unused genres.',
     'list_settings.btn.manage_genres'        => 'Manage Genres',
@@ -909,6 +919,10 @@ Update now?',
     // add_anime.php / edit_anime.php - filler tracking toggle (0.7)
     'add_anime.label.filler_tracking'     => 'Filler episode tracking:',
     'add_anime.hint.filler_tracking'  => 'Enables per-episode filler/canon marking (you can toggle this later too).',
+
+    // add_anime.php / edit_anime.php - adult (18+) content flag (1.1.2)
+    'add_anime.label.is_adult'     => '18+ / Adult content:',
+    'add_anime.hint.is_adult'  => 'When checked, this anime is hidden by default; turn on "Show adult content" in List Settings to see it.',
 
 
     // Filler import (AnimeFillerList) - 0.7

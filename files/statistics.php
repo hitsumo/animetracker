@@ -9,20 +9,28 @@ require_once __DIR__ . '/functions.php';
 // Sayfa dilini baslat
 lang_init($pdo);
 
+// 1.1.2 - yetiskin (+18) gorunurluk tercihi. Karar 3: tercih kapaliyken
+// (varsayilan) +18 animeler asagidaki TUM sayimlardan (katalog + kisisel +
+// global) dislanir; boylece sayfadaki sayilar gorunen listeyle tutarli kalir
+// ve +18 varligi sayidan sizmaz. Her sorgu adult_filter_where('a') ile filtre
+// alir; sayimlar animes'e JOIN edilerek is_adult okunur.
+adult_pref_init($pdo);
+
 // Toplam anime sayisi
-$total = $pdo->query("SELECT COUNT(*) FROM animes")->fetchColumn();
+$total = $pdo->query("SELECT COUNT(*) FROM animes a WHERE 1=1" . adult_filter_where('a'))->fetchColumn();
 
 // Medya turune gore dagilim (NULL olanlari "Belirtilmemis" olarak grupla)
 $by_media = $pdo->query("
     SELECT COALESCE(NULLIF(media_type, ''), 'Belirtilmemis') AS media_type, COUNT(*) AS cnt
-    FROM animes
+    FROM animes a
+    WHERE 1=1" . adult_filter_where('a') . "
     GROUP BY COALESCE(NULLIF(media_type, ''), 'Belirtilmemis')
     ORDER BY cnt DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
 // Yayin durumuna gore
 $by_status = $pdo->query("
-    SELECT status, COUNT(*) AS cnt FROM animes GROUP BY status ORDER BY cnt DESC
+    SELECT status, COUNT(*) AS cnt FROM animes a WHERE 1=1" . adult_filter_where('a') . " GROUP BY status ORDER BY cnt DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
 // Izleme durumuna gore
@@ -41,6 +49,7 @@ $by_watch_stmt = $pdo->prepare("
     FROM animes a
     LEFT JOIN user_anime ua
            ON ua.anime_id = a.id AND ua.user_id = :uid
+    WHERE 1=1" . adult_filter_where('a') . "
     GROUP BY COALESCE(ua.watch_status, '')
 ");
 $by_watch_stmt->execute([':uid' => current_user_id()]);
@@ -63,7 +72,10 @@ foreach (watch_status_options() as $ws_value => $ws_label) {
 // watched_episodes is personal (user_anime, 1.0.1). Sum the current
 // user's rows; un-tracked animes have no row and contribute 0.
 $total_watched_stmt = $pdo->prepare(
-    "SELECT COALESCE(SUM(watched_episodes), 0) FROM user_anime WHERE user_id = :uid"
+    "SELECT COALESCE(SUM(ua.watched_episodes), 0)
+       FROM user_anime ua
+       JOIN animes a ON a.id = ua.anime_id
+      WHERE ua.user_id = :uid" . adult_filter_where('a')
 );
 $total_watched_stmt->execute([':uid' => current_user_id()]);
 $total_watched = (int)$total_watched_stmt->fetchColumn();
@@ -79,7 +91,7 @@ $recent_watched_stmt = $pdo->prepare("
            ua.watch_status, ua.watched_episodes, ua.updated_at
     FROM user_anime ua
     JOIN animes a ON a.id = ua.anime_id
-    WHERE ua.user_id = :uid AND ua.watched_episodes > 0
+    WHERE ua.user_id = :uid AND ua.watched_episodes > 0" . adult_filter_where('a') . "
     ORDER BY ua.updated_at DESC
     LIMIT 10
 ");
@@ -94,10 +106,11 @@ $recent_watched = $recent_watched_stmt->fetchAll(PDO::FETCH_ASSOC);
 // emotions, most-frequent first: the stat answers "what is in the data";
 // the full palette shows on detail + recommendations pages.
 $by_emotion_stmt = $pdo->prepare("
-    SELECT emotion, COUNT(*) AS cnt
-    FROM user_anime_emotion
-    WHERE user_id = :uid
-    GROUP BY emotion
+    SELECT uae.emotion, COUNT(*) AS cnt
+    FROM user_anime_emotion uae
+    JOIN animes a ON a.id = uae.anime_id
+    WHERE uae.user_id = :uid" . adult_filter_where('a') . "
+    GROUP BY uae.emotion
     ORDER BY cnt DESC
 ");
 $by_emotion_stmt->execute([':uid' => current_user_id()]);
@@ -111,7 +124,10 @@ foreach ($by_emotion as $er) {
     $emotion_total_marks += (int)$er['cnt'];
 }
 $emotion_anime_count_stmt = $pdo->prepare(
-    "SELECT COUNT(DISTINCT anime_id) FROM user_anime_emotion WHERE user_id = :uid"
+    "SELECT COUNT(DISTINCT uae.anime_id)
+       FROM user_anime_emotion uae
+       JOIN animes a ON a.id = uae.anime_id
+      WHERE uae.user_id = :uid" . adult_filter_where('a')
 );
 $emotion_anime_count_stmt->execute([':uid' => current_user_id()]);
 $emotion_anime_count = (int)$emotion_anime_count_stmt->fetchColumn();
@@ -120,9 +136,11 @@ $emotion_anime_count = (int)$emotion_anime_count_stmt->fetchColumn();
 // Global sekmede gosterilir. Self-host'ta (tek kullanici) kullanici dagilimiyla
 // ayni cikar; online'da herkesin toplamidir.
 $by_emotion_global = $pdo->query("
-    SELECT emotion, COUNT(*) AS cnt
-    FROM user_anime_emotion
-    GROUP BY emotion
+    SELECT uae.emotion, COUNT(*) AS cnt
+    FROM user_anime_emotion uae
+    JOIN animes a ON a.id = uae.anime_id
+    WHERE 1=1" . adult_filter_where('a') . "
+    GROUP BY uae.emotion
     ORDER BY cnt DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 $emotion_total_marks_global = 0;
@@ -130,7 +148,10 @@ foreach ($by_emotion_global as $er) {
     $emotion_total_marks_global += (int)$er['cnt'];
 }
 $emotion_anime_count_global = (int)$pdo->query(
-    "SELECT COUNT(DISTINCT anime_id) FROM user_anime_emotion"
+    "SELECT COUNT(DISTINCT uae.anime_id)
+       FROM user_anime_emotion uae
+       JOIN animes a ON a.id = uae.anime_id
+      WHERE 1=1" . adult_filter_where('a')
 )->fetchColumn();
 ?>
 <!DOCTYPE html>

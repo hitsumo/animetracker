@@ -31,6 +31,10 @@ lang_init($pdo);
 // picks the right title for the heading, image alt and page <title>.
 title_pref_init($pdo);
 
+// Adult-content visibility preference (1.1.2). Read here so the +18 gate
+// below can decide whether to show this page or a neutral notice.
+adult_pref_init($pdo);
+
 $id = $_GET['id'];
 $sql = "SELECT * FROM animes WHERE id = ?";
 $stmt = $pdo->prepare($sql);
@@ -43,6 +47,16 @@ $anidb_safe = safe_url($anime['anidb_link'] ?? '');
 
 if (!$anime) {
     echo htmlspecialchars(t('anime_details.error.not_found'));
+    exit();
+}
+
+// 1.1.2 - yetiskin (+18) icerik kapisi. Anime +18 damgaliysa VE izleyici
+// "yetiskin icerigi goster" tercihini acmamissa (varsayilan kapali), detayi
+// sizdirmak yerine notr bir uyari gosterip cikariz. 404 degil (varlik
+// gizlenmez), icerik sizmaz; kullaniciya nasil acacagi soylenir. Moderator/
+// admin de gormek icin kendi tercihini acar (tercih kisi bazlidir).
+if (!empty($anime['is_adult']) && !show_adult_content()) {
+    echo htmlspecialchars(t('anime_details.adult.hidden'), ENT_QUOTES, 'UTF-8');
     exit();
 }
 
@@ -63,8 +77,6 @@ $anime['watched_episodes'] = $uaState['watched_episodes'];
 $anime['notes']            = $uaState['notes'];
 $anime['user_synopsis']    = $uaState['user_synopsis'];
 $anime['user_synopsis_en'] = $uaState['user_synopsis_en'];
-$anime['watch_start_date']  = $uaState['watch_start_date'];
-$anime['watch_finish_date'] = $uaState['watch_finish_date'];
 
 // Anime tamamlanmis mi kontrol et
 checkIfAnimeCompleted($pdo, $anime);
@@ -91,7 +103,7 @@ if (!empty($anime['next_in_series'])) {
     $nextStmt = $pdo->prepare(
         "SELECT a.id, a.title, a.title_english,
                 ua.watch_status,
-                a.media_type, a.image_path
+                a.media_type, a.image_path, a.is_adult
          FROM animes a
          LEFT JOIN user_anime ua
                 ON ua.anime_id = a.id AND ua.user_id = :uid
@@ -102,6 +114,11 @@ if (!empty($anime['next_in_series'])) {
         ':id'  => (int)$anime['next_in_series'],
     ]);
     $nextAnime = $nextStmt->fetch(PDO::FETCH_ASSOC);
+    // 1.1.2 - sirali seri iliskisi: sonraki anime +18 ise basligini notr yer
+    // tutucuyla maskele (kart kalir, baslik sizmaz; link gated detaya gider).
+    if ($nextAnime) {
+        $nextAnime = adult_mask_related($nextAnime, 'is_adult', 'title', 'title_english');
+    }
 }
 
 // Check if this anime is part of a next_in_series chain (either it
@@ -118,7 +135,7 @@ if (!$isInSeriesChain) {
 // Ayni serideki tum animeler (marker ekleme formu dropdown'u icin)
 $sameSeriesAnimes = [];
 if (!empty($anime['series_name'])) {
-    $ssStmt = $pdo->prepare("SELECT id, title, title_english, media_type FROM animes WHERE series_name = ? AND id != ? ORDER BY title ASC");
+    $ssStmt = $pdo->prepare("SELECT id, title, title_english, media_type FROM animes a WHERE a.series_name = ? AND a.id != ?" . adult_filter_where('a') . " ORDER BY a.title ASC");
     $ssStmt->execute([$anime['series_name'], (int)$anime['id']]);
     $sameSeriesAnimes = $ssStmt->fetchAll(PDO::FETCH_ASSOC);
 }
@@ -355,20 +372,6 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                         </span>
                     </span>
                 </div>
-
-                <?php /* 1.1.0: kisisel izleme tarihleri, sadece dolu ise gosterilir. */ ?>
-                <?php if (!empty($anime['watch_start_date'])): ?>
-                <div class="detail-row">
-                    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.watch_start_date'), ENT_QUOTES, 'UTF-8'); ?></span>
-                    <span class="detail-value"><?php echo htmlspecialchars($anime['watch_start_date']); ?></span>
-                </div>
-                <?php endif; ?>
-                <?php if (!empty($anime['watch_finish_date'])): ?>
-                <div class="detail-row">
-                    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.watch_finish_date'), ENT_QUOTES, 'UTF-8'); ?></span>
-                    <span class="detail-value"><?php echo htmlspecialchars($anime['watch_finish_date']); ?></span>
-                </div>
-                <?php endif; ?>
 
                 <!-- 0.6.1 - Duygu Etiketleri (single-user). Kullanici bu
                      animeye en fazla 3 duygu isareti koyabilir. Tikla =
