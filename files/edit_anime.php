@@ -79,6 +79,8 @@ $anime['watched_episodes'] = $uaState['watched_episodes'];
 $anime['notes']            = $uaState['notes'];
 $anime['user_synopsis']    = $uaState['user_synopsis'];
 $anime['user_synopsis_en'] = $uaState['user_synopsis_en'];
+$anime['watch_start_date']  = $uaState['watch_start_date'];
+$anime['watch_finish_date'] = $uaState['watch_finish_date'];
 
 // "Siradaki anime" dropdown'u icin: tum animeleri cek (mevcut anime haric).
 // series_name dolu ise ayni seridekiler basta gosterilir, diger animeler
@@ -116,9 +118,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // 0.7 - filler bolum izleme gorunurluk bayragi (checkbox). Isaretli
     // degilse 0. Salt gorunurluk; kapatmak filler kayitlarini silmez.
     $filler_tracking = isset($_POST['filler_tracking']) ? 1 : 0;
-    // 1.1.2 - yetiskin (+18) icerik bayragi (checkbox). Isaretli degilse 0.
-    // Katalog meta verisi; gorunurluk ayri kullanici tercihiyle yonetilir.
-    $is_adult = isset($_POST['is_adult']) ? 1 : 0;
     $watched_episodes = $_POST['watched_episodes'] ?? 0;
     if ($watched_episodes === '') { $watched_episodes = 0; }
     $notes = $_POST['notes'];
@@ -134,6 +133,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if ($watch_status === '__unselected__') {
         $watch_status = null;
     }
+    // Kisisel izleme tarihleri (1.1.0, elle giris). Bos string -> NULL:
+    // DATE kolonu bos string kabul etmez; NULL'a cevrilmezse ua_set_state'teki
+    // tum upsert reddedilir. Gecersiz deger DB tarafinda yakalanir/loglanir.
+    $watch_start_date  = ($_POST['watch_start_date']  ?? '') !== '' ? $_POST['watch_start_date']  : null;
+    $watch_finish_date = ($_POST['watch_finish_date'] ?? '') !== '' ? $_POST['watch_finish_date'] : null;
     $next_episode_date = $_POST['next_episode_date'] ?? null;
     $anidb_link = $_POST['anidb_link'] ?? '';
     $mal_link = $_POST['mal_link'] ?? '';
@@ -382,8 +386,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             next_in_series = ?,
             mal_id = ?,
             anidb_id = ?,
-            filler_tracking = ?,
-            is_adult = ?
+            filler_tracking = ?
             WHERE id = ?";
 
     $stmt = $pdo->prepare($sql);
@@ -425,7 +428,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $mal_id,
             $anidb_id,
             $filler_tracking,
-            $is_adult,
             $id
         ]);
 
@@ -437,11 +439,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // o dil Katalog ise NULL, Kisisel ise POST degeri ('' = bilincli
         // silindi). NULL yazmak o dili Katalog modunda birakir.
         ua_set_state($pdo, current_user_id(), $id, [
-            'watch_status'     => $watch_status,
-            'watched_episodes' => $watched_episodes,
-            'notes'            => $notes,
-            'user_synopsis'    => $user_synopsis,
-            'user_synopsis_en' => $user_synopsis_en,
+            'watch_status'      => $watch_status,
+            'watched_episodes'  => $watched_episodes,
+            'notes'             => $notes,
+            'user_synopsis'     => $user_synopsis,
+            'user_synopsis_en'  => $user_synopsis_en,
+            'watch_start_date'  => $watch_start_date,
+            'watch_finish_date' => $watch_finish_date,
         ]);
 
         // UPDATE basarili - simdi guvenle eski resmi sil. Yeni resim
@@ -813,20 +817,6 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                 </div>
             </div>
 
-            <?php // 1.1.2 - yetiskin (+18) icerik bayragi. Mevcut deger
-                  // ($anime['is_adult']) ile on-isaretli. Isaretli anime +18
-                  // damgalanir; gorunurluk ayar kapaliyken gizlenir. Gorsel
-                  // duzen filler-toggle sinifiyla paylasilir. ?>
-            <div class="form-group">
-                <label for="is_adult_chk"><?php echo htmlspecialchars(t('add_anime.label.is_adult'), ENT_QUOTES, 'UTF-8'); ?></label>
-                <div class="input-area">
-                    <label class="filler-toggle">
-                        <input type="checkbox" name="is_adult" id="is_adult_chk" value="1"<?php echo !empty($anime['is_adult']) ? ' checked' : ''; ?>>
-                        <span class="filler-toggle-hint"><?php echo htmlspecialchars(t('add_anime.hint.is_adult'), ENT_QUOTES, 'UTF-8'); ?></span>
-                    </label>
-                </div>
-            </div>
-
             <div class="form-group">
                 <label for="release_date"><?php echo htmlspecialchars(t('add_anime.label.release_date'), ENT_QUOTES, 'UTF-8'); ?></label>
                 <div class="input-area">
@@ -957,6 +947,24 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                     <div class="input-area">
                         <input type="number" name="watched_episodes" value="<?php echo htmlspecialchars($anime['watched_episodes']); ?>" min="0">
                     </div>
+                </div>
+            </div>
+
+            <?php /* 1.1.0: kisisel izleme tarihleri (elle giris, opsiyonel).
+                     Duruma bagli gizlenmez; her durumda gorunur. Bos = NULL. */ ?>
+            <div class="form-group">
+                <label><?php echo htmlspecialchars(t('add_anime.label.watch_dates'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <div class="input-area">
+                    <div class="watch-date-row">
+                        <label for="watch_start_date" class="watch-date-sublabel"><?php echo htmlspecialchars(t('add_anime.label.watch_start_date'), ENT_QUOTES, 'UTF-8'); ?></label>
+                        <input type="date" name="watch_start_date" id="watch_start_date" value="<?php echo htmlspecialchars($anime['watch_start_date'] ?? ''); ?>" onchange="checkWatchDateOrder()">
+                    </div>
+                    <div class="watch-date-row">
+                        <label for="watch_finish_date" class="watch-date-sublabel"><?php echo htmlspecialchars(t('add_anime.label.watch_finish_date'), ENT_QUOTES, 'UTF-8'); ?></label>
+                        <input type="date" name="watch_finish_date" id="watch_finish_date" value="<?php echo htmlspecialchars($anime['watch_finish_date'] ?? ''); ?>" onchange="checkWatchDateOrder()">
+                    </div>
+                    <small id="watch-date-warning" class="form-text" style="display:none; color:#d32f2f;"><?php echo htmlspecialchars(t('add_anime.warn.date_order'), ENT_QUOTES, 'UTF-8'); ?></small>
+                    <small class="form-text text-muted"><?php echo htmlspecialchars(t('add_anime.hint.watch_dates'), ENT_QUOTES, 'UTF-8'); ?></small>
                 </div>
             </div>
 

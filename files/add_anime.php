@@ -63,10 +63,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // 0.7 - filler bolum izleme gorunurluk bayragi (checkbox). Isaretli
     // degilse 0. Salt gorunurluk; kapali olmasi filler kayitlarini silmez.
     $filler_tracking = isset($_POST['filler_tracking']) ? 1 : 0;
-    // 1.1.2 - yetiskin (+18) icerik bayragi (checkbox). Isaretli degilse 0.
-    // Katalog meta verisi; gorunurluk ayri bir kullanici tercihiyle
-    // (show_adult_content) yonetilir, bu bayrak yalniz animeyi +18 damgalar.
-    $is_adult = isset($_POST['is_adult']) ? 1 : 0;
     $watched_episodes = $_POST['watched_episodes'] ?? 0;
     if ($watched_episodes === '') { $watched_episodes = 0; }
     $notes = $_POST['notes'];
@@ -83,6 +79,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if ($watch_status === '__unselected__') {
         $watch_status = null;
     }
+    // Kisisel izleme tarihleri (1.1.0, elle giris). Bos string -> NULL
+    // (DATE kolonu bos string kabul etmez).
+    $watch_start_date  = ($_POST['watch_start_date']  ?? '') !== '' ? $_POST['watch_start_date']  : null;
+    $watch_finish_date = ($_POST['watch_finish_date'] ?? '') !== '' ? $_POST['watch_finish_date'] : null;
     $next_episode_date = $_POST['next_episode_date'] ?? null;
     $anidb_link = $_POST['anidb_link'] ?? '';
     $mal_link = $_POST['mal_link'] ?? '';
@@ -255,7 +255,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // approval), so the historical default is preserved.
     $source = (MULTI_USER_MODE && can($pdo, 'moderate')) ? 'catalog' : 'local';
 
-    $sql = "INSERT INTO animes (title, title_english, alternative_titles, status, total_episodes, aired_episodes, image_path, next_episode_date, anidb_link, mal_link, anime_schedule_link, episode_interval, broadcast_day, broadcast_time, broadcast_timezone, synopsis_tr, synopsis_en, translation_status, release_date, end_date, series_name, media_type, next_in_series, mal_id, anidb_id, filler_tracking, is_adult, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO animes (title, title_english, alternative_titles, status, total_episodes, aired_episodes, image_path, next_episode_date, anidb_link, mal_link, anime_schedule_link, episode_interval, broadcast_day, broadcast_time, broadcast_timezone, synopsis_tr, synopsis_en, translation_status, release_date, end_date, series_name, media_type, next_in_series, mal_id, anidb_id, filler_tracking, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     $stmt = $pdo->prepare($sql);
 
@@ -291,7 +291,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $mal_id,
             $anidb_id,
             $filler_tracking,
-            $is_adult,
             $source
         ]);
     } catch (PDOException $e) {
@@ -398,9 +397,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // INSERT'ten cikarilan watched_episodes / notes / watch_status'un yeni
     // evi.
     ua_set_state($pdo, current_user_id(), $new_anime_id, [
-        'watch_status'     => $watch_status,
-        'watched_episodes' => $watched_episodes,
-        'notes'            => $notes,
+        'watch_status'      => $watch_status,
+        'watched_episodes'  => $watched_episodes,
+        'notes'             => $notes,
+        'watch_start_date'  => $watch_start_date,
+        'watch_finish_date' => $watch_finish_date,
     ]);
 
     // Turleri kaydet (kanonik taksonomi).
@@ -586,20 +587,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </div>
         </div>
 
-        <?php // 1.1.2 - yetiskin (+18) icerik bayragi (checkbox). Isaretlenen
-              // anime katalogta +18 damgalanir ve gorunurlugu ayar kapaliyken
-              // gizlenir. Gorsel duzen filler-toggle sinifiyla paylasilir
-              // (jenerik checkbox + hint). Standart form-group deseni. ?>
-        <div class="form-group">
-            <label for="is_adult_chk"><?php echo htmlspecialchars(t('add_anime.label.is_adult'), ENT_QUOTES, 'UTF-8'); ?></label>
-            <div class="input-area">
-                <label class="filler-toggle">
-                    <input type="checkbox" name="is_adult" id="is_adult_chk" value="1">
-                    <span class="filler-toggle-hint"><?php echo htmlspecialchars(t('add_anime.hint.is_adult'), ENT_QUOTES, 'UTF-8'); ?></span>
-                </label>
-            </div>
-        </div>
-
         <div class="form-group">
             <label for="release_date"><?php echo htmlspecialchars(t('add_anime.label.release_date'), ENT_QUOTES, 'UTF-8'); ?></label>
             <div class="input-area">
@@ -692,6 +679,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <div class="input-area">
                     <input type="number" name="watched_episodes" value="0" min="0">
                 </div>
+            </div>
+        </div>
+
+        <?php /* 1.1.0: kisisel izleme tarihleri (elle giris, opsiyonel). */ ?>
+        <div class="form-group">
+            <label><?php echo htmlspecialchars(t('add_anime.label.watch_dates'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <div class="input-area">
+                <div class="watch-date-row">
+                    <label for="watch_start_date" class="watch-date-sublabel"><?php echo htmlspecialchars(t('add_anime.label.watch_start_date'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <input type="date" name="watch_start_date" id="watch_start_date" value="" onchange="checkWatchDateOrder()">
+                </div>
+                <div class="watch-date-row">
+                    <label for="watch_finish_date" class="watch-date-sublabel"><?php echo htmlspecialchars(t('add_anime.label.watch_finish_date'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <input type="date" name="watch_finish_date" id="watch_finish_date" value="" onchange="checkWatchDateOrder()">
+                </div>
+                <small id="watch-date-warning" class="form-text" style="display:none; color:#d32f2f;"><?php echo htmlspecialchars(t('add_anime.warn.date_order'), ENT_QUOTES, 'UTF-8'); ?></small>
+                <small class="form-text text-muted"><?php echo htmlspecialchars(t('add_anime.hint.watch_dates'), ENT_QUOTES, 'UTF-8'); ?></small>
             </div>
         </div>
 

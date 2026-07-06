@@ -40,7 +40,7 @@ function getRelatedAnimes($pdo, $series_name, $exclude_id) {
         FROM animes a
         LEFT JOIN user_anime ua
                ON ua.anime_id = a.id AND ua.user_id = ?
-        WHERE a.series_name = ? AND a.id != ?" . adult_filter_where('a') . "
+        WHERE a.series_name = ? AND a.id != ?
         ORDER BY
             FIELD(a.media_type, 'TV', 'Film', 'OVA', 'Special', 'ONA'),
             a.release_date ASC,
@@ -63,8 +63,7 @@ function getChronologyMarkers($pdo, $anime_id) {
                a.title AS related_title,
                a.title_english AS related_title_english,
                ua.watch_status AS related_watch_status,
-               a.media_type AS related_media_type,
-               a.is_adult AS related_is_adult
+               a.media_type AS related_media_type
         FROM chronology_markers cm
         JOIN animes a ON a.id = cm.related_anime_id
         LEFT JOIN user_anime ua
@@ -105,7 +104,7 @@ function getActiveChronologyAlert($pdo, $anime_id, $watched_episodes) {
                ON ua.anime_id = a.id AND ua.user_id = ?
         WHERE cm.anime_id = ?
           AND cm.after_episode <= ?
-          AND COALESCE(ua.watch_status, 'PlanToWatch') != 'Watched'" . adult_filter_where('a') . "
+          AND COALESCE(ua.watch_status, 'PlanToWatch') != 'Watched'
         ORDER BY cm.after_episode ASC
         LIMIT 1
     ");

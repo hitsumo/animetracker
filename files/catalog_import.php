@@ -268,7 +268,6 @@ $updateSql = "
         broadcast_timezone = :broadcast_timezone,
         series_name = :series_name,
         media_type = :media_type,
-        is_adult = :is_adult,
         mal_id = :mal_id,
         anidb_id = :anidb_id,
         catalog_uuid = :catalog_uuid,
@@ -315,7 +314,7 @@ $insertSql = "
         episode_interval, broadcast_day, broadcast_time, broadcast_timezone,
         synopsis_tr, synopsis_en, translation_status, release_date,
         series_name, media_type, next_in_series,
-        mal_id, anidb_id, catalog_uuid, source, title_english, is_adult
+        mal_id, anidb_id, catalog_uuid, source, title_english
     ) VALUES (
         :title, :alternative_titles, :status, :total_episodes, :aired_episodes,
         :image_path,
@@ -324,7 +323,7 @@ $insertSql = "
         :episode_interval, :broadcast_day, :broadcast_time, :broadcast_timezone,
         :synopsis_tr, :synopsis_en, :translation_status, :release_date,
         :series_name, :media_type, NULL,
-        :mal_id, :anidb_id, :catalog_uuid, 'catalog', :title_english, :is_adult
+        :mal_id, :anidb_id, :catalog_uuid, 'catalog', :title_english
     )
 ";
 $insertStmt = $pdo->prepare($insertSql);
@@ -393,9 +392,6 @@ try {
             ':broadcast_timezone'  => $ca['broadcast_timezone']  ?? 'Asia/Tokyo',
             ':series_name'         => $ca['series_name']         ?? null,
             ':media_type'          => $ca['media_type']          ?? null,
-            // 1.1.2 - yetiskin bayragi. Eski/alansiz katalog JSON'i is_adult
-            // tasimayabilir; eksikse 0 (yetiskin degil) - geriye uyumlu.
-            ':is_adult'            => !empty($ca['is_adult']) ? 1 : 0,
             ':mal_id'              => !empty($ca['mal_id'])      ? (int)$ca['mal_id']   : null,
             ':anidb_id'            => !empty($ca['anidb_id'])    ? (int)$ca['anidb_id'] : null,
             ':catalog_uuid'        => $ca['catalog_uuid']        ?? null,

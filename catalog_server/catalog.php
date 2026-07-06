@@ -121,7 +121,6 @@ try {
             mal_id,
             anidb_id,
             catalog_uuid,
-            is_adult,
             CASE
                 WHEN image_path IS NOT NULL AND image_path != ''
                 THEN SUBSTRING_INDEX(image_path, '/', -1)

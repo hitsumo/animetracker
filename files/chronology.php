@@ -27,10 +27,6 @@ lang_init($pdo);
 // applies to the parent and related anime titles on this page.
 title_pref_init($pdo);
 
-// Adult-content visibility preference (1.1.2). Read here so the +18 gate
-// below and the related-node masking use the current viewer's choice.
-adult_pref_init($pdo);
-
 $id = (int)($_GET['id'] ?? 0);
 if ($id <= 0) {
     header('Location: index.php');
@@ -44,13 +40,6 @@ $anime = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$anime) {
     header('Location: index.php');
-    exit;
-}
-
-// 1.1.2 - yetiskin (+18) kapisi: ana anime +18 damgaliysa ve tercih kapaliysa
-// detay sayfasina yonlendir; orada notr uyari gosterilir (sizinti/404 yok).
-if (!empty($anime['is_adult']) && !show_adult_content()) {
-    header('Location: anime_details.php?id=' . $id);
     exit;
 }
 
@@ -83,9 +72,6 @@ $timeline = [];
 $prevEnd = 0; // Onceki aralik sonu
 
 foreach ($markers as $m) {
-    // 1.1.2 - +18 ara dugumun basligini notr yer tutucuyla maskele (yapi
-    // korunur, baslik sizmaz). Tercih acikken degismeden gecer.
-    $m = adult_mask_related($m, 'related_is_adult', 'related_title', 'related_title_english');
     $rangeStart = $prevEnd + 1;
     $rangeEnd = (int)$m['after_episode'];
 

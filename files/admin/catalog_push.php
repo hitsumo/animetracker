@@ -88,7 +88,7 @@ if (!function_exists('catalog_push_to_server')) {
                        synopsis_tr, synopsis_en, translation_status, release_date, end_date,
                        anidb_link, mal_link, anime_schedule_link,
                        episode_interval, broadcast_day, broadcast_time, broadcast_timezone,
-                       series_name, media_type, is_adult,
+                       series_name, media_type,
                        mal_id, anidb_id, catalog_uuid,
                        image_path
                 FROM animes

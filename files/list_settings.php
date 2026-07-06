@@ -45,10 +45,6 @@ $canAdmin    = can($pdo, 'admin');
 // section below can reflect it.
 title_pref_init($pdo);
 
-// Adult-content preference (1.1.2) - read current state so the toggle
-// section below reflects it (show_adult_content()).
-adult_pref_init($pdo);
-
 // Mevcut surumu settings tablosundan al. Bu deger migration_manager tarafindan
 // her sayfa yuklemesinde guncel tutuluyor. "Guncelleme Kontrolu" bolumunde
 // kullaniciya hangi surumde oldugu gosterilecek.
@@ -1026,26 +1022,6 @@ if (isset($_POST['clear'])) {
                     </label>
                     <noscript>
                         <button type="submit" class="settings-button"><?php echo htmlspecialchars(t('list_settings.title_lang.save'), ENT_QUOTES, 'UTF-8'); ?></button>
-                    </noscript>
-                </form>
-            </div>
-
-            <?php // 1.1.2 - yetiskin (+18) icerik gorunurlugu. Varsayilan kapali;
-                  // acilinca +18 damgali animeler listelerde/aramada/kesifte gorunur.
-                  // Kisi bazli tercih (user_pref show_adult_content); title_lang
-                  // toggle deseninin aynisi, set_adult_pref.php'ye POST eder. ?>
-            <div class="settings-section">
-                <h3><?php echo htmlspecialchars(t('list_settings.section.adult'), ENT_QUOTES, 'UTF-8'); ?></h3>
-                <p><?php echo htmlspecialchars(t('list_settings.section.adult.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
-                <form method="post" action="set_adult_pref.php">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
-                    <input type="hidden" name="enabled" value="0">
-                    <label class="title-lang-toggle">
-                        <input type="checkbox" name="enabled" value="1"<?php echo show_adult_content() ? ' checked' : ''; ?> onchange="this.form.submit()">
-                        <?php echo htmlspecialchars(t('list_settings.adult.checkbox'), ENT_QUOTES, 'UTF-8'); ?>
-                    </label>
-                    <noscript>
-                        <button type="submit" class="settings-button"><?php echo htmlspecialchars(t('list_settings.adult.save'), ENT_QUOTES, 'UTF-8'); ?></button>
                     </noscript>
                 </form>
             </div>

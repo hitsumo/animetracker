@@ -24,10 +24,6 @@ lang_init($pdo);
 // applies to the chain titles below.
 title_pref_init($pdo);
 
-// Adult-content visibility preference (1.1.2). Read here so the +18 entry
-// gate and the chain-node masking below use the current viewer's choice.
-adult_pref_init($pdo);
-
 $id = (int)($_GET['id'] ?? 0);
 if ($id <= 0) {
     header('Location: index.php');
@@ -65,7 +61,7 @@ function getSeriesChain($pdo, $start_id) {
                    COALESCE(ua.watched_episodes, 0) AS watched_episodes,
                    ua.watch_status,
                    a.status, a.image_path,
-                   a.release_date, a.next_in_series, a.series_name, a.is_adult
+                   a.release_date, a.next_in_series, a.series_name
             FROM animes a
             LEFT JOIN user_anime ua
                    ON ua.anime_id = a.id AND ua.user_id = ?
@@ -87,20 +83,6 @@ $chain = getSeriesChain($pdo, $startId);
 if (empty($chain)) {
     header('Location: anime_details.php?id=' . $id);
     exit;
-}
-
-// 1.1.2 - yetiskin (+18) isleme. (a) Giris animesi ($id) +18 damgali ve tercih
-// kapaliysa detaya yonlendir (orada notr uyari); (b) zincirdeki diger +18
-// dugumlerin basligi notr yer tutucuyla maskelenir (yapi korunur, baslik
-// sizmaz). Maskeleme $seriesName'den ONCE yapilir ki +18 baslik sayfa basligina
-// (title) sizmasin. Tercih acikken hicbiri degismez.
-foreach ($chain as $ci => $cnode) {
-    if ((int)$cnode['id'] === (int)$id
-        && !empty($cnode['is_adult']) && !show_adult_content()) {
-        header('Location: anime_details.php?id=' . $id);
-        exit;
-    }
-    $chain[$ci] = adult_mask_related($cnode, 'is_adult', 'title', 'title_english');
 }
 
 // Series name from first item in chain
