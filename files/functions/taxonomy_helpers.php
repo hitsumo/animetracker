@@ -31,7 +31,7 @@
  * dropdown in index.php.
  */
 function getAllGenres($pdo) {
-    $stmt = $pdo->query("SELECT id, name, name_en FROM genres ORDER BY name ASC");
+    $stmt = $pdo->query("SELECT id, name, name_en, is_adult FROM genres ORDER BY name ASC");
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
@@ -42,7 +42,7 @@ function getAllGenres($pdo) {
  */
 function getAnimeGenres($pdo, $anime_id) {
     $stmt = $pdo->prepare(
-        "SELECT g.id, g.name, g.name_en
+        "SELECT g.id, g.name, g.name_en, g.is_adult
          FROM genres g
          INNER JOIN anime_genres ag ON ag.genre_id = g.id
          WHERE ag.anime_id = ?
@@ -205,7 +205,7 @@ function getAnimeGenresAsCsv($pdo, $anime_id) {
  * the sentence list in recommendations.php.
  */
 function getAllTags($pdo) {
-    $stmt = $pdo->query("SELECT id, name, name_en FROM tags ORDER BY name ASC");
+    $stmt = $pdo->query("SELECT id, name, name_en, is_adult FROM tags ORDER BY name ASC");
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
@@ -216,7 +216,7 @@ function getAllTags($pdo) {
  */
 function getAnimeTags($pdo, $anime_id) {
     $stmt = $pdo->prepare(
-        "SELECT t.id, t.name, t.name_en
+        "SELECT t.id, t.name, t.name_en, t.is_adult
          FROM tags t
          INNER JOIN anime_tags at ON at.tag_id = t.id
          WHERE at.anime_id = ?

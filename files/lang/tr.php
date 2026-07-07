@@ -200,6 +200,10 @@ return [
 
     // Error path (anime ID not in DB)
     'anime_details.error.not_found'      => 'Anime bulunamadı.',
+    // 1.1.2 - yetiskin (+18) icerik notr gizleme uyarisi (detay sayfasi kapisi)
+    'anime_details.adult.hidden'         => 'Bu içerik gizli. Görmek için Liste Ayarları\'ndan "Yetişkin içeriği göster" seçeneğini açabilirsiniz.',
+    // 1.1.2 - sirali iliskilerde (kronoloji/seri) +18 dugum icin notr yer tutucu baslik
+    'adult.hidden_node_title'            => 'Gizli içerik',
 
     // -----------------------------------------------------------------
     // add_anime.php - new anime entry form
@@ -825,6 +829,12 @@ return [
     'list_settings.section.title_lang.desc'  => 'Anime başlıklarının İngilizce karşılığı varsa, liste ve detay sayfalarında Romaji başlık yerine İngilizce başlığı göster. Bu tercih arayüz dilinden bağımsızdır.',
     'list_settings.title_lang.checkbox'      => 'İngilizce başlıkları göster',
     'list_settings.title_lang.save'          => 'Kaydet',
+
+    // 1.1.2 - yetiskin (+18) icerik gorunurluk toggle (list_settings)
+    'list_settings.section.adult'            => 'Yetişkin İçerik',
+    'list_settings.section.adult.desc'       => 'Varsayılan olarak kapalıdır. Açılırsa +18 işaretli animeler liste, arama, öneri ve istatistiklerde görünür. Bu tercih yalnızca sizi etkiler.',
+    'list_settings.adult.checkbox'           => 'Yetişkin içeriği göster',
+    'list_settings.adult.save'               => 'Kaydet',
     'list_settings.section.genres'           => 'Tür Yönetimi',
     'list_settings.section.genres.desc'      => 'Yanlış yazılan veya kullanılmayan türleri yönetin.',
     'list_settings.btn.manage_genres'        => 'Türleri Yönet',
@@ -884,6 +894,7 @@ Hemen guncellemek ister misiniz?',
     'manage_tags.th.tag'                     => 'Cümle',
     'manage_tags.th.usage'                   => 'Kullanım',
     'manage_tags.th.rename'                  => 'Yeniden Yaz',
+    'manage_tags.adult.label'                => '+18',
     'manage_tags.th.delete'                  => 'Sil',
     'manage_tags.usage_suffix'               => 'anime',
     'manage_tags.empty'                      => 'Henüz cümle yok. Yukarıdaki formdan ilk cümleni ekleyebilirsin.',
@@ -909,6 +920,7 @@ Hemen guncellemek ister misiniz?',
     'manage_genres.th.name_en'               => 'İngilizce Adı',
     'manage_genres.ph.name_en'               => 'İngilizce adı',
     'manage_genres.btn.save_en'              => 'Kaydet',
+    'manage_genres.adult.label'              => '+18',
     'manage_genres.th.action'                => 'İşlem',
     'manage_genres.confirm_delete'           => 'Bu türü silmek istediğinize emin misiniz? Bu türü kullanan animelerden de otomatik olarak kaldırılacaktır.',
     'manage_genres.btn.delete'               => 'Sil',
@@ -943,6 +955,10 @@ Hemen guncellemek ister misiniz?',
     // add_anime.php / edit_anime.php - filler izleme toggle (0.7)
     'add_anime.label.filler_tracking'     => 'Filler bölüm izleme:',
     'add_anime.hint.filler_tracking'  => 'Bölüm bazında dolgu/canon işaretlemeyi etkinleştirir (sonradan da açıp kapatabilirsiniz).',
+
+    // add_anime.php / edit_anime.php - yetiskin (+18) icerik bayragi (1.1.2)
+    'add_anime.label.is_adult'     => '+18 / Yetişkin içerik:',
+    'add_anime.hint.is_adult'  => 'İşaretlenirse bu anime varsayılan olarak gizlenir; göstermek için Liste Ayarları\'ndan "Yetişkin içeriği göster" seçeneğini açın.',
 
 
     // Filler import (AnimeFillerList) - 0.7

@@ -46,8 +46,11 @@ if (isset($_POST['save_genre_en'])) {
     if (mb_strlen($name_en) > 50) {
         $name_en = mb_substr($name_en, 0, 50);
     }
-    $stmt = $pdo->prepare("UPDATE genres SET name_en = ? WHERE id = ?");
-    $stmt->execute([$name_en !== '' ? $name_en : null, $genre_id]);
+    // 1.1.3: adult flag saved from the same row form. Checkbox present
+    // means 1, absent means 0.
+    $is_adult = isset($_POST['is_adult']) ? 1 : 0;
+    $stmt = $pdo->prepare("UPDATE genres SET name_en = ?, is_adult = ? WHERE id = ?");
+    $stmt->execute([$name_en !== '' ? $name_en : null, $is_adult, $genre_id]);
     header("Location: manage_genres.php");
     exit();
 }
@@ -107,6 +110,11 @@ $genres = getAllGenres($pdo);
                         <input type="text" name="name_en" maxlength="50"
                                value="<?php echo htmlspecialchars($genre['name_en'] ?? ''); ?>"
                                placeholder="<?php echo htmlspecialchars(t('manage_genres.ph.name_en'), ENT_QUOTES, 'UTF-8'); ?>">
+                        <label style="margin: 0 6px; white-space: nowrap;">
+                            <input type="checkbox" name="is_adult" value="1"
+                                   <?php echo !empty($genre['is_adult']) ? 'checked' : ''; ?>>
+                            <?php echo htmlspecialchars(t('manage_genres.adult.label'), ENT_QUOTES, 'UTF-8'); ?>
+                        </label>
                         <button type="submit" name="save_genre_en" class="add-button">
                             <i class="fas fa-save"></i> <?php echo htmlspecialchars(t('manage_genres.btn.save_en'), ENT_QUOTES, 'UTF-8'); ?>
                         </button>

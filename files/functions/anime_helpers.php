@@ -391,3 +391,155 @@ function display_title($anime) {
     }
     return $anime['title'] ?? '';
 }
+
+/**
+ * Adult-content visibility preference (1.1.2).
+ *
+ * Anime can be flagged 18+ at the catalog level (animes.is_adult). Whether
+ * a viewer SEES those rows is a per-user preference stored in the user_pref
+ * table under the key show_adult_content ('1' = show, '0'/absent = hide).
+ * The default is HIDE: a viewer who has never opted in never sees adult
+ * rows, which also protects a shared screen. This mirrors the runtime-key
+ * family (display_language, display_title_english) so no migration is
+ * needed for the preference itself.
+ *
+ * The helpers below follow the same load/report shape as the English-title
+ * preference above:
+ *   adult_pref_init($pdo)   - read the setting once into a static cache.
+ *   show_adult_content()    - report the cached preference (false until
+ *                             init is called, so a page that forgets to
+ *                             init hides adult rows - least surprise, and
+ *                             the safe default here).
+ *   adult_filter_where()    - build the SQL fragment that hides adult rows
+ *                             when the preference is off.
+ */
+
+/**
+ * Internal cache for the adult-content preference. Pulled into its own
+ * accessor so init/report share one static without re-implementing it.
+ *
+ * @param bool|null $write  When non-null, replaces the cached value.
+ * @return bool
+ */
+function _adult_pref_cache($write = null) {
+    static $enabled = false;
+    if ($write !== null) {
+        $enabled = (bool)$write;
+    }
+    return $enabled;
+}
+
+/**
+ * Read show_adult_content from user_pref into the static cache.
+ *
+ * Call once at the top of any page that lists or counts anime, right
+ * after lang_init($pdo). Absent key defaults to '0' (hide), so a brand
+ * new user starts with adult content hidden.
+ *
+ * @param PDO $pdo
+ * @return void
+ */
+function adult_pref_init($pdo) {
+    // show_adult_content is a per-user preference (user_pref), read for the
+    // current user (id 1 when MULTI_USER_MODE is off).
+    _adult_pref_cache(get_user_pref($pdo, current_user_id(), 'show_adult_content', '0') === '1');
+}
+
+/**
+ * Report whether adult content is currently shown.
+ *
+ * Returns false if adult_pref_init() has not run this request, which keeps
+ * pages that have not opted in hiding adult rows (the safe default).
+ *
+ * @return bool
+ */
+function show_adult_content() {
+    return _adult_pref_cache();
+}
+
+/**
+ * Build the WHERE fragment that hides adult-flagged rows.
+ *
+ * When the viewer has opted in (show_adult_content() is true) this returns
+ * an empty string, so no filtering is applied. Otherwise it returns a
+ * fragment to append to an existing WHERE clause, e.g.:
+ *
+ *   $sql = "SELECT ... FROM animes a WHERE 1=1" . adult_filter_where('a');
+ *
+ * The comparison value is a literal (0) and $alias is caller-controlled
+ * (never user input), so there is no bound parameter and no injection
+ * surface. Keep passing a plain table alias.
+ *
+ * @param string $alias  Table alias for the animes table (default 'a').
+ * @return string
+ */
+function adult_filter_where($alias = 'a') {
+    if (show_adult_content()) {
+        return '';
+    }
+    return " AND {$alias}.is_adult = 0";
+}
+
+/**
+ * Mask an adult-flagged related row for neutral display (1.1.2).
+ *
+ * Used by ORDERED relation surfaces (chronology timeline, series chain)
+ * where a +18 node must keep its structural place but not reveal its title
+ * while the viewer has adult content hidden. Flat lists that can safely drop
+ * a row use adult_filter_where() in SQL instead; this helper is for rows that
+ * must stay in place.
+ *
+ * When show_adult_content() is true, or the row is not adult-flagged, the row
+ * is returned unchanged. Otherwise the title is replaced with a neutral label
+ * and the English title (if present) is cleared so display_title() cannot
+ * reveal it either. The row's id/link is left intact: it points at the detail
+ * page, which is itself gated, so following it only shows the neutral notice.
+ *
+ * @param array  $row       The related row (returns a copy).
+ * @param string $flagKey   Key holding the is_adult flag (0/1).
+ * @param string $titleKey  Key holding the (Romaji) title to mask.
+ * @param string $enKey     Key holding the English title to clear.
+ * @return array
+ */
+function adult_mask_related(array $row, $flagKey, $titleKey, $enKey) {
+    if (show_adult_content() || empty($row[$flagKey])) {
+        return $row;
+    }
+    $row[$titleKey] = t('adult.hidden_node_title');
+    if (array_key_exists($enKey, $row)) {
+        $row[$enKey] = null;
+    }
+    return $row;
+}
+
+/**
+ * Filter an adult-flagged term list for display (1.1.3).
+ *
+ * Genres and tags (cumle) can be flagged 18+ (genres.is_adult /
+ * tags.is_adult). This is the PHP-array counterpart of adult_filter_where:
+ * used on DISPLAY surfaces that render a list of terms - the genre filter
+ * dropdown (index), the recommendation sentence picker (recommendations)
+ * and the genre badges on the detail page - to drop adult terms while the
+ * viewer has adult content hidden.
+ *
+ * Scope note (Method A): this hides only the TERM, not the anime. An anime
+ * whose own is_adult is 0 stays visible even if it carries an adult genre
+ * or tag; only that term is dropped from the list. Curation surfaces
+ * (add/edit, manage_genres, manage_tags) do NOT call this - a moderator
+ * must see every term in order to flag it.
+ *
+ * When show_adult_content() is true the list is returned unchanged. Rows
+ * missing the is_adult key are treated as not-adult (kept), so a caller
+ * that forgot to select the column never accidentally hides everything.
+ *
+ * @param array $terms  Rows each optionally carrying an is_adult flag.
+ * @return array        Re-indexed list with adult terms removed when off.
+ */
+function adult_filter_terms(array $terms) {
+    if (show_adult_content()) {
+        return $terms;
+    }
+    return array_values(array_filter($terms, function ($t) {
+        return empty($t['is_adult']);
+    }));
+}

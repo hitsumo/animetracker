@@ -87,8 +87,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (mb_strlen($new_name_en) > 150) {
                 $new_name_en = mb_substr($new_name_en, 0, 150);
             }
-            $stmt = $pdo->prepare("UPDATE tags SET name = ?, name_en = ? WHERE id = ?");
-            $stmt->execute([$new_name, $new_name_en !== '' ? $new_name_en : null, $tag_id]);
+            // 1.1.3: adult flag saved alongside the rename in the same form.
+            $new_is_adult = isset($_POST['is_adult']) ? 1 : 0;
+            $stmt = $pdo->prepare("UPDATE tags SET name = ?, name_en = ?, is_adult = ? WHERE id = ?");
+            $stmt->execute([$new_name, $new_name_en !== '' ? $new_name_en : null, $new_is_adult, $tag_id]);
             $message = t('manage_tags.msg.renamed');
             $messageType = 'success';
 
@@ -126,10 +128,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // can see which tags are actually attached to anime before deleting.
 // --------------------------------------------------------
 $stmt = $pdo->query(
-    "SELECT t.id, t.name, t.name_en, COUNT(at.anime_id) AS usage_count
+    "SELECT t.id, t.name, t.name_en, t.is_adult, COUNT(at.anime_id) AS usage_count
      FROM tags t
      LEFT JOIN anime_tags at ON at.tag_id = t.id
-     GROUP BY t.id, t.name, t.name_en
+     GROUP BY t.id, t.name, t.name_en, t.is_adult
      ORDER BY t.name ASC"
 );
 $tags = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -203,6 +205,11 @@ $tags = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                value="<?php echo htmlspecialchars($tag['name_en'] ?? ''); ?>"
                                placeholder="<?php echo htmlspecialchars(t('manage_tags.ph.name_en'), ENT_QUOTES, 'UTF-8'); ?>"
                                style="padding: 4px; width: 150px;">
+                        <label style="white-space: nowrap; align-self: center;">
+                            <input type="checkbox" name="is_adult" value="1"
+                                   <?php echo !empty($tag['is_adult']) ? 'checked' : ''; ?>>
+                            <?php echo htmlspecialchars(t('manage_tags.adult.label'), ENT_QUOTES, 'UTF-8'); ?>
+                        </label>
                         <button type="submit" class="edit-button" style="padding: 4px 10px;">
                             <i class="fas fa-save"></i>
                         </button>

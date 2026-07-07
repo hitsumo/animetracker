@@ -121,6 +121,7 @@ try {
             mal_id,
             anidb_id,
             catalog_uuid,
+            is_adult,
             CASE
                 WHEN image_path IS NOT NULL AND image_path != ''
                 THEN SUBSTRING_INDEX(image_path, '/', -1)
@@ -153,15 +154,21 @@ try {
     // tag list into objects. Old clients ignore the extra key; new
     // clients look the name up. Only non-empty name_en values are sent.
     $tagRows = $pdo->query("
-        SELECT id, name, name_en FROM tags ORDER BY name
+        SELECT id, name, name_en, is_adult FROM tags ORDER BY name
     ")->fetchAll(PDO::FETCH_ASSOC);
 
     $tagById = [];
     $tagNameEn = [];
+    $tagIsAdult = [];
     foreach ($tagRows as $t) {
         $tagById[(int)$t['id']] = $t['name'];
         if (isset($t['name_en']) && $t['name_en'] !== '') {
             $tagNameEn[$t['name']] = $t['name_en'];
+        }
+        // 1.1.3: adult-flag map, keyed by name like tag_name_en. Only
+        // adult (1) entries travel; absence means not-adult / unknown.
+        if (!empty($t['is_adult'])) {
+            $tagIsAdult[$t['name']] = 1;
         }
     }
 
@@ -223,12 +230,18 @@ try {
     // Build the genre name_en translation map from the master genres
     // table (all genres, not just linked ones). Only non-empty values.
     $genreNameEn = [];
+    $genreIsAdult = [];
     $genreNameEnRows = $pdo->query("
-        SELECT name, name_en FROM genres ORDER BY name
+        SELECT name, name_en, is_adult FROM genres ORDER BY name
     ")->fetchAll(PDO::FETCH_ASSOC);
     foreach ($genreNameEnRows as $row) {
         if (isset($row['name_en']) && $row['name_en'] !== '') {
             $genreNameEn[$row['name']] = $row['name_en'];
+        }
+        // 1.1.3: adult-flag map, mirror of genre_name_en. Only adult (1)
+        // entries travel; absence means not-adult / unknown.
+        if (!empty($row['is_adult'])) {
+            $genreIsAdult[$row['name']] = 1;
         }
     }
 
@@ -245,6 +258,10 @@ try {
         // Old clients ignore these; new clients use them to fill name_en.
         'tag_name_en'   => $tagNameEn,
         'genre_name_en' => $genreNameEn,
+        // 1.1.3: adult-flag maps for tags and genres, keyed by name.
+        // Only adult entries present. Old clients ignore these.
+        'tag_is_adult'   => $tagIsAdult,
+        'genre_is_adult' => $genreIsAdult,
     ];
 
     $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

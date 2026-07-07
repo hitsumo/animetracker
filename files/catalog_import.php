@@ -202,6 +202,10 @@ $catalogTags    = $payload['tags'] ?? []; // global sentence library
 // name; it only fills/overwrites when it actually sends one).
 $catalogTagNameEn   = $payload['tag_name_en']   ?? [];
 $catalogGenreNameEn = $payload['genre_name_en'] ?? [];
+// 1.1.3: adult-flag maps (keyed by name, only adult entries present).
+// Absent on old payloads -> empty -> no local flag is ever cleared.
+$catalogTagIsAdult   = $payload['tag_is_adult']   ?? [];
+$catalogGenreIsAdult = $payload['genre_is_adult'] ?? [];
 if (!is_array($catalogTagNameEn))   $catalogTagNameEn   = [];
 if (!is_array($catalogGenreNameEn)) $catalogGenreNameEn = [];
 
@@ -268,6 +272,7 @@ $updateSql = "
         broadcast_timezone = :broadcast_timezone,
         series_name = :series_name,
         media_type = :media_type,
+        is_adult = :is_adult,
         mal_id = :mal_id,
         anidb_id = :anidb_id,
         catalog_uuid = :catalog_uuid,
@@ -314,7 +319,7 @@ $insertSql = "
         episode_interval, broadcast_day, broadcast_time, broadcast_timezone,
         synopsis_tr, synopsis_en, translation_status, release_date,
         series_name, media_type, next_in_series,
-        mal_id, anidb_id, catalog_uuid, source, title_english
+        mal_id, anidb_id, catalog_uuid, source, title_english, is_adult
     ) VALUES (
         :title, :alternative_titles, :status, :total_episodes, :aired_episodes,
         :image_path,
@@ -323,7 +328,7 @@ $insertSql = "
         :episode_interval, :broadcast_day, :broadcast_time, :broadcast_timezone,
         :synopsis_tr, :synopsis_en, :translation_status, :release_date,
         :series_name, :media_type, NULL,
-        :mal_id, :anidb_id, :catalog_uuid, 'catalog', :title_english
+        :mal_id, :anidb_id, :catalog_uuid, 'catalog', :title_english, :is_adult
     )
 ";
 $insertStmt = $pdo->prepare($insertSql);
@@ -392,6 +397,9 @@ try {
             ':broadcast_timezone'  => $ca['broadcast_timezone']  ?? 'Asia/Tokyo',
             ':series_name'         => $ca['series_name']         ?? null,
             ':media_type'          => $ca['media_type']          ?? null,
+            // 1.1.2 - yetiskin bayragi. Eski/alansiz katalog JSON'i is_adult
+            // tasimayabilir; eksikse 0 (yetiskin degil) - geriye uyumlu.
+            ':is_adult'            => !empty($ca['is_adult']) ? 1 : 0,
             ':mal_id'              => !empty($ca['mal_id'])      ? (int)$ca['mal_id']   : null,
             ':anidb_id'            => !empty($ca['anidb_id'])    ? (int)$ca['anidb_id'] : null,
             ':catalog_uuid'        => $ca['catalog_uuid']        ?? null,
@@ -565,8 +573,9 @@ try {
     // collide with the outer transaction we are already in. The tags
     // handler below uses the same inline pattern for the same reason.
     $findGenreStmt        = $pdo->prepare("SELECT id FROM genres WHERE name = ? LIMIT 1");
-    $insertGenreStmt      = $pdo->prepare("INSERT INTO genres (name, name_en) VALUES (?, ?)");
+    $insertGenreStmt      = $pdo->prepare("INSERT INTO genres (name, name_en, is_adult) VALUES (?, ?, ?)");
     $updateGenreEnStmt    = $pdo->prepare("UPDATE genres SET name_en = ? WHERE id = ?");
+    $updateGenreAdultStmt = $pdo->prepare("UPDATE genres SET is_adult = 1 WHERE id = ?");
     $deleteGenreLinkStmt  = $pdo->prepare("DELETE FROM anime_genres WHERE anime_id = ?");
     $insertGenreLinkStmt  = $pdo->prepare("INSERT INTO anime_genres (anime_id, genre_id) VALUES (?, ?)");
 
@@ -574,7 +583,13 @@ try {
     // a non-empty English name (it overwrites the local value). A missing
     // or empty name_en is NOT sent down as NULL - we leave the local value
     // alone, so a sync never erases an English name the user typed.
-    $resolveGenreId = function($name) use ($findGenreStmt, $insertGenreStmt, $updateGenreEnStmt, $pdo, $catalogGenreNameEn) {
+    //
+    // 1.1.3: is_adult handling. genre_is_adult carries only adult (1)
+    // genres. We PROMOTE a local genre to adult when the catalog flags it,
+    // but never demote on absence - an old payload has no map and must not
+    // clear local flags. Fail-safe (once adult, stays adult until cleared
+    // locally) and consistent with the never-erase name_en rule above.
+    $resolveGenreId = function($name) use ($findGenreStmt, $insertGenreStmt, $updateGenreEnStmt, $updateGenreAdultStmt, $pdo, $catalogGenreNameEn, $catalogGenreIsAdult) {
         $name = trim((string)$name);
         if ($name === '') return 0;
         if (mb_strlen($name) > 50) {
@@ -584,6 +599,7 @@ try {
         if ($nameEn !== '' && mb_strlen($nameEn) > 50) {
             $nameEn = mb_substr($nameEn, 0, 50);
         }
+        $isAdult = !empty($catalogGenreIsAdult[$name]) ? 1 : 0;
         $findGenreStmt->execute([$name]);
         $id = $findGenreStmt->fetchColumn();
         $findGenreStmt->closeCursor();
@@ -593,10 +609,14 @@ try {
             if ($nameEn !== '') {
                 $updateGenreEnStmt->execute([$nameEn, $id]);
             }
+            // Promote to adult when the catalog flags it; never demote.
+            if ($isAdult === 1) {
+                $updateGenreAdultStmt->execute([$id]);
+            }
             return $id;
         }
         try {
-            $insertGenreStmt->execute([$name, $nameEn !== '' ? $nameEn : null]);
+            $insertGenreStmt->execute([$name, $nameEn !== '' ? $nameEn : null, $isAdult]);
             return (int)$pdo->lastInsertId();
         } catch (PDOException $e) {
             if ($e->getCode() === '23000') {
@@ -607,6 +627,9 @@ try {
                     $existingId = (int)$existingId;
                     if ($nameEn !== '') {
                         $updateGenreEnStmt->execute([$nameEn, $existingId]);
+                    }
+                    if ($isAdult === 1) {
+                        $updateGenreAdultStmt->execute([$existingId]);
                     }
                     return $existingId;
                 }
@@ -659,15 +682,19 @@ try {
     // useful so manage_tags.php shows the same library as the
     // server).
     $findTagStmt    = $pdo->prepare("SELECT id FROM tags WHERE name = ? LIMIT 1");
-    $insertTagStmt  = $pdo->prepare("INSERT INTO tags (name, name_en) VALUES (?, ?)");
+    $insertTagStmt  = $pdo->prepare("INSERT INTO tags (name, name_en, is_adult) VALUES (?, ?, ?)");
     $updateTagEnStmt = $pdo->prepare("UPDATE tags SET name_en = ? WHERE id = ?");
+    $updateTagAdultStmt = $pdo->prepare("UPDATE tags SET is_adult = 1 WHERE id = ?");
     $deleteLinkStmt = $pdo->prepare("DELETE FROM anime_tags WHERE anime_id = ?");
     $insertLinkStmt = $pdo->prepare("INSERT INTO anime_tags (anime_id, tag_id) VALUES (?, ?)");
 
     // 0.7.7: same name_en rule as genres - catalog overwrites only when it
     // sends a non-empty English name; an absent/empty value leaves the
     // local name_en untouched.
-    $resolveTagId = function($name) use ($findTagStmt, $insertTagStmt, $updateTagEnStmt, $pdo, $catalogTagNameEn) {
+    //
+    // 1.1.3: same is_adult rule as genres - tag_is_adult carries only
+    // adult (1) sentences; we promote locally, never demote on absence.
+    $resolveTagId = function($name) use ($findTagStmt, $insertTagStmt, $updateTagEnStmt, $updateTagAdultStmt, $pdo, $catalogTagNameEn, $catalogTagIsAdult) {
         $name = trim((string)$name);
         if ($name === '') return 0;
         if (mb_strlen($name) > 150) {
@@ -677,6 +704,7 @@ try {
         if ($nameEn !== '' && mb_strlen($nameEn) > 150) {
             $nameEn = mb_substr($nameEn, 0, 150);
         }
+        $isAdult = !empty($catalogTagIsAdult[$name]) ? 1 : 0;
         $findTagStmt->execute([$name]);
         $id = $findTagStmt->fetchColumn();
         $findTagStmt->closeCursor();
@@ -685,10 +713,13 @@ try {
             if ($nameEn !== '') {
                 $updateTagEnStmt->execute([$nameEn, $id]);
             }
+            if ($isAdult === 1) {
+                $updateTagAdultStmt->execute([$id]);
+            }
             return $id;
         }
         try {
-            $insertTagStmt->execute([$name, $nameEn !== '' ? $nameEn : null]);
+            $insertTagStmt->execute([$name, $nameEn !== '' ? $nameEn : null, $isAdult]);
             return (int)$pdo->lastInsertId();
         } catch (PDOException $e) {
             if ($e->getCode() === '23000') {
@@ -699,6 +730,9 @@ try {
                     $existingId = (int)$existingId;
                     if ($nameEn !== '') {
                         $updateTagEnStmt->execute([$nameEn, $existingId]);
+                    }
+                    if ($isAdult === 1) {
+                        $updateTagAdultStmt->execute([$existingId]);
                     }
                     return $existingId;
                 }

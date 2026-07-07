@@ -88,7 +88,7 @@ if (!function_exists('catalog_push_to_server')) {
                        synopsis_tr, synopsis_en, translation_status, release_date, end_date,
                        anidb_link, mal_link, anime_schedule_link,
                        episode_interval, broadcast_day, broadcast_time, broadcast_timezone,
-                       series_name, media_type,
+                       series_name, media_type, is_adult,
                        mal_id, anidb_id, catalog_uuid,
                        image_path
                 FROM animes
@@ -107,15 +107,21 @@ if (!function_exists('catalog_push_to_server')) {
 
             // Tags (recommendation sentences) + English-name map.
             $tagRows = $pdo->query("
-                SELECT id, name, name_en FROM tags ORDER BY name
+                SELECT id, name, name_en, is_adult FROM tags ORDER BY name
             ")->fetchAll(PDO::FETCH_ASSOC);
 
             $tagById = [];
             $tagNameEn = [];
+            $tagIsAdult = [];
             foreach ($tagRows as $t) {
                 $tagById[(int)$t['id']] = $t['name'];
                 if (isset($t['name_en']) && $t['name_en'] !== '') {
                     $tagNameEn[$t['name']] = $t['name_en'];
+                }
+                // 1.1.3: adult-flag map, keyed by name like tag_name_en.
+                // Only adult (1) entries travel; absence means not-adult.
+                if (!empty($t['is_adult'])) {
+                    $tagIsAdult[$t['name']] = 1;
                 }
             }
 
@@ -160,12 +166,18 @@ if (!function_exists('catalog_push_to_server')) {
 
             // Genre English-name map (all genres, mirror of catalog.php).
             $genreNameEn = [];
+            $genreIsAdult = [];
             $genreNameEnRows = $pdo->query("
-                SELECT name, name_en FROM genres ORDER BY name
+                SELECT name, name_en, is_adult FROM genres ORDER BY name
             ")->fetchAll(PDO::FETCH_ASSOC);
             foreach ($genreNameEnRows as $row) {
                 if (isset($row['name_en']) && $row['name_en'] !== '') {
                     $genreNameEn[$row['name']] = $row['name_en'];
+                }
+                // 1.1.3: adult-flag map, mirror of genre_name_en. Only
+                // adult (1) entries travel; absence means not-adult.
+                if (!empty($row['is_adult'])) {
+                    $genreIsAdult[$row['name']] = 1;
                 }
             }
 
@@ -178,6 +190,10 @@ if (!function_exists('catalog_push_to_server')) {
                 'tags'          => array_map(function ($t) { return $t['name']; }, $tagRows),
                 'tag_name_en'   => $tagNameEn,
                 'genre_name_en' => $genreNameEn,
+                // 1.1.3: adult-flag maps, keyed by name. Only adult
+                // entries present. Old receivers ignore these.
+                'tag_is_adult'   => $tagIsAdult,
+                'genre_is_adult' => $genreIsAdult,
             ];
             $body = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             if ($body === false) {

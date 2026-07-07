@@ -33,10 +33,18 @@ lang_init($pdo);
 // the row titles below.
 title_pref_init($pdo);
 
+// Adult-content visibility preference (1.1.2). When off (default) the
+// main list query below hides is_adult=1 rows via adult_filter_where().
+adult_pref_init($pdo);
+
 // Master genre list for the filter dropdown. Fetched via the helper
 // so the rest of the page does not have to know which table the data
 // lives in.
 $genres = getAllGenres($pdo);
+// 1.1.3: drop adult-flagged genres from the filter dropdown when adult
+// content is off (display-layer only; anime rows stay governed by
+// animes.is_adult). adult_pref_init() already ran above.
+$genres = adult_filter_terms($genres);
 
 // Delete operation - POST + CSRF token
 // GET kullanmiyoruz cunku (a) HTTP standartina aykiri, (b) tarayici pre-fetch
@@ -166,6 +174,13 @@ $select_from = "SELECT a.*,
 if (MULTI_USER_MODE) {
     $select_from .= " AND a.source = 'catalog'";
 }
+
+// 1.1.2 - yetiskin (+18) filtresi. select_from'a eklenir ki HER IKI sorgu dali
+// (varsayilan siralama ve asagidaki watched_episodes ozel dali) ayni filtreyi
+// alsin. Tercih kapaliyken (varsayilan) is_adult=1 animeler dislanir; acikken
+// helper bos string doner.
+$select_from .= adult_filter_where('a');
+
 $sql = $select_from;
 
 if ($search_query !== '') {
