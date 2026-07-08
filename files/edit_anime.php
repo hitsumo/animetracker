@@ -118,6 +118,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // 0.7 - filler bolum izleme gorunurluk bayragi (checkbox). Isaretli
     // degilse 0. Salt gorunurluk; kapatmak filler kayitlarini silmez.
     $filler_tracking = isset($_POST['filler_tracking']) ? 1 : 0;
+    // 1.1.2 - yetiskin (+18) icerik bayragi (checkbox). Isaretli degilse 0.
+    // Katalog meta verisi; gorunurluk ayri kullanici tercihiyle yonetilir.
+    $is_adult = isset($_POST['is_adult']) ? 1 : 0;
     $watched_episodes = $_POST['watched_episodes'] ?? 0;
     if ($watched_episodes === '') { $watched_episodes = 0; }
     $notes = $_POST['notes'];
@@ -386,7 +389,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             next_in_series = ?,
             mal_id = ?,
             anidb_id = ?,
-            filler_tracking = ?
+            filler_tracking = ?,
+            is_adult = ?
             WHERE id = ?";
 
     $stmt = $pdo->prepare($sql);
@@ -428,6 +432,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $mal_id,
             $anidb_id,
             $filler_tracking,
+            $is_adult,
             $id
         ]);
 
@@ -813,6 +818,20 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                     <label class="filler-toggle">
                         <input type="checkbox" name="filler_tracking" id="filler_tracking_chk" value="1"<?php echo !empty($anime['filler_tracking']) ? ' checked' : ''; ?>>
                         <span class="filler-toggle-hint"><?php echo htmlspecialchars(t('add_anime.hint.filler_tracking'), ENT_QUOTES, 'UTF-8'); ?></span>
+                    </label>
+                </div>
+            </div>
+
+            <?php // 1.1.2 - yetiskin (+18) icerik bayragi. Mevcut deger
+                  // ($anime['is_adult']) ile on-isaretli. Isaretli anime +18
+                  // damgalanir; gorunurluk ayar kapaliyken gizlenir. Gorsel
+                  // duzen filler-toggle sinifiyla paylasilir. ?>
+            <div class="form-group">
+                <label for="is_adult_chk"><?php echo htmlspecialchars(t('add_anime.label.is_adult'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <div class="input-area">
+                    <label class="filler-toggle">
+                        <input type="checkbox" name="is_adult" id="is_adult_chk" value="1"<?php echo !empty($anime['is_adult']) ? ' checked' : ''; ?>>
+                        <span class="filler-toggle-hint"><?php echo htmlspecialchars(t('add_anime.hint.is_adult'), ENT_QUOTES, 'UTF-8'); ?></span>
                     </label>
                 </div>
             </div>

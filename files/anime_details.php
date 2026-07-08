@@ -77,6 +77,8 @@ $anime['watched_episodes'] = $uaState['watched_episodes'];
 $anime['notes']            = $uaState['notes'];
 $anime['user_synopsis']    = $uaState['user_synopsis'];
 $anime['user_synopsis_en'] = $uaState['user_synopsis_en'];
+$anime['watch_start_date']  = $uaState['watch_start_date'];
+$anime['watch_finish_date'] = $uaState['watch_finish_date'];
 
 // Anime tamamlanmis mi kontrol et
 checkIfAnimeCompleted($pdo, $anime);
@@ -375,6 +377,20 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                         </span>
                     </span>
                 </div>
+
+                <?php /* 1.1.0: kisisel izleme tarihleri, sadece dolu ise gosterilir. */ ?>
+                <?php if (!empty($anime['watch_start_date'])): ?>
+                <div class="detail-row">
+                    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.watch_start_date'), ENT_QUOTES, 'UTF-8'); ?></span>
+                    <span class="detail-value"><?php echo htmlspecialchars($anime['watch_start_date']); ?></span>
+                </div>
+                <?php endif; ?>
+                <?php if (!empty($anime['watch_finish_date'])): ?>
+                <div class="detail-row">
+                    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.watch_finish_date'), ENT_QUOTES, 'UTF-8'); ?></span>
+                    <span class="detail-value"><?php echo htmlspecialchars($anime['watch_finish_date']); ?></span>
+                </div>
+                <?php endif; ?>
 
                 <!-- 0.6.1 - Duygu Etiketleri (single-user). Kullanici bu
                      animeye en fazla 3 duygu isareti koyabilir. Tikla =

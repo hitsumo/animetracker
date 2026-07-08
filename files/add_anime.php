@@ -63,6 +63,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // 0.7 - filler bolum izleme gorunurluk bayragi (checkbox). Isaretli
     // degilse 0. Salt gorunurluk; kapali olmasi filler kayitlarini silmez.
     $filler_tracking = isset($_POST['filler_tracking']) ? 1 : 0;
+    // 1.1.2 - yetiskin (+18) icerik bayragi (checkbox). Isaretli degilse 0.
+    // Katalog meta verisi; gorunurluk ayri bir kullanici tercihiyle
+    // (show_adult_content) yonetilir, bu bayrak yalniz animeyi +18 damgalar.
+    $is_adult = isset($_POST['is_adult']) ? 1 : 0;
     $watched_episodes = $_POST['watched_episodes'] ?? 0;
     if ($watched_episodes === '') { $watched_episodes = 0; }
     $notes = $_POST['notes'];
@@ -255,7 +259,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // approval), so the historical default is preserved.
     $source = (MULTI_USER_MODE && can($pdo, 'moderate')) ? 'catalog' : 'local';
 
-    $sql = "INSERT INTO animes (title, title_english, alternative_titles, status, total_episodes, aired_episodes, image_path, next_episode_date, anidb_link, mal_link, anime_schedule_link, episode_interval, broadcast_day, broadcast_time, broadcast_timezone, synopsis_tr, synopsis_en, translation_status, release_date, end_date, series_name, media_type, next_in_series, mal_id, anidb_id, filler_tracking, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO animes (title, title_english, alternative_titles, status, total_episodes, aired_episodes, image_path, next_episode_date, anidb_link, mal_link, anime_schedule_link, episode_interval, broadcast_day, broadcast_time, broadcast_timezone, synopsis_tr, synopsis_en, translation_status, release_date, end_date, series_name, media_type, next_in_series, mal_id, anidb_id, filler_tracking, is_adult, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     $stmt = $pdo->prepare($sql);
 
@@ -291,6 +295,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $mal_id,
             $anidb_id,
             $filler_tracking,
+            $is_adult,
             $source
         ]);
     } catch (PDOException $e) {
@@ -583,6 +588,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <label class="filler-toggle">
                     <input type="checkbox" name="filler_tracking" id="filler_tracking_chk" value="1">
                     <span class="filler-toggle-hint"><?php echo htmlspecialchars(t('add_anime.hint.filler_tracking'), ENT_QUOTES, 'UTF-8'); ?></span>
+                </label>
+            </div>
+        </div>
+
+        <?php // 1.1.2 - yetiskin (+18) icerik bayragi (checkbox). Isaretlenen
+              // anime katalogta +18 damgalanir ve gorunurlugu ayar kapaliyken
+              // gizlenir. Gorsel duzen filler-toggle sinifiyla paylasilir
+              // (jenerik checkbox + hint). Standart form-group deseni. ?>
+        <div class="form-group">
+            <label for="is_adult_chk"><?php echo htmlspecialchars(t('add_anime.label.is_adult'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <div class="input-area">
+                <label class="filler-toggle">
+                    <input type="checkbox" name="is_adult" id="is_adult_chk" value="1">
+                    <span class="filler-toggle-hint"><?php echo htmlspecialchars(t('add_anime.hint.is_adult'), ENT_QUOTES, 'UTF-8'); ?></span>
                 </label>
             </div>
         </div>

@@ -463,6 +463,8 @@ CREATE TABLE IF NOT EXISTS `user_anime` (
   `notes`            text    DEFAULT NULL,
   `user_synopsis`    text    DEFAULT NULL,
   `user_synopsis_en` text    DEFAULT NULL,
+  `watch_start_date`  date    DEFAULT NULL,
+  `watch_finish_date` date    DEFAULT NULL,
   `created_at`       timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at`       timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`user_id`, `anime_id`),
