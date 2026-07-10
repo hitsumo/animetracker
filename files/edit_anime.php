@@ -631,18 +631,6 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
             <a href="about.php" class="about-link"><?php echo htmlspecialchars(t('nav.about'), ENT_QUOTES, 'UTF-8'); ?></a>
             <?php // SECTION: Language switcher (snippet copy - see _lang_switcher_reference.php) ?>
             <?php echo auth_nav_links(); ?>
-            <div class="lang-switcher" role="group" aria-label="<?php echo htmlspecialchars(t('lang.aria_label'), ENT_QUOTES, 'UTF-8'); ?>">
-                <form action="set_language.php" method="post" class="lang-switch-form">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
-                    <input type="hidden" name="lang" value="tr">
-                    <button type="submit" class="lang-switch<?php echo current_lang() === 'tr' ? ' lang-switch-active' : ''; ?>"><?php echo htmlspecialchars(t('lang.tr_label'), ENT_QUOTES, 'UTF-8'); ?></button>
-                </form>
-                <form action="set_language.php" method="post" class="lang-switch-form">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
-                    <input type="hidden" name="lang" value="en">
-                    <button type="submit" class="lang-switch<?php echo current_lang() === 'en' ? ' lang-switch-active' : ''; ?>"><?php echo htmlspecialchars(t('lang.en_label'), ENT_QUOTES, 'UTF-8'); ?></button>
-                </form>
-            </div>
         </div>
         <div class="page-title">
             <?php echo htmlspecialchars(t('edit_anime.heading'), ENT_QUOTES, 'UTF-8'); ?>

@@ -45,6 +45,10 @@ $canAdmin    = can($pdo, 'admin');
 // section below can reflect it.
 title_pref_init($pdo);
 
+// Adult-content preference (1.1.2) - read current state so the toggle
+// section below reflects it (show_adult_content()).
+adult_pref_init($pdo);
+
 // Mevcut surumu settings tablosundan al. Bu deger migration_manager tarafindan
 // her sayfa yuklemesinde guncel tutuluyor. "Guncelleme Kontrolu" bolumunde
 // kullaniciya hangi surumde oldugu gosterilecek.
@@ -865,20 +869,6 @@ if (isset($_POST['clear'])) {
             <a href="about.php" class="about-link"><?php echo htmlspecialchars(t('nav.about'), ENT_QUOTES, 'UTF-8'); ?></a>
 
             <?php echo auth_nav_links(); ?>
-            <div class="lang-switcher" role="group" aria-label="<?php echo htmlspecialchars(t('lang.aria_label'), ENT_QUOTES, 'UTF-8'); ?>">
-                <form method="POST" action="set_language.php" style="display:inline;">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
-                    <input type="hidden" name="lang" value="tr">
-                    <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($_SERVER['REQUEST_URI'] ?? 'list_settings.php', ENT_QUOTES, 'UTF-8'); ?>">
-                    <button type="submit" class="lang-switch<?php echo current_lang() === 'tr' ? ' lang-switch-active' : ''; ?>"><?php echo htmlspecialchars(t('lang.tr_label'), ENT_QUOTES, 'UTF-8'); ?></button>
-                </form>
-                <form method="POST" action="set_language.php" style="display:inline;">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
-                    <input type="hidden" name="lang" value="en">
-                    <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($_SERVER['REQUEST_URI'] ?? 'list_settings.php', ENT_QUOTES, 'UTF-8'); ?>">
-                    <button type="submit" class="lang-switch<?php echo current_lang() === 'en' ? ' lang-switch-active' : ''; ?>"><?php echo htmlspecialchars(t('lang.en_label'), ENT_QUOTES, 'UTF-8'); ?></button>
-                </form>
-            </div>
         </div>
         
         <div class="page-title"><?php echo htmlspecialchars(t('list_settings.heading'), ENT_QUOTES, 'UTF-8'); ?></div>
@@ -1010,6 +1000,27 @@ if (isset($_POST['clear'])) {
 			
 			
 
+            <?php // 1.1.4 - arayuz dili secimi. Onceden her sayfanin header'indaki
+                  // TR/EN switcher ile degisiyordu; artik tek yer burasi (switcher
+                  // 6 sayfadan kaldirildi). set_language.php endpoint'i degismedi:
+                  // ayni display_language user_pref'ini yazar. onchange auto-submit;
+                  // JS kapaliysa noscript kaydet butonu gorunur. Baslik dilinden
+                  // (asagidaki toggle) BAGIMSIZDIR - arayuz TR + baslik EN mumkun. ?>
+            <div class="settings-section">
+                <h3><?php echo htmlspecialchars(t('list_settings.section.language'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                <p><?php echo htmlspecialchars(t('list_settings.section.language.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
+                <form method="post" action="set_language.php">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                    <select name="lang" onchange="this.form.submit()" aria-label="<?php echo htmlspecialchars(t('list_settings.section.language'), ENT_QUOTES, 'UTF-8'); ?>">
+                        <option value="tr"<?php echo current_lang() === 'tr' ? ' selected' : ''; ?>><?php echo htmlspecialchars(t('list_settings.language.option_tr'), ENT_QUOTES, 'UTF-8'); ?></option>
+                        <option value="en"<?php echo current_lang() === 'en' ? ' selected' : ''; ?>><?php echo htmlspecialchars(t('list_settings.language.option_en'), ENT_QUOTES, 'UTF-8'); ?></option>
+                    </select>
+                    <noscript>
+                        <button type="submit" class="settings-button"><?php echo htmlspecialchars(t('list_settings.language.save'), ENT_QUOTES, 'UTF-8'); ?></button>
+                    </noscript>
+                </form>
+            </div>
+
             <div class="settings-section">
                 <h3><?php echo htmlspecialchars(t('list_settings.section.title_lang'), ENT_QUOTES, 'UTF-8'); ?></h3>
                 <p><?php echo htmlspecialchars(t('list_settings.section.title_lang.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
@@ -1022,6 +1033,26 @@ if (isset($_POST['clear'])) {
                     </label>
                     <noscript>
                         <button type="submit" class="settings-button"><?php echo htmlspecialchars(t('list_settings.title_lang.save'), ENT_QUOTES, 'UTF-8'); ?></button>
+                    </noscript>
+                </form>
+            </div>
+
+            <?php // 1.1.2 - yetiskin (+18) icerik gorunurlugu. Varsayilan kapali;
+                  // acilinca +18 damgali animeler listelerde/aramada/kesifte gorunur.
+                  // Kisi bazli tercih (user_pref show_adult_content); title_lang
+                  // toggle deseninin aynisi, set_adult_pref.php'ye POST eder. ?>
+            <div class="settings-section">
+                <h3><?php echo htmlspecialchars(t('list_settings.section.adult'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                <p><?php echo htmlspecialchars(t('list_settings.section.adult.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
+                <form method="post" action="set_adult_pref.php">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="enabled" value="0">
+                    <label class="title-lang-toggle">
+                        <input type="checkbox" name="enabled" value="1"<?php echo show_adult_content() ? ' checked' : ''; ?> onchange="this.form.submit()">
+                        <?php echo htmlspecialchars(t('list_settings.adult.checkbox'), ENT_QUOTES, 'UTF-8'); ?>
+                    </label>
+                    <noscript>
+                        <button type="submit" class="settings-button"><?php echo htmlspecialchars(t('list_settings.adult.save'), ENT_QUOTES, 'UTF-8'); ?></button>
                     </noscript>
                 </form>
             </div>

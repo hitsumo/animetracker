@@ -505,20 +505,6 @@ $useCombinedTemplates  = ($totalEmotionsSelected > 0);
         <a href="about.php" class="about-link"><?php echo htmlspecialchars(t('nav.about'), ENT_QUOTES, 'UTF-8'); ?></a>
 
         <?php echo auth_nav_links(); ?>
-        <div class="lang-switcher" role="group" aria-label="<?php echo htmlspecialchars(t('lang.aria_label'), ENT_QUOTES, 'UTF-8'); ?>">
-            <form method="POST" action="set_language.php" style="display:inline;">
-                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
-                <input type="hidden" name="lang" value="tr">
-                <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($_SERVER['REQUEST_URI'] ?? 'recommendations.php', ENT_QUOTES, 'UTF-8'); ?>">
-                <button type="submit" class="lang-switch<?php echo current_lang() === 'tr' ? ' lang-switch-active' : ''; ?>"><?php echo htmlspecialchars(t('lang.tr_label'), ENT_QUOTES, 'UTF-8'); ?></button>
-            </form>
-            <form method="POST" action="set_language.php" style="display:inline;">
-                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
-                <input type="hidden" name="lang" value="en">
-                <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($_SERVER['REQUEST_URI'] ?? 'recommendations.php', ENT_QUOTES, 'UTF-8'); ?>">
-                <button type="submit" class="lang-switch<?php echo current_lang() === 'en' ? ' lang-switch-active' : ''; ?>"><?php echo htmlspecialchars(t('lang.en_label'), ENT_QUOTES, 'UTF-8'); ?></button>
-            </form>
-        </div>
     </div>
     <div class="page-title"><?php echo htmlspecialchars(t('recommendations.heading'), ENT_QUOTES, 'UTF-8'); ?></div>
 

@@ -825,6 +825,12 @@ return [
     'list_settings.section.clear'            => 'Listeyi Temizle',
     'list_settings.section.clear.desc'       => 'DİKKAT: Bu işlem geri alınamaz!',
     'list_settings.btn.clear'                => 'Listeyi Temizle',
+    'list_settings.section.language'         => 'Arayüz Dili',
+    'list_settings.section.language.desc'    => 'Menülerin, etiketlerin ve butonların dili. Bu tercih başlık dilinden bağımsızdır.',
+    'list_settings.language.option_tr'       => 'Türkçe',
+    'list_settings.language.option_en'       => 'English',
+    'list_settings.language.save'            => 'Kaydet',
+
     'list_settings.section.title_lang'       => 'Başlık Dili',
     'list_settings.section.title_lang.desc'  => 'Anime başlıklarının İngilizce karşılığı varsa, liste ve detay sayfalarında Romaji başlık yerine İngilizce başlığı göster. Bu tercih arayüz dilinden bağımsızdır.',
     'list_settings.title_lang.checkbox'      => 'İngilizce başlıkları göster',

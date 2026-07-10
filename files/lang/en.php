@@ -793,6 +793,12 @@ return [
     'list_settings.section.clear'            => 'Clear List',
     'list_settings.section.clear.desc'       => 'WARNING: This action cannot be undone!',
     'list_settings.btn.clear'                => 'Clear List',
+    'list_settings.section.language'         => 'Interface Language',
+    'list_settings.section.language.desc'    => 'The language of menus, labels and buttons. This preference is independent of the title language.',
+    'list_settings.language.option_tr'       => 'Türkçe',
+    'list_settings.language.option_en'       => 'English',
+    'list_settings.language.save'            => 'Save',
+
     'list_settings.section.title_lang'       => 'Title Language',
     'list_settings.section.title_lang.desc'  => 'When an anime has an English title, show it instead of the Romaji title on the list and detail pages. This preference is independent of the interface language.',
     'list_settings.title_lang.checkbox'      => 'Show English titles',
