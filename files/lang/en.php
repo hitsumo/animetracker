@@ -60,6 +60,9 @@ return [
     'index.filter.all'              => 'All',
     'index.filter.show_all'         => 'All',
     'index.filter.submit'           => 'Filter',
+    // 1.1.5: active emotion-filter chip (arrived from the statistics emotion badge)
+    'index.filter.emotion_active'   => 'Emotion filter: %s',
+    'index.filter.emotion_clear'    => 'Clear filter',
 
     // Broadcast status labels. The DB stores the Turkish strings as
     // free-text values in animes.status (legacy), so the lookup is
@@ -327,6 +330,10 @@ return [
 
     // Submit button (add_anime "Add" yerine "Update")
     'edit_anime.btn.submit'                  => 'Update',
+    // 1.1.5: success banner shown when staying on the same page after update/add
+    'edit_anime.notice.saved'                => 'Changes saved.',
+    // 1.1.5: button from the edit page to the anime's detail page
+    'edit_anime.btn.view_detail'             => 'Anime Details',
 
     // Status field - locked hint shown when anime status is "Yayin
     // Tamamlandi" (the select is replaced with a readonly input).
@@ -659,6 +666,8 @@ return [
     'statistics.emotion.summary'             => '%d marks across %d anime.',
     'statistics.emotion.empty'               => 'You have not marked any anime with emotions yet. Open an anime detail page and use the emotion buttons to add marks.',
     'statistics.emotion.empty_global'        => 'No emotion marks have been added to any anime yet.',
+    // 1.1.5: tooltip on the clickable personal emotion badge
+    'statistics.emotion.filter_hint'         => 'List anime you marked with this emotion',
     'statistics.recent_watched.empty'        => 'No watch activity yet. Once you watch an episode of an anime it will show up here.',
 
     // -----------------------------------------------------------------

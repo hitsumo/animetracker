@@ -465,7 +465,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
-    header("Location: index.php" . ($pushFailed ? '?catalog_push=failed' : ''));
+    // 1.1.5: ekleme sonrasi index yerine YENI animenin duzenleme sayfasina
+    // git (eklediginle duzenlemeye/gozden gecirmeye devam - edit ile ayni
+    // "ayni sayfada kal" davranisi). PRG korunur. ?updated=1 basari bandi,
+    // push bayragi edit sayfasinda gosterilir. $new_anime_id yukarida
+    // lastInsertId ile alindi.
+    //
+    // ONEMLI (online regresyon korumasi): edit_anime.php moderator-kapilidir
+    // (require_role 'moderator'). add_anime ise yalniz require_login ister, yani
+    // online normal uye de anime ekleyebilir (source='local'). Uyeyi edit
+    // sayfasina atarsak geri seker. Bu yuzden hedef role gore secilir - kurator
+    // (self-host sahibi / online moderator+) edit sayfasina, normal uye eski
+    // davranisla listeye doner. Kosul add_anime satir 260'taki can('moderate')
+    // ile ayni (source='catalog' karari orada da bu yeteneğe baglidir).
+    if (can($pdo, 'moderate')) {
+        header("Location: edit_anime.php?id=" . (int)$new_anime_id . "&updated=1"
+            . ($pushFailed ? '&catalog_push=failed' : ''));
+    } else {
+        header("Location: index.php" . ($pushFailed ? '?catalog_push=failed' : ''));
+    }
     exit();
 }
 ?>

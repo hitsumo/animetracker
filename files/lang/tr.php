@@ -80,6 +80,9 @@ return [
     'index.filter.all'              => 'Tümü',
     'index.filter.show_all'         => 'Hepsi',
     'index.filter.submit'           => 'Filtrele',
+    // 1.1.5: aktif duygu filtresi rozeti (istatistik duygu rozetinden gelince)
+    'index.filter.emotion_active'   => 'Duygu filtresi: %s',
+    'index.filter.emotion_clear'    => 'Filtreyi temizle',
 
     // Broadcast status values (free text in animes.status, kept as
     // Turkish constants in the DB for now)
@@ -360,6 +363,10 @@ return [
 
     // Submit button (add_anime "Ekle" yerine "Guncelle")
     'edit_anime.btn.submit'                  => 'Güncelle',
+    // 1.1.5: guncelleme/ekleme sonrasi ayni sayfada kalinca gosterilen basari bandi
+    'edit_anime.notice.saved'                => 'Değişiklikler kaydedildi.',
+    // 1.1.5: duzenleme sayfasindan ilgili animenin detay sayfasina giden buton
+    'edit_anime.btn.view_detail'             => 'Anime Detayı',
 
     // Status field - locked hint shown when anime status is "Yayin
     // Tamamlandi" (the select is replaced with a readonly input).
@@ -691,6 +698,8 @@ return [
     'statistics.emotion.summary'             => 'Toplam %d işaret, %d anime.',
     'statistics.emotion.empty'               => 'Henüz hiçbir animeye duygu işareti koymamışsın. Anime detay sayfasındaki duygu butonlarıyla işaret ekleyebilirsin.',
     'statistics.emotion.empty_global'        => 'Henüz hiçbir animeye duygu işareti konmamış.',
+    // 1.1.5: kisisel duygu rozetine tiklama ipucu (o duygudaki animeleri listeler)
+    'statistics.emotion.filter_hint'         => 'Bu duyguyla işaretlediğin animeleri listele',
     'statistics.recent_watched.empty'        => 'Henüz izleme aktiviten yok. Bir animenin bölümünü izlediğinde burada görünür.',
 
     // -----------------------------------------------------------------

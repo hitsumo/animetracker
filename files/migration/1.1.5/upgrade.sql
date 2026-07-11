@@ -1,0 +1,18 @@
+-- Anime Tracker - Migration 1.1.5
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- No-op migration (no schema change in 1.1.5).
+--
+-- 1.1.5 keeps the user on the same page after saving on the add/edit
+-- forms: edit_anime now redirects back to itself (edit_anime.php?id=..&
+-- updated=1) instead of index.php, and add_anime redirects to the new
+-- anime's edit page. Both stay a Post-Redirect-Get (refresh-safe). A
+-- success banner is shown via the ?updated=1 flag. UI/flow only - no new
+-- columns or tables.
+--
+-- This file exists only to keep the migration ring continuous so an
+-- existing 1.1.4 database advances its recorded version to 1.1.5. The
+-- runner strips these comment lines, finds no SQL statements to execute,
+-- and migration_manager bumps settings.version to 1.1.5.

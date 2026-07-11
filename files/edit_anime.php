@@ -598,7 +598,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
-    header("Location: index.php" . ($pushFailed ? '?catalog_push=failed' : ''));
+    // 1.1.5: guncelleme sonrasi index yerine AYNI duzenleme sayfasina don
+    // (PRG korunur - hala redirect, F5 POST'u tekrarlamaz). Kullanici
+    // duzenledigi animede kalir; ?updated=1 basari bandini tetikler, taze
+    // DB degerleri yeniden yuklenir. Push basarisizlik bayragi bu sayfada
+    // gosterilir (asagidaki banner bloku). id her zaman GET'ten gelir.
+    header("Location: edit_anime.php?id=" . urlencode((string)$id) . "&updated=1"
+        . ($pushFailed ? '&catalog_push=failed' : ''));
     exit();
 }
 
@@ -627,6 +633,18 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
 </head>
 <body>
     <div class="container">
+        <?php // 1.1.5: guncelleme sonrasi bu sayfada kalinca gosterilen basari bandi. ?>
+        <?php if (isset($_GET['updated']) && $_GET['updated'] === '1'): ?>
+            <div style="max-width: 700px; margin: 15px auto; background: #d1e7dd; border: 1px solid #badbcc; color: #0f5132; padding: 12px 16px; border-radius: 8px;">
+                <?php echo htmlspecialchars(t('edit_anime.notice.saved'), ENT_QUOTES, 'UTF-8'); ?>
+            </div>
+        <?php endif; ?>
+        <?php // Online katalog push basarisiz oldugunda (index.php ile ayni uyari, artik burada gosterilir). ?>
+        <?php if (isset($_GET['catalog_push']) && $_GET['catalog_push'] === 'failed'): ?>
+            <div style="max-width: 700px; margin: 15px auto; background: #fff3cd; border: 1px solid #ffe69c; color: #664d03; padding: 12px 16px; border-radius: 8px;">
+                <?php echo htmlspecialchars(t('index.warn.catalog_push_failed'), ENT_QUOTES, 'UTF-8'); ?>
+            </div>
+        <?php endif; ?>
         <div class="header-section">
             <a href="about.php" class="about-link"><?php echo htmlspecialchars(t('nav.about'), ENT_QUOTES, 'UTF-8'); ?></a>
             <?php // SECTION: Language switcher (snippet copy - see _lang_switcher_reference.php) ?>
@@ -1119,6 +1137,8 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
             <div class="button-group">
                 <input type="submit" value="<?php echo htmlspecialchars(t('edit_anime.btn.submit'), ENT_QUOTES, 'UTF-8'); ?>" class="submit-button">
                 <a href="index.php" class="cancel-button"><?php echo htmlspecialchars(t('add_anime.btn.cancel'), ENT_QUOTES, 'UTF-8'); ?></a>
+                <?php // 1.1.5: duzenlenen animenin detay sayfasi butonu, aksiyon butonlarinin yaninda (Anime Listesi ust bolumde kalir). ?>
+                <a class="anime-list-button" href="anime_details.php?id=<?php echo (int)$id; ?>"><?php echo htmlspecialchars(t('edit_anime.btn.view_detail'), ENT_QUOTES, 'UTF-8'); ?></a>
             </div>
         </form>
     </div>

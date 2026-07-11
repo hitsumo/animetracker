@@ -142,6 +142,15 @@
     margin-top: 30px;
 }
 
+/* 1.1.5: .anime-list-button'daki margin:0 auto (tek basina ortalama icindir)
+   flex button-group icinde auto-margin gibi davranip diger butonlari (Guncelle/
+   Vazgec) sola itiyor ve grubu ortasiz gosteriyor. Grup icinde sifirla; boylece
+   justify-content:center + gap tum butonlari birlikte ortalar. Ust bolumdeki
+   .button-container icindeki Anime Listesi butonu etkilenmez. */
+.button-group .anime-list-button {
+    margin: 0;
+}
+
 .edit-button,
 .back-button {
     padding: 10px 25px;

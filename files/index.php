@@ -107,6 +107,16 @@ $broadcast_status_filter = isset($_GET['broadcast_status_filter']) ? $_GET['broa
 $letter_filter = isset($_GET['letter_filter']) ? $_GET['letter_filter'] : '';
 $search_query = isset($_GET['q']) ? trim($_GET['q']) : '';
 
+// 1.1.5: duygu filtresi. Istatistik sayfasindaki kisisel duygu rozetinden gelir
+// (index.php?emotion_filter=Guldurdu). Kisisel isaretlere (user_anime_emotion,
+// current_user_id) scope'ludur. emotion_options() beyaz listesiyle dogrulanir;
+// gecersiz/bilinmeyen deger sessizce yok sayilir (filtre uygulanmaz -> enjeksiyon
+// yuzeyi yok, sadece bilinen ASCII duygu anahtarlari gecer).
+$emotion_filter = isset($_GET['emotion_filter']) ? (string)$_GET['emotion_filter'] : '';
+if ($emotion_filter !== '' && !array_key_exists($emotion_filter, emotion_options())) {
+    $emotion_filter = '';
+}
+
 // Sayfa basina gosterilecek anime sayisi
 $allowed_per_page = [10, 20, 30, 50, 100, 0]; // 0 = hepsi
 $per_page = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 10;
@@ -127,6 +137,17 @@ $genre_filter_clause = " AND a.id IN (
     FROM anime_genres ag
     INNER JOIN genres g ON g.id = ag.genre_id
     WHERE g.name = :genre
+)";
+
+// 1.1.5: duygu filtresi predikati (genre_filter_clause deseni). user_anime_emotion'a
+// karsi IN-subquery, current_user_id'ye scope'lu -> "benim bu duyguyla isaretledigim
+// animeler". :emo_uid AYRI placeholder: native prepared statement'ta ayni isimli
+// parametre (:uid) iki kez baglanamaz. Iki sorgu dalinda da (varsayilan + watched)
+// kullanilir, genre_filter ile ayni yerlerde eklenir.
+$emotion_filter_clause = " AND a.id IN (
+    SELECT anime_id
+    FROM user_anime_emotion
+    WHERE user_id = :emo_uid AND emotion = :emotion
 )";
 
 // Build the SQL query.
@@ -191,6 +212,10 @@ if ($genre_filter) {
     $sql .= $genre_filter_clause;
 }
 
+if ($emotion_filter) {
+    $sql .= $emotion_filter_clause;
+}
+
 if ($watch_status_filter) {
     if ($watch_status_filter === '__unselected__') {
         // user_anime satiri olmayan (hic secim yapilmamis) animeler
@@ -245,6 +270,10 @@ if ($sort_column == 'watched_episodes') {
     if ($genre_filter) {
         $sql .= $genre_filter_clause;
     }
+
+    if ($emotion_filter) {
+        $sql .= $emotion_filter_clause;
+    }
     
     if ($watch_status_filter) {
         if ($watch_status_filter === '__unselected__') {
@@ -287,6 +316,11 @@ if ($genre_filter) {
     // (e.g. "Komedi" matched "Romantik Komedi"). The relational schema
     // makes those collisions impossible.
     $stmt->bindValue(':genre', $genre_filter);
+}
+if ($emotion_filter) {
+    // :emo_uid $uid ile ayni deger; ayri isim cunku :uid zaten LEFT JOIN icin bagli.
+    $stmt->bindValue(':emo_uid', $uid, PDO::PARAM_INT);
+    $stmt->bindValue(':emotion', $emotion_filter);
 }
 if ($watch_status_filter && $watch_status_filter !== '__unselected__') {
     $stmt->bindValue(':status', $watch_status_filter);
@@ -416,6 +450,11 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
         $params['letter_filter'] = $letter_filter;
     }
     
+    global $emotion_filter;
+    if ($emotion_filter) {
+        $params['emotion_filter'] = $emotion_filter;
+    }
+
     global $per_page;
     if ($per_page !== 10) {
         $params['per_page'] = $per_page;
@@ -709,6 +748,10 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
         <div style="max-width: 380px; margin: 15px auto; background: #e9ecef; padding: 15px 20px; border-radius: 8px;">
             <form method="GET" action="" style="display: flex; gap: 8px;">
                 <input type="text" name="q" value="<?php echo htmlspecialchars($search_query); ?>" placeholder="<?php echo htmlspecialchars(t('index.search.placeholder'), ENT_QUOTES, 'UTF-8'); ?>" style="flex: 1; padding: 10px 14px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;">
+                <?php // 1.1.5: aktif duygu filtresini arama gonderiminde koru ?>
+                <?php if ($emotion_filter !== ''): ?>
+                    <input type="hidden" name="emotion_filter" value="<?php echo htmlspecialchars($emotion_filter); ?>">
+                <?php endif; ?>
                 <button type="submit" style="padding: 10px 18px; background: #4a90e2; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;"><?php echo htmlspecialchars(t('index.search.submit'), ENT_QUOTES, 'UTF-8'); ?></button>
                 <?php if ($search_query !== ''): ?>
                     <a href="index.php" style="padding: 10px 14px; background: #e0e0e0; color: #333; border-radius: 6px; text-decoration: none; font-size: 14px; display: flex; align-items: center;"><?php echo htmlspecialchars(t('index.search.clear'), ENT_QUOTES, 'UTF-8'); ?></a>
@@ -763,6 +806,7 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                         if ($watch_status_filter) $preserve['watch_status_filter'] = $watch_status_filter;
                         if ($broadcast_status_filter) $preserve['broadcast_status_filter'] = $broadcast_status_filter;
                         if ($per_page !== 10) $preserve['per_page'] = $per_page;
+                        if ($emotion_filter) $preserve['emotion_filter'] = $emotion_filter;
 
                         $letters = array_merge(['All', '0-9'], range('A', 'Z'), ['Other']);
                         foreach ($letters as $L) {
@@ -792,6 +836,10 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                 
                 <input type="hidden" name="sort" value="<?php echo htmlspecialchars($sort_column); ?>">
                 <input type="hidden" name="order" value="<?php echo htmlspecialchars($sort_order); ?>">
+                <?php // 1.1.5: aktif duygu filtresini filtre formu gonderiminde koru ?>
+                <?php if ($emotion_filter !== ''): ?>
+                    <input type="hidden" name="emotion_filter" value="<?php echo htmlspecialchars($emotion_filter); ?>">
+                <?php endif; ?>
                 <?php if ($search_query !== ''): ?>
                     <input type="hidden" name="q" value="<?php echo htmlspecialchars($search_query); ?>">
                 <?php endif; ?>
@@ -814,6 +862,20 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                 <a href="pending.php" class="anime-list-button" style="background:#6c757d;">
                     <i class="fas fa-clock"></i> <?php echo htmlspecialchars(sprintf(t('index.pending_link'), $pendingCount), ENT_QUOTES, 'UTF-8'); ?>
                 </a>
+            </div>
+        <?php endif; ?>
+
+        <?php // 1.1.5: aktif duygu filtresi rozeti + temizle bagi (istatistikten gelince). ?>
+        <?php if ($emotion_filter !== ''): ?>
+            <?php
+                // Temizle mevcut diger filtreleri korur; yalniz emotion_filter + page duser.
+                $emoClear = $_GET;
+                unset($emoClear['emotion_filter'], $emoClear['page']);
+                $emoClearUrl = $emoClear ? ('?' . http_build_query($emoClear)) : 'index.php';
+            ?>
+            <div style="max-width: 700px; margin: 15px auto; background: #e7f1ff; border: 1px solid #b6d4fe; color: #084298; padding: 10px 16px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                <span><?php echo htmlspecialchars(sprintf(t('index.filter.emotion_active'), emotion_label($emotion_filter)), ENT_QUOTES, 'UTF-8'); ?></span>
+                <a href="<?php echo htmlspecialchars($emoClearUrl); ?>" style="color: #084298; text-decoration: underline; white-space: nowrap;"><?php echo htmlspecialchars(t('index.filter.emotion_clear'), ENT_QUOTES, 'UTF-8'); ?></a>
             </div>
         <?php endif; ?>
 

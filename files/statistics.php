@@ -207,7 +207,8 @@ $emotion_anime_count_global = (int)$pdo->query(
                     <tr><th><?php echo htmlspecialchars(t('statistics.col.emotion'), ENT_QUOTES, 'UTF-8'); ?></th><th><?php echo htmlspecialchars(t('statistics.col.count'), ENT_QUOTES, 'UTF-8'); ?></th></tr>
                     <?php foreach ($by_emotion as $row): ?>
                         <tr>
-                            <td><span class="emotion-badge emotion-badge-<?php echo emotion_css_class($row['emotion']); ?>"><?php echo htmlspecialchars(emotion_label($row['emotion'])); ?></span></td>
+                            <?php // 1.1.5: kisisel duygu rozeti tiklanabilir - index'te o duyguyla isaretli animeleri (filtreli + sayfali) listeler. Global tablo (asagida) tiklanmaz. ?>
+                            <td><a href="index.php?emotion_filter=<?php echo urlencode($row['emotion']); ?>" style="text-decoration: none;" title="<?php echo htmlspecialchars(t('statistics.emotion.filter_hint'), ENT_QUOTES, 'UTF-8'); ?>"><span class="emotion-badge emotion-badge-<?php echo emotion_css_class($row['emotion']); ?>"><?php echo htmlspecialchars(emotion_label($row['emotion'])); ?></span></a></td>
                             <td><?php echo (int)$row['cnt']; ?></td>
                         </tr>
                     <?php endforeach; ?>
