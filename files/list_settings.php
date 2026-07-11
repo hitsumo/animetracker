@@ -833,6 +833,271 @@ if (isset($_POST['mal_cancel'])) {
     unset($_SESSION['mal_import']);
 }
 
+// ===== AniList List Import (1.1.6) - two-step, session-backed dry-run =====
+//
+// Personal feature, twin of the MAL import above: every signed-in user pulls
+// their own PUBLIC AniList list into their own user_anime rows. The only
+// difference from MAL is the acquisition step - instead of an uploaded file we
+// fetch graphql.anilist.co by username (anilist_fetch_list). AniList hands
+// back media.idMal per entry, so the matched/already/unmatched bucketing, the
+// online catalog_requests path, the self-host local-add path and the commit
+// writer are byte-for-byte the MAL flow (same mal_id match-or-add). Preview
+// (dry-run) is mandatory - the fetch step writes NOTHING.
+//
+// Not gated behind moderator/admin (same reasoning as MAL): importing your own
+// list is a per-user action. require_login() is the only gate (no-op self-host).
+$anilistPreview = null; // set below when a dry-run is ready for the HTML render
+
+if (isset($_POST['anilist_preview']) || isset($_POST['anilist_commit']) || isset($_POST['anilist_cancel'])) {
+    require_login();
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+}
+
+// --- Step 1: fetch + match + stash a dry-run in the session ------------
+if (isset($_POST['anilist_preview'])) {
+    $username = (string)($_POST['anilist_username'] ?? '');
+    $fetched  = anilist_fetch_list($username);
+    if (!$fetched['ok']) {
+        // Map the helper's error code to a user-facing message.
+        $errKeys = [
+            'bad_username' => 'list_settings.anilist.err.bad_username',
+            'network'      => 'list_settings.anilist.err.network',
+            'rate_limit'   => 'list_settings.anilist.err.rate_limit',
+            'notfound'     => 'list_settings.anilist.err.notfound',
+            'http'         => 'list_settings.anilist.err.http',
+            'parse'        => 'list_settings.anilist.err.parse',
+            'empty'        => 'list_settings.anilist.err.empty',
+        ];
+        $error_message = t($errKeys[$fetched['error']] ?? 'list_settings.anilist.err.http');
+    } else {
+        // Match each entry against the catalog by mal_id and bucket it -
+        // identical to the MAL preview (matched / already / unmatched).
+        $uid    = current_user_id();
+        $byMal  = $pdo->prepare("SELECT id FROM animes WHERE mal_id = ? LIMIT 1");
+        $hasRow = $pdo->prepare(
+            "SELECT 1 FROM user_anime WHERE user_id = ? AND anime_id = ? LIMIT 1"
+        );
+
+        $counts = [
+            'total'     => count($fetched['entries']),
+            'matched'   => 0,
+            'already'   => 0,
+            'unmatched' => 0,
+        ];
+        $byStatus = [];
+
+        foreach ($fetched['entries'] as &$e) {
+            $aid = 0;
+            if ($e['mal_id'] !== null) {
+                $byMal->execute([$e['mal_id']]);
+                $aid = (int)$byMal->fetchColumn();
+            }
+            $e['anime_id'] = $aid ?: null;
+
+            if ($aid) {
+                $hasRow->execute([$uid, $aid]);
+                if ($hasRow->fetchColumn()) {
+                    $e['bucket'] = 'already';
+                    $counts['already']++;
+                } else {
+                    $e['bucket'] = 'matched';
+                    $counts['matched']++;
+                }
+            } else {
+                $e['bucket'] = 'unmatched';
+                $counts['unmatched']++;
+            }
+
+            $sk = $e['watch_status'] ?? '__unselected__';
+            $byStatus[$sk] = ($byStatus[$sk] ?? 0) + 1;
+        }
+        unset($e);
+
+        $_SESSION['anilist_import'] = [
+            'entries'  => $fetched['entries'],
+            'counts'   => $counts,
+            'byStatus' => $byStatus,
+            'ts'       => time(),
+        ];
+        $anilistPreview = $_SESSION['anilist_import'];
+    }
+}
+
+// --- Step 2: commit the stashed dry-run --------------------------------
+if (isset($_POST['anilist_commit'])) {
+    if (empty($_SESSION['anilist_import']['entries'])) {
+        $error_message = t('list_settings.anilist.err.session');
+    } else {
+        $entries = $_SESSION['anilist_import']['entries'];
+
+        $keep = [];
+        foreach ((array)($_POST['anilist_status'] ?? []) as $ks) {
+            $keep[$ks] = true;
+        }
+        $overwrite = isset($_POST['anilist_overwrite']);
+
+        // 1.1.6: two import modes.
+        //   'list'    (default) - bring the personal watch state (status, episodes,
+        //             dates, notes) into MY user_anime rows.
+        //   'content' - catalog-seed only: add the anime to the catalog/DB but write
+        //             NO user_anime (no personal state). Handy for pulling a public
+        //             list's titles into the catalog without inheriting its history.
+        // KEY INSIGHT: 'content' is exactly "never call ua_set_state". Unmatched
+        // entries already go only to catalog_requests (online) / a local animes add
+        // (self-host) in BOTH modes - they never wrote user_anime anyway. The ONLY
+        // per-entry difference is matched (already-in-catalog) rows: 'list' writes
+        // user_anime, 'content' leaves them untouched. So the two modes share the
+        // same match/add path and just gate the ua_set_state write + counters.
+        // 1.1.6: default is 'content' (catalog-seed, no personal state) so an
+        // accidental/malformed submit never writes someone else's watch history.
+        $contentOnly = (($_POST['anilist_mode'] ?? 'content') !== 'list');
+
+        $uid = current_user_id();
+        $written = 0; $skipped = 0; $requested = 0; // list-mode tallies
+        $catNew = 0; $catHave = 0;                   // content-mode tallies
+
+        $byMal  = $pdo->prepare("SELECT id FROM animes WHERE mal_id = ? LIMIT 1");
+        $hasRow = $pdo->prepare(
+            "SELECT 1 FROM user_anime WHERE user_id = ? AND anime_id = ? LIMIT 1"
+        );
+
+        if (defined('MULTI_USER_MODE') && MULTI_USER_MODE) {
+            // ONLINE: matched -> user_anime (list mode only); unmatched ->
+            // catalog_requests (per-user dedup). Shared catalog untouched; a
+            // moderator promotes requests later.
+            $suggExists = $pdo->prepare(
+                "SELECT id FROM catalog_requests
+                  WHERE suggested_by = ? AND suggestion_status = 'pending'
+                    AND mal_id IS NOT NULL AND mal_id = ? LIMIT 1"
+            );
+            // AniList suggestions carry the airing status too, so on approval the
+            // anime is created with the real status (admin_catalog_requests uses
+            // catalog_requests.status ?: 'Yayın Tamamlandı'). Without this an
+            // ongoing anime would be promoted as "finished".
+            $suggInsert = $pdo->prepare(
+                "INSERT INTO catalog_requests (mal_id, title, status, suggested_by) VALUES (?, ?, ?, ?)"
+            );
+
+            foreach ($entries as $e) {
+                $sk = $e['watch_status'] ?? '__unselected__';
+                if (!isset($keep[$sk])) {
+                    continue;
+                }
+
+                $aid = $e['anime_id'] ?? null;
+                if (!$aid && $e['mal_id'] !== null) {
+                    $byMal->execute([$e['mal_id']]);
+                    $aid = (int)$byMal->fetchColumn();
+                }
+
+                if ($aid) {
+                    // Already in the catalog. Content mode stops here (no personal
+                    // state); list mode writes it into the user's list.
+                    if ($contentOnly) {
+                        $catHave++;
+                        continue;
+                    }
+                    $hasRow->execute([$uid, $aid]);
+                    if ($hasRow->fetchColumn() && !$overwrite) {
+                        $skipped++;
+                        continue;
+                    }
+                    ua_set_state($pdo, $uid, (int)$aid, anilist_ua_payload($e));
+                    $written++;
+                    continue;
+                }
+
+                // Unmatched: needs a mal_id (dedup key) and a title. Same catalog
+                // suggestion path in both modes.
+                if ($e['mal_id'] === null || $e['title'] === '') {
+                    continue;
+                }
+                $suggExists->execute([$uid, $e['mal_id']]);
+                if ($suggExists->fetchColumn()) {
+                    continue;
+                }
+                $suggInsert->execute([
+                    $e['mal_id'], $e['title'], $e['airing_status'] ?? null, $uid
+                ]);
+                if ($contentOnly) { $catNew++; } else { $requested++; }
+            }
+        } else {
+            // SELF-HOST: matched -> user_anime (list mode only); unmatched -> add a
+            // local anime (source='local', title + mal_id + airing status), then
+            // write user_anime in list mode only. Unlike MAL, AniList gives the
+            // real airing status (media.status), so a still-airing anime is not
+            // forced to "Yayın Tamamlandı".
+            $addAnime = $pdo->prepare(
+                "INSERT INTO animes (title, mal_id, status, source)
+                 VALUES (?, ?, ?, 'local')"
+            );
+
+            foreach ($entries as $e) {
+                $sk = $e['watch_status'] ?? '__unselected__';
+                if (!isset($keep[$sk])) {
+                    continue;
+                }
+
+                $aid = $e['anime_id'] ?? null;
+                if (!$aid && $e['mal_id'] !== null) {
+                    $byMal->execute([$e['mal_id']]);
+                    $aid = (int)$byMal->fetchColumn();
+                }
+
+                if ($aid) {
+                    if ($contentOnly) {
+                        $catHave++;
+                        continue;
+                    }
+                    $hasRow->execute([$uid, $aid]);
+                    if ($hasRow->fetchColumn() && !$overwrite) {
+                        $skipped++;
+                        continue;
+                    }
+                    ua_set_state($pdo, $uid, (int)$aid, anilist_ua_payload($e));
+                    $written++;
+                    continue;
+                }
+
+                if ($e['title'] === '') {
+                    continue;
+                }
+                try {
+                    // airing_status defaults defensively (older session stash / a
+                    // rare entry AniList gave no status for) to the historical value.
+                    $addAnime->execute([
+                        $e['title'], $e['mal_id'], $e['airing_status'] ?? 'Yayın Tamamlandı'
+                    ]);
+                    $newId = (int)$pdo->lastInsertId();
+                    if ($newId > 0) {
+                        if ($contentOnly) {
+                            $catNew++;
+                        } else {
+                            ua_set_state($pdo, $uid, $newId, anilist_ua_payload($e));
+                            $requested++;
+                        }
+                    }
+                } catch (PDOException $ex) {
+                    // A UNIQUE clash (same mal_id twice in one list) - skip quietly.
+                    error_log('[anime_tracker] anilist import self-host add skipped: ' . $ex->getMessage());
+                }
+            }
+        }
+
+        unset($_SESSION['anilist_import']);
+        $success_message = $contentOnly
+            ? sprintf(t('list_settings.anilist.result_content'), $catNew, $catHave)
+            : sprintf(t('list_settings.anilist.result'), $written, $skipped, $requested);
+    }
+}
+
+// Cancel: drop the stashed dry-run and fall through to a clean page.
+if (isset($_POST['anilist_cancel'])) {
+    unset($_SESSION['anilist_import']);
+}
+
 // List Clear Operation
 if (isset($_POST['clear'])) {
     // Clearing the list runs DELETE FROM animes, which wipes the entire shared
@@ -978,6 +1243,87 @@ if (isset($_POST['clear'])) {
                         </button>
                         <button type="submit" name="mal_cancel" class="settings-button danger" formnovalidate>
                             <i class="fas fa-times"></i> <?php echo htmlspecialchars(t('list_settings.mal.btn.cancel'), ENT_QUOTES, 'UTF-8'); ?>
+                        </button>
+                    </form>
+                <?php endif; ?>
+            </div>
+
+            <!-- AniList List Import (1.1.6) - personal, no moderator/admin gate -->
+            <div class="settings-section">
+                <h3><?php echo htmlspecialchars(t('list_settings.section.anilist_import'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                <p><?php echo htmlspecialchars(t('list_settings.section.anilist_import.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
+
+                <?php if (empty($anilistPreview)): ?>
+                    <!-- Step 1: enter username + preview -->
+                    <form method="post">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                        <div class="anilist-username-field">
+                            <label for="anilist_username"><?php echo htmlspecialchars(t('list_settings.anilist.username_label'), ENT_QUOTES, 'UTF-8'); ?></label>
+                            <input type="text" name="anilist_username" id="anilist_username"
+                                   maxlength="50" autocomplete="off" spellcheck="false"
+                                   pattern="[A-Za-z0-9_-]{1,50}"
+                                   placeholder="<?php echo htmlspecialchars(t('list_settings.anilist.username_placeholder'), ENT_QUOTES, 'UTF-8'); ?>" required>
+                        </div>
+                        <button type="submit" name="anilist_preview" class="settings-button">
+                            <i class="fas fa-search"></i> <?php echo htmlspecialchars(t('list_settings.anilist.btn.preview'), ENT_QUOTES, 'UTF-8'); ?>
+                        </button>
+                    </form>
+                <?php else: ?>
+                    <!-- Step 2: dry-run preview + confirm -->
+                    <?php $ac = $anilistPreview['counts']; ?>
+                    <p><?php echo htmlspecialchars(sprintf(
+                        t('list_settings.anilist.preview.summary'),
+                        (int)$ac['total'], (int)$ac['matched'], (int)$ac['already'], (int)$ac['unmatched']
+                    ), ENT_QUOTES, 'UTF-8'); ?></p>
+
+                    <form method="post">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+
+                        <fieldset class="mal-status-filter">
+                            <legend><?php echo htmlspecialchars(t('list_settings.anilist.preview.mode'), ENT_QUOTES, 'UTF-8'); ?></legend>
+                            <label style="display:block; margin:4px 0;">
+                                <input type="radio" name="anilist_mode" value="content" checked>
+                                <?php echo htmlspecialchars(t('list_settings.anilist.preview.mode.content'), ENT_QUOTES, 'UTF-8'); ?>
+                            </label>
+                            <label style="display:block; margin:4px 0;">
+                                <input type="radio" name="anilist_mode" value="list">
+                                <?php echo htmlspecialchars(t('list_settings.anilist.preview.mode.list'), ENT_QUOTES, 'UTF-8'); ?>
+                            </label>
+                        </fieldset>
+
+                        <fieldset class="mal-status-filter">
+                            <legend><?php echo htmlspecialchars(t('list_settings.anilist.preview.status_filter'), ENT_QUOTES, 'UTF-8'); ?></legend>
+                            <?php foreach ($anilistPreview['byStatus'] as $sk => $n): ?>
+                                <label style="display:block; margin:4px 0;">
+                                    <input type="checkbox" name="anilist_status[]" value="<?php echo htmlspecialchars($sk, ENT_QUOTES, 'UTF-8'); ?>" checked>
+                                    <?php echo htmlspecialchars(
+                                        watch_status_label($sk === '__unselected__' ? null : $sk) . ' (' . (int)$n . ')',
+                                        ENT_QUOTES, 'UTF-8'
+                                    ); ?>
+                                </label>
+                            <?php endforeach; ?>
+                        </fieldset>
+
+                        <label style="display:block; margin:8px 0;">
+                            <input type="checkbox" name="anilist_overwrite" value="1">
+                            <?php echo htmlspecialchars(t('list_settings.anilist.preview.overwrite'), ENT_QUOTES, 'UTF-8'); ?>
+                            <small style="display:block; color:#888; margin-left:24px;"><?php echo htmlspecialchars(t('list_settings.anilist.preview.overwrite_hint'), ENT_QUOTES, 'UTF-8'); ?></small>
+                        </label>
+
+                        <p class="mal-unmatched-note">
+                            <?php echo htmlspecialchars(
+                                (defined('MULTI_USER_MODE') && MULTI_USER_MODE)
+                                    ? t('list_settings.anilist.preview.unmatched_note.online')
+                                    : t('list_settings.anilist.preview.unmatched_note.selfhost'),
+                                ENT_QUOTES, 'UTF-8'
+                            ); ?>
+                        </p>
+
+                        <button type="submit" name="anilist_commit" class="settings-button">
+                            <i class="fas fa-file-import"></i> <?php echo htmlspecialchars(t('list_settings.anilist.btn.commit'), ENT_QUOTES, 'UTF-8'); ?>
+                        </button>
+                        <button type="submit" name="anilist_cancel" class="settings-button danger" formnovalidate>
+                            <i class="fas fa-times"></i> <?php echo htmlspecialchars(t('list_settings.anilist.btn.cancel'), ENT_QUOTES, 'UTF-8'); ?>
                         </button>
                     </form>
                 <?php endif; ?>

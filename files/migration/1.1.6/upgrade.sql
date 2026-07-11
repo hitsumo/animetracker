@@ -1,0 +1,19 @@
+-- Anime Tracker - Migration 1.1.6
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- No-op migration (no schema change in 1.1.6).
+--
+-- 1.1.6 adds "Import AniList list": a signed-in user enters their AniList
+-- username and their public anime list is fetched over the AniList GraphQL
+-- API, then run through the SAME two-step dry-run + mal_id match-or-add path
+-- the MyAnimeList import (1.1.1) already uses. AniList returns media.idMal
+-- per entry, so entries match the existing catalog by mal_id - no anilist_id
+-- column, no new tables. Matched -> user_anime; unmatched -> catalog_requests
+-- (online) or a local animes add (self-host). UI/network only.
+--
+-- This file exists only to keep the migration ring continuous so an existing
+-- 1.1.5 database advances its recorded version to 1.1.6. The runner strips
+-- these comment lines, finds no SQL statements to execute, and
+-- migration_manager bumps settings.version to 1.1.6.

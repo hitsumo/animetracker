@@ -250,6 +250,28 @@
     transform: translateY(-1px);
 }
 
+/* 1.1.6 - AniList import username field (list_settings). Mirrors the spacing
+   of the MAL upload block above; the input uses the app's default field look. */
+.anilist-username-field {
+    margin-bottom: 12px;
+}
+
+.anilist-username-field label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
+}
+
+.anilist-username-field input[type="text"] {
+    width: 100%;
+    max-width: 320px;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
 .file-name-display {
     margin-left: 10px;
     font-size: 14px;
