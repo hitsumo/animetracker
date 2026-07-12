@@ -266,25 +266,48 @@ function anilist_fetch_list($username, $maxPages = 100)
           notes
           startedAt { year month day }
           completedAt { year month day }
-          media { idMal status title { romaji english } }
+          media { idMal status isAdult title { romaji english } }
         }
       }
     }';
 
     $entries = [];
     $page = 1;
+    // AniList currently enforces a low per-minute request budget (it has run in
+    // a degraded ~30 req/min mode for a long stretch). Two guards keep a large,
+    // multi-page list importable:
+    //   1) ~2.5s between page requests, to stay under the per-minute cap;
+    //   2) on a 429, wait one AniList window (60s) and retry the SAME page a few
+    //      times instead of aborting - so a transient limit (e.g. a burst from
+    //      another AniList call) does not kill the whole import.
+    // Lift the PHP time limit because that pacing/waiting can outlast the default
+    // max_execution_time on a big list. This runs in the web preview request, so
+    // the guard matters (function_exists: some hosts disable set_time_limit).
+    if (function_exists('set_time_limit')) {
+        @set_time_limit(0);
+    }
+    $retryWait = 60; // seconds to wait after a 429 (AniList window)
+    $maxRetry  = 3;  // per-page retries on a rate limit
     do {
-        // Be a good API citizen: a small gap between page requests keeps a
-        // large list well under AniList's per-minute budget. No sleep before
-        // the first request.
+        // No sleep before the first request.
         if ($page > 1) {
-            usleep(350000); // 0.35s
+            usleep(2500000); // 2.5s between pages
         }
 
-        $resp = anilist_graphql_request($query, ['name' => $name, 'page' => $page]);
-        if (isset($resp['error'])) {
-            // A rate-limit or transport error mid-pagination is fatal for the
-            // whole import (a partial list would silently look complete).
+        // Fetch this page, retrying a rate-limit after a wait so a big list is
+        // not lost to a transient per-minute cap.
+        $resp = null;
+        for ($try = 0; ; $try++) {
+            $resp = anilist_graphql_request($query, ['name' => $name, 'page' => $page]);
+            if (!isset($resp['error'])) {
+                break; // got the page
+            }
+            if ($resp['error'] === 'rate_limit' && $try < $maxRetry) {
+                sleep($retryWait);
+                continue;
+            }
+            // Any other error, or retries exhausted: fatal for the whole import
+            // (a partial list would silently look complete).
             return ['ok' => false, 'error' => $resp['error']];
         }
 
@@ -318,6 +341,10 @@ function anilist_fetch_list($username, $maxPages = 100)
                     // AniList-only: the anime's airing status, for the self-host
                     // local-add (so a still-airing anime is not forced to "finished").
                     'airing_status'     => anilist_airing_status_to_enum($media['status'] ?? null),
+                    // AniList media.isAdult -> animes.is_adult / catalog_requests.is_adult
+                    // (1.1.7): flag imported adult titles so they are not written as
+                    // is_adult=0 and slip past the +18 filter (1.1.2/1.1.3). Bool->tinyint.
+                    'is_adult'          => !empty($media['isAdult']) ? 1 : 0,
                 ];
             }
         }

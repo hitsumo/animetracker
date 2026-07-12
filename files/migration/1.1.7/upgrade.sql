@@ -1,0 +1,28 @@
+-- Anime Tracker - Migration 1.1.7
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- Carries the adult-content flag through the AniList import (1.1.6).
+--
+-- AniList returns media.isAdult per entry. Until 1.1.7 the import ignored it,
+-- so imported adult titles entered the catalog as is_adult=0 (unflagged) and
+-- slipped past the +18 filter built in 1.1.2 (animes.is_adult) / 1.1.3
+-- (genres/tags.is_adult).
+--
+-- animes.is_adult already exists (1.1.2) and is already carried by the catalog
+-- push/import wire, so the self-host local-add and the central catalog need no
+-- change. The ONLY missing storage is the online moderation queue: an unmatched
+-- online import lands in catalog_requests, which had no is_adult column to hold
+-- the flag between the dry-run and the moderator's approval. This adds it.
+--
+-- catalog_requests is an app-side table (the online app's own pending queue),
+-- NOT central catalog metadata - so this runs on the app DB via the migration
+-- runner; there is NO manual central-server ALTER for this column.
+--
+-- Idempotency: real ALTER. If the column already exists the runner swallows
+-- error 1060 (duplicate column) - see migration_manager.php isIdempotentError()
+-- - so a partial or repeated run is safe and simply advances settings.version
+-- to 1.1.7.
+
+ALTER TABLE `catalog_requests` ADD COLUMN `is_adult` TINYINT(1) NOT NULL DEFAULT 0;

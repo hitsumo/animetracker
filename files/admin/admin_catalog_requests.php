@@ -65,14 +65,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $rows = $sel->fetchAll(PDO::FETCH_ASSOC);
 
             $ins = $pdo->prepare("INSERT INTO animes (
-                    title, alternative_titles, title_english, status,
+                    title, alternative_titles, title_english, status, is_adult,
                     total_episodes, mal_link, anidb_link, anime_schedule_link,
                     episode_interval, broadcast_day, broadcast_time,
                     broadcast_timezone, synopsis_tr, synopsis_en,
                     translation_status, release_date, end_date, series_name,
                     media_type, mal_id, anidb_id, source
                 ) VALUES (
-                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'none',
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'none',
                     ?, ?, ?, ?, ?, ?, 'local'
                 )");
             $mark = $pdo->prepare(
@@ -113,6 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $ins->execute([
                         $s['title'], $s['alternative_titles'], $s['title_english'],
                         $s['status'] ?: 'Yayın Tamamlandı',
+                        $s['is_adult'] ?? 0,
                         $s['total_episodes'], $s['mal_link'], $s['anidb_link'],
                         $s['anime_schedule_link'],
                         $s['episode_interval'] !== null ? (int)$s['episode_interval'] : 7,

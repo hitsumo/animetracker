@@ -627,6 +627,7 @@ CREATE TABLE IF NOT EXISTS `catalog_requests` (
   `title_english`       varchar(255) DEFAULT NULL,
   `alternative_titles`  text DEFAULT NULL,
   `status`              enum('Yayın Tamamlandı','Yayın Devam Ediyor') DEFAULT NULL,
+  `is_adult`            tinyint(1) NOT NULL DEFAULT 0,
   `total_episodes`      int(11) DEFAULT NULL,
   `mal_link`            varchar(255) DEFAULT NULL,
   `anidb_link`          varchar(255) DEFAULT NULL,

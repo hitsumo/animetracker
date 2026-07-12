@@ -242,74 +242,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['do_push'])) {
                 }
             }
 
-            // Build payload
-            $timestamp = time();
-            $payload = [
-                'timestamp'  => $timestamp,
-                'animes'     => $animeRows,
-                'chronology' => $markers,
-                'tags'       => array_map(function($t) { return $t['name']; }, $tagRows),
-                // 0.7.7: English-name translation maps for tags and
-                // genres, keyed by the Turkish name. Only non-empty
-                // entries. Old import sides ignore these.
-                'tag_name_en'   => $tagNameEn,
-                'genre_name_en' => $genreNameEn,
-                // 1.1.3: adult-flag maps, keyed by name. Only adult
-                // entries present. Old receivers ignore these.
-                'tag_is_adult'   => $tagIsAdult,
-                'genre_is_adult' => $genreIsAdult,
-            ];
-            $body = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            if ($body === false) {
-                throw new Exception('JSON encode failed: ' . json_last_error_msg());
+            // Push via the shared batched helper (catalog_push.php). It does the
+            // catalog gather + chunked, chronology-safe send in one place, so the
+            // manual push uses the EXACT same wire as the automatic push: large
+            // catalogs are split into anime chunks and the chronology is sent in
+            // a final id_map batch, staying under the receiver's per-request caps.
+            //
+            // NOTE: the gather block above is now superseded by the helper (which
+            // re-reads the catalog itself) and could be removed; it is left here
+            // only so this template still documents exactly which columns travel.
+            require_once __DIR__ . '/catalog_push.php';
+            $r = catalog_push_to_server($pdo);
+            if (empty($r['ok'])) {
+                throw new Exception($r['message'] ?? 'Push basarisiz.');
             }
-
-            // Compute HMAC signature
-            $signature = hash_hmac('sha256', $timestamp . '|' . $body, ADMIN_PUSH_SECRET);
-
-            // Send via cURL
-            if (!function_exists('curl_init')) {
-                throw new Exception('cURL extension required');
-            }
-
-            $ch = curl_init(ADMIN_PUSH_URL);
-            curl_setopt_array($ch, [
-                CURLOPT_POST           => true,
-                CURLOPT_POSTFIELDS     => $body,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT        => 30,
-                CURLOPT_HTTPHEADER     => [
-                    'Content-Type: application/json',
-                    'X-Admin-Signature: ' . $signature,
-                ],
-                CURLOPT_SSL_VERIFYPEER => true,
-            ]);
-
-            $response = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $curlErr  = curl_error($ch);
-            curl_close($ch);
-
-            if ($response === false) {
-                throw new Exception('cURL hatasi: ' . $curlErr);
-            }
-
-            $decoded = json_decode($response, true);
-            if (!is_array($decoded)) {
-                throw new Exception('Gecersiz sunucu yaniti (HTTP ' . $httpCode . '): ' . substr($response, 0, 200));
-            }
-
-            if ($httpCode !== 200 || ($decoded['status'] ?? '') !== 'ok') {
-                $msg = $decoded['message'] ?? 'Unknown error';
-                throw new Exception('Sunucu hatasi (HTTP ' . $httpCode . '): ' . $msg);
-            }
-
             $result = [
-                'inserted'    => (int)($decoded['inserted'] ?? 0),
-                'updated'     => (int)($decoded['updated']  ?? 0),
-                'markers'     => (int)($decoded['markers']  ?? 0),
-                'anime_count' => count($animeRows),
-                'marker_count'=> count($markers),
+                'inserted'     => (int)($r['inserted'] ?? 0),
+                'updated'      => (int)($r['updated']  ?? 0),
+                'markers'      => (int)($r['markers']  ?? 0),
+                'anime_count'  => (int)($r['anime_count']  ?? 0),
+                'marker_count' => (int)($r['marker_count'] ?? 0),
+                'batches'      => (int)($r['batches'] ?? 1),
             ];
 
         } catch (Exception $e) {

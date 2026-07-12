@@ -181,66 +181,131 @@ if (!function_exists('catalog_push_to_server')) {
                 }
             }
 
-            // --- Build payload + sign (identical to admin_sync.php) ----
-            $timestamp = time();
-            $payload = [
-                'timestamp'     => $timestamp,
-                'animes'        => $animeRows,
-                'chronology'    => $markers,
-                'tags'          => array_map(function ($t) { return $t['name']; }, $tagRows),
-                'tag_name_en'   => $tagNameEn,
-                'genre_name_en' => $genreNameEn,
-                // 1.1.3: adult-flag maps, keyed by name. Only adult
-                // entries present. Old receivers ignore these.
+            // --- Batched push ------------------------------------------
+            // Send the catalog in chunks so a large catalog never trips the
+            // receiver's per-request caps (animes count / body bytes). The
+            // receiver is upsert-only and touches ONLY animes present in each
+            // body (no demote-on-absence), so splitting is safe. Chronology is
+            // authoritative (server wipe+reload) and its markers reference the
+            // admin's LOCAL anime IDs, so it is sent in ONE final request AFTER
+            // every anime exists on the server, carrying an id_map that lets the
+            // receiver translate those IDs. The wire format per request is the
+            // same admin_push.php already accepts (id_map / skip_chronology are
+            // additive and ignored by an old receiver).
+            $CHUNK = 1000;
+
+            // One signed request. Stamps a fresh timestamp (replay window),
+            // signs, POSTs. Returns the decoded 'ok' body or throws on failure
+            // (caught by the outer try -> ['ok' => false] contract preserved).
+            $sendBatch = function (array $payload) use ($pushUrl): array {
+                $payload['timestamp'] = time();
+                $body = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                if ($body === false) {
+                    throw new Exception('JSON encode hatasi: ' . json_last_error_msg());
+                }
+                $signature = hash_hmac('sha256', $payload['timestamp'] . '|' . $body, ADMIN_PUSH_SECRET);
+
+                $ch = curl_init($pushUrl);
+                curl_setopt_array($ch, [
+                    CURLOPT_POST           => true,
+                    CURLOPT_POSTFIELDS     => $body,
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_TIMEOUT        => 60,
+                    CURLOPT_HTTPHEADER     => [
+                        'Content-Type: application/json',
+                        'X-Admin-Signature: ' . $signature,
+                    ],
+                    CURLOPT_SSL_VERIFYPEER => true,
+                ]);
+                $response = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $curlErr  = curl_error($ch);
+                curl_close($ch);
+
+                if ($response === false) {
+                    throw new Exception('Baglanti hatasi: ' . $curlErr);
+                }
+                $decoded = json_decode($response, true);
+                if (!is_array($decoded) || $httpCode !== 200 || ($decoded['status'] ?? '') !== 'ok') {
+                    $msg = is_array($decoded)
+                        ? ($decoded['message'] ?? 'bilinmeyen hata')
+                        : substr((string)$response, 0, 200);
+                    throw new Exception('Sunucu hatasi (HTTP ' . $httpCode . '): ' . $msg);
+                }
+                return $decoded;
+            };
+
+            // Taxonomy maps ride with every anime batch (small; the receiver
+            // applies them idempotently).
+            $taxonomy = [
+                'tags'           => array_map(function ($t) { return $t['name']; }, $tagRows),
+                'tag_name_en'    => $tagNameEn,
+                'genre_name_en'  => $genreNameEn,
                 'tag_is_adult'   => $tagIsAdult,
                 'genre_is_adult' => $genreIsAdult,
             ];
-            $body = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            if ($body === false) {
-                return ['ok' => false, 'message' => 'JSON encode hatasi: ' . json_last_error_msg()];
-            }
 
-            $signature = hash_hmac('sha256', $timestamp . '|' . $body, ADMIN_PUSH_SECRET);
+            $totalInserted = 0;
+            $totalUpdated  = 0;
+            $totalMarkers  = 0;
+            $batchCount    = 0;
 
-            // --- POST server-to-server ---------------------------------
-            $ch = curl_init($pushUrl);
-            curl_setopt_array($ch, [
-                CURLOPT_POST           => true,
-                CURLOPT_POSTFIELDS     => $body,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT        => 30,
-                CURLOPT_HTTPHEADER     => [
-                    'Content-Type: application/json',
-                    'X-Admin-Signature: ' . $signature,
-                ],
-                CURLOPT_SSL_VERIFYPEER => true,
-            ]);
+            if (count($animeRows) <= $CHUNK) {
+                // Small catalog: one request, the classic single-shot shape
+                // (animes + chronology together; no id_map / skip flag).
+                $decoded = $sendBatch(array_merge($taxonomy, [
+                    'animes'     => $animeRows,
+                    'chronology' => $markers,
+                ]));
+                $totalInserted += (int)($decoded['inserted'] ?? 0);
+                $totalUpdated  += (int)($decoded['updated']  ?? 0);
+                $totalMarkers  += (int)($decoded['markers']  ?? 0);
+                $batchCount++;
+            } else {
+                // Anime chunks first - no chronology, so they do NOT wipe the
+                // server's markers (skip_chronology).
+                foreach (array_chunk($animeRows, $CHUNK) as $chunk) {
+                    $decoded = $sendBatch(array_merge($taxonomy, [
+                        'animes'          => $chunk,
+                        'chronology'      => [],
+                        'skip_chronology' => true,
+                    ]));
+                    $totalInserted += (int)($decoded['inserted'] ?? 0);
+                    $totalUpdated  += (int)($decoded['updated']  ?? 0);
+                    $batchCount++;
+                }
 
-            $response = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $curlErr  = curl_error($ch);
-            curl_close($ch);
-
-            if ($response === false) {
-                error_log('[catalog_push] cURL error: ' . $curlErr);
-                return ['ok' => false, 'message' => 'Baglanti hatasi: ' . $curlErr];
-            }
-
-            $decoded = json_decode($response, true);
-            if (!is_array($decoded) || $httpCode !== 200 || ($decoded['status'] ?? '') !== 'ok') {
-                $msg = is_array($decoded)
-                    ? ($decoded['message'] ?? 'bilinmeyen hata')
-                    : substr((string)$response, 0, 200);
-                error_log('[catalog_push] server error HTTP ' . $httpCode . ': ' . $msg);
-                return ['ok' => false, 'message' => 'Sunucu hatasi (HTTP ' . $httpCode . '): ' . $msg];
+                // Final chronology batch: no animes, an id_map to translate
+                // marker local IDs, and the authoritative marker set. This runs
+                // the wipe+reload once, after every anime is on the server. On
+                // failure here the server's markers are left untouched (the
+                // anime batches did not wipe them), so a re-run recovers.
+                $idMap = [];
+                foreach ($animeRows as $a) {
+                    $idMap[] = [
+                        'id'           => (int)$a['id'],
+                        'mal_id'       => $a['mal_id'],
+                        'anidb_id'     => $a['anidb_id'],
+                        'catalog_uuid' => $a['catalog_uuid'],
+                    ];
+                }
+                $decoded = $sendBatch([
+                    'animes'     => [],
+                    'chronology' => $markers,
+                    'id_map'     => $idMap,
+                ]);
+                $totalMarkers += (int)($decoded['markers'] ?? 0);
+                $batchCount++;
             }
 
             return [
-                'ok'          => true,
-                'inserted'    => (int)($decoded['inserted'] ?? 0),
-                'updated'     => (int)($decoded['updated']  ?? 0),
-                'markers'     => (int)($decoded['markers']  ?? 0),
-                'anime_count' => count($animeRows),
+                'ok'           => true,
+                'inserted'     => $totalInserted,
+                'updated'      => $totalUpdated,
+                'markers'      => $totalMarkers,
+                'anime_count'  => count($animeRows),
+                'marker_count' => count($markers),
+                'batches'      => $batchCount,
             ];
 
         } catch (Exception $e) {

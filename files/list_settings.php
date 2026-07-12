@@ -977,7 +977,7 @@ if (isset($_POST['anilist_commit'])) {
             // catalog_requests.status ?: 'Yayın Tamamlandı'). Without this an
             // ongoing anime would be promoted as "finished".
             $suggInsert = $pdo->prepare(
-                "INSERT INTO catalog_requests (mal_id, title, status, suggested_by) VALUES (?, ?, ?, ?)"
+                "INSERT INTO catalog_requests (mal_id, title, status, is_adult, suggested_by) VALUES (?, ?, ?, ?, ?)"
             );
 
             foreach ($entries as $e) {
@@ -1019,7 +1019,7 @@ if (isset($_POST['anilist_commit'])) {
                     continue;
                 }
                 $suggInsert->execute([
-                    $e['mal_id'], $e['title'], $e['airing_status'] ?? null, $uid
+                    $e['mal_id'], $e['title'], $e['airing_status'] ?? null, $e['is_adult'] ?? 0, $uid
                 ]);
                 if ($contentOnly) { $catNew++; } else { $requested++; }
             }
@@ -1030,8 +1030,8 @@ if (isset($_POST['anilist_commit'])) {
             // real airing status (media.status), so a still-airing anime is not
             // forced to "Yayın Tamamlandı".
             $addAnime = $pdo->prepare(
-                "INSERT INTO animes (title, mal_id, status, source)
-                 VALUES (?, ?, ?, 'local')"
+                "INSERT INTO animes (title, mal_id, status, is_adult, source)
+                 VALUES (?, ?, ?, ?, 'local')"
             );
 
             foreach ($entries as $e) {
@@ -1068,7 +1068,7 @@ if (isset($_POST['anilist_commit'])) {
                     // airing_status defaults defensively (older session stash / a
                     // rare entry AniList gave no status for) to the historical value.
                     $addAnime->execute([
-                        $e['title'], $e['mal_id'], $e['airing_status'] ?? 'Yayın Tamamlandı'
+                        $e['title'], $e['mal_id'], $e['airing_status'] ?? 'Yayın Tamamlandı', $e['is_adult'] ?? 0
                     ]);
                     $newId = (int)$pdo->lastInsertId();
                     if ($newId > 0) {

@@ -73,25 +73,15 @@ if (!defined('DB_HOST') || !defined('DB_NAME') || !defined('DB_USER') || !define
     exit;
 }
 
-// --- Rate limit (file-based, 5s per IP) ---------------------------------
-// Kept short because admin push is already protected by HMAC + secret.
-// This only prevents accidental double-clicks or runaway scripts.
-
+// --- Rate limit ---------------------------------------------------------
+// The old "1 request per 5s per IP" file lock was REMOVED: batched push sends
+// a large catalog as several signed requests back-to-back, legitimately firing
+// multiple requests per second from the same admin IP, and the lock rejected
+// the 2nd batch onward with HTTP 429. The endpoint is already gated by the
+// shared HMAC secret + a 300s timestamp window; an unauthenticated flood is
+// rejected cheaply at the signature check below (no DB work), so the per-IP
+// throttle added little and now breaks legitimate batched use.
 $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-$rateDir = __DIR__ . '/../private/rate_limit';
-if (!is_dir($rateDir)) {
-    @mkdir($rateDir, 0700, true);
-}
-// Sanitize IP for filename (IPv6 has colons)
-$ipKey = preg_replace('/[^a-z0-9._-]/i', '_', $ip);
-$rateFile = $rateDir . '/admin_push_' . $ipKey . '.txt';
-
-if (file_exists($rateFile) && (time() - filemtime($rateFile)) < 5) {
-    http_response_code(429);
-    echo json_encode(['status' => 'error', 'message' => 'Rate limited']);
-    exit;
-}
-@touch($rateFile);
 
 // --- Method check ------------------------------------------------------
 
@@ -110,8 +100,12 @@ if ($rawBody === false || $rawBody === '') {
     exit;
 }
 
-// Body size limit - 5 MB is plenty for a catalog of thousands of animes
-if (strlen($rawBody) > 5 * 1024 * 1024) {
+// Body size limit. Raised 5 MB -> 32 MB as the shared catalog grew past a few
+// thousand animes. NOTE: this only helps if the server's PHP post_max_size (and
+// any web-server body limit, e.g. nginx client_max_body_size) is at least as
+// large; otherwise the body is truncated before this script runs and the JSON
+// decode below fails with a 400 instead.
+if (strlen($rawBody) > 32 * 1024 * 1024) {
     http_response_code(413);
     echo json_encode(['status' => 'error', 'message' => 'Payload too large']);
     exit;
@@ -159,9 +153,24 @@ if (!isset($payload['animes']) || !is_array($payload['animes'])) {
 
 $animes = $payload['animes'];
 $chronology = $payload['chronology'] ?? [];
+// Batched-push support (backward compatible - an old single-shot push sends
+// neither field, so behavior is unchanged):
+//   id_map          - [{id, mal_id, anidb_id, catalog_uuid}, ...]. Lets a final
+//                     chronology-only batch (animes: []) translate marker local
+//                     IDs to server IDs even though the referenced animes were
+//                     upserted in EARLIER batches and are absent from this body.
+//   skip_chronology - true on the anime-only batches so they do NOT run the
+//                     authoritative "wipe all catalog markers and reload" - that
+//                     runs exactly once, in the final chronology batch.
+$idMap = $payload['id_map'] ?? [];
+$skipChronology = !empty($payload['skip_chronology']);
 
-if (count($animes) > 5000) {
-    // Sanity limit - way more than expected
+if (count($animes) > 50000) {
+    // Sanity limit - way more than expected. Raised from 5000 as the shared
+    // catalog grew past it (AniList seeding). Still a DoS/sanity bound. The real
+    // scaling fix is to send the catalog in batches: this receiver is upsert-only
+    // and touches ONLY animes present in the payload (no demote-on-absence), so
+    // splitting a large catalog across several signed POSTs is safe.
     http_response_code(413);
     echo json_encode(['status' => 'error', 'message' => 'Too many animes']);
     exit;
@@ -263,6 +272,7 @@ try {
             anidb_id = :anidb_id,
             catalog_uuid = :catalog_uuid,
             image_path = :image_path,
+            is_adult = :is_adult,
             source = 'catalog'
         WHERE id = :id
     ";
@@ -279,7 +289,7 @@ try {
             episode_interval, broadcast_day, broadcast_time, broadcast_timezone,
             synopsis_tr, synopsis_en, translation_status, release_date, end_date,
             series_name, media_type,
-            mal_id, anidb_id, catalog_uuid, source, title_english
+            mal_id, anidb_id, catalog_uuid, source, title_english, is_adult
         ) VALUES (
             :title, :alternative_titles, :status, :total_episodes, :aired_episodes,
             0, NULL, :image_path,
@@ -288,7 +298,7 @@ try {
             :episode_interval, :broadcast_day, :broadcast_time, :broadcast_timezone,
             :synopsis_tr, :synopsis_en, :translation_status, :release_date, :end_date,
             :series_name, :media_type,
-            :mal_id, :anidb_id, :catalog_uuid, 'catalog', :title_english
+            :mal_id, :anidb_id, :catalog_uuid, 'catalog', :title_english, :is_adult
         )
     ";
     $insertStmt = $pdo->prepare($insertSql);
@@ -339,6 +349,7 @@ try {
             ':anidb_id'            => !empty($a['anidb_id'])    ? (int)$a['anidb_id'] : null,
             ':catalog_uuid'        => $a['catalog_uuid']        ?? null,
             ':image_path'          => $a['image_path']          ?? null,
+            ':is_adult'            => !empty($a['is_adult'])     ? 1 : 0,
         ];
 
         if ($matchId !== null) {
@@ -354,6 +365,38 @@ try {
             $stats['inserted']++;
             if ($adminId !== null) {
                 $adminIdToServerId[$adminId] = $newId;
+            }
+        }
+    }
+
+    // Batched push: merge any id_map entries into the local->server ID table so
+    // a chronology-only final batch resolves markers whose animes arrived in
+    // earlier batches. Identity lookup only (no upsert); entries already mapped
+    // from this body's animes win.
+    if (is_array($idMap) && !empty($idMap)) {
+        foreach ($idMap as $entry) {
+            $adminId = isset($entry['id']) ? (int)$entry['id'] : 0;
+            if ($adminId <= 0 || isset($adminIdToServerId[$adminId])) {
+                continue;
+            }
+            $sid = null;
+            if (!empty($entry['mal_id'])) {
+                $findByMal->execute([(int)$entry['mal_id']]);
+                $sid = $findByMal->fetchColumn() ?: null;
+                $findByMal->closeCursor();
+            }
+            if ($sid === null && !empty($entry['anidb_id'])) {
+                $findByAnidb->execute([(int)$entry['anidb_id']]);
+                $sid = $findByAnidb->fetchColumn() ?: null;
+                $findByAnidb->closeCursor();
+            }
+            if ($sid === null && !empty($entry['catalog_uuid'])) {
+                $findByUuid->execute([$entry['catalog_uuid']]);
+                $sid = $findByUuid->fetchColumn() ?: null;
+                $findByUuid->closeCursor();
+            }
+            if ($sid !== null) {
+                $adminIdToServerId[$adminId] = (int)$sid;
             }
         }
     }
@@ -378,9 +421,14 @@ try {
     //      not run the one-time "UPDATE chronology_markers SET
     //      source='catalog'" cleanup yet (no UNIQUE-key collision /
     //      transaction rollback).
-    $pdo->exec("DELETE FROM chronology_markers WHERE source = 'catalog'");
+    // Anime-only batches (batched push) skip the authoritative wipe+reload;
+    // it runs once, in the final chronology batch. A single-shot push has
+    // skip_chronology unset, so it wipes+reloads exactly as before.
+    if (!$skipChronology) {
+        $pdo->exec("DELETE FROM chronology_markers WHERE source = 'catalog'");
+    }
 
-    if (!empty($chronology)) {
+    if (!$skipChronology && !empty($chronology)) {
         $markerStmt = $pdo->prepare("
             INSERT INTO chronology_markers (anime_id, after_episode, related_anime_id, note, source)
             VALUES (?, ?, ?, ?, 'catalog')
