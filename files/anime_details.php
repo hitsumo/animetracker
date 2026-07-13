@@ -202,8 +202,8 @@ if ($fillerTracking) {
         
         <div class="anime-header">
             <div class="anime-cover-container">
-                <img src="<?php echo htmlspecialchars($anime['image_path']); ?>" 
-                    alt="<?php echo htmlspecialchars(display_title($anime)); ?>" 
+                <img src="<?php echo htmlspecialchars(poster_src($anime['image_path'])); ?>"
+                    alt="<?php echo htmlspecialchars(display_title($anime)); ?>"
                     class="anime-cover">
             </div>
         </div>

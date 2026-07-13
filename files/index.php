@@ -1003,7 +1003,7 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                                         <button type="button" class="ep-step ep-plus" onclick="quickWatched(this, 1)"<?php echo $ec_at_max ? ' disabled' : ''; ?> title="<?php echo htmlspecialchars(t('index.row.ep_plus_tooltip'), ENT_QUOTES, 'UTF-8'); ?>">+</button>
                                     </div>
                                 </div><?php else: ?><?php echo $ec_text; ?><?php if ($ec_badge !== ''): ?> <small><?php echo htmlspecialchars($ec_badge); ?></small><?php endif; ?><?php endif; ?></td>
-                            <td><img src="<?php echo htmlspecialchars($anime['image_path']); ?>" alt="<?php echo htmlspecialchars(display_title($anime)); ?>" width="100"></td>
+                            <td><img src="<?php echo htmlspecialchars(poster_src($anime['image_path'])); ?>" alt="<?php echo htmlspecialchars(display_title($anime)); ?>" width="100"></td>
                             <td class="next-episode-cell">
 <?php 
 if ($anime['status'] == 'Yayın Tamamlandı') {

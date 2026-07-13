@@ -347,12 +347,8 @@ function seriesMediaIcon($type) {
                 <a href="anime_details.php?id=<?php echo (int)$item['id']; ?>" class="st-card">
                     <div class="st-order"><?php echo $i + 1; ?></div>
 
-                    <?php if (!empty($item['image_path'])): ?>
-                        <img src="<?php echo htmlspecialchars($item['image_path']); ?>"
-                             alt="<?php echo htmlspecialchars(display_title($item)); ?>">
-                    <?php else: ?>
-                        <div class="no-img"><?php echo $mediaIcon; ?></div>
-                    <?php endif; ?>
+                    <img src="<?php echo htmlspecialchars(poster_src($item['image_path'] ?? '')); ?>"
+                         alt="<?php echo htmlspecialchars(display_title($item)); ?>">
 
                     <div class="st-info">
                         <div class="title"><?php echo htmlspecialchars(display_title($item)); ?></div>

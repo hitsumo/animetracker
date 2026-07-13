@@ -520,11 +520,9 @@ $useCombinedTemplates  = ($totalEmotionsSelected > 0);
              ============================================================ -->
         <div class="rec-surprise-card">
             <h2><?php echo htmlspecialchars(t('recommendations.surprise.heading'), ENT_QUOTES, 'UTF-8'); ?></h2>
-            <?php if (!empty($surpriseAnime['image_path'])): ?>
-                <img class="rec-anime-cover"
-                     src="<?php echo htmlspecialchars($surpriseAnime['image_path']); ?>"
-                     alt="">
-            <?php endif; ?>
+            <img class="rec-anime-cover"
+                 src="<?php echo htmlspecialchars(poster_src($surpriseAnime['image_path'] ?? '')); ?>"
+                 alt="">
             <div class="rec-anime-title" style="font-size: 1.3em;">
                 <a href="anime_details.php?id=<?php echo (int)$surpriseAnime['id']; ?>">
                     <?php echo htmlspecialchars(display_title($surpriseAnime)); ?>
@@ -874,13 +872,9 @@ $useCombinedTemplates  = ($totalEmotionsSelected > 0);
                         $isWatched = ($a['watch_status'] === 'Watched');
                     ?>
                         <div class="rec-anime-card<?php echo $isWatched ? ' watched' : ''; ?>">
-                            <?php if (!empty($a['image_path'])): ?>
-                                <img class="rec-anime-cover"
-                                     src="<?php echo htmlspecialchars($a['image_path']); ?>"
-                                     alt="">
-                            <?php else: ?>
-                                <div class="rec-anime-cover"></div>
-                            <?php endif; ?>
+                            <img class="rec-anime-cover"
+                                 src="<?php echo htmlspecialchars(poster_src($a['image_path'] ?? '')); ?>"
+                                 alt="">
                             <div class="rec-anime-info">
                                 <div class="rec-anime-title">
                                     <a href="anime_details.php?id=<?php echo (int)$a['id']; ?>">

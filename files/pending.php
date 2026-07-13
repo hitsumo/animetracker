@@ -76,7 +76,7 @@ $rows = $pdo->query(
             <ul class="pending-list">
                 <?php foreach ($rows as $r): ?>
                     <li class="pending-item">
-                        <img src="<?php echo htmlspecialchars($r['image_path'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" alt="">
+                        <img src="<?php echo htmlspecialchars(poster_src($r['image_path'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" alt="">
                         <div class="pi-main">
                             <a class="pi-title" href="anime_details.php?id=<?php echo (int)$r['id']; ?>"><?php echo htmlspecialchars(display_title($r), ENT_QUOTES, 'UTF-8'); ?></a>
                             <div class="pi-meta">

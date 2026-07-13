@@ -51,9 +51,9 @@ body {
 }
 
 .anime-cover {
-    width: 780px;
-    height: 580px;
-    object-fit: contein;
+    width: 400px;
+    height: 600px;
+    object-fit: contain;
     background-color: #f8f9fa;
     border-radius: 12px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);

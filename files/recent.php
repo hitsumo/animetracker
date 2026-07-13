@@ -213,12 +213,8 @@ $recent = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 }
             ?>
             <div class="recent-card">
-                <?php if (!empty($anime['image_path'])): ?>
-                    <img src="<?php echo htmlspecialchars($anime['image_path']); ?>"
-                         alt="<?php echo htmlspecialchars($anime['title']); ?>">
-                <?php else: ?>
-                    <div class="no-img"><i class="fas fa-film"></i></div>
-                <?php endif; ?>
+                <img src="<?php echo htmlspecialchars(poster_src($anime['image_path'] ?? '')); ?>"
+                     alt="<?php echo htmlspecialchars($anime['title']); ?>">
 
                 <div class="recent-info">
                     <a href="anime_details.php?id=<?php echo (int)$anime['id']; ?>" class="title">

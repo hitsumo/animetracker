@@ -1,0 +1,27 @@
+-- Anime Tracker - Migration 1.1.9
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- No-op migration (no schema change in 1.1.9).
+--
+-- 1.1.9 gives posterless animes a language-aware placeholder. An anime with no
+-- poster (image_path NULL or empty) used to render a broken <img>. A new
+-- display helper, poster_src() (functions/anime_helpers.php), returns the
+-- anime's own poster when it has one, otherwise a static placeholder that
+-- matches the current UI language (img/no_poster_tr.png / img/no_poster_en.png),
+-- so switching the interface language switches the placeholder (TR <-> EN). The
+-- seven poster render sites (index, anime_details, recent, recommendations x2,
+-- series_timeline, pending) now call poster_src().
+--
+-- The placeholder is NEVER written to image_path and never sent over the
+-- catalog wire, so nothing is stored per anime: no per-anime files, no DB
+-- writes. A catalog client with no poster falls back to ITS OWN language
+-- locally. The moment a real poster is set, image_path is non-empty and the
+-- fallback stops firing.
+--
+-- Code/assets only - no schema change. This file exists only to keep the
+-- migration ring continuous so an existing 1.1.8 database advances its
+-- recorded version to 1.1.9. The runner strips these comment lines, finds no
+-- SQL statements to execute, and migration_manager bumps settings.version to
+-- 1.1.9.

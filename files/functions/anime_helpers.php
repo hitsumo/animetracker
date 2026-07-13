@@ -393,6 +393,33 @@ function display_title($anime) {
 }
 
 /**
+ * Poster <img src> for an anime, with a language-aware placeholder (1.1.9).
+ *
+ * An anime with no poster (image_path NULL or empty) used to render a broken
+ * <img>. This returns the anime's own poster when it has one, otherwise a
+ * static placeholder that matches the current UI language, so switching the
+ * interface language switches the placeholder (TR <-> EN) with no per-anime
+ * files and no database writes. The two assets live in img/ and ship with the
+ * app. The caller is still responsible for htmlspecialchars() on output.
+ *
+ * Deliberately reads image_path (not a "placeholder" flag): the moment a real
+ * poster is set the fallback stops firing. In dual-mode this also means a
+ * catalog client with no poster falls back to ITS OWN language locally, since
+ * the placeholder is never stored in image_path or sent over the catalog wire.
+ *
+ * @param string|null $imagePath  The row's image_path value.
+ * @return string  A web-relative src.
+ */
+function poster_src($imagePath) {
+    if (!empty($imagePath)) {
+        return $imagePath;
+    }
+    return (current_lang() === 'en')
+        ? 'img/no_poster_en.png'
+        : 'img/no_poster_tr.png';
+}
+
+/**
  * Adult-content visibility preference (1.1.2).
  *
  * Anime can be flagged 18+ at the catalog level (animes.is_adult). Whether
