@@ -453,7 +453,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $pushHelper = __DIR__ . '/admin/catalog_push.php';
         if (is_file($pushHelper)) {
             require_once $pushHelper;
-            $push = catalog_push_to_server($pdo);
+            // 1.1.8: scoped push - only the new anime's series (or just it),
+            // not the whole catalog. Cheap on a large catalog.
+            $push = catalog_push_to_server($pdo, (int)$new_anime_id);
             if (empty($push['ok'])) {
                 $pushFailed = true;
                 error_log('[anime_tracker] add_anime catalog push failed: '

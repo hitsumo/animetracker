@@ -367,6 +367,13 @@ return [
     'edit_anime.notice.saved'                => 'Değişiklikler kaydedildi.',
     // 1.1.5: duzenleme sayfasindan ilgili animenin detay sayfasina giden buton
     'edit_anime.btn.view_detail'             => 'Anime Detayı',
+    // 1.1.8: admin-only tam-katalog push butonu + onay + sonuc bandlari.
+    // Normal "Guncelle" artik yalniz o animenin serisini gonderir; bu buton
+    // tum katalogu yeniden gonderir (admin_sync'in online karsiligi).
+    'edit_anime.btn.full_push'               => 'Tüm Kataloğu Gönder',
+    'edit_anime.confirm.full_push'           => 'Tüm katalog merkeze yeniden gönderilecek. Devam edilsin mi?',
+    'edit_anime.notice.full_pushed'          => 'Tüm katalog merkeze gönderildi (%d anime).',
+    'edit_anime.notice.full_push_failed'     => 'Tüm katalog gönderimi başarısız oldu. Ayrıntı sunucu günlüğünde.',
 
     // Status field - locked hint shown when anime status is "Yayin
     // Tamamlandi" (the select is replaced with a readonly input).

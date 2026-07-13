@@ -334,6 +334,13 @@ return [
     'edit_anime.notice.saved'                => 'Changes saved.',
     // 1.1.5: button from the edit page to the anime's detail page
     'edit_anime.btn.view_detail'             => 'Anime Details',
+    // 1.1.8: admin-only full-catalog push button + confirm + result banners.
+    // The normal "Update" now pushes only this anime's series; this button
+    // resends the whole catalog (the online equivalent of admin_sync).
+    'edit_anime.btn.full_push'               => 'Push Entire Catalog',
+    'edit_anime.confirm.full_push'           => 'This will resend the entire catalog to the server. Continue?',
+    'edit_anime.notice.full_pushed'          => 'Entire catalog pushed to the server (%d anime).',
+    'edit_anime.notice.full_push_failed'     => 'Full catalog push failed. See the server log for details.',
 
     // Status field - locked hint shown when anime status is "Yayin
     // Tamamlandi" (the select is replaced with a readonly input).

@@ -39,6 +39,14 @@
  * the self-host .exe (ZIP blacklist). Keeping it out of functions/ also
  * keeps it out of the loader's required helper modules, which are shipped.
  *
+ * 1.1.8 update: optional $animeId scopes the push. With no argument (or
+ * null) it pushes the ENTIRE source='catalog' set as before. With an anime
+ * id it pushes only that anime's SERIES (rows sharing its non-empty
+ * series_name, or just that one anime if series_name is empty), metadata
+ * only, with skip_chronology so the central chronology is never touched.
+ * This keeps the per-edit auto-push cheap on a large catalog; the full push
+ * (admin resync button, add_chronology_marker) still carries chronology.
+ *
  * Returns an array - it NEVER throws to the caller, so a failed push can
  * never roll back or break a successful local promotion:
  *   success: ['ok' => true,  'inserted' => N, 'updated' => N,
@@ -48,7 +56,7 @@
 
 if (!function_exists('catalog_push_to_server')) {
 
-    function catalog_push_to_server(PDO $pdo): array
+    function catalog_push_to_server(PDO $pdo, ?int $animeId = null): array
     {
         // --- Resolve configuration -------------------------------------
         // Load the git-ignored secret file only if the constants are not
@@ -79,10 +87,41 @@ if (!function_exists('catalog_push_to_server')) {
         }
 
         try {
+            // --- Resolve push scope (1.1.8) ----------------------------
+            // $animeId === null -> full catalog (classic behaviour).
+            // $animeId given    -> scoped push: that anime's whole SERIES
+            //   (catalog rows sharing its non-empty series_name), or just that
+            //   one anime if series_name is empty. A scoped push carries anime
+            //   metadata only and NEVER touches chronology (skip_chronology),
+            //   so it stays cheap on a large catalog. Chronology stays
+            //   authoritative via the full push (admin resync) and the
+            //   add_chronology_marker trigger.
+            $scopeIds = null; // null = full catalog
+            if ($animeId !== null && $animeId > 0) {
+                $snStmt = $pdo->prepare("SELECT series_name FROM animes WHERE id = ? AND source = 'catalog' LIMIT 1");
+                $snStmt->execute([$animeId]);
+                $snRow = $snStmt->fetch(PDO::FETCH_ASSOC);
+                if ($snRow === false) {
+                    // Not a catalog anime (or gone) - nothing to push.
+                    return ['ok' => true, 'inserted' => 0, 'updated' => 0,
+                            'markers' => 0, 'anime_count' => 0, 'marker_count' => 0,
+                            'batches' => 0, 'scope' => 'none'];
+                }
+                $series = isset($snRow['series_name']) ? trim((string)$snRow['series_name']) : '';
+                if ($series !== '') {
+                    $q = $pdo->prepare("SELECT id FROM animes WHERE source = 'catalog' AND series_name = ? ORDER BY id");
+                    $q->execute([$series]);
+                    $scopeIds = array_map('intval', $q->fetchAll(PDO::FETCH_COLUMN));
+                }
+                if (empty($scopeIds)) {
+                    $scopeIds = [(int)$animeId];
+                }
+            }
+
             // --- Gather catalog (mirror of admin_sync.php) -------------
             // Catalog-only fields. Personal data (watched_episodes,
             // watch_status, notes, next_episode_date) is never sent.
-            $animeRows = $pdo->query("
+            $animeSelect = "
                 SELECT id, title, alternative_titles, title_english, status,
                        total_episodes, aired_episodes,
                        synopsis_tr, synopsis_en, translation_status, release_date, end_date,
@@ -92,18 +131,29 @@ if (!function_exists('catalog_push_to_server')) {
                        mal_id, anidb_id, catalog_uuid,
                        image_path
                 FROM animes
-                WHERE source = 'catalog'
-                ORDER BY id
-            ")->fetchAll(PDO::FETCH_ASSOC);
+                WHERE source = 'catalog'";
+            if ($scopeIds === null) {
+                $animeRows = $pdo->query($animeSelect . " ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
+            } else {
+                $ph = implode(',', array_fill(0, count($scopeIds), '?'));
+                $stmt = $pdo->prepare($animeSelect . " AND id IN ($ph) ORDER BY id");
+                $stmt->execute($scopeIds);
+                $animeRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
 
             // Chronology markers: intentionally NO source filter (mirror of
             // admin_sync.php). The admin curates the universal chronology;
             // admin_push.php stores every pushed marker as source='catalog'.
-            $markers = $pdo->query("
-                SELECT anime_id, after_episode, related_anime_id, note
-                FROM chronology_markers
-                ORDER BY anime_id, after_episode
-            ")->fetchAll(PDO::FETCH_ASSOC);
+            // 1.1.8: chronology only travels on a FULL push. A scoped push
+            // sets skip_chronology, so we do not even read the markers.
+            $markers = [];
+            if ($scopeIds === null) {
+                $markers = $pdo->query("
+                    SELECT anime_id, after_episode, related_anime_id, note
+                    FROM chronology_markers
+                    ORDER BY anime_id, after_episode
+                ")->fetchAll(PDO::FETCH_ASSOC);
+            }
 
             // Tags (recommendation sentences) + English-name map.
             $tagRows = $pdo->query("
@@ -125,9 +175,17 @@ if (!function_exists('catalog_push_to_server')) {
                 }
             }
 
-            $linkRows = $pdo->query("
-                SELECT anime_id, tag_id FROM anime_tags
-            ")->fetchAll(PDO::FETCH_ASSOC);
+            // 1.1.8: scope the link read to the pushed animes when scoped.
+            if ($scopeIds === null) {
+                $linkRows = $pdo->query("
+                    SELECT anime_id, tag_id FROM anime_tags
+                ")->fetchAll(PDO::FETCH_ASSOC);
+            } else {
+                $ph = implode(',', array_fill(0, count($scopeIds), '?'));
+                $stmt = $pdo->prepare("SELECT anime_id, tag_id FROM anime_tags WHERE anime_id IN ($ph)");
+                $stmt->execute($scopeIds);
+                $linkRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
 
             $tagsByAnime = [];
             foreach ($linkRows as $row) {
@@ -145,12 +203,18 @@ if (!function_exists('catalog_push_to_server')) {
             unset($a);
 
             // Genres as CSV (wire-format the server expects).
-            $genreLinkRows = $pdo->query("
+            $genreLinkSelect = "
                 SELECT ag.anime_id, g.name
                 FROM anime_genres ag
-                INNER JOIN genres g ON g.id = ag.genre_id
-                ORDER BY ag.anime_id, g.name
-            ")->fetchAll(PDO::FETCH_ASSOC);
+                INNER JOIN genres g ON g.id = ag.genre_id";
+            if ($scopeIds === null) {
+                $genreLinkRows = $pdo->query($genreLinkSelect . " ORDER BY ag.anime_id, g.name")->fetchAll(PDO::FETCH_ASSOC);
+            } else {
+                $ph = implode(',', array_fill(0, count($scopeIds), '?'));
+                $stmt = $pdo->prepare($genreLinkSelect . " WHERE ag.anime_id IN ($ph) ORDER BY ag.anime_id, g.name");
+                $stmt->execute($scopeIds);
+                $genreLinkRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
 
             $genresByAnime = [];
             foreach ($genreLinkRows as $row) {
@@ -250,7 +314,23 @@ if (!function_exists('catalog_push_to_server')) {
             $totalMarkers  = 0;
             $batchCount    = 0;
 
-            if (count($animeRows) <= $CHUNK) {
+            if ($scopeIds !== null) {
+                // Scoped (series / single-anime) push: metadata only, chronology
+                // untouched (skip_chronology). A series is tiny so this is
+                // normally one request. NEVER the classic single-shot shape
+                // below (which wipe+reloads chronology from an EMPTY set and
+                // would delete every catalog marker).
+                foreach (array_chunk($animeRows, $CHUNK) as $chunk) {
+                    $decoded = $sendBatch(array_merge($taxonomy, [
+                        'animes'          => $chunk,
+                        'chronology'      => [],
+                        'skip_chronology' => true,
+                    ]));
+                    $totalInserted += (int)($decoded['inserted'] ?? 0);
+                    $totalUpdated  += (int)($decoded['updated']  ?? 0);
+                    $batchCount++;
+                }
+            } elseif (count($animeRows) <= $CHUNK) {
                 // Small catalog: one request, the classic single-shot shape
                 // (animes + chronology together; no id_map / skip flag).
                 $decoded = $sendBatch(array_merge($taxonomy, [
@@ -306,6 +386,7 @@ if (!function_exists('catalog_push_to_server')) {
                 'anime_count'  => count($animeRows),
                 'marker_count' => count($markers),
                 'batches'      => $batchCount,
+                'scope'        => $scopeIds === null ? 'full' : 'series',
             ];
 
         } catch (Exception $e) {

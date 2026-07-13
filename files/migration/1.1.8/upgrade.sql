@@ -1,0 +1,23 @@
+-- Anime Tracker - Migration 1.1.8
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- No-op migration (no schema change in 1.1.8).
+--
+-- 1.1.8 makes the automatic catalog push incremental. The per-edit auto-push
+-- (edit_anime save, add_anime direct catalog add) used to resend the ENTIRE
+-- source='catalog' set on every single change; once the catalog grew past a
+-- few thousand animes (AniList seeding) that made saving one anime wait on a
+-- full multi-request resync. Now those triggers push only the edited anime's
+-- SERIES (catalog rows sharing its series_name, or just that one anime when
+-- series_name is empty), metadata only, with skip_chronology so the central
+-- chronology is untouched. A new admin-only "Push Entire Catalog" button on
+-- edit_anime forces a full resync online (admin_sync.php stays localhost-
+-- gated). Bulk promote (admin_pending) and the chronology-marker trigger keep
+-- the full push. Code/UI only - no schema change.
+--
+-- This file exists only to keep the migration ring continuous so an existing
+-- 1.1.7 database advances its recorded version to 1.1.8. The runner strips
+-- these comment lines, finds no SQL statements to execute, and
+-- migration_manager bumps settings.version to 1.1.8.

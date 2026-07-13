@@ -104,6 +104,36 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         die(htmlspecialchars(t('add_anime.csrf.invalid'), ENT_QUOTES, 'UTF-8'));
     }
 
+    // 1.1.8: admin-only "push ENTIRE catalog" action. A separate submit
+    // button next to "Update" (rendered only for admins) sends
+    // full_catalog_push=1. It ignores the edited form fields and forces a
+    // full resync - the online-usable equivalent of admin_sync.php's
+    // localhost-gated "Push to Server". The normal save now does a cheap
+    // scoped (series) push; this is the escape hatch to resync everything
+    // (incl. chronology). Branch BEFORE the update logic and redirect.
+    // Server-side re-checks can('admin'); a non-admin who forges the field
+    // falls through to the normal (moderator-gated) save.
+    if (isset($_POST['full_catalog_push']) && MULTI_USER_MODE && can($pdo, 'admin')) {
+        $fullOk = false;
+        $fullCount = 0;
+        $pushHelper = __DIR__ . '/admin/catalog_push.php';
+        if (is_file($pushHelper)) {
+            require_once $pushHelper;
+            $r = catalog_push_to_server($pdo); // no id -> full catalog
+            $fullOk = !empty($r['ok']);
+            $fullCount = (int)($r['anime_count'] ?? 0);
+            if (!$fullOk) {
+                error_log('[anime_tracker] edit_anime full catalog push failed: '
+                    . (isset($r['message']) ? $r['message'] : 'unknown'));
+            }
+        } else {
+            error_log('[anime_tracker] edit_anime full catalog push skipped: helper missing');
+        }
+        header("Location: edit_anime.php?id=" . urlencode((string)$id)
+            . ($fullOk ? '&full_pushed=' . $fullCount : '&full_push_failed=1'));
+        exit();
+    }
+
     // Mevcut anime bilgilerini kontrol et
     if ($anime['status'] == 'Yayın Tamamlandı') {
         // Eger anime yayini tamamlandiysa, durumu degistirmeye izin verme
@@ -586,7 +616,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $pushHelper = __DIR__ . '/admin/catalog_push.php';
         if (is_file($pushHelper)) {
             require_once $pushHelper;
-            $push = catalog_push_to_server($pdo);
+            // 1.1.8: scoped push - only this anime's series (or just it), not
+            // the whole catalog. The admin "full push" button forces a resync.
+            $push = catalog_push_to_server($pdo, (int)$id);
             if (empty($push['ok'])) {
                 $pushFailed = true;
                 error_log('[anime_tracker] edit_anime catalog push failed: '
@@ -643,6 +675,16 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
         <?php if (isset($_GET['catalog_push']) && $_GET['catalog_push'] === 'failed'): ?>
             <div style="max-width: 700px; margin: 15px auto; background: #fff3cd; border: 1px solid #ffe69c; color: #664d03; padding: 12px 16px; border-radius: 8px;">
                 <?php echo htmlspecialchars(t('index.warn.catalog_push_failed'), ENT_QUOTES, 'UTF-8'); ?>
+            </div>
+        <?php endif; ?>
+        <?php // 1.1.8: admin tam-katalog push sonucu (admin-only buton). ?>
+        <?php if (isset($_GET['full_pushed'])): ?>
+            <div style="max-width: 700px; margin: 15px auto; background: #d1e7dd; border: 1px solid #badbcc; color: #0f5132; padding: 12px 16px; border-radius: 8px;">
+                <?php echo htmlspecialchars(sprintf(t('edit_anime.notice.full_pushed'), (int)$_GET['full_pushed']), ENT_QUOTES, 'UTF-8'); ?>
+            </div>
+        <?php elseif (isset($_GET['full_push_failed'])): ?>
+            <div style="max-width: 700px; margin: 15px auto; background: #f8d7da; border: 1px solid #f5c2c7; color: #842029; padding: 12px 16px; border-radius: 8px;">
+                <?php echo htmlspecialchars(t('edit_anime.notice.full_push_failed'), ENT_QUOTES, 'UTF-8'); ?>
             </div>
         <?php endif; ?>
         <div class="header-section">
@@ -1136,6 +1178,12 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
 
             <div class="button-group">
                 <input type="submit" value="<?php echo htmlspecialchars(t('edit_anime.btn.submit'), ENT_QUOTES, 'UTF-8'); ?>" class="submit-button">
+                <?php // 1.1.8: admin-only tam-katalog push. Ayri submit - name'i yalniz ?>
+                <?php // tiklaninca gonderilir, "Guncelle" bu butonu TETIKLEMEZ. Sunucu ?>
+                <?php // tarafi ayrica can('admin') dogrular. Yalniz online + admin gorur. ?>
+                <?php if (MULTI_USER_MODE && can($pdo, 'admin')): ?>
+                <button type="submit" name="full_catalog_push" value="1" class="submit-button" style="background:#fd7e14;" onclick="return confirm('<?php echo htmlspecialchars(t('edit_anime.confirm.full_push'), ENT_QUOTES, 'UTF-8'); ?>');"><?php echo htmlspecialchars(t('edit_anime.btn.full_push'), ENT_QUOTES, 'UTF-8'); ?></button>
+                <?php endif; ?>
                 <a href="index.php" class="cancel-button"><?php echo htmlspecialchars(t('add_anime.btn.cancel'), ENT_QUOTES, 'UTF-8'); ?></a>
                 <?php // 1.1.5: duzenlenen animenin detay sayfasi butonu, aksiyon butonlarinin yaninda (Anime Listesi ust bolumde kalir). ?>
                 <a class="anime-list-button" href="anime_details.php?id=<?php echo (int)$id; ?>"><?php echo htmlspecialchars(t('edit_anime.btn.view_detail'), ENT_QUOTES, 'UTF-8'); ?></a>

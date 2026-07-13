@@ -168,7 +168,7 @@ tr:hover {
 .anime-list-button {
     display: inline-block;
     padding: 10px 20px;
-    background-color: #007bff;
+    background-color: #17a2b8;
     color: white;
     text-decoration: none;
     border-radius: 4px;
@@ -178,7 +178,7 @@ tr:hover {
 }
 
 .anime-list-button:hover {
-    background-color: #0056b3;
+    background-color: #138496;
     transform: translateY(-1px);
 }
 
@@ -337,7 +337,7 @@ tr:hover {
 .anime-list-button {
     display: inline-block;
     padding: 10px 20px;
-    background-color: #007bff;
+    background-color: #17a2b8;
     color: white;
     text-decoration: none;
     border-radius: 4px;
@@ -349,7 +349,7 @@ tr:hover {
 }
 
 .anime-list-button:hover {
-    background-color: #0056b3;
+    background-color: #138496;
     transform: translateY(-1px);
 }
 
