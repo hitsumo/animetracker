@@ -335,6 +335,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
         // aired_episodes is meaningless for finished anime - clear it.
         $aired_episodes = null;
+    } elseif ($status !== 'Yayın Devam Ediyor') {
+        // 1.1.10: aired_episodes only applies to an actively airing show.
+        // For the non-airing states (Başlamadı / Seçim Yapılmadı / İptal
+        // Edildi) clear any leftover value the hidden field may have posted.
+        $aired_episodes = null;
     }
 
     // Madde E - Tek bolumlu animede yayin bitis tarihi anlamsiz.
@@ -920,9 +925,12 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
 <small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.status.locked_hint'), ENT_QUOTES, 'UTF-8'); ?></small>
         <?php else: ?>
             <select name="status" onchange="toggleBroadcastDetails()" required>
-                <option value=""><?php echo htmlspecialchars(t('add_anime.option.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
-                <option value="Yayın Tamamlandı" <?php echo $anime['status'] == 'Yayın Tamamlandı' ? 'selected' : ''; ?>><?php echo htmlspecialchars(t('index.broadcast.finished'), ENT_QUOTES, 'UTF-8'); ?></option>
-                <option value="Yayın Devam Ediyor" <?php echo $anime['status'] == 'Yayın Devam Ediyor' ? 'selected' : ''; ?>><?php echo htmlspecialchars(t('index.broadcast.ongoing'), ENT_QUOTES, 'UTF-8'); ?></option>
+                <?php // 1.1.10: five states via the broadcast_status helper. Only
+                      // non-finished rows reach this select (finished is locked
+                      // above), so any of the other four can be the current value. ?>
+                <?php foreach (broadcast_status_options() as $bs_value => $bs_label): ?>
+                <option value="<?php echo htmlspecialchars($bs_value, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $anime['status'] === $bs_value ? ' selected' : ''; ?>><?php echo htmlspecialchars($bs_label, ENT_QUOTES, 'UTF-8'); ?></option>
+                <?php endforeach; ?>
             </select>
         <?php endif; ?>
     </div>

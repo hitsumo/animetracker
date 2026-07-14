@@ -202,6 +202,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
         // aired_episodes is meaningless for finished anime - clear it.
         $aired_episodes = null;
+    } elseif ($status !== 'Yayın Devam Ediyor') {
+        // 1.1.10: aired_episodes only applies to an actively airing show.
+        // For the non-airing states (Başlamadı / Seçim Yapılmadı / İptal
+        // Edildi) clear any leftover value the hidden field may have posted.
+        $aired_episodes = null;
     }
 
     // Madde E - Tek bolumlu animede yayin bitis tarihi anlamsiz.
@@ -632,9 +637,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <label for="status"><?php echo htmlspecialchars(t('add_anime.label.status'), ENT_QUOTES, 'UTF-8'); ?></label>
             <div class="input-area">
                 <select name="status" onchange="toggleBroadcastDetails()" required>
-                    <option value=""><?php echo htmlspecialchars(t('add_anime.option.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
-                    <option value="Yayın Tamamlandı"><?php echo htmlspecialchars(t('index.broadcast.finished'), ENT_QUOTES, 'UTF-8'); ?></option>
-                    <option value="Yayın Devam Ediyor"><?php echo htmlspecialchars(t('index.broadcast.ongoing'), ENT_QUOTES, 'UTF-8'); ?></option>
+                    <?php // 1.1.10: five states via the broadcast_status helper. The
+                          // "not selected" default is preselected so a fresh form no
+                          // longer forces a finished/ongoing guess. ?>
+                    <?php foreach (broadcast_status_options() as $bs_value => $bs_label): ?>
+                    <option value="<?php echo htmlspecialchars($bs_value, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $bs_value === 'Seçim Yapılmadı' ? ' selected' : ''; ?>><?php echo htmlspecialchars($bs_label, ENT_QUOTES, 'UTF-8'); ?></option>
+                    <?php endforeach; ?>
                 </select>
             </div>
         </div>

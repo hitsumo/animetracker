@@ -53,9 +53,10 @@ $stats = syncAllOngoingAiredEpisodes($pdo, 3);
 
 // Short, plain ASCII summary so cron logs stay useful.
 $summary = sprintf(
-    "aired sync done: updated=%d unchanged=%d finished=%d not_in_table=%d no_slug=%d errors=%d%s\n",
+    "aired sync done: updated=%d unchanged=%d started=%d finished=%d not_in_table=%d no_slug=%d errors=%d%s\n",
     (int)($stats['updated'] ?? 0),
     (int)($stats['unchanged'] ?? 0),
+    (int)($stats['started'] ?? 0),
     (int)($stats['finished'] ?? 0),
     (int)($stats['not_in_table'] ?? 0),
     (int)($stats['no_slug'] ?? 0),

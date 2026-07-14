@@ -91,27 +91,34 @@ function anilist_status_to_enum($raw)
 /**
  * Map an AniList media (airing) status to our animes.status enum.
  *
- * animes.status is a NOT NULL 2-value enum: 'Yayın Tamamlandı' (finished) or
- * 'Yayın Devam Ediyor' (ongoing). AniList media.status has five values, folded
- * into those two (the DB has no "unknown" state):
- *   FINISHED, CANCELLED           -> Yayın Tamamlandı (no more episodes coming)
- *   RELEASING, NOT_YET_RELEASED,
- *   HIATUS                        -> Yayın Devam Ediyor (not finished)
- * Anything unrecognized/absent falls back to 'Yayın Tamamlandı' (the historical
- * import default), so a row always has a valid enum value.
+ * Since 1.1.10 animes.status has five values, so AniList's five states map
+ * almost one-to-one instead of being folded into two:
+ *   FINISHED          -> Yayın Tamamlandı  (finished airing)
+ *   RELEASING         -> Yayın Devam Ediyor (currently airing)
+ *   HIATUS            -> Yayın Devam Ediyor (paused but not finished)
+ *   NOT_YET_RELEASED  -> Yayın Başlamadı   (upcoming)
+ *   CANCELLED         -> Yayın İptal Edildi (cancelled)
+ * Anything unrecognized/absent falls back to 'Seçim Yapılmadı' (the 1.1.10
+ * unknown default), so a row always has a valid enum value.
  *
  * This is AniList-only: the MAL XML export carries no airing status, so the MAL
  * import keeps its fixed default. Used ONLY by the self-host local-add path
  * (online unmatched entries go to catalog_requests, which stores no status).
  *
  * @param mixed $raw AniList media.status.
- * @return string 'Yayın Tamamlandı' or 'Yayın Devam Ediyor'.
+ * @return string One of the five animes.status enum values.
  */
 function anilist_airing_status_to_enum($raw)
 {
     $key = strtoupper(trim((string)$raw));
-    $ongoing = ['RELEASING', 'NOT_YET_RELEASED', 'HIATUS'];
-    return in_array($key, $ongoing, true) ? 'Yayın Devam Ediyor' : 'Yayın Tamamlandı';
+    switch ($key) {
+        case 'FINISHED':         return 'Yayın Tamamlandı';
+        case 'RELEASING':
+        case 'HIATUS':           return 'Yayın Devam Ediyor';
+        case 'NOT_YET_RELEASED': return 'Yayın Başlamadı';
+        case 'CANCELLED':        return 'Yayın İptal Edildi';
+        default:                 return 'Seçim Yapılmadı';
+    }
 }
 
 /**

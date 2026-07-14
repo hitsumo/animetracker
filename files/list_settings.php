@@ -151,6 +151,9 @@ if (isset($_POST['sync_aired'])) {
             sprintf(t('list_settings.aired.result.finished'), $stats['finished']),
             sprintf(t('list_settings.aired.result.not_in_table'), $stats['not_in_table']),
         ];
+        if (!empty($stats['started'])) {
+            $parts[] = sprintf(t('list_settings.aired.result.started'), $stats['started']);
+        }
         if ($stats['no_slug'] > 0) {
             $parts[] = sprintf(t('list_settings.aired.result.no_slug'), $stats['no_slug']);
         }
@@ -357,7 +360,7 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                 if ($suggExists->fetchColumn()) { $alreadySuggested++; continue; }
 
                 $bstatus = $anime['status'] ?? null;
-                if (!in_array($bstatus, ['Yayın Tamamlandı', 'Yayın Devam Ediyor'], true)) { $bstatus = null; }
+                if (!in_array($bstatus, ['Yayın Tamamlandı', 'Yayın Devam Ediyor', 'Yayın Başlamadı', 'Seçim Yapılmadı', 'Yayın İptal Edildi'], true)) { $bstatus = null; }
                 $mtype = $anime['media_type'] ?? null;
                 if (!in_array($mtype, ['TV', 'Film', 'OVA', 'Special', 'ONA'], true)) { $mtype = null; }
 
@@ -472,7 +475,7 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                         $anime['title'],
                         $anime['alternative_titles']  ?? null,
                         $anime['title_english']       ?? null,
-                        $anime['status']              ?? 'Yayın Tamamlandı',
+                        $anime['status']              ?? 'Seçim Yapılmadı',
                         $anime['total_episodes']      ?? null,
                         $anime['aired_episodes']      ?? null,
                         $anime['image_path']          ?? null,
@@ -777,7 +780,7 @@ if (isset($_POST['mal_commit'])) {
             // Same match-or-add shape the JSON self-host restore uses.
             $addAnime = $pdo->prepare(
                 "INSERT INTO animes (title, mal_id, status, source)
-                 VALUES (?, ?, 'Yayın Tamamlandı', 'local')"
+                 VALUES (?, ?, 'Seçim Yapılmadı', 'local')"
             );
 
             foreach ($entries as $e) {
@@ -1068,7 +1071,7 @@ if (isset($_POST['anilist_commit'])) {
                     // airing_status defaults defensively (older session stash / a
                     // rare entry AniList gave no status for) to the historical value.
                     $addAnime->execute([
-                        $e['title'], $e['mal_id'], $e['airing_status'] ?? 'Yayın Tamamlandı', $e['is_adult'] ?? 0
+                        $e['title'], $e['mal_id'], $e['airing_status'] ?? 'Seçim Yapılmadı', $e['is_adult'] ?? 0
                     ]);
                     $newId = (int)$pdo->lastInsertId();
                     if ($newId > 0) {

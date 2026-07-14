@@ -212,7 +212,7 @@ if ($fillerTracking) {
             <div class="anime-details">
                 <div class="detail-row">
                     <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.status'), ENT_QUOTES, 'UTF-8'); ?></span>
-                    <span class="detail-value status"><?php echo htmlspecialchars($anime['status']); ?></span>
+                    <span class="detail-value status"><?php echo htmlspecialchars(broadcast_status_label($anime['status'])); ?></span>
                 </div>
 
                

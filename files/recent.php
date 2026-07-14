@@ -226,14 +226,7 @@ $recent = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </span>
                         <span><i class="fas fa-play-circle"></i> <?php echo $epDisplay; ?></span>
                         <span><i class="fas fa-broadcast-tower"></i> <?php
-                            $s = $anime['status'];
-                            if ($s === 'Yayın Tamamlandı') {
-                                echo htmlspecialchars(t('index.broadcast.finished'));
-                            } elseif ($s === 'Yayın Devam Ediyor') {
-                                echo htmlspecialchars(t('index.broadcast.ongoing'));
-                            } else {
-                                echo htmlspecialchars($s);
-                            }
+                            echo htmlspecialchars(broadcast_status_label($anime['status']));
                         ?></span>
                     </div>
                 </div>

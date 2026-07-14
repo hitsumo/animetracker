@@ -294,17 +294,9 @@ $emotion_anime_count_global = (int)$pdo->query(
                 <tr><th><?php echo htmlspecialchars(t('statistics.col.status'), ENT_QUOTES, 'UTF-8'); ?></th><th><?php echo htmlspecialchars(t('statistics.col.count'), ENT_QUOTES, 'UTF-8'); ?></th></tr>
                 <?php foreach ($by_status as $row): ?>
                     <tr><td><?php
-                        // animes.status DB enum: Yayin Tamamlandi / Yayin Devam Ediyor (TR)
-                        // Index sayfasinin broadcast.* anahtarlarini yeniden kullaniriz.
-                        $s = $row['status'];
-                        if ($s === 'Yayın Tamamlandı') {
-                            $sLabel = t('index.broadcast.finished');
-                        } elseif ($s === 'Yayın Devam Ediyor') {
-                            $sLabel = t('index.broadcast.ongoing');
-                        } else {
-                            $sLabel = $s; // bilinmeyen deger ham gosterilir
-                        }
-                        echo htmlspecialchars($sLabel);
+                        // animes.status DB enum -> localized label via the
+                        // broadcast_status helper (single source of truth, 1.1.10).
+                        echo htmlspecialchars(broadcast_status_label($row['status']));
                     ?></td><td><?php echo $row['cnt']; ?></td></tr>
                 <?php endforeach; ?>
             </table>

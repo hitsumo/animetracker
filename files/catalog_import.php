@@ -381,7 +381,7 @@ try {
             ':title'               => $ca['title']               ?? '',
             ':alternative_titles'  => $ca['alternative_titles']  ?? null,
             ':title_english'       => $ca['title_english']        ?? null,
-            ':status'              => $ca['status']              ?? 'Yayin Tamamlandi',
+            ':status'              => $ca['status']              ?? 'Seçim Yapılmadı',
             ':total_episodes'      => $ca['total_episodes']      ?? null,
             ':aired_episodes'      => $ca['aired_episodes']      ?? null,
             ':synopsis_tr'         => $ca['synopsis_tr']         ?? null,

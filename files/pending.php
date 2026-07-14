@@ -83,7 +83,7 @@ $rows = $pdo->query(
                                 <?php
                                 $bits = [];
                                 if (!empty($r['media_type'])) { $bits[] = $r['media_type']; }
-                                if (!empty($r['status']))     { $bits[] = $r['status']; }
+                                if (!empty($r['status']))     { $bits[] = broadcast_status_label($r['status']); }
                                 echo htmlspecialchars(implode(' - ', $bits), ENT_QUOTES, 'UTF-8');
                                 ?>
                             </div>

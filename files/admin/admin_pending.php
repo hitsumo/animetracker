@@ -329,7 +329,7 @@ $localCount   = (int)($totals['local']   ?? 0);
                                     <?php echo htmlspecialchars($a['title']); ?>
                                 </a>
                             </td>
-                            <td><?php echo htmlspecialchars($a['status']); ?></td>
+                            <td><?php echo htmlspecialchars(broadcast_status_label($a['status'])); ?></td>
                             <td style="font-size: 0.85em; color: #666;">
                                 <?php echo $a['mal_id'] ? 'MAL: ' . (int)$a['mal_id'] : '-'; ?><br>
                                 <?php echo $a['anidb_id'] ? 'AniDB: ' . (int)$a['anidb_id'] : '-'; ?>

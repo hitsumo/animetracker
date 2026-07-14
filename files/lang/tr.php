@@ -85,9 +85,13 @@ return [
     'index.filter.emotion_clear'    => 'Filtreyi temizle',
 
     // Broadcast status values (free text in animes.status, kept as
-    // Turkish constants in the DB for now)
+    // Turkish constants in the DB for now). 1.1.10: three new values
+    // (not_started / unselected / cancelled) alongside the original two.
     'index.broadcast.ongoing'       => 'Yayın Devam Ediyor',
     'index.broadcast.finished'      => 'Yayın Tamamlandı',
+    'index.broadcast.not_started'   => 'Yayın Başlamadı',
+    'index.broadcast.unselected'    => 'Seçim Yapılmadı',
+    'index.broadcast.cancelled'     => 'Yayın İptal Edildi',
 
     // Add button above the list
     'index.add_anime'               => 'Yeni Anime Ekle',
@@ -800,6 +804,7 @@ return [
     'list_settings.aired.invalid_key'        => 'API anahtari gecersiz. config.php yi kontrol edin.',
     'list_settings.aired.result.updated'     => '%d anime guncellendi',
     'list_settings.aired.result.unchanged'   => '%d degismedi',
+    'list_settings.aired.result.started'     => '%d yayina basladi',
     'list_settings.aired.result.finished'    => '%d tamamlandi',
     'list_settings.aired.result.not_in_table' => '%d takvimde bulunamadi',
     'list_settings.aired.result.no_slug'     => '%d AnimeSchedule URL si yok',

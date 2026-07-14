@@ -789,8 +789,10 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                     <label for="broadcast_status_filter"><?php echo htmlspecialchars(t('index.filter.broadcast'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <select name="broadcast_status_filter" id="broadcast_status_filter">
                         <option value=""><?php echo htmlspecialchars(t('index.filter.all'), ENT_QUOTES, 'UTF-8'); ?></option>
-                        <option value="Yayın Devam Ediyor" <?php echo $broadcast_status_filter == 'Yayın Devam Ediyor' ? 'selected' : ''; ?>><?php echo htmlspecialchars(t('index.broadcast.ongoing'), ENT_QUOTES, 'UTF-8'); ?></option>
-                        <option value="Yayın Tamamlandı" <?php echo $broadcast_status_filter == 'Yayın Tamamlandı' ? 'selected' : ''; ?>><?php echo htmlspecialchars(t('index.broadcast.finished'), ENT_QUOTES, 'UTF-8'); ?></option>
+                        <?php // 1.1.10: all five states via the broadcast_status helper. ?>
+                        <?php foreach (broadcast_status_options() as $bs_value => $bs_label): ?>
+                        <option value="<?php echo htmlspecialchars($bs_value, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $broadcast_status_filter == $bs_value ? 'selected' : ''; ?>><?php echo htmlspecialchars($bs_label, ENT_QUOTES, 'UTF-8'); ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
                 <div style="margin-top: 20px;"></div>

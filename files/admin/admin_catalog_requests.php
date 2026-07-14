@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 try {
                     $ins->execute([
                         $s['title'], $s['alternative_titles'], $s['title_english'],
-                        $s['status'] ?: 'Yayın Tamamlandı',
+                        $s['status'] ?: 'Seçim Yapılmadı',
                         $s['is_adult'] ?? 0,
                         $s['total_episodes'], $s['mal_link'], $s['anidb_link'],
                         $s['anime_schedule_link'],
@@ -318,7 +318,7 @@ $pendingCount = count($pending);
                         <tr>
                             <td><input type="checkbox" name="ids[]" value="<?php echo (int)$s['id']; ?>" class="row-check"></td>
                             <td><?php echo htmlspecialchars($s['title']); ?></td>
-                            <td><?php echo htmlspecialchars((string)$s['status']); ?></td>
+                            <td><?php echo htmlspecialchars(broadcast_status_label($s['status'])); ?></td>
                             <td style="font-size: 0.85em; color: #666;">
                                 <?php echo $s['mal_id'] ? 'MAL: ' . (int)$s['mal_id'] : '-'; ?><br>
                                 <?php echo $s['anidb_id'] ? 'AniDB: ' . (int)$s['anidb_id'] : '-'; ?>

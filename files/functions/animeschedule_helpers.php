@@ -243,15 +243,17 @@ function mapAnimeScheduleToFormFields($apiData) {
     }
 
     // --- Status -------------------------------------------------------
-    // API values seen: "Finished", "Ongoing". "Upcoming" exists per the
-    // docs but the form has no equivalent (we only support two states).
+    // API values seen: "Finished", "Ongoing", "Upcoming". Since 1.1.10 the
+    // form has a "not yet aired" state, so "Upcoming" now maps too.
     if (!empty($apiData['status']) && is_string($apiData['status'])) {
         if ($apiData['status'] === 'Finished') {
             $out['status'] = 'Yayın Tamamlandı';
         } elseif ($apiData['status'] === 'Ongoing') {
             $out['status'] = 'Yayın Devam Ediyor';
+        } elseif ($apiData['status'] === 'Upcoming') {
+            $out['status'] = 'Yayın Başlamadı';
         }
-        // "Upcoming" or unknown values: leave status unset.
+        // Unknown values: leave status unset.
     }
 
     // --- Episode count ------------------------------------------------
@@ -576,13 +578,22 @@ function syncSingleAiredEpisodes($pdo, $animeId, $maxWeeksBack = 3) {
 }
 
 /**
- * Bulk sync aired_episodes for every ongoing anime that has both a
- * MAL id and an AnimeSchedule slug.
+ * Bulk sync aired_episodes for every ongoing OR not-yet-started anime
+ * that has both a MAL id and an AnimeSchedule slug.
  *
- * This is the once-a-day silent sync triggered from list_settings.php.
- * One API request per week serves the entire batch (vs one request per
- * anime in the naive design), because the timetable comes back unfiltered
- * and we match locally on slug.
+ * This is the silent sync triggered from list_settings.php and from cron
+ * (sync_aired.php). One API request per week serves the entire batch (vs
+ * one request per anime in the naive design), because the timetable comes
+ * back unfiltered and we match locally on slug.
+ *
+ * 1.1.10: the sweep now also carries 'Yayın Başlamadı' (not-yet-aired)
+ * rows. A row appears in the AnimeSchedule timetable with an ALREADY-aired
+ * episode only once broadcast has actually begun (future-dated rows are
+ * skipped by isTimetableRowAired), so any 'Yayın Başlamadı' row we match
+ * here has started - we auto-promote it to 'Yayın Devam Ediyor' (or straight
+ * to 'Yayın Tamamlandı' if its whole raw run has already aired). This closes
+ * the lifecycle: upcoming -> airing happens on its own, mirroring the
+ * existing airing -> finished auto-flip.
  *
  * Side effect: settings.last_aired_sync is updated to the current UTC
  * timestamp on a successful run. If we hit a global API failure
@@ -594,6 +605,8 @@ function syncSingleAiredEpisodes($pdo, $animeId, $maxWeeksBack = 3) {
  *   [
  *     'updated'       => N,     // animes whose aired_episodes changed
  *     'unchanged'     => N,     // animes confirmed at same value
+ *     'started'       => N,     // 'Yayın Başlamadı' rows promoted to ongoing
+ *     'finished'      => N,     // rows whose raw run completed -> finished
  *     'not_in_table'  => N,     // slug absent from every week we tried
  *     'no_slug'       => N,     // animes lacking anime_schedule_link
  *     'errors'        => N,     // unexpected per-anime failures
@@ -604,19 +617,22 @@ function syncAllOngoingAiredEpisodes($pdo, $maxWeeksBack = 3) {
     $stats = [
         'updated'      => 0,
         'unchanged'    => 0,
+        'started'      => 0,
         'finished'     => 0,
         'not_in_table' => 0,
         'no_slug'      => 0,
         'errors'       => 0,
     ];
 
-    // Pull every ongoing anime that has the identity bits we need. We
-    // require mal_id (project-wide convention for ongoing animes) and
-    // we will additionally check anime_schedule_link per row.
+    // Pull every ongoing OR not-yet-started anime that has the identity
+    // bits we need. We require mal_id (project-wide convention for these
+    // animes) and additionally check anime_schedule_link per row. status
+    // is carried so we can auto-promote a 'Yayın Başlamadı' row the moment
+    // the timetable shows it has aired an episode (1.1.10).
     $stmt = $pdo->query("
-        SELECT id, mal_id, aired_episodes, total_episodes, anime_schedule_link
+        SELECT id, mal_id, status, aired_episodes, total_episodes, anime_schedule_link
           FROM animes
-         WHERE status = 'Yayın Devam Ediyor'
+         WHERE status IN ('Yayın Devam Ediyor', 'Yayın Başlamadı')
            AND mal_id IS NOT NULL
     ");
     $animes = $stmt->fetchAll();
@@ -655,6 +671,10 @@ function syncAllOngoingAiredEpisodes($pdo, $maxWeeksBack = 3) {
     // Reused when a show's full raw run has aired (auto-finish): clamp
     // aired to total and flip the broadcast status in one write.
     $updFin = $pdo->prepare("UPDATE animes SET aired_episodes = ?, status = 'Yayın Tamamlandı' WHERE id = ?");
+
+    // 1.1.10: reused when a 'Yayın Başlamadı' row is confirmed airing:
+    // set aired_episodes and promote the status to ongoing in one write.
+    $updStart = $pdo->prepare("UPDATE animes SET aired_episodes = ?, status = 'Yayın Devam Ediyor' WHERE id = ?");
 
     // Walk weeks backwards. Once a slug is matched in some week we drop
     // it from the remaining set so older weeks do not overwrite newer
@@ -716,6 +736,12 @@ function syncAllOngoingAiredEpisodes($pdo, $maxWeeksBack = 3) {
             $finished     = ($total > 0 && $epNum >= $total);
             $airedToWrite = $finished ? $total : $epNum;
 
+            // 1.1.10: a matched, already-aired timetable row for a
+            // not-yet-started anime means broadcast has begun. Promote it
+            // (unless its whole run has already aired, in which case the
+            // $finished branch below takes it straight to finished).
+            $isStarting = (($anime['status'] ?? '') === 'Yayın Başlamadı') && !$finished;
+
             try {
                 if ($finished) {
                     $updFin->execute([$airedToWrite, (int)$anime['id']]);
@@ -723,6 +749,12 @@ function syncAllOngoingAiredEpisodes($pdo, $maxWeeksBack = 3) {
                     error_log('[anime_tracker] auto-finish anime#'
                         . $anime['id'] . ' raw run complete at ep '
                         . $epNum . '/' . $total);
+                } elseif ($isStarting) {
+                    $updStart->execute([$airedToWrite, (int)$anime['id']]);
+                    $stats['started']++;
+                    error_log('[anime_tracker] auto-start anime#'
+                        . $anime['id'] . ' broadcast began at ep ' . $epNum
+                        . ' (Yayın Başlamadı -> Yayın Devam Ediyor)');
                 } elseif ($oldValue !== $airedToWrite) {
                     $upd->execute([$airedToWrite, (int)$anime['id']]);
                     $stats['updated']++;

@@ -69,6 +69,10 @@ return [
     // done by exact string match in PHP before the label is shown.
     'index.broadcast.ongoing'       => 'Currently Airing',
     'index.broadcast.finished'      => 'Finished Airing',
+    // 1.1.10: three new broadcast-status values.
+    'index.broadcast.not_started'   => 'Not Yet Aired',
+    'index.broadcast.unselected'    => 'Not Selected',
+    'index.broadcast.cancelled'     => 'Cancelled',
 
     'index.add_anime'               => 'Add New Anime',
     'index.pending_link'            => 'Pending (%d)',
@@ -768,6 +772,7 @@ return [
     'list_settings.aired.invalid_key'        => 'API key is invalid. Check config.php.',
     'list_settings.aired.result.updated'     => '%d anime updated',
     'list_settings.aired.result.unchanged'   => '%d unchanged',
+    'list_settings.aired.result.started'     => '%d started airing',
     'list_settings.aired.result.finished'    => '%d finished',
     'list_settings.aired.result.not_in_table' => '%d not found in schedule',
     'list_settings.aired.result.no_slug'     => '%d without AnimeSchedule URL',
