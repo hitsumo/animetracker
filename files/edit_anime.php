@@ -1047,7 +1047,9 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                 <label><?php echo htmlspecialchars(t('add_anime.label.genres'), ENT_QUOTES, 'UTF-8'); ?></label>
                 <div class="input-area">
                     <div class="genre-selection-container">
-                        <select id="genre-select" onchange="addSelectedGenre(this)">
+                        <?php // data-no-enhance: this picker resets its own value and gains
+                              // options at runtime (anime_form.js), so it is left native. ?>
+                        <select id="genre-select" onchange="addSelectedGenre(this)" data-no-enhance>
                             <option value=""><?php echo htmlspecialchars(t('add_anime.option.choose_from_existing'), ENT_QUOTES, 'UTF-8'); ?></option>
                             <?php foreach ($genres as $genre): ?>
                                 <option value="<?php echo htmlspecialchars($genre['name']); ?>">
@@ -1303,5 +1305,6 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
         }
     </script>
     <script src="js/anime_form.js"></script>
+    <script src="js/select_enhance.js" defer></script>
 </body>
 </html>

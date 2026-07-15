@@ -57,6 +57,143 @@ function anilist_valid_username($raw)
     return $s;
 }
 
+// =====================================================================
+// Import source limit (1.1.11)
+// =====================================================================
+// Online (multi-user) mode: any signed-in normal member can type ANYONE's
+// public AniList name and import it. To stop one member from pulling an
+// unbounded number of different people's lists (flooding the moderation
+// queue / catalog), a member may import from at most N DISTINCT AniList
+// accounts (default 3). The SAME account may be re-synced without limit
+// (legitimate: come back later and pull again). The cap counts distinct
+// SOURCE usernames, not imports, and is stored per user in
+// anilist_import_sources (one row per distinct username, UNIQUE'd).
+//
+// Exempt: self-host (single owner) and moderator+ (bulk seeding is their
+// legitimate job). The limit is admin-tunable via the settings key
+// anilist_import_source_limit (0 = unlimited, emergency off-valve).
+
+/**
+ * Is the current user exempt from the AniList import source limit?
+ * Self-host (single owner) and moderator+ never hit the cap.
+ *
+ * @param PDO $pdo
+ * @return bool
+ */
+function anilist_source_exempt($pdo)
+{
+    if (!defined('MULTI_USER_MODE') || !MULTI_USER_MODE) {
+        return true; // self-host: single user, no cap
+    }
+    return can($pdo, 'moderate'); // moderator+ exempt
+}
+
+/**
+ * The configured distinct-source cap. settings.anilist_import_source_limit,
+ * default 3. A value <= 0 means "unlimited".
+ *
+ * @param PDO $pdo
+ * @return int
+ */
+function anilist_source_limit($pdo)
+{
+    $raw = get_setting($pdo, 'anilist_import_source_limit', '3');
+    $n = (int)$raw;
+    return $n < 0 ? 0 : $n;
+}
+
+/**
+ * Normalize an AniList username to its slot key: lower-cased + trimmed.
+ * AniList resolves usernames case-insensitively, so Mahmut / mahmut / MAHMUT
+ * are one slot (prevents trivial gaming of the cap). Pass a value that has
+ * already cleared anilist_valid_username().
+ *
+ * @param string $username
+ * @return string
+ */
+function anilist_source_norm($username)
+{
+    return mb_strtolower(trim((string)$username), 'UTF-8');
+}
+
+/**
+ * How many distinct sources the user has already used.
+ *
+ * @param PDO $pdo
+ * @param int $userId
+ * @return int
+ */
+function anilist_source_used_count($pdo, $userId)
+{
+    $q = $pdo->prepare(
+        "SELECT COUNT(*) FROM anilist_import_sources WHERE user_id = ?"
+    );
+    $q->execute([(int)$userId]);
+    return (int)$q->fetchColumn();
+}
+
+/**
+ * Has the user already imported from this (normalized) source before?
+ * A known source is always allowed again (re-sync) and never opens a slot.
+ *
+ * @param PDO $pdo
+ * @param int $userId
+ * @param string $normUser
+ * @return bool
+ */
+function anilist_source_known($pdo, $userId, $normUser)
+{
+    $q = $pdo->prepare(
+        "SELECT 1 FROM anilist_import_sources
+          WHERE user_id = ? AND anilist_username = ? LIMIT 1"
+    );
+    $q->execute([(int)$userId, $normUser]);
+    return (bool)$q->fetchColumn();
+}
+
+/**
+ * Record a distinct source use. INSERT IGNORE against the UNIQUE
+ * (user_id, anilist_username) key, so a re-synced (already known) source
+ * opens no new slot and a race between two tabs is absorbed.
+ *
+ * @param PDO $pdo
+ * @param int $userId
+ * @param string $normUser
+ * @return void
+ */
+function anilist_source_record($pdo, $userId, $normUser)
+{
+    $q = $pdo->prepare(
+        "INSERT IGNORE INTO anilist_import_sources (user_id, anilist_username)
+         VALUES (?, ?)"
+    );
+    $q->execute([(int)$userId, $normUser]);
+}
+
+/**
+ * May this user import from the given (normalized) source right now?
+ * Order: exempt -> unlimited setting -> known source (re-sync) -> under cap.
+ *
+ * @param PDO $pdo
+ * @param int $userId
+ * @param string $normUser
+ * @return bool
+ */
+function anilist_source_allowed($pdo, $userId, $normUser)
+{
+    if (anilist_source_exempt($pdo)) {
+        return true;
+    }
+    $limit = anilist_source_limit($pdo);
+    if ($limit <= 0) {
+        return true; // unlimited
+    }
+    if (anilist_source_known($pdo, $userId, $normUser)) {
+        return true; // re-sync of an already-used source
+    }
+    return anilist_source_used_count($pdo, $userId) < $limit;
+}
+
 /**
  * Map an AniList media-list status to our watch_status enum.
  *

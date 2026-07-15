@@ -763,10 +763,13 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
             <form method="GET" action="" onsubmit="for(var i=0;i&lt;this.elements.length;i++){var el=this.elements[i];if(el.name&amp;&amp;el.value===''){el.disabled=true;}}">
                 <div class="filter-group">
                     <label for="genre_filter"><?php echo htmlspecialchars(t('index.filter.genre'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <?php // 1.1.11: long selects (>8 options, e.g. this genre list) are
+                          // enhanced on desktop into a scrollable dropdown capped at 8 rows
+                          // by js/select_enhance.js. Native select stays the form field. ?>
                     <select name="genre_filter" id="genre_filter">
                         <option value=""><?php echo htmlspecialchars(t('index.filter.all'), ENT_QUOTES, 'UTF-8'); ?></option>
                         <?php foreach ($genres as $genre): ?>
-                            <option value="<?php echo htmlspecialchars($genre['name']); ?>" 
+                            <option value="<?php echo htmlspecialchars($genre['name']); ?>"
                                     <?php echo $genre_filter == $genre['name'] ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars(genre_display_name($genre)); ?>
                             </option>
@@ -1156,5 +1159,6 @@ if ($anime['status'] == 'Yayın Tamamlandı') {
         });
     }
     </script>
+    <script src="js/select_enhance.js" defer></script>
 </body>
 </html>

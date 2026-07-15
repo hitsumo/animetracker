@@ -857,6 +857,7 @@ return [
     'list_settings.anilist.err.parse'           => 'AniList yanıtı çözümlenemedi. Lütfen sonra tekrar deneyin.',
     'list_settings.anilist.err.empty'           => 'Bu kullanıcının içe aktarılacak (herkese açık) anime listesi bulunamadı.',
     'list_settings.anilist.err.session'         => 'Önizleme süresi doldu. Lütfen kullanıcı adını tekrar girin.',
+    'list_settings.anilist.err.source_limit'    => 'En fazla %d farklı AniList hesabından içe aktarabilirsin. Daha önce aktardığın hesapları sınırsız yeniden senkronlayabilirsin; yeni bir hesap için yöneticiden sıfırlama iste.',
     'list_settings.anilist.preview.summary'     => 'Toplam %d kayıt okundu: %d katalogda eşleşti, %d zaten listenizde, %d katalogda yok.',
     'list_settings.anilist.preview.mode'        => 'İçe aktarma türü:',
     'list_settings.anilist.preview.mode.list'   => 'Listeyi izleme durumlarıyla aktar (durum, bölüm, tarih, not)',

@@ -825,6 +825,7 @@ return [
     'list_settings.anilist.err.parse'           => 'Could not parse the AniList response. Please try again later.',
     'list_settings.anilist.err.empty'           => 'No public anime list to import was found for this user.',
     'list_settings.anilist.err.session'         => 'The preview has expired. Please enter the username again.',
+    'list_settings.anilist.err.source_limit'    => 'You can import from at most %d different AniList accounts. Accounts you have already imported can be re-synced without limit; for a new account, ask an administrator to reset it.',
     'list_settings.anilist.preview.summary'     => 'Read %d entries: %d matched in the catalog, %d already in your list, %d not in the catalog.',
     'list_settings.anilist.preview.mode'        => 'Import type:',
     'list_settings.anilist.preview.mode.list'   => 'Import the list with watch state (status, episodes, dates, notes)',

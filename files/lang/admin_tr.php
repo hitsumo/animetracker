@@ -133,6 +133,10 @@ return [
     'admin_cap.synopsis_override.status_on'  => 'Açık - katalog konuları her zaman düzenlenebilir',
     'admin_cap.synopsis_override.status_off' => 'Kapalı - Kişisel Konu dolu animelerde katalog konusu kilitli (varsayılan)',
     'admin_cap.save'                         => 'Kaydet',
+    'admin_cap.anilist_limit.h3'             => 'AniList içe aktarma kaynak limiti',
+    'admin_cap.anilist_limit.desc'           => 'Online modda normal bir üye en fazla kaç FARKLI AniList hesabından içe aktarabilir. Aynı hesabı sınırsız yeniden senkronlayabilir. Self-host ve moderatör+ muaftır.',
+    'admin_cap.anilist_limit.field'          => 'İçe aktarılabilecek farklı hesap sayısı (0 = sınırsız)',
+    'admin_cap.anilist_limit.hint'           => 'Varsayılan 3. 0 yazarsan limit kalkar (sınırsız).',
     'admin_cap.back_to_admin'                => 'Yönetici paneline dön',
     'admin_cap.csrf_invalid'                 => 'Geçersiz güvenlik anahtarı (CSRF). Sayfayı yenileyip tekrar deneyin.',
 
@@ -215,6 +219,11 @@ return [
     'admin_users.save'                       => 'Kaydet',
     'admin_users.err_self'                   => 'Kendi hesabınızın rolünü veya durumunu bu ekrandan değiştiremezsiniz.',
     'admin_users.err_last_admin'             => 'Bu işlem son etkin yöneticiyi kaldırır. En az bir etkin yönetici kalmalı.',
+    'admin_users.anilist_reset.count'        => 'AniList: %d kaynak',
+    'admin_users.anilist_reset.label'        => 'Bu kullanıcının içe aktardığı farklı AniList hesabı sayısı',
+    'admin_users.anilist_reset.button'       => 'Sıfırla',
+    'admin_users.anilist_reset.confirm'      => 'Bu kullanıcının AniList içe aktarma limiti sıfırlansın mı? Kullandığı kaynak kayıtları silinir.',
+    'admin_users.anilist_reset.done'         => 'AniList içe aktarma limiti sıfırlandı (%d kaynak silindi).',
     'admin_users.back_to_admin'              => 'Yönetici paneline dön',
 
     // --- admin_suggestions.php ---

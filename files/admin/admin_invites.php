@@ -463,5 +463,6 @@ foreach ($requests as $r) {
     });
 })();
 </script>
+    <script src="../js/select_enhance.js" defer></script>
 </body>
 </html>

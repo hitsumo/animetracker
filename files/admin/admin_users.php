@@ -107,6 +107,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // 1.1.11: reset a user's AniList import source limit by clearing their
+    // recorded distinct sources - they regain the full N-source allowance.
+    // Admin-gated (above); no self-guard needed (clearing is harmless) and no
+    // last-admin concern (this touches no role/status).
+    if (($_POST['action'] ?? '') === 'reset_anilist_sources') {
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id > 0) {
+            $del = $pdo->prepare("DELETE FROM anilist_import_sources WHERE user_id = ?");
+            $del->execute([$id]);
+            header('Location: admin_users.php?ais_reset=' . $del->rowCount());
+            exit;
+        }
+    }
+
     header('Location: admin_users.php');
     exit;
 }
@@ -120,6 +134,14 @@ $users = $pdo->query(
      FROM users
      ORDER BY FIELD(role, 'admin', 'moderator', 'trusted', 'user'), username"
 )->fetchAll(PDO::FETCH_ASSOC);
+
+// 1.1.11: used AniList import-source count per user (for the reset control).
+$srcCounts = [];
+foreach ($pdo->query(
+    "SELECT user_id, COUNT(*) AS c FROM anilist_import_sources GROUP BY user_id"
+) as $r) {
+    $srcCounts[(int)$r['user_id']] = (int)$r['c'];
+}
 
 // Status options to render in a select for a given current status: the
 // settable ones, plus the current value if it is a system state so the
@@ -188,6 +210,13 @@ function status_options_for($current, array $settable)
                 <?php echo htmlspecialchars(t('admin_users.intro'), ENT_QUOTES, 'UTF-8'); ?>
             </p>
 
+            <?php if (isset($_GET['ais_reset'])): ?>
+                <div style="background:#d4edda;color:#155724;padding:10px 14px;border-radius:4px;margin-bottom:15px;font-size:0.9em;">
+                    <i class="fas fa-check"></i>
+                    <?php echo htmlspecialchars(sprintf(t('admin_users.anilist_reset.done'), (int)$_GET['ais_reset']), ENT_QUOTES, 'UTF-8'); ?>
+                </div>
+            <?php endif; ?>
+
             <table class="users">
                 <thead>
                     <tr>
@@ -233,7 +262,19 @@ function status_options_for($current, array $settable)
                                 </form>
                             </td>
                             <td><?php echo htmlspecialchars((string)$u['created_at'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td></td>
+                            <td>
+                                <?php $sc = $srcCounts[(int)$u['id']] ?? 0; ?>
+                                <?php if ($sc > 0): ?>
+                                    <form method="post" action="admin_users.php" class="row-form"
+                                          onsubmit="return confirm('<?php echo htmlspecialchars(t('admin_users.anilist_reset.confirm'), ENT_QUOTES, 'UTF-8'); ?>');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                                        <input type="hidden" name="action" value="reset_anilist_sources">
+                                        <input type="hidden" name="id" value="<?php echo (int)$u['id']; ?>">
+                                        <span title="<?php echo htmlspecialchars(t('admin_users.anilist_reset.label'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(sprintf(t('admin_users.anilist_reset.count'), $sc), ENT_QUOTES, 'UTF-8'); ?></span>
+                                        <button type="submit" class="btn"><i class="fas fa-undo"></i> <?php echo htmlspecialchars(t('admin_users.anilist_reset.button'), ENT_QUOTES, 'UTF-8'); ?></button>
+                                    </form>
+                                <?php endif; ?>
+                            </td>
                         <?php endif; ?>
                     </tr>
                 <?php endforeach; ?>
@@ -245,5 +286,6 @@ function status_options_for($current, array $settable)
             </a>
         </div>
     </div>
+    <script src="../js/select_enhance.js" defer></script>
 </body>
 </html>

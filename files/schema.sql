@@ -659,6 +659,35 @@ CREATE TABLE IF NOT EXISTS `catalog_requests` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
+-- Table: anilist_import_sources (1.1.11)
+-- App-side ledger of the DISTINCT AniList accounts a user has imported
+-- from. Online (multi-user) mode caps a normal member at N distinct
+-- source usernames (settings.anilist_import_source_limit, default 3) so
+-- one member cannot pull an unbounded number of other people's lists and
+-- flood the moderation queue / catalog. One row per (user, normalized
+-- username); the SAME account re-syncs freely (INSERT IGNORE on the
+-- UNIQUE key opens no new row). anilist_username is stored lower-cased
+-- (anilist_source_norm) so Mahmut/mahmut are one slot.
+--
+-- Purely app-side: never pushed to the central catalog. Self-host and
+-- moderator+ are exempt (no rows accumulate for them). Kept in sync with
+-- migration/1.1.11/upgrade.sql so a FRESH install (which skips older
+-- migrations) still gets the table from this base schema.
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `anilist_import_sources` (
+  `id`               int(11) NOT NULL AUTO_INCREMENT,
+  `user_id`          int(11) NOT NULL,
+  `anilist_username` varchar(50) NOT NULL,
+  `first_used_at`    timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_user_src` (`user_id`, `anilist_username`),
+  KEY `idx_ais_user` (`user_id`),
+  CONSTRAINT `fk_ais_user` FOREIGN KEY (`user_id`)
+    REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
 -- Table: user_anime_emotion
 -- The user's emotional reactions to anime, recorded as marks (not
 -- scores). Each row is one (user, anime, emotion) triple; a user can

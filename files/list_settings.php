@@ -861,7 +861,18 @@ if (isset($_POST['anilist_preview']) || isset($_POST['anilist_commit']) || isset
 // --- Step 1: fetch + match + stash a dry-run in the session ------------
 if (isset($_POST['anilist_preview'])) {
     $username = (string)($_POST['anilist_username'] ?? '');
-    $fetched  = anilist_fetch_list($username);
+    // 1.1.11: distinct-source cap. Validate the handle and gate a NEW source
+    // BEFORE spending an AniList API call (self-host / moderator+ are exempt;
+    // a known source re-syncs freely). A structurally-invalid handle falls
+    // through to anilist_fetch_list, which returns the 'bad_username' error.
+    $anilistValid = anilist_valid_username($username);
+    $anilistNorm  = ($anilistValid !== null) ? anilist_source_norm($anilistValid) : '';
+    if ($anilistValid !== null
+        && !anilist_source_allowed($pdo, current_user_id(), $anilistNorm)) {
+        $fetched = ['ok' => false, 'error' => 'source_limit'];
+    } else {
+        $fetched = anilist_fetch_list($username);
+    }
     if (!$fetched['ok']) {
         // Map the helper's error code to a user-facing message.
         $errKeys = [
@@ -873,7 +884,15 @@ if (isset($_POST['anilist_preview'])) {
             'parse'        => 'list_settings.anilist.err.parse',
             'empty'        => 'list_settings.anilist.err.empty',
         ];
-        $error_message = t($errKeys[$fetched['error']] ?? 'list_settings.anilist.err.http');
+        if (($fetched['error'] ?? '') === 'source_limit') {
+            // Needs the limit number, so it is formatted, not a plain lookup.
+            $error_message = sprintf(
+                t('list_settings.anilist.err.source_limit'),
+                anilist_source_limit($pdo)
+            );
+        } else {
+            $error_message = t($errKeys[$fetched['error']] ?? 'list_settings.anilist.err.http');
+        }
     } else {
         // Match each entry against the catalog by mal_id and bucket it -
         // identical to the MAL preview (matched / already / unmatched).
@@ -922,6 +941,7 @@ if (isset($_POST['anilist_preview'])) {
             'entries'  => $fetched['entries'],
             'counts'   => $counts,
             'byStatus' => $byStatus,
+            'username' => $anilistNorm, // 1.1.11: normalized source, recorded on commit
             'ts'       => time(),
         ];
         $anilistPreview = $_SESSION['anilist_import'];
@@ -930,8 +950,20 @@ if (isset($_POST['anilist_preview'])) {
 
 // --- Step 2: commit the stashed dry-run --------------------------------
 if (isset($_POST['anilist_commit'])) {
+    // 1.1.11: the normalized source stashed at preview time (empty for a
+    // pre-1.1.11 stash, in which case preview already gated it).
+    $anilistNorm = (string)($_SESSION['anilist_import']['username'] ?? '');
     if (empty($_SESSION['anilist_import']['entries'])) {
         $error_message = t('list_settings.anilist.err.session');
+    } elseif ($anilistNorm !== ''
+        && !anilist_source_allowed($pdo, current_user_id(), $anilistNorm)) {
+        // Second line of defense: the cap may have been reached in another tab
+        // between preview and commit. Refuse to write and drop the dry-run.
+        $error_message = sprintf(
+            t('list_settings.anilist.err.source_limit'),
+            anilist_source_limit($pdo)
+        );
+        unset($_SESSION['anilist_import']);
     } else {
         $entries = $_SESSION['anilist_import']['entries'];
 
@@ -1090,6 +1122,12 @@ if (isset($_POST['anilist_commit'])) {
         }
 
         unset($_SESSION['anilist_import']);
+        // 1.1.11: a successful import from a NEW source consumes one slot.
+        // INSERT IGNORE, so re-syncing an already-used source opens none.
+        // Exempt users (self-host / moderator+) keep no source rows.
+        if ($anilistNorm !== '' && !anilist_source_exempt($pdo)) {
+            anilist_source_record($pdo, current_user_id(), $anilistNorm);
+        }
         $success_message = $contentOnly
             ? sprintf(t('list_settings.anilist.result_content'), $catNew, $catHave)
             : sprintf(t('list_settings.anilist.result'), $written, $skipped, $requested);
@@ -1723,5 +1761,6 @@ function runUpdate() {
         margin-bottom: 15px;
     }
     </style>
+    <script src="js/select_enhance.js" defer></script>
 </body>
 </html>

@@ -121,6 +121,10 @@ return [
     'admin_cap.synopsis_override.status_on'  => 'ON - catalog synopses are always editable',
     'admin_cap.synopsis_override.status_off' => 'OFF - catalog synopsis is locked when a personal synopsis exists (default)',
     'admin_cap.save'                         => 'Save',
+    'admin_cap.anilist_limit.h3'             => 'AniList import source limit',
+    'admin_cap.anilist_limit.desc'           => 'In online mode, how many DIFFERENT AniList accounts a normal member may import from. The same account can be re-synced without limit. Self-host and moderator+ are exempt.',
+    'admin_cap.anilist_limit.field'          => 'Number of different accounts allowed (0 = unlimited)',
+    'admin_cap.anilist_limit.hint'           => 'Default is 3. Set 0 to remove the limit (unlimited).',
     'admin_cap.back_to_admin'                => 'Back to admin panel',
     'admin_cap.csrf_invalid'                 => 'Invalid security token (CSRF). Refresh the page and try again.',
 
@@ -203,6 +207,11 @@ return [
     'admin_users.save'                       => 'Save',
     'admin_users.err_self'                   => 'You cannot change your own role or status from this screen.',
     'admin_users.err_last_admin'             => 'This change would remove the last active admin. At least one active admin must remain.',
+    'admin_users.anilist_reset.count'        => 'AniList: %d sources',
+    'admin_users.anilist_reset.label'        => 'Number of different AniList accounts this user has imported from',
+    'admin_users.anilist_reset.button'       => 'Reset',
+    'admin_users.anilist_reset.confirm'      => 'Reset the AniList import limit for this user? Their recorded sources will be cleared.',
+    'admin_users.anilist_reset.done'         => 'AniList import limit reset (%d sources cleared).',
     'admin_users.back_to_admin'              => 'Back to admin panel',
 
     // --- admin_suggestions.php ---

@@ -841,5 +841,6 @@ if ($anime['status'] == 'Yayın Tamamlandı'
         });
     })();
     </script>
+    <script src="js/select_enhance.js" defer></script>
 </body>
 </html>

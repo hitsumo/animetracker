@@ -78,6 +78,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         set_setting($pdo, 'synopsis_edit_override', $enabled);
     }
 
+    // anilist_import_source_limit (1.1.11): how many DISTINCT AniList accounts
+    // a normal member may import from. Integer, clamped to 0..1000 (0 =
+    // unlimited). Stored as a settings key, no migration needed.
+    if (isset($_POST['cap_anilist_limit'])) {
+        $n = (int)($_POST['anilist_import_source_limit'] ?? 3);
+        if ($n < 0)    { $n = 0; }
+        if ($n > 1000) { $n = 1000; }
+        set_setting($pdo, 'anilist_import_source_limit', (string)$n);
+    }
+
     header('Location: admin_capabilities.php');
     exit;
 }
@@ -85,6 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // --- Read current state ------------------------------------------------
 
 $synopsisOverride = (get_setting($pdo, 'synopsis_edit_override', '0') === '1');
+$anilistLimit     = (int)get_setting($pdo, 'anilist_import_source_limit', '3');
 
 ?>
 <!DOCTYPE html>
@@ -155,6 +166,25 @@ $synopsisOverride = (get_setting($pdo, 'synopsis_edit_override', '0') === '1');
                 <div class="cap-status <?php echo $synopsisOverride ? 'status-on' : 'status-off'; ?>">
                     <i class="fas <?php echo $synopsisOverride ? 'fa-check' : 'fa-lock'; ?>"></i>
                     <?php echo htmlspecialchars($synopsisOverride ? t('admin_cap.synopsis_override.status_on') : t('admin_cap.synopsis_override.status_off'), ENT_QUOTES, 'UTF-8'); ?>
+                </div>
+            </div>
+
+            <!-- Capability: AniList import source limit (1.1.11) -->
+            <div class="cap-card">
+                <h3><i class="fas fa-user-friends"></i> <?php echo htmlspecialchars(t('admin_cap.anilist_limit.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                <p><?php echo htmlspecialchars(t('admin_cap.anilist_limit.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
+                <form method="post" action="admin_capabilities.php" class="cap-toggle" style="gap: 10px;">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="cap_anilist_limit" value="1">
+                    <label for="anilist_import_source_limit"><?php echo htmlspecialchars(t('admin_cap.anilist_limit.field'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <input type="number" id="anilist_import_source_limit" name="anilist_import_source_limit"
+                           min="0" max="1000" step="1" value="<?php echo (int)$anilistLimit; ?>"
+                           style="width: 90px; padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    <button type="submit" class="tool-link"><?php echo htmlspecialchars(t('admin_cap.save'), ENT_QUOTES, 'UTF-8'); ?></button>
+                </form>
+                <div class="cap-status status-off">
+                    <i class="fas fa-info-circle"></i>
+                    <?php echo htmlspecialchars(t('admin_cap.anilist_limit.hint'), ENT_QUOTES, 'UTF-8'); ?>
                 </div>
             </div>
 
