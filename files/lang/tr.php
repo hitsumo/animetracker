@@ -84,6 +84,11 @@ return [
     'index.filter.emotion_active'   => 'Duygu filtresi: %s',
     'index.filter.emotion_clear'    => 'Filtreyi temizle',
 
+    // 1.1.13: Genel / Kisisel liste sekmeleri (pagination ile tablo arasinda).
+    // Kisisel = kullanicinin bir izleme durumu sectigi animeler.
+    'index.tab.all'                 => 'Genel Liste',
+    'index.tab.personal'            => 'Kişisel Liste',
+
     // Broadcast status values (free text in animes.status, kept as
     // Turkish constants in the DB for now). 1.1.10: three new values
     // (not_started / unselected / cancelled) alongside the original two.
@@ -797,6 +802,11 @@ return [
     // -----------------------------------------------------------------
     'list_settings.page_title'               => 'Liste Ayarları - Anime Tracker',
     'list_settings.heading'                  => 'Liste Ayarları',
+    // 1.1.13 - Liste Ayarlari sekme etiketleri
+    'list_settings.tab.import_export'        => 'İçe/Dışa Aktar',
+    'list_settings.tab.general_settings'     => 'Genel Ayarlar',
+    'list_settings.tab.management'           => 'Yönetim Ayarları',
+    'list_settings.tab.clear'                => 'Temizleme',
     'list_settings.csrf.invalid'             => 'CSRF token gecersiz. Sayfayi yenileyip tekrar deneyin.',
     'list_settings.version.unknown'          => 'bilinmiyor',
     'list_settings.aired.cancelled_prefix'   => 'Senkronizasyon iptal edildi:',
@@ -884,6 +894,13 @@ return [
     'list_settings.section.title_lang.desc'  => 'Anime başlıklarının İngilizce karşılığı varsa, liste ve detay sayfalarında Romaji başlık yerine İngilizce başlığı göster. Bu tercih arayüz dilinden bağımsızdır.',
     'list_settings.title_lang.checkbox'      => 'İngilizce başlıkları göster',
     'list_settings.title_lang.save'          => 'Kaydet',
+
+    // 1.1.13 - varsayilan liste sekmesi tercihi (Genel / Kisisel)
+    'list_settings.section.list_view'        => 'Varsayılan Liste',
+    'list_settings.section.list_view.desc'   => 'Anime listesi sayfası açıldığında hangi sekmenin seçili geleceğini belirler. Genel Liste tüm kataloğu, Kişisel Liste ise yalnızca bir izleme durumu seçtiğiniz animeleri gösterir. Bu tercih yalnızca sizi etkiler.',
+    'list_settings.list_view.option_all'     => 'Genel Liste',
+    'list_settings.list_view.option_personal' => 'Kişisel Liste',
+    'list_settings.list_view.save'           => 'Kaydet',
 
     // 1.1.2 - yetiskin (+18) icerik gorunurluk toggle (list_settings)
     'list_settings.section.adult'            => 'Yetişkin İçerik',

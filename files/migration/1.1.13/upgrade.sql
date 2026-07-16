@@ -1,0 +1,22 @@
+-- =====================================================================
+-- 1.1.13 - Kisisel liste sekmesi (Genel / Kisisel)
+-- =====================================================================
+-- Bu surum ana liste sayfasina (index.php) bir goruntuleme sekmesi ekler:
+--
+--   * Genel Liste   - katalogun tamami (onceki varsayilan davranis).
+--   * Kisisel Liste - kullanicinin bir izleme durumu SECTIGI animeler,
+--       yani user_anime satiri olan ve "Secim Yapilmamis" DISINDAKI her
+--       durum (Izlendi / Izleniyor / Planlandi / Ertelendi / Birakildi).
+--
+-- SEMA DEGISIKLIGI YOKTUR. Sekme tamamen sorgu-kapsamli bir gorunumdur:
+-- index.php mevcut `user_anime` LEFT JOIN'ine `AND ua.watch_status IS NOT
+-- NULL` ekleyerek kisisel listeyi olusturur. Yeni tablo/alan/ayar anahtari
+-- gerekmez. Bu migration klasorunun tek amaci settings.version'i 1.1.13'e
+-- tasimaktir (migration runner SQL calistiktan sonra surumu damgalar; bu
+-- dosyada calistirilacak ifade yoktur, yalniz yorum vardir - runner yorumlari
+-- temizler ve bos ifade listesiyle surumu gunceller).
+--
+-- MERKEZ KATALOG ETKISI YOKTUR - degisiklik yalnizca app tarafindadir; merkez
+-- katalog sunucusuna (catalog_server/) hic gitmez, orada elle bir islem
+-- GEREKMEZ.
+-- =====================================================================

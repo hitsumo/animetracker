@@ -175,6 +175,40 @@ $canPersonal = can($pdo, 'personal');
 // a catalog anime. True in self-host (owner), true online for moderator/admin,
 // false for regular/anonymous visitors. Matches edit_anime.php's role gate.
 $canModerate = can($pdo, 'moderate');
+
+// 1.1.13: Genel / Kisisel liste sekmesi. "Kisisel liste" (view=personal) =
+// kullanicinin bir izleme durumu sectigi animeler, yani user_anime satiri olan
+// ve "Secim Yapilmamis" DISINDAKI her durum (Izlendi, Izleniyor, Planlandi,
+// Ertelendi, Birakildi). view=personal yalnizca kisisel yetenegi olan
+// (giris yapmis / self-host) kullanici icin anlamli; anonim online ziyaretcide
+// $canPersonal false oldugundan sessizce 'all'a duser ve sekme cubugu da
+// onlara hic gosterilmez.
+//
+// Varsayilan sekme, kullanicinin liste ayarindaki tercihine gore secilir
+// (user_pref 'list_view_default'; varsayilan 'all'). URL'de acik bir ?view=
+// verilmisse o KAZANIR - sekme baglantilari her zaman acik view yollar, bu
+// yuzden bir sekmeye tiklamak tercihi gecici olarak ezip dogru listeyi acar.
+// Gecersiz/bilinmeyen degerler 'all'a duser.
+$prefView = get_user_pref($pdo, $uid, 'list_view_default', 'all');
+if ($prefView !== 'personal') { $prefView = 'all'; }
+
+$viewParam = $_GET['view'] ?? null;
+if ($viewParam === 'all' || $viewParam === 'personal') {
+    $view = $viewParam;          // acik URL parametresi tercihi ezer
+} else {
+    $view = $prefView;           // parametre yoksa kullanicinin varsayilani
+}
+if ($view === 'personal' && !$canPersonal) {
+    $view = 'all';               // anonim online: kisisel liste yok
+}
+
+// Korunan baglantilarda (siralama / filtre / arama / harf) view'i yalniz
+// cascade tercihinden FARKLIYSA acik tasi: ayni ise ciplak bir URL zaten
+// dogru sekmeye cozulur (pagination $_GET'i aynen tasidigi icin otomatik
+// dogrudur; tekrar eklemeye gerek yok). Boylece tercih 'personal' iken
+// "Genel Liste"ye gecince siralama/filtre baglantilari view=all'i korur.
+$view_needs_param = ($view !== $prefView);
+
 $select_from = "SELECT a.*,
         COALESCE(ua.watch_status, 'PlanToWatch') AS watch_status,
         ua.watch_status     AS watch_status_raw,
@@ -201,6 +235,16 @@ if (MULTI_USER_MODE) {
 // alsin. Tercih kapaliyken (varsayilan) is_adult=1 animeler dislanir; acikken
 // helper bos string doner.
 $select_from .= adult_filter_where('a');
+
+// 1.1.13: kisisel liste kapsami. select_from'a eklenir ki HER IKI sorgu dali
+// (varsayilan siralama ve asagidaki watched_episodes ozel dali) ayni kapsami
+// alsin - tipki yukaridaki adult filtresi gibi. user_anime satiri olan =
+// kullanicinin bir izleme durumu sectigi animeler (Secim Yapilmamis haric).
+// $view zaten $canPersonal ile kapili, bu yuzden anonim ziyaretci bu dala
+// hic girmez.
+if ($view === 'personal') {
+    $select_from .= " AND ua.watch_status IS NOT NULL";
+}
 
 $sql = $select_from;
 
@@ -464,7 +508,14 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
     if ($search_query !== '') {
         $params['q'] = $search_query;
     }
-    
+
+    // 1.1.13: aktif liste sekmesini siralama baglantilarinda koru - yalniz
+    // kullanici tercihinden farkliysa (bkz $view_needs_param aciklamasi).
+    global $view, $view_needs_param;
+    if ($view_needs_param) {
+        $params['view'] = $view;
+    }
+
     return '?' . http_build_query($params);
 }
 ?>
@@ -697,6 +748,37 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
         }
         .page-dots { color: #999; padding: 0 4px; }
 
+        /* 1.1.13 - Genel / Kisisel liste sekmeleri. Pagination cubugu ile
+           liste tablosu arasinda duran ince sekme cubugu. Aktif sekme dolu
+           turuncu (proje vurgu rengi #D85A30), pasif sekme cerceveli. */
+        .list-view-tabs {
+            display: flex;
+            gap: 6px;
+            margin: 12px 0 6px;
+            flex-wrap: wrap;
+        }
+        .list-view-tab {
+            display: inline-block;
+            padding: 8px 18px;
+            border: 1px solid #D3D1C7;
+            border-radius: 6px 6px 0 0;
+            text-decoration: none;
+            color: #6b6a63;
+            background: #F1EFE8;
+            font-size: 0.95em;
+            font-weight: 500;
+        }
+        .list-view-tab:hover {
+            background: #e6e3d9;
+            color: #333;
+        }
+        .list-view-tab.active {
+            background: #D85A30;
+            border-color: #D85A30;
+            color: #fff;
+            font-weight: 600;
+        }
+
         /* Mobil tasma duzeltmesi: dar ekranda 6 sutunlu liste tablosu
            container'a sigamayip sutunlar eziliyor; baslik (.list-anime-title
            max-width:170px) ve Durum metni yan sutuna tasip ust uste biniyordu.
@@ -751,6 +833,10 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                 <?php // 1.1.5: aktif duygu filtresini arama gonderiminde koru ?>
                 <?php if ($emotion_filter !== ''): ?>
                     <input type="hidden" name="emotion_filter" value="<?php echo htmlspecialchars($emotion_filter); ?>">
+                <?php endif; ?>
+                <?php // 1.1.13: aktif liste sekmesini arama gonderiminde koru ?>
+                <?php if ($view_needs_param): ?>
+                    <input type="hidden" name="view" value="<?php echo htmlspecialchars($view); ?>">
                 <?php endif; ?>
                 <button type="submit" style="padding: 10px 18px; background: #4a90e2; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;"><?php echo htmlspecialchars(t('index.search.submit'), ENT_QUOTES, 'UTF-8'); ?></button>
                 <?php if ($search_query !== ''): ?>
@@ -812,6 +898,7 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                         if ($broadcast_status_filter) $preserve['broadcast_status_filter'] = $broadcast_status_filter;
                         if ($per_page !== 10) $preserve['per_page'] = $per_page;
                         if ($emotion_filter) $preserve['emotion_filter'] = $emotion_filter;
+                        if ($view_needs_param) $preserve['view'] = $view; // 1.1.13: sekme
 
                         $letters = array_merge(['All', '0-9'], range('A', 'Z'), ['Other']);
                         foreach ($letters as $L) {
@@ -848,7 +935,11 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                 <?php if ($search_query !== ''): ?>
                     <input type="hidden" name="q" value="<?php echo htmlspecialchars($search_query); ?>">
                 <?php endif; ?>
-                
+                <?php // 1.1.13: aktif liste sekmesini filtre formu gonderiminde koru ?>
+                <?php if ($view_needs_param): ?>
+                    <input type="hidden" name="view" value="<?php echo htmlspecialchars($view); ?>">
+                <?php endif; ?>
+
                 <div class="form-actions filter-full">
                     <input type="submit" value="<?php echo htmlspecialchars(t('index.filter.submit'), ENT_QUOTES, 'UTF-8'); ?>">
                 </div>
@@ -885,6 +976,30 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
         <?php endif; ?>
 
         <?php renderPagination($current_page, $total_pages, $total_results, $per_page); ?>
+
+        <?php // 1.1.13: Genel / Kisisel liste sekmeleri. Yalniz kisisel yetenegi
+              // olan kullaniciya gosterilir (anonim online ziyaretcinin kisisel
+              // listesi yoktur). Sekme baglantilari mevcut filtre/arama/siralama
+              // parametrelerini korur; yalniz 'view' ve 'page' sifirlanir (sekme
+              // degisince ilk sayfaya doner). ?>
+        <?php if ($canPersonal): ?>
+            <?php
+                // Sekme baglantilari HER ZAMAN acik view yollar. Kullanicinin
+                // varsayilan tercihi 'personal' olsa bile "Genel Liste" linki
+                // view=all tasidigi icin dogru sekmeyi acar (ciplak index.php
+                // tercihe cozulurdu). Filtre/arama/siralama parametreleri
+                // korunur; yalniz 'view' ve 'page' sifirlanir.
+                $tabBase = $_GET;
+                unset($tabBase['view'], $tabBase['page']);
+                foreach ($tabBase as $k => $v) { if ($v === '') unset($tabBase[$k]); }
+                $allUrl      = '?' . http_build_query(array_merge($tabBase, ['view' => 'all']));
+                $personalUrl = '?' . http_build_query(array_merge($tabBase, ['view' => 'personal']));
+            ?>
+            <div class="list-view-tabs" role="tablist">
+                <a href="<?php echo htmlspecialchars($allUrl); ?>" class="list-view-tab<?php echo $view === 'all' ? ' active' : ''; ?>"<?php echo $view === 'all' ? ' aria-current="page"' : ''; ?>><?php echo htmlspecialchars(t('index.tab.all'), ENT_QUOTES, 'UTF-8'); ?></a>
+                <a href="<?php echo htmlspecialchars($personalUrl); ?>" class="list-view-tab<?php echo $view === 'personal' ? ' active' : ''; ?>"<?php echo $view === 'personal' ? ' aria-current="page"' : ''; ?>><?php echo htmlspecialchars(t('index.tab.personal'), ENT_QUOTES, 'UTF-8'); ?></a>
+            </div>
+        <?php endif; ?>
 
         <div class="list-table-wrap">
         <table>

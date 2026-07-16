@@ -1188,6 +1188,31 @@ if (isset($_POST['clear'])) {
         <?php endif; ?>
 
         <div class="settings-container">
+            <?php // 1.1.13 - Liste Ayarlari sekmeleri. Iki sekme: "Ice/Disa Aktar"
+                  // (disa/ice aktar + MAL + AniList) ve "Genel" (kalan tum bolumler).
+                  // Ilerleyen progressive enhancement: JS kapaliyken sekme cubugu
+                  // gizli, tum paneller alt alta gorunur (onceki tek-liste davranisi).
+                  // JS acikken .js-tabs sinifi eklenir; yalniz aktif panel gosterilir.
+                  // Aktif sekme sessionStorage'da tutulur, POST/redirect sonrasi geri
+                  // yuklenir (MAL/AniList onizleme, dil/tercih degisimi vb. ayni sekmede
+                  // kalir). Sekme etiketleri disinda hicbir bolum tasinmadi. ?>
+            <div class="settings-tabs" role="tablist">
+                <button type="button" class="settings-tab active" role="tab" data-tab-target="tab-import"><?php echo htmlspecialchars(t('list_settings.tab.import_export'), ENT_QUOTES, 'UTF-8'); ?></button>
+                <button type="button" class="settings-tab" role="tab" data-tab-target="tab-settings"><?php echo htmlspecialchars(t('list_settings.tab.general_settings'), ENT_QUOTES, 'UTF-8'); ?></button>
+<?php // 1.1.13 - "Yonetim Ayarlari" sekmesi yalniz moderator/admin (ve
+      // self-host sahibi, orada can() hep true) icin. Online normal uye bu
+      // sekmenin ne butonunu ne de panelini gorur. Panel de ayni kosulla
+      // sarili (asagida). ?>
+                <?php if ($canModerate || $canAdmin): ?>
+                <button type="button" class="settings-tab" role="tab" data-tab-target="tab-general"><?php echo htmlspecialchars(t('list_settings.tab.management'), ENT_QUOTES, 'UTF-8'); ?></button>
+                <?php endif; ?>
+                <?php // 1.1.13 - Temizleme sekmesi butonu (admin-only, panelle ayni kosul) ?>
+                <?php if ($canAdmin): ?>
+                <button type="button" class="settings-tab" role="tab" data-tab-target="tab-clear"><?php echo htmlspecialchars(t('list_settings.tab.clear'), ENT_QUOTES, 'UTF-8'); ?></button>
+                <?php endif; ?>
+            </div>
+
+            <div class="settings-tab-panel active" id="tab-import" data-tab-panel>
             <!-- Export Form -->
             <?php if ($canModerate): ?>
             <div class="settings-section">
@@ -1370,21 +1395,10 @@ if (isset($_POST['clear'])) {
                 <?php endif; ?>
             </div>
 
-            <!-- Liste Temizleme Formu -->
-            <?php if ($canAdmin): ?>
-            <div class="settings-section">
-                <h3><?php echo htmlspecialchars(t('list_settings.section.clear'), ENT_QUOTES, 'UTF-8'); ?></h3>
-                <p><?php echo htmlspecialchars(t('list_settings.section.clear.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
-                <form method="post" onsubmit="return confirmClear()">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
-                    <input type="hidden" name="confirm_clear" value="yes">
-                    <button type="submit" name="clear" class="settings-button danger">
-                        <i class="fas fa-trash-alt"></i> <?php echo htmlspecialchars(t('list_settings.btn.clear'), ENT_QUOTES, 'UTF-8'); ?>
-                    </button>
-                </form>
-            </div>
-            <?php endif; ?>
-			
+            </div><!-- /#tab-import -->
+
+            <div class="settings-tab-panel" id="tab-settings" data-tab-panel>
+
 			
 
             <?php // 1.1.4 - arayuz dili secimi. Onceden her sayfanin header'indaki
@@ -1424,6 +1438,28 @@ if (isset($_POST['clear'])) {
                 </form>
             </div>
 
+            <?php // 1.1.13 - varsayilan liste sekmesi (Genel / Kisisel). Ana liste
+                  // sayfasi (index.php) acilinca hangi sekmenin secili gelecegini
+                  // belirler. Kisi bazli tercih (user_pref 'list_view_default');
+                  // arayuz-dili secimindeki gibi <select> + onchange auto-submit,
+                  // set_list_view_pref.php'ye POST eder. ?>
+            <?php $listViewDefault = get_user_pref($pdo, current_user_id(), 'list_view_default', 'all');
+                  if ($listViewDefault !== 'personal') { $listViewDefault = 'all'; } ?>
+            <div class="settings-section">
+                <h3><?php echo htmlspecialchars(t('list_settings.section.list_view'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                <p><?php echo htmlspecialchars(t('list_settings.section.list_view.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
+                <form method="post" action="set_list_view_pref.php">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                    <select name="view" onchange="this.form.submit()" aria-label="<?php echo htmlspecialchars(t('list_settings.section.list_view'), ENT_QUOTES, 'UTF-8'); ?>">
+                        <option value="all"<?php echo $listViewDefault === 'all' ? ' selected' : ''; ?>><?php echo htmlspecialchars(t('list_settings.list_view.option_all'), ENT_QUOTES, 'UTF-8'); ?></option>
+                        <option value="personal"<?php echo $listViewDefault === 'personal' ? ' selected' : ''; ?>><?php echo htmlspecialchars(t('list_settings.list_view.option_personal'), ENT_QUOTES, 'UTF-8'); ?></option>
+                    </select>
+                    <noscript>
+                        <button type="submit" class="settings-button"><?php echo htmlspecialchars(t('list_settings.list_view.save'), ENT_QUOTES, 'UTF-8'); ?></button>
+                    </noscript>
+                </form>
+            </div>
+
             <?php // 1.1.2 - yetiskin (+18) icerik gorunurlugu. Varsayilan kapali;
                   // acilinca +18 damgali animeler listelerde/aramada/kesifte gorunur.
                   // Kisi bazli tercih (user_pref show_adult_content); title_lang
@@ -1443,6 +1479,10 @@ if (isset($_POST['clear'])) {
                     </noscript>
                 </form>
             </div>
+            </div><!-- /#tab-settings -->
+
+            <?php if ($canModerate || $canAdmin): // Yonetim Ayarlari: yalniz moderator/admin/self-host ?>
+            <div class="settings-tab-panel" id="tab-general" data-tab-panel>
 
             <?php if ($canModerate): ?>
             <div class="settings-section">
@@ -1537,6 +1577,29 @@ if (isset($_POST['clear'])) {
     </a>
 </div>
             <?php endif; ?>
+            </div><!-- /#tab-general -->
+            <?php endif; // Yonetim Ayarlari sekmesi (canModerate || canAdmin) ?>
+
+            <?php // 1.1.13 - Temizleme sekmesi: yalniz "Listeyi Temizle" (yikici,
+                  // admin-only islem). Hem sekme butonu hem bu panel canAdmin ile
+                  // sarili; online normal uye/moderator bu sekmeyi hic gormez,
+                  // self-host sahibi (can() hep true) gorur. ?>
+            <?php if ($canAdmin): ?>
+            <div class="settings-tab-panel" id="tab-clear" data-tab-panel>
+            <!-- Liste Temizleme Formu -->
+            <div class="settings-section">
+                <h3><?php echo htmlspecialchars(t('list_settings.section.clear'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                <p><?php echo htmlspecialchars(t('list_settings.section.clear.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
+                <form method="post" onsubmit="return confirmClear()">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="confirm_clear" value="yes">
+                    <button type="submit" name="clear" class="settings-button danger">
+                        <i class="fas fa-trash-alt"></i> <?php echo htmlspecialchars(t('list_settings.btn.clear'), ENT_QUOTES, 'UTF-8'); ?>
+                    </button>
+                </form>
+            </div>
+            </div><!-- /#tab-clear -->
+            <?php endif; // Temizleme sekmesi (canAdmin) ?>
         </div>
 
 
@@ -1684,6 +1747,60 @@ function runUpdate() {
         alert(LANG.install_network_error_alert + ' ' + error);
     });
 }
+
+// 1.1.13 - Liste Ayarlari sekme gecisi (progressive enhancement).
+// JS yoksa sekme cubugu CSS ile gizli kalir ve tum paneller alt alta
+// gorunur (onceki davranis). JS varsa: cubuk acilir, yalniz aktif panel
+// gosterilir, aktif sekme sessionStorage'da tutulur ve panel icindeki bir
+// form gonderilince o sekme hatirlanir (POST/redirect sonrasi ayni sekme).
+(function () {
+    var container = document.querySelector('.settings-container');
+    if (!container) { return; }
+    var tabs = Array.prototype.slice.call(container.querySelectorAll('.settings-tab'));
+    var panels = Array.prototype.slice.call(container.querySelectorAll('.settings-tab-panel'));
+    if (!tabs.length || !panels.length) { return; }
+
+    var STORE_KEY = 'ls_active_tab';
+
+    function activate(id) {
+        var found = false;
+        panels.forEach(function (p) {
+            var on = (p.id === id);
+            p.classList.toggle('active', on);
+            if (on) { found = true; }
+        });
+        if (!found) { return false; }
+        tabs.forEach(function (t) {
+            t.classList.toggle('active', t.getAttribute('data-tab-target') === id);
+        });
+        return true;
+    }
+
+    // JS var: sekme cubugunu goster, panel goster/gizle moduna gec.
+    container.classList.add('js-tabs');
+
+    function remember(id) {
+        try { sessionStorage.setItem(STORE_KEY, id); } catch (e) {}
+    }
+
+    // Aktif sekmeyi geri yukle (sessionStorage); yoksa/gecersizse ilk sekme.
+    var stored = null;
+    try { stored = sessionStorage.getItem(STORE_KEY); } catch (e) {}
+    if (!stored || !activate(stored)) {
+        activate(tabs[0].getAttribute('data-tab-target'));
+    }
+
+    tabs.forEach(function (t) {
+        t.addEventListener('click', function () {
+            var id = t.getAttribute('data-tab-target');
+            if (activate(id)) { remember(id); }
+        });
+    });
+
+    panels.forEach(function (p) {
+        p.addEventListener('submit', function () { remember(p.id); }, true);
+    });
+})();
     </script>
 
     <style>
@@ -1691,6 +1808,48 @@ function runUpdate() {
         max-width: 600px;
         margin: 0 auto;
         padding: 20px;
+    }
+
+    /* 1.1.13 - Liste Ayarlari sekmeleri (progressive enhancement).
+       Sekme cubugu JS kapaliyken gizli; JS .js-tabs sinifini ekleyince
+       gorunur ve yalniz aktif panel gosterilir. */
+    .settings-tabs {
+        display: none;
+        gap: 6px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        border-bottom: 2px solid #e0ddd4;
+    }
+    .js-tabs .settings-tabs {
+        display: flex;
+    }
+    .settings-tab {
+        border: none;
+        background: none;
+        padding: 10px 20px;
+        font-size: 1em;
+        font-weight: 500;
+        color: #6b6a63;
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+        margin-bottom: -2px;
+        border-radius: 6px 6px 0 0;
+    }
+    .settings-tab:hover {
+        color: #333;
+        background: #f4f2ec;
+    }
+    .settings-tab.active {
+        color: #D85A30;
+        border-bottom-color: #D85A30;
+        font-weight: 600;
+    }
+    /* JS acikken pasif paneli gizle; kapaliyken tum paneller alt alta. */
+    .js-tabs .settings-tab-panel {
+        display: none;
+    }
+    .js-tabs .settings-tab-panel.active {
+        display: block;
     }
 
     .settings-section {

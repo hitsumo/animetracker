@@ -64,6 +64,11 @@ return [
     'index.filter.emotion_active'   => 'Emotion filter: %s',
     'index.filter.emotion_clear'    => 'Clear filter',
 
+    // 1.1.13: General / Personal list tabs (between pagination and the table).
+    // Personal = anime the user has set a watch status on.
+    'index.tab.all'                 => 'General List',
+    'index.tab.personal'            => 'Personal List',
+
     // Broadcast status labels. The DB stores the Turkish strings as
     // free-text values in animes.status (legacy), so the lookup is
     // done by exact string match in PHP before the label is shown.
@@ -765,6 +770,11 @@ return [
     // -----------------------------------------------------------------
     'list_settings.page_title'               => 'List Settings - Anime Tracker',
     'list_settings.heading'                  => 'List Settings',
+    // 1.1.13 - List Settings tab labels
+    'list_settings.tab.import_export'        => 'Import/Export',
+    'list_settings.tab.general_settings'     => 'General Settings',
+    'list_settings.tab.management'           => 'Management Settings',
+    'list_settings.tab.clear'                => 'Cleanup',
     'list_settings.csrf.invalid'             => 'Invalid CSRF token. Please refresh the page and try again.',
     'list_settings.version.unknown'          => 'unknown',
     'list_settings.aired.cancelled_prefix'   => 'Sync cancelled:',
@@ -852,6 +862,13 @@ return [
     'list_settings.section.title_lang.desc'  => 'When an anime has an English title, show it instead of the Romaji title on the list and detail pages. This preference is independent of the interface language.',
     'list_settings.title_lang.checkbox'      => 'Show English titles',
     'list_settings.title_lang.save'          => 'Save',
+
+    // 1.1.13 - default list tab preference (General / Personal)
+    'list_settings.section.list_view'        => 'Default List',
+    'list_settings.section.list_view.desc'   => 'Chooses which tab is selected when the anime list page opens. General List shows the whole catalog; Personal List shows only the anime you have set a watch status on. This preference affects only you.',
+    'list_settings.list_view.option_all'     => 'General List',
+    'list_settings.list_view.option_personal' => 'Personal List',
+    'list_settings.list_view.save'           => 'Save',
 
     // 1.1.2 - adult (18+) content visibility toggle (list_settings)
     'list_settings.section.adult'            => 'Adult Content',
