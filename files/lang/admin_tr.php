@@ -191,6 +191,21 @@ return [
     'admin_invites.requests.make_invite'     => 'Davetiye üret',
     'admin_invites.requests.reject'          => 'Reddet',
     'admin_invites.requests.reject_confirm'  => 'Bu talep reddedilsin mi?',
+    // Kayıt ekranı duyurusu (1.1.12)
+    'admin_invites.announce.h3'              => 'Kayıt Ekranı Duyurusu',
+    'admin_invites.announce.desc'            => 'Bu metin kayıt sayfasında (register.php) ziyaretçiye gösterilir. Boş bırakılırsa duyuru gösterilmez. Örnek: "Davetiye 50 kişiliktir." veya "Yeni davetiye slotu 1 hafta sonra açılacaktır." (Yalnızca yönetici düzenleyebilir.)',
+    'admin_invites.announce.label'           => 'Duyuru metni:',
+    'admin_invites.announce.placeholder'     => 'Kayıt ekranında gösterilecek duyuru...',
+    'admin_invites.announce.save'            => 'Kaydet',
+    'admin_invites.announce.none'            => 'Şu an duyuru gösterilmiyor (metin boş).',
+    // Davetiye talep limiti (1.1.12)
+    'admin_invites.reqlimit.h3'              => 'Davetiye Talep Limiti',
+    'admin_invites.reqlimit.desc'            => 'Bekleyen davetiye talebi sayısı bu limite ulaşınca talep formu (request_invite.php) kapanır; yeni talep alınmaz. Bir talebi davet edip veya reddedince slot yeniden açılır. 0 yazmak limiti kaldırır (sınırsız). (Yalnızca yönetici değiştirebilir.)',
+    'admin_invites.reqlimit.label'           => 'Limit (0 = sınırsız):',
+    'admin_invites.reqlimit.save'            => 'Kaydet',
+    'admin_invites.reqlimit.status_open'     => 'Talep formu açık — bekleyen / limit',
+    'admin_invites.reqlimit.status_full'     => 'Talep formu kapalı — kontenjan dolu (bekleyen / limit)',
+    'admin_invites.reqlimit.status_off'      => 'Limit yok (sınırsız). Şu anki bekleyen talep',
     'admin_invites.back_to_admin'            => 'Yönetici paneline dön',
 
     // --- admin_users.php ---

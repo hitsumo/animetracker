@@ -179,6 +179,21 @@ return [
     'admin_invites.requests.make_invite'     => 'Generate invite',
     'admin_invites.requests.reject'          => 'Reject',
     'admin_invites.requests.reject_confirm'  => 'Reject this request?',
+    // Registration announcement (1.1.12)
+    'admin_invites.announce.h3'              => 'Registration Announcement',
+    'admin_invites.announce.desc'            => 'This text is shown to visitors on the registration page (register.php). Leave empty to show no notice. Example: "Invites are limited to 50 people." or "A new invite slot opens in one week." (Admin only.)',
+    'admin_invites.announce.label'           => 'Announcement text:',
+    'admin_invites.announce.placeholder'     => 'Notice to show on the registration screen...',
+    'admin_invites.announce.save'            => 'Save',
+    'admin_invites.announce.none'            => 'No announcement is shown (text is empty).',
+    // Invite request limit (1.1.12)
+    'admin_invites.reqlimit.h3'              => 'Invite Request Limit',
+    'admin_invites.reqlimit.desc'            => 'When the number of pending invite requests reaches this limit, the request form (request_invite.php) closes and no new request is accepted. Inviting or rejecting a queued request reopens a slot. Set 0 to remove the limit (unlimited). (Admin only.)',
+    'admin_invites.reqlimit.label'           => 'Limit (0 = unlimited):',
+    'admin_invites.reqlimit.save'            => 'Save',
+    'admin_invites.reqlimit.status_open'     => 'Request form open — pending / limit',
+    'admin_invites.reqlimit.status_full'     => 'Request form closed — quota full (pending / limit)',
+    'admin_invites.reqlimit.status_off'      => 'No limit (unlimited). Current pending requests',
     'admin_invites.back_to_admin'            => 'Back to admin panel',
 
     // --- admin_users.php ---

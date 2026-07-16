@@ -280,6 +280,38 @@ function auth_nav_links()
 }
 
 /**
+ * Invite-request slot state (1.1.12). The operator can cap how many invite
+ * requests may sit in the queue at once via settings.invite_request_limit;
+ * once the number of PENDING requests reaches that cap the public request
+ * form (request_invite.php) closes and no new request is accepted. A limit of
+ * 0 (or unset) means "no cap" - the form is always open, which is also how the
+ * operator removes a previously set limit.
+ *
+ * Counting PENDING (not all-time) requests makes the cap self-healing: as the
+ * operator invites or rejects queued requests those slots reopen automatically.
+ *
+ * Returns ['limit' => int, 'pending' => int, 'open' => bool]. 'pending' is only
+ * queried when a positive limit is set (no needless COUNT when uncapped). On a
+ * DB error we fail OPEN rather than lock legitimate visitors out.
+ */
+function invite_request_limit_state($pdo)
+{
+    $limit = (int)get_setting($pdo, 'invite_request_limit', '0');
+    if ($limit <= 0) {
+        return ['limit' => 0, 'pending' => 0, 'open' => true];
+    }
+    try {
+        $pending = (int)$pdo->query(
+            "SELECT COUNT(*) FROM invite_requests WHERE status = 'pending'"
+        )->fetchColumn();
+    } catch (PDOException $e) {
+        error_log('[anime_tracker] invite_request_limit_state count failed: ' . $e->getMessage());
+        return ['limit' => $limit, 'pending' => 0, 'open' => true];
+    }
+    return ['limit' => $limit, 'pending' => $pending, 'open' => ($pending < $limit)];
+}
+
+/**
  * Store a public invite request after anti-spam checks (1.0.20). Mirrors the
  * suggest.php protection model: a per-IP rate limit backed by idx_ip_created.
  * CSRF + honeypot are handled by the calling page (request_invite.php), the
@@ -293,6 +325,14 @@ function invite_request_submit($pdo, $email, $reason, $ip)
 {
     $email  = trim((string)$email);
     $reason = trim((string)$reason);
+
+    // Slot cap (1.1.12): if the pending queue is full, the request form is
+    // closed. request_invite.php also hides the form on GET; this is the
+    // authoritative server-side guard against a direct POST. Checked before
+    // validation so a full queue always answers 'full' (not 'err').
+    if (!invite_request_limit_state($pdo)['open']) {
+        return 'full';
+    }
 
     // The email must be syntactically valid and the reason non-empty.
     if ($email === '' || $reason === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {

@@ -100,6 +100,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($notify === '' || filter_var($notify, FILTER_VALIDATE_EMAIL)) {
             set_setting($pdo, 'invite_notify_email', $notify);
         }
+    } elseif ($action === 'set_request_limit') {
+        // invite_request_limit (1.1.12): how many PENDING invite requests may
+        // queue before the public request form closes. Operator policy ->
+        // admin only (hide + protect). Integer clamped to 0..100000; 0 removes
+        // the cap (unlimited). Stored as a settings key, no migration needed.
+        require_role($pdo, 'admin');
+        $n = (int)($_POST['invite_request_limit'] ?? 0);
+        if ($n < 0)      { $n = 0; }
+        if ($n > 100000) { $n = 100000; }
+        set_setting($pdo, 'invite_request_limit', (string)$n);
+    } elseif ($action === 'set_register_announcement') {
+        // register_announcement (1.1.12): free-text notice shown on the
+        // registration screen (register.php). Operator policy -> admin only
+        // (hide + protect). An empty value hides the notice. Capped at 2000
+        // chars; stored raw and escaped at output.
+        require_role($pdo, 'admin');
+        $text = trim($_POST['register_announcement'] ?? '');
+        if (mb_strlen($text) > 2000) {
+            $text = mb_substr($text, 0, 2000);
+        }
+        set_setting($pdo, 'register_announcement', $text);
     } elseif ($action === 'invite_for_request') {
         // moderator+ (page guard). Generate a single-use invite carrying the
         // requester's email, then mark the request 'invited'. The new token
@@ -165,6 +186,11 @@ $invites = $pdo->query(
 // Invite requests (1.0.20). Pending first, then newest. The configured notify
 // address is shown/edited in the requests tab (admin only).
 $notifyEmail = (string)get_setting($pdo, 'invite_notify_email', '');
+
+// 1.1.12 admin-configurable registration policy (admin only in the UI).
+$requestLimit         = (int)get_setting($pdo, 'invite_request_limit', '0');
+$registerAnnouncement = (string)get_setting($pdo, 'register_announcement', '');
+$slotState            = invite_request_limit_state($pdo); // for the live status line
 
 $requests = $pdo->query(
     "SELECT id, email, reason, ip, status, created_at
@@ -293,6 +319,29 @@ foreach ($requests as $r) {
                     <?php echo htmlspecialchars(t('admin_invites.mode.current') . ' ' . ($isOpen ? t('admin_invites.mode.open') : t('admin_invites.mode.invite')), ENT_QUOTES, 'UTF-8'); ?>
                 </div>
             </div>
+
+            <!-- Registration announcement (admin only, 1.1.12) -->
+            <div class="cap-card">
+                <h3><i class="fas fa-bullhorn"></i> <?php echo htmlspecialchars(t('admin_invites.announce.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                <p><?php echo htmlspecialchars(t('admin_invites.announce.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
+                <form method="post" action="admin_invites.php">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="action" value="set_register_announcement">
+                    <label for="register_announcement" style="margin-bottom:6px;"><?php echo htmlspecialchars(t('admin_invites.announce.label'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <textarea id="register_announcement" name="register_announcement" maxlength="2000"
+                              placeholder="<?php echo htmlspecialchars(t('admin_invites.announce.placeholder'), ENT_QUOTES, 'UTF-8'); ?>"
+                              style="width:100%; min-height:90px; padding:8px 10px; border:1px solid #ccc; border-radius:4px; font-family:inherit; font-size:14px; box-sizing:border-box; resize:vertical;"><?php echo htmlspecialchars($registerAnnouncement, ENT_QUOTES, 'UTF-8'); ?></textarea>
+                    <div style="margin-top:10px;">
+                        <button type="submit" class="btn"><?php echo htmlspecialchars(t('admin_invites.announce.save'), ENT_QUOTES, 'UTF-8'); ?></button>
+                    </div>
+                </form>
+                <?php if ($registerAnnouncement === ''): ?>
+                    <div class="mode-status status-off">
+                        <i class="fas fa-info-circle"></i>
+                        <?php echo htmlspecialchars(t('admin_invites.announce.none'), ENT_QUOTES, 'UTF-8'); ?>
+                    </div>
+                <?php endif; ?>
+            </div>
             <?php endif; ?>
 
             <!-- Generate an invite (moderator+) -->
@@ -378,6 +427,45 @@ foreach ($requests as $r) {
                             <?php echo htmlspecialchars(t('admin_invites.notify.none'), ENT_QUOTES, 'UTF-8'); ?>
                         </div>
                     <?php endif; ?>
+                </div>
+
+                <!-- Invite request limit (admin only, 1.1.12) -->
+                <div class="cap-card">
+                    <h3><i class="fas fa-user-clock"></i> <?php echo htmlspecialchars(t('admin_invites.reqlimit.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                    <p><?php echo htmlspecialchars(t('admin_invites.reqlimit.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
+                    <form method="post" action="admin_invites.php" class="inline-form">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                        <input type="hidden" name="action" value="set_request_limit">
+                        <label for="invite_request_limit" style="margin:0;"><?php echo htmlspecialchars(t('admin_invites.reqlimit.label'), ENT_QUOTES, 'UTF-8'); ?></label>
+                        <input type="number" id="invite_request_limit" name="invite_request_limit"
+                               min="0" max="100000" step="1" value="<?php echo (int)$requestLimit; ?>"
+                               style="width:110px; padding:8px 10px; border:1px solid #ccc; border-radius:4px; font-size:14px;">
+                        <button type="submit" class="btn"><?php echo htmlspecialchars(t('admin_invites.reqlimit.save'), ENT_QUOTES, 'UTF-8'); ?></button>
+                    </form>
+                    <?php
+                        // Live status. $pendingCount is the current pending queue size
+                        // (computed above from $requests); $requestLimit is the cap.
+                        if ($requestLimit <= 0) {
+                            $rlClass = 'status-off';
+                            $rlIcon  = 'fa-infinity';
+                            $rlText  = t('admin_invites.reqlimit.status_off')
+                                     . ' (' . (int)$pendingCount . ')';
+                        } elseif ($slotState['open']) {
+                            $rlClass = 'status-on';
+                            $rlIcon  = 'fa-door-open';
+                            $rlText  = t('admin_invites.reqlimit.status_open')
+                                     . ' (' . (int)$pendingCount . ' / ' . (int)$requestLimit . ')';
+                        } else {
+                            $rlClass = 'status-off';
+                            $rlIcon  = 'fa-lock';
+                            $rlText  = t('admin_invites.reqlimit.status_full')
+                                     . ' (' . (int)$pendingCount . ' / ' . (int)$requestLimit . ')';
+                        }
+                    ?>
+                    <div class="mode-status <?php echo $rlClass; ?>">
+                        <i class="fas <?php echo $rlIcon; ?>"></i>
+                        <?php echo htmlspecialchars($rlText, ENT_QUOTES, 'UTF-8'); ?>
+                    </div>
                 </div>
                 <?php endif; ?>
 

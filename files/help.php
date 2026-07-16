@@ -50,6 +50,10 @@ lang_init($pdo);
 
     <h1><i class="fas fa-question-circle icon-inline"></i> <?php echo htmlspecialchars(t('help.heading'), ENT_QUOTES, 'UTF-8'); ?></h1>
 
+    <p style="margin: 0 0 16px; color: #555;">
+        <i class="fas fa-envelope icon-inline"></i> <?php echo t('help.contact'); ?>
+    </p>
+
     <p>
         <?php echo t('help.intro'); ?>
     </p>

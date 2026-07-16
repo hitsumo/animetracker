@@ -79,6 +79,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $flag = $_GET['req'] ?? '';
 
+// Slot cap (1.1.12): when the pending queue is full the request form is closed.
+// The submit helper enforces this authoritatively; here it decides whether to
+// render the form at all.
+$slotOpen = invite_request_limit_state($pdo)['open'];
+
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo current_lang(); ?>">
@@ -130,9 +135,21 @@ $flag = $_GET['req'] ?? '';
             <div class="banner banner-ok"><?php echo htmlspecialchars(t('invite_request.ok'), ENT_QUOTES, 'UTF-8'); ?></div>
         <?php elseif ($flag === 'rate'): ?>
             <div class="banner banner-rate"><?php echo htmlspecialchars(t('invite_request.rate'), ENT_QUOTES, 'UTF-8'); ?></div>
+        <?php elseif ($flag === 'full'): ?>
+            <div class="banner banner-rate"><?php echo htmlspecialchars(t('invite_request.full'), ENT_QUOTES, 'UTF-8'); ?></div>
         <?php elseif ($flag === 'err'): ?>
             <div class="banner banner-err"><?php echo htmlspecialchars(t('invite_request.err'), ENT_QUOTES, 'UTF-8'); ?></div>
         <?php endif; ?>
+
+        <?php if (!$slotOpen): ?>
+            <!-- Queue full: form is closed. Only show the closed notice + a way back. -->
+            <?php if ($flag !== 'full'): ?>
+                <div class="banner banner-rate"><?php echo htmlspecialchars(t('invite_request.full'), ENT_QUOTES, 'UTF-8'); ?></div>
+            <?php endif; ?>
+            <div class="auth-alt">
+                <a href="register.php"><?php echo htmlspecialchars(t('invite_request.back_to_register'), ENT_QUOTES, 'UTF-8'); ?></a>
+            </div>
+        <?php else: ?>
 
         <p class="auth-intro"><?php echo htmlspecialchars(t('invite_request.intro'), ENT_QUOTES, 'UTF-8'); ?></p>
 
@@ -162,6 +179,7 @@ $flag = $_GET['req'] ?? '';
         <div class="auth-alt">
             <a href="register.php"><?php echo htmlspecialchars(t('invite_request.back_to_register'), ENT_QUOTES, 'UTF-8'); ?></a>
         </div>
+        <?php endif; ?>
     </div>
 </body>
 </html>

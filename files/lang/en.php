@@ -407,6 +407,7 @@ return [
     'help.group.timezone.heading'            => 'Timezone',
     'help.group.timezone.page_title'         => 'Timezone - Anime Tracker',
     'help.intro'                             => 'Here is how Anime Tracker works, what each field is for, and what to watch out for. If you are curious about a specific feature, jump to the relevant section.',
+    'help.contact'                           => 'Contact: <a href="mailto:at@animetracker.uzakdiyarlar.com">at@animetracker.uzakdiyarlar.com</a>',
 
     // Table of contents
     'help.toc.heading'                       => 'Contents:',
@@ -651,7 +652,7 @@ return [
     'help.tz.upgrade.text'                   => 'After upgrading to v0.5.1 none of your data is lost. Broadcast times look the same (entries that were added under the default Asia/Tokyo TZ are still Asia/Tokyo). The anime detail page shows a TZ label (JST, etc.) next to each broadcast time.',
 
     // Footer
-    'help.footer'                            => 'For further questions: more detailed technical information is on the project\'s GitHub page.',
+    'help.footer'                            => 'For further questions: more detailed technical information is on the project\'s <a href="https://github.com/hitsumo/animetracker" target="_blank" rel="noopener">GitHub page</a>.',
 
     // -----------------------------------------------------------------
     // statistics.php
@@ -1060,6 +1061,7 @@ Update now?',
     'invite_request.ok'                 => 'Your request has been received. If approved, an invite code will be sent to you.',
     'invite_request.err'                => 'Could not send the request. Please check the email and reason fields and try again.',
     'invite_request.rate'               => 'You have sent too many requests. Please try again later.',
+    'invite_request.full'               => 'Invite requests are currently closed. The quota is full; please try again later.',
     'invite_request.mail.subject'       => 'New invite request',
     'invite_request.mail.line_email'    => 'Email:',
     'invite_request.mail.line_reason'   => 'Reason:',

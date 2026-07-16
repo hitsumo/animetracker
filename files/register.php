@@ -41,6 +41,10 @@ if (is_logged_in()) {
 $mode = get_setting($pdo, 'registration_mode', 'invite');
 $inviteMode = ($mode !== 'open');
 
+// Operator announcement shown on the registration screen (1.1.12). Free text
+// set in the admin panel (admin_invites.php); empty means no notice.
+$announcement = trim((string)get_setting($pdo, 'register_announcement', ''));
+
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -218,6 +222,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-radius: 4px;
             margin-bottom: 20px;
         }
+        .announcement {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            padding: 12px 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .announcement i { margin-right: 6px; }
         .auth-alt {
             margin-top: 18px;
             text-align: center;
@@ -229,6 +244,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="auth-container">
         <h1><i class="fas fa-user-plus"></i> <?php echo htmlspecialchars(t('auth.register.heading'), ENT_QUOTES, 'UTF-8'); ?></h1>
+
+        <?php if ($announcement !== ''): ?>
+            <div class="announcement"><i class="fas fa-bullhorn"></i><?php echo nl2br(htmlspecialchars($announcement, ENT_QUOTES, 'UTF-8')); ?></div>
+        <?php endif; ?>
 
         <?php if ($inviteMode): ?>
             <p class="auth-intro"><?php echo htmlspecialchars(t('auth.register.intro_invite'), ENT_QUOTES, 'UTF-8'); ?></p>

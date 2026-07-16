@@ -423,154 +423,155 @@ return [
     'help.page_title'                        => 'Yardım - Anime Tracker',
     'help.heading'                           => 'Yardım',
     'help.back_to_home'                      => '&larr; Ana Sayfaya Dön',
-    'help.back_to_index'                     => '&larr; Yardim Icindekiler',
+    'help.back_to_index'                     => '&larr; Yardım İçindekiler',
 
     // Help sub-page group titles (1.0.22 split)
-    'help.group.basics.heading'              => 'Temel Izleme — Durumlar ve Butonlar',
-    'help.group.basics.page_title'           => 'Temel Izleme - Anime Tracker',
-    'help.group.fields.heading'              => 'Alanlar ve Kisisel Veri',
-    'help.group.fields.page_title'           => 'Alanlar ve Kisisel Veri - Anime Tracker',
-    'help.group.sync.heading'                => 'Senkronizasyon, Silme ve Guncelleme',
-    'help.group.sync.page_title'             => 'Senkronizasyon, Silme ve Guncelleme - Anime Tracker',
-    'help.group.discovery.heading'           => 'Kesif ve Etkilesim',
-    'help.group.discovery.page_title'        => 'Kesif ve Etkilesim - Anime Tracker',
-    'help.group.series.heading'              => 'Seriler ve Bolum Bilgisi',
-    'help.group.series.page_title'           => 'Seriler ve Bolum Bilgisi - Anime Tracker',
+    'help.group.basics.heading'              => 'Temel İzleme — Durumlar ve Butonlar',
+    'help.group.basics.page_title'           => 'Temel İzleme - Anime Tracker',
+    'help.group.fields.heading'              => 'Alanlar ve Kişisel Veri',
+    'help.group.fields.page_title'           => 'Alanlar ve Kişisel Veri - Anime Tracker',
+    'help.group.sync.heading'                => 'Senkronizasyon, Silme ve Güncelleme',
+    'help.group.sync.page_title'             => 'Senkronizasyon, Silme ve Güncelleme - Anime Tracker',
+    'help.group.discovery.heading'           => 'Keşif ve Etkileşim',
+    'help.group.discovery.page_title'        => 'Keşif ve Etkileşim - Anime Tracker',
+    'help.group.series.heading'              => 'Seriler ve Bölüm Bilgisi',
+    'help.group.series.page_title'           => 'Seriler ve Bölüm Bilgisi - Anime Tracker',
     'help.group.timezone.heading'            => 'Saat Dilimi',
     'help.group.timezone.page_title'         => 'Saat Dilimi - Anime Tracker',
-    'help.intro'                             => 'Anime Tracker\'in nasil calistigi, hangi alanlarin neye yaradigi ve neye dikkat etmeniz gerektigi burada. Bir ozelligi merak ediyorsaniz ilgili bolumu okuyun.',
+    'help.intro'                             => 'Anime Tracker\'ın nasıl çalıştığı, hangi alanların neye yaradığı ve neye dikkat etmeniz gerektiği burada. Bir özelliği merak ediyorsanız ilgili bölümü okuyun.',
+    'help.contact'                           => 'İletişim için: <a href="mailto:at@animetracker.uzakdiyarlar.com">at@animetracker.uzakdiyarlar.com</a>',
 
     // Table of contents
-    'help.toc.heading'                       => 'Icindekiler:',
-    'help.toc.fields'                        => 'Anime Alanlari — Hangisi Ne Yapar?',
-    'help.toc.statuses'                      => 'Izleme Durumlari — Bes Secenek',
-    'help.toc.quick_buttons'                 => 'Hizli Izleme Butonlari (+/-)',
-    'help.toc.sync'                          => 'Katalog Sync — Nasil Calisir?',
-    'help.toc.personal'                      => 'Kisisel Alanlar — Notlar ve Kisisel Konu',
+    'help.toc.heading'                       => 'İçindekiler:',
+    'help.toc.fields'                        => 'Anime Alanları — Hangisi Ne Yapar?',
+    'help.toc.statuses'                      => 'İzleme Durumları — Beş Seçenek',
+    'help.toc.quick_buttons'                 => 'Hızlı İzleme Butonları (+/-)',
+    'help.toc.sync'                          => 'Katalog Sync — Nasıl Çalışır?',
+    'help.toc.personal'                      => 'Kişisel Alanlar — Notlar ve Kişisel Konu',
     'help.toc.emotions'                      => 'Duygular — Animeye Tepki Ver',
-    'help.toc.filler'                        => 'Dolgu ve Canon Bolumler',
-    'help.toc.statistics'                    => 'Istatistikler',
-    'help.toc.title_lang'                    => 'Baslik Dili (Ingilizce / Romaji)',
+    'help.toc.filler'                        => 'Dolgu ve Canon Bölümler',
+    'help.toc.statistics'                    => 'İstatistikler',
+    'help.toc.title_lang'                    => 'Başlık Dili (İngilizce / Romaji)',
     'help.toc.translation'                   => 'Çeviri durumu',
     'help.toc.recommendations'               => 'Ne İzlesem? — Öneri Sistemi',
     'help.toc.chronology'                    => 'Seriler ve Kronoloji',
-    'help.toc.deletion'                      => 'Silme Uyarilari',
-    'help.toc.updates'                       => 'Guncelleme Sistemi',
+    'help.toc.deletion'                      => 'Silme Uyarıları',
+    'help.toc.updates'                       => 'Güncelleme Sistemi',
     'help.toc.timezone'                      => 'Saat Dilimi (TZ)',
 
     // Section: Anime fields (catalog vs personal)
-    'help.fields.h2'                         => 'Anime Alanlari — Hangisi Ne Yapar?',
-    'help.fields.intro'                      => 'Anime ekleme ve duzenleme ekranindaki alanlar iki gruba ayrilir: <strong>katalog alanlari</strong> (sunucudan gelir, sync ile guncellenir) ve <strong>kisisel alanlar</strong> (size ozel, hicbir zaman sunucuya gitmez).',
-    'help.fields.catalog.h3'                 => '<i class="fas fa-cloud icon-inline"></i> Katalog Alanlari (sync edilir)',
-    'help.fields.catalog.list' => '<li><strong>Anime Ismi, Alternatif Isimler</strong></li>
-        <li><strong>Konu</strong> — Animenin resmi ozeti</li>
-        <li><strong>Turler</strong> — Aksiyon, Komedi, vb.</li>
-        <li><strong>Cumleler (Etiketler)</strong> — "Ne İzlesem?" sistemi icin</li>
-        <li><strong>Yayin durumu, bolum sayisi, yayin gun/saati</strong></li>
+    'help.fields.h2'                         => 'Anime Alanları — Hangisi Ne Yapar?',
+    'help.fields.intro'                      => 'Anime ekleme ve düzenleme ekranındaki alanlar iki gruba ayrılır: <strong>katalog alanları</strong> (sunucudan gelir, sync ile güncellenir) ve <strong>kişisel alanlar</strong> (size özel, hiçbir zaman sunucuya gitmez).',
+    'help.fields.catalog.h3'                 => '<i class="fas fa-cloud icon-inline"></i> Katalog Alanları (sync edilir)',
+    'help.fields.catalog.list' => '<li><strong>Anime İsmi, Alternatif İsimler</strong></li>
+        <li><strong>Konu</strong> — Animenin resmi özeti</li>
+        <li><strong>Türler</strong> — Aksiyon, Komedi, vb.</li>
+        <li><strong>Cümleler (Etiketler)</strong> — "Ne İzlesem?" sistemi için</li>
+        <li><strong>Yayın durumu, bölüm sayısı, yayın gün/saati</strong></li>
         <li><strong>MAL / AniDB / AnimeSchedule linkleri</strong></li>
-        <li><strong>Seri bilgileri</strong> (seri adi, medya turu, sonraki seri)</li>',
-    'help.fields.catalog.note'               => 'Bu alanlari elle degistirirseniz, bir sonraki sync\'te <strong>uzerine yazilir</strong> (sunucunun dedigi gecer).',
-    'help.fields.personal.h3'                => '<i class="fas fa-user icon-inline"></i> Kisisel Alanlar (sync edilmez)',
-    'help.fields.personal.list' => '<li><strong>Izlenen Bolum sayisi</strong></li>
-        <li><strong>Izleme Durumu</strong> (Izlendi / Izleniyor / Izlenme Planlandi / Izleme Ertelendi / Izleme Birakildi) — listedeki <a href="#hizli-butonlar"><code>+/-</code> butonlariyla otomatik degisebilir</a></li>
-        <li><strong>Notlar</strong> — Size ozel hatirlatmalar, yorumlar</li>
-        <li><strong>Kisisel Konu</strong> — Kendi yorumunuz / aciklamaniz</li>
-        <li><strong>Poster (kendi yuklediyseniz)</strong></li>
-        <li><strong>Sonraki bolum tarihi</strong> (lokal hesap)</li>',
-    'help.fields.personal.note'              => 'Bu alanlara sunucu <strong>dokunmaz</strong>. Istediginiz kadar yazabilir, degistirebilirsiniz.',
+        <li><strong>Seri bilgileri</strong> (seri adı, medya türü, sonraki seri)</li>',
+    'help.fields.catalog.note'               => 'Bu alanları elle değiştirirseniz, bir sonraki sync\'te <strong>üzerine yazılır</strong> (sunucunun dediği geçer).',
+    'help.fields.personal.h3'                => '<i class="fas fa-user icon-inline"></i> Kişisel Alanlar (sync edilmez)',
+    'help.fields.personal.list' => '<li><strong>İzlenen Bölüm sayısı</strong></li>
+        <li><strong>İzleme Durumu</strong> (İzlendi / İzleniyor / İzlenme Planlandı / İzleme Ertelendi / İzleme Bırakıldı) — listedeki <a href="#hizli-butonlar"><code>+/-</code> butonlarıyla otomatik değişebilir</a></li>
+        <li><strong>Notlar</strong> — Size özel hatırlatmalar, yorumlar</li>
+        <li><strong>Kişisel Konu</strong> — Kendi yorumunuz / açıklamanız</li>
+        <li><strong>Poster (kendi yüklediyseniz)</strong></li>
+        <li><strong>Sonraki bölüm tarihi</strong> (lokal hesap)</li>',
+    'help.fields.personal.note'              => 'Bu alanlara sunucu <strong>dokunmaz</strong>. İstediğiniz kadar yazabilir, değiştirebilirsiniz.',
 
     // Section: Watch statuses
-    'help.statuses.h2'                       => 'Izleme Durumlari',
-    'help.statuses.intro'                    => 'Her animenin bir <strong>Izleme Durumu</strong> vardir. Bes secenek farkli izleme asamalarini karsilar, arti henuz hicbir secim yapmadiginiz bir baslangic durumu:',
-    'help.statuses.list' => '<li><strong>Izlenme Planlandi</strong> — Henuz baslamadiniz, ileride izlemek istiyorsunuz. Izlenen bolum: 0.</li>
-        <li><strong>Izleniyor</strong> — Aktif olarak izliyorsunuz. Izlenen bolum tavan ile sifir arasinda bir yerde.</li>
-        <li><strong>Izlendi</strong> — Bittirdiginiz animeler. Izlenen bolum = toplam bolum (ya da yayini tamamlanmis bir dizinin tum bolumleri).</li>
-        <li><strong>Izleme Ertelendi</strong> — Izlemeye basladiniz ama ara verdiniz, ilerlemeniz korunsun. <em>Planlandi\'dan farki:</em> Planlandi "henuz baslamadim" demektir (izlenen=0), Ertelendi "biraz izledim, suanda ara veriyorum" demektir (izlenen>0).</li>
-        <li><strong>Izleme Birakildi</strong> — Bu animeyi izlemeyi tamamen birakmaya karar verdiniz; geri donmeyi planlamiyorsunuz. Ertelendi\'den farki: Ertelendi "sonra devam edecegim", Birakildi "bittim, devam etmeyecegim" demektir.</li>
-        <li><strong>Secim Yapilmamis</strong> — Henuz bu anime icin bir durum secmediniz. Listenizde gorunur ama hicbir izleme grubuna girmez; ilk <code>+</code> ya da Duzenle ile bir durum atayinca bu baslangic durumundan cikar.</li>',
-    'help.statuses.when_postponed'           => '<strong>Ne zaman Ertelendi kullanmali?</strong> Bir animeyi 6 ay sonra geri donmek uzere yarida birakirsaniz, durumu Ertelendi yapin. Boylece "Izleniyor" listenizdeki aktif izleme akisi kalabaliklasmaz, ama Planlandi\'ya da dusmez (cunku ilerlemeniz var). Hazir oldugunuzda <code>+</code> basarsiniz, sistem otomatik olarak Izleniyor\'a geri ceker.',
+    'help.statuses.h2'                       => 'İzleme Durumları',
+    'help.statuses.intro'                    => 'Her animenin bir <strong>İzleme Durumu</strong> vardır. Beş seçenek farklı izleme aşamalarını karşılar, artı henüz hiçbir seçim yapmadığınız bir başlangıç durumu:',
+    'help.statuses.list' => '<li><strong>İzlenme Planlandı</strong> — Henüz başlamadınız, ileride izlemek istiyorsunuz. İzlenen bölüm: 0.</li>
+        <li><strong>İzleniyor</strong> — Aktif olarak izliyorsunuz. İzlenen bölüm tavan ile sıfır arasında bir yerde.</li>
+        <li><strong>İzlendi</strong> — Bitirdiğiniz animeler. İzlenen bölüm = toplam bölüm (ya da yayını tamamlanmış bir dizinin tüm bölümleri).</li>
+        <li><strong>İzleme Ertelendi</strong> — İzlemeye başladınız ama ara verdiniz, ilerlemeniz korunsun. <em>Planlandı\'dan farkı:</em> Planlandı "henüz başlamadım" demektir (izlenen=0), Ertelendi "biraz izledim, şu anda ara veriyorum" demektir (izlenen>0).</li>
+        <li><strong>İzleme Bırakıldı</strong> — Bu animeyi izlemeyi tamamen bırakmaya karar verdiniz; geri dönmeyi planlamıyorsunuz. Ertelendi\'den farkı: Ertelendi "sonra devam edeceğim", Bırakıldı "bittim, devam etmeyeceğim" demektir.</li>
+        <li><strong>Seçim Yapılmamış</strong> — Henüz bu anime için bir durum seçmediniz. Listenizde görünür ama hiçbir izleme grubuna girmez; ilk <code>+</code> ya da Düzenle ile bir durum atayınca bu başlangıç durumundan çıkar.</li>',
+    'help.statuses.when_postponed'           => '<strong>Ne zaman Ertelendi kullanmalı?</strong> Bir animeyi 6 ay sonra geri dönmek üzere yarıda bırakırsanız, durumu Ertelendi yapın. Böylece "İzleniyor" listenizdeki aktif izleme akışı kalabalıklaşmaz, ama Planlandı\'ya da düşmez (çünkü ilerlemeniz var). Hazır olduğunuzda <code>+</code> basarsınız, sistem otomatik olarak İzleniyor\'a geri çeker.',
 
     // Section: Quick watch buttons (+/-)
-    'help.buttons.h2'                        => 'Hizli Izleme Butonlari (+/-)',
-    'help.buttons.intro'                     => 'Listede her animenin yaninda <code>+</code> ve <code>-</code> butonlari var. Bu butonlarla "Duzenle" ekranina gitmeden Izlenen Bolum sayisini bir artirip azaltabilirsiniz. Sayim degisirken belirli kosullarda <strong>Izleme Durumu da otomatik olarak guncellenir</strong>.',
-    'help.buttons.transitions.h3'            => 'Otomatik Durum Gecisleri',
-    'help.buttons.transitions.intro'         => 'Asagidaki tablo bes temel durumu ozetler:',
-    'help.buttons.transitions.col_current'   => 'Su anki durum',
+    'help.buttons.h2'                        => 'Hızlı İzleme Butonları (+/-)',
+    'help.buttons.intro'                     => 'Listede her animenin yanında <code>+</code> ve <code>-</code> butonları var. Bu butonlarla "Düzenle" ekranına gitmeden İzlenen Bölüm sayısını bir artırıp azaltabilirsiniz. Sayım değişirken belirli koşullarda <strong>İzleme Durumu da otomatik olarak güncellenir</strong>.',
+    'help.buttons.transitions.h3'            => 'Otomatik Durum Geçişleri',
+    'help.buttons.transitions.intro'         => 'Aşağıdaki tablo beş temel durumu özetler:',
+    'help.buttons.transitions.col_current'   => 'Şu anki durum',
     'help.buttons.transitions.col_action'    => 'Aksiyon',
     'help.buttons.transitions.col_new'       => 'Yeni durum',
-    'help.buttons.transitions.row1_curr'     => 'Izlenme Planlandi + 0/12',
-    'help.buttons.transitions.row1_new'      => 'Izleniyor + 1/12',
-    'help.buttons.transitions.row2_curr'     => 'Izleniyor + 11/12',
-    'help.buttons.transitions.row2_new'      => 'Izlendi + 12/12',
-    'help.buttons.transitions.row3_curr'     => 'Izlendi + 12/12',
-    'help.buttons.transitions.row3_new'      => 'Izleniyor + 11/12',
-    'help.buttons.transitions.row4_curr'     => 'Izleniyor + 1/12',
-    'help.buttons.transitions.row4_new'      => 'Izlenme Planlandi + 0/12',
-    'help.buttons.transitions.row5_curr'     => 'Izleme Ertelendi + 5/12',
-    'help.buttons.transitions.row5_new'      => 'Izleniyor + 6/12',
-    'help.buttons.transitions.note'          => 'Mantik basit: durum sinir gecislerinde (basa donus, sona ulasma) otomatik degisir, ara degerlerde dokunulmaz. Not: tablodaki "Izlendi"ye otomatik gecis, toplam bolumu bilinen ya da yayini tamamlanmis diziler icindir; yayini devam eden ve toplami bilinmeyen dizilerde asagidaki kural gecerlidir.',
-    'help.buttons.two_step.h3'               => 'Tek Tikla Iki Adim',
-    'help.buttons.two_step.intro'            => 'Bazen tek bir <code>+</code> veya <code>-</code> basisi iki gecisi birden tetikleyebilir:',
-    'help.buttons.two_step.list' => '<li><strong>Planlandi + 11/12 → <code>+</code> → Izlendi + 12/12.</strong> Once Planlandi\'dan Izleniyor\'a, sonra tavana ulastigi icin Izleniyor\'dan Izlendi\'ye tek tikla gecer.</li>
-        <li><strong>Izlendi + 1/12 → <code>-</code> → Izlenme Planlandi + 0/12.</strong> Yukaridakinin aynadaki yansimasi: once Izleniyor\'a, sonra 0\'a indigi icin Planlandi\'ya tek tikla doner.</li>
-        <li><strong>Izleme Ertelendi + 11/12 → <code>+</code> → Izlendi + 12/12.</strong> Ertelendigin animede son bolume varinca, ayni mantik calisir: once Izleniyor\'a, sonra tavana ulastigi icin Izlendi\'ye tek tikla gecer.</li>',
+    'help.buttons.transitions.row1_curr'     => 'İzlenme Planlandı + 0/12',
+    'help.buttons.transitions.row1_new'      => 'İzleniyor + 1/12',
+    'help.buttons.transitions.row2_curr'     => 'İzleniyor + 11/12',
+    'help.buttons.transitions.row2_new'      => 'İzlendi + 12/12',
+    'help.buttons.transitions.row3_curr'     => 'İzlendi + 12/12',
+    'help.buttons.transitions.row3_new'      => 'İzleniyor + 11/12',
+    'help.buttons.transitions.row4_curr'     => 'İzleniyor + 1/12',
+    'help.buttons.transitions.row4_new'      => 'İzlenme Planlandı + 0/12',
+    'help.buttons.transitions.row5_curr'     => 'İzleme Ertelendi + 5/12',
+    'help.buttons.transitions.row5_new'      => 'İzleniyor + 6/12',
+    'help.buttons.transitions.note'          => 'Mantık basit: durum sınır geçişlerinde (başa dönüş, sona ulaşma) otomatik değişir, ara değerlerde dokunulmaz. Not: tablodaki "İzlendi"ye otomatik geçiş, toplam bölümü bilinen ya da yayını tamamlanmış diziler içindir; yayını devam eden ve toplamı bilinmeyen dizilerde aşağıdaki kural geçerlidir.',
+    'help.buttons.two_step.h3'               => 'Tek Tıkla İki Adım',
+    'help.buttons.two_step.intro'            => 'Bazen tek bir <code>+</code> veya <code>-</code> basışı iki geçişi birden tetikleyebilir:',
+    'help.buttons.two_step.list' => '<li><strong>Planlandı + 11/12 → <code>+</code> → İzlendi + 12/12.</strong> Önce Planlandı\'dan İzleniyor\'a, sonra tavana ulaştığı için İzleniyor\'dan İzlendi\'ye tek tıkla geçer.</li>
+        <li><strong>İzlendi + 1/12 → <code>-</code> → İzlenme Planlandı + 0/12.</strong> Yukarıdakinin aynadaki yansıması: önce İzleniyor\'a, sonra 0\'a indiği için Planlandı\'ya tek tıkla döner.</li>
+        <li><strong>İzleme Ertelendi + 11/12 → <code>+</code> → İzlendi + 12/12.</strong> Ertelendiğin animede son bölüme varınca, aynı mantık çalışır: önce İzleniyor\'a, sonra tavana ulaştığı için İzlendi\'ye tek tıkla geçer.</li>',
     'help.buttons.untouched.h3'              => 'Ne Zaman Tetiklenmez?',
     'help.buttons.untouched.box_title'       => '<i class="fas fa-info-circle"></i> Otomasyon dokunmaz:',
-    'help.buttons.untouched.list' => '<li><strong>Izleniyor + ara deger</strong> (ornek: 7/12) — <code>+</code> veya <code>-</code> basildiginda durum Izleniyor olarak kalir, sadece sayim degisir.</li>
-            <li><strong>Izlenme Planlandi + <code>-</code></strong> — Planlandi durumunda <code>-</code> basmak ne sayimi ne durumu degistirir (zaten 0).</li>
-            <li><strong>Izlendi + tavan altinda + <code>+</code></strong> — manuel olarak anormal duruma getirilmis bir kayda <code>+</code> basinca durum Izlendi olarak kalir; otomasyon zorla duzeltmez, manuel niyetiniz korunur.</li>
-            <li><strong>Izleme Ertelendi + <code>-</code></strong> — Ertelenmis bir animede <code>-</code> basildiginda durum Izleme Ertelendi olarak kalir, sadece sayim 1 azalir. "Ara verdim ama bir bolumu unutmustum" gibi nadir durumlar icindir. Devam etmek istediginizde <code>+</code> basin (yukaridaki 5. kural devreye girer) veya Duzenle\'den durumu manuel degistirin.</li>',
-    'help.buttons.unknown_count.h3'          => 'Bolum Sayisi Bilinmeyen Animeler',
-    'help.buttons.unknown_count.intro'       => 'Toplam veya yayinlanan bolum sayisi bilinmiyorsa (tavansiz eski OVA\'lar, programi belirsiz seriler gibi):',
-    'help.buttons.unknown_count.list' => '<li><strong>Tavana ulasma kontrolu yapilamaz</strong> — bu yuzden <code>+</code> ile otomatik "Izlendi" gecisi calismaz. Manuel olarak Duzenle\'den isaretlemeniz gerekir.</li>
-        <li><strong>0\'a inis kontrolu tavandan bagimsiz calisir</strong> — Izleniyor + 1/? uzerinde <code>-</code> basildiginda durum yine Izlenme Planlandi + 0/?\'e otomatik doner.</li>
-        <li><strong>Manuel Izlendi yapilmis tavansiz animede <code>-</code></strong> basildiginda durum Izlendi olarak kalir — sistem guvenli bir gecis yapamadigi icin manuel duruma karismaz.</li>',
-    'help.buttons.airing_unknown.h3'         => 'Yayini Devam Eden, Toplami Bilinmeyen Diziler',
-    'help.buttons.airing_unknown.intro'      => 'Bir dizi hala yayinlaniyorsa ve toplam bolum sayisi henuz bilinmiyorsa (orn. su an 11 bolum yayinlanmis, dizi devam ediyor), son yayinlanan bolume yetismek sizi "bitirdiniz" saymaz.',
-    'help.buttons.airing_unknown.box_title'  => '<i class="fas fa-info-circle"></i> Yetistim, izledim demek degil:',
-    'help.buttons.airing_unknown.box_body'   => '<code>+</code> ile son yayinlanan bolume (orn. 11/11) ulassaniz bile durum <strong>"Izleniyor" olarak kalir</strong>, yanlislikla "Izlendi" olmaz. Yeni bir bolum yayinlandiginda da "Izleniyor" kalmaya devam eder. Durum yalnizca dizi gercekten bittiginde "Izlendi" olur: bilinen toplam bolume ulasildiginda ya da yayini tamamlanmis bir dizinin tum bolumleri izlendiginde. (Bu davranis 1.0.21 ile geldi; daha onceki surumlerde yanlislikla "Izlendi"de takilan bir kayit, bir kez <code>-</code> basinca kendiliginden "Izleniyor"a doner.)',
-    'help.buttons.manual.h3'                 => 'Manuel Duzenleme Her Zaman Serbest',
-    'help.buttons.manual.text'               => 'Otomatik durum gecisleri sadece <code>+</code> ve <code>-</code> butonlarina basarken devreye girer. "Duzenle" formundan istediginiz durumu manuel olarak <strong>her zaman</strong> secebilirsiniz; otomasyon ona karismaz.',
+    'help.buttons.untouched.list' => '<li><strong>İzleniyor + ara değer</strong> (örnek: 7/12) — <code>+</code> veya <code>-</code> basıldığında durum İzleniyor olarak kalır, sadece sayım değişir.</li>
+            <li><strong>İzlenme Planlandı + <code>-</code></strong> — Planlandı durumunda <code>-</code> basmak ne sayımı ne durumu değiştirir (zaten 0).</li>
+            <li><strong>İzlendi + tavan altında + <code>+</code></strong> — manuel olarak anormal duruma getirilmiş bir kayda <code>+</code> basınca durum İzlendi olarak kalır; otomasyon zorla düzeltmez, manuel niyetiniz korunur.</li>
+            <li><strong>İzleme Ertelendi + <code>-</code></strong> — Ertelenmiş bir animede <code>-</code> basıldığında durum İzleme Ertelendi olarak kalır, sadece sayım 1 azalır. "Ara verdim ama bir bölümü unutmuştum" gibi nadir durumlar içindir. Devam etmek istediğinizde <code>+</code> basın (yukarıdaki 5. kural devreye girer) veya Düzenle\'den durumu manuel değiştirin.</li>',
+    'help.buttons.unknown_count.h3'          => 'Bölüm Sayısı Bilinmeyen Animeler',
+    'help.buttons.unknown_count.intro'       => 'Toplam veya yayınlanan bölüm sayısı bilinmiyorsa (tavansız eski OVA\'lar, programı belirsiz seriler gibi):',
+    'help.buttons.unknown_count.list' => '<li><strong>Tavana ulaşma kontrolü yapılamaz</strong> — bu yüzden <code>+</code> ile otomatik "İzlendi" geçişi çalışmaz. Manuel olarak Düzenle\'den işaretlemeniz gerekir.</li>
+        <li><strong>0\'a iniş kontrolü tavandan bağımsız çalışır</strong> — İzleniyor + 1/? üzerinde <code>-</code> basıldığında durum yine İzlenme Planlandı + 0/?\'e otomatik döner.</li>
+        <li><strong>Manuel İzlendi yapılmış tavansız animede <code>-</code></strong> basıldığında durum İzlendi olarak kalır — sistem güvenli bir geçiş yapamadığı için manuel duruma karışmaz.</li>',
+    'help.buttons.airing_unknown.h3'         => 'Yayını Devam Eden, Toplamı Bilinmeyen Diziler',
+    'help.buttons.airing_unknown.intro'      => 'Bir dizi hâlâ yayınlanıyorsa ve toplam bölüm sayısı henüz bilinmiyorsa (örn. şu an 11 bölüm yayınlanmış, dizi devam ediyor), son yayınlanan bölüme yetişmek sizi "bitirdiniz" saymaz.',
+    'help.buttons.airing_unknown.box_title'  => '<i class="fas fa-info-circle"></i> Yetiştim, izledim demek değil:',
+    'help.buttons.airing_unknown.box_body'   => '<code>+</code> ile son yayınlanan bölüme (örn. 11/11) ulaşsanız bile durum <strong>"İzleniyor" olarak kalır</strong>, yanlışlıkla "İzlendi" olmaz. Yeni bir bölüm yayınlandığında da "İzleniyor" kalmaya devam eder. Durum yalnızca dizi gerçekten bittiğinde "İzlendi" olur: bilinen toplam bölüme ulaşıldığında ya da yayını tamamlanmış bir dizinin tüm bölümleri izlendiğinde. (Bu davranış 1.0.21 ile geldi; daha önceki sürümlerde yanlışlıkla "İzlendi"de takılan bir kayıt, bir kez <code>-</code> basınca kendiliğinden "İzleniyor"a döner.)',
+    'help.buttons.manual.h3'                 => 'Manuel Düzenleme Her Zaman Serbest',
+    'help.buttons.manual.text'               => 'Otomatik durum geçişleri sadece <code>+</code> ve <code>-</code> butonlarına basarken devreye girer. "Düzenle" formundan istediğiniz durumu manuel olarak <strong>her zaman</strong> seçebilirsiniz; otomasyon ona karışmaz.',
 
     // Section: Catalog sync
-    'help.sync.h2'                           => 'Katalog Sync — Nasil Calisir?',
-    'help.sync.intro'                        => 'Liste Ayarlari sayfasinda "Katalogdan Ice Aktar" dugmesine bastiginizda, sunucudaki katalog lokal veritabaninizla birlestirilir.',
+    'help.sync.h2'                           => 'Katalog Sync — Nasıl Çalışır?',
+    'help.sync.intro'                        => 'Liste Ayarları sayfasında "Katalogdan İçe Aktar" düğmesine bastığınızda, sunucudaki katalog lokal veritabanınızla birleştirilir.',
     'help.sync.safe_title'                   => '<i class="fas fa-shield-alt"></i> Kaybolmaz:',
-    'help.sync.safe_body'                    => 'Izleme verileriniz, notlariniz, Kisisel Konu, kendi yukleginiz poster — bunlar size ozeldir ve sync\'te asla dokunulmaz.',
-    'help.sync.warning_title'                => '<i class="fas fa-exclamation-triangle"></i> Uzerine Yazilir:',
-    'help.sync.warning_body'                 => 'Anime ismi, konu, turler, yayin bilgileri gibi katalog alanlari her sync\'te sunucunun son haline gore guncellenir. Elle degistirdiyseniz kaybolur.',
-    'help.sync.own_added.h3'                 => 'Kendi Ekledigim Animeler Ne Olur?',
-    'help.sync.own_added.text'               => 'Siz bir anime ekledikten sonra admin tarafindan kataloga alinmamissa (yani sizin ozel kayitlariniz), bu animeler sync\'te <strong>hic dokunulmaz</strong>. Tum alanlari korunur.',
-    'help.sync.when.h3'                      => 'Sync Ne Zaman Calisir?',
-    'help.sync.when.text'                    => 'Otomatik degil — sadece siz istedikce. Liste Ayarlari → "Katalogdan Ice Aktar" dugmesine basinca bir defa calisir.',
-    'help.sync.aired.h3'                      => 'Bolum Sayisi Senkronizasyonu (yayinlanan bolum)',
-    'help.sync.aired.text'                    => 'Katalog sync\'inden ayri olarak, yayini devam eden animelerin "kac bolumu yayinlandi" bilgisi AnimeSchedule\'dan guncellenir. Bu, Liste Ayarlari sayfasini her actiginizda gunde bir kez arka planda kendiliginden calisir; "Simdi Senkronize Et" ile elle de tetikleyebilirsiniz.',
-    'help.sync.aired.box_title'               => '<i class="fas fa-shield-alt"></i> Kisisel duruma dokunmaz:',
-    'help.sync.aired.box_body'                => 'Bu islem yalnizca katalogdaki "yayinlanan bolum sayisi" alanini gunceller. Sizin izleme durumunuza, izlenen bolum sayiniza ya da notlariniza dokunmaz. Yeni bir bolum yayinlandiginda izleme durumunuz kendiliginden degismez; ilerlemeyi siz <code>+</code> ile islersiniz.',
+    'help.sync.safe_body'                    => 'İzleme verileriniz, notlarınız, Kişisel Konu, kendi yüklediğiniz poster — bunlar size özeldir ve sync\'te asla dokunulmaz.',
+    'help.sync.warning_title'                => '<i class="fas fa-exclamation-triangle"></i> Üzerine Yazılır:',
+    'help.sync.warning_body'                 => 'Anime ismi, konu, türler, yayın bilgileri gibi katalog alanları her sync\'te sunucunun son haline göre güncellenir. Elle değiştirdiyseniz kaybolur.',
+    'help.sync.own_added.h3'                 => 'Kendi Eklediğim Animeler Ne Olur?',
+    'help.sync.own_added.text'               => 'Siz bir anime ekledikten sonra admin tarafından kataloğa alınmamışsa (yani sizin özel kayıtlarınız), bu animeler sync\'te <strong>hiç dokunulmaz</strong>. Tüm alanları korunur.',
+    'help.sync.when.h3'                      => 'Sync Ne Zaman Çalışır?',
+    'help.sync.when.text'                    => 'Otomatik değil — sadece siz istedikçe. Liste Ayarları → "Katalogdan İçe Aktar" düğmesine basınca bir defa çalışır.',
+    'help.sync.aired.h3'                      => 'Bölüm Sayısı Senkronizasyonu (yayınlanan bölüm)',
+    'help.sync.aired.text'                    => 'Katalog sync\'inden ayrı olarak, yayını devam eden animelerin "kaç bölümü yayınlandı" bilgisi AnimeSchedule\'dan güncellenir. Bu, Liste Ayarları sayfasını her açtığınızda günde bir kez arka planda kendiliğinden çalışır; "Şimdi Senkronize Et" ile elle de tetikleyebilirsiniz.',
+    'help.sync.aired.box_title'               => '<i class="fas fa-shield-alt"></i> Kişisel duruma dokunmaz:',
+    'help.sync.aired.box_body'                => 'Bu işlem yalnızca katalogdaki "yayınlanan bölüm sayısı" alanını günceller. Sizin izleme durumunuza, izlenen bölüm sayınıza ya da notlarınıza dokunmaz. Yeni bir bölüm yayınlandığında izleme durumunuz kendiliğinden değişmez; ilerlemeyi siz <code>+</code> ile işlersiniz.',
 
     // Section: Personal fields (Notes + Personal Synopsis)
-    'help.personal.h2'                       => 'Kisisel Alanlar — Notlar ve Kisisel Konu',
-    'help.personal.intro'                    => 'Iki farkli kisisel metin alaniniz var. Farklari:',
+    'help.personal.h2'                       => 'Kişisel Alanlar — Notlar ve Kişisel Konu',
+    'help.personal.intro'                    => 'İki farklı kişisel metin alanınız var. Farkları:',
     'help.personal.table.col_field'          => 'Alan',
-    'help.personal.table.col_purpose'        => 'Amac',
-    'help.personal.table.col_example'        => 'Ornek',
+    'help.personal.table.col_purpose'        => 'Amaç',
+    'help.personal.table.col_example'        => 'Örnek',
     'help.personal.table.row_notes_field'    => 'Notlar',
-    'help.personal.table.row_notes_purpose'  => 'Kisa hatirlatmalar',
-    'help.personal.table.row_notes_example'  => '"Arkadasla beraber izle", "ilk 3 bolumden sonra hizli izle"',
-    'help.personal.table.row_synopsis_field' => 'Kisisel Konu',
-    'help.personal.table.row_synopsis_purpose' => 'Uzun yorumlar, kendi ozetiniz',
-    'help.personal.table.row_synopsis_example' => 'Kendi cevirisiniz, kendi yorumunuz, kendi ozetiniz',
-    'help.personal.howto.h3'                 => '<i class="fas fa-sync icon-inline"></i> Kisisel Konu Nasil Olusur?',
-    'help.personal.howto.intro'              => '<strong>Ilk durumda tek "Konu" alani vardir.</strong> Kendiniz yazarsaniz veya sunucudan gelen konu orada durur. Eger katalogdan gelen yeni bir sey varsa ve siz o alana kendi yazinizi yazmissaniz, ilk sync sirasinda:',
-    'help.personal.howto.list' => '<li>Sizin yazdiginiz metin otomatik olarak <strong>"Kisisel Konu"</strong> alanina tasinir</li>
-        <li>Sunucudan gelen metin "Konu" alanina yazilir (duzenleyemezsiniz, salt okunur olur)</li>
-        <li>Artik iki alan goreceksiniz, duzenlediginiz her sey "Kisisel Konu"ya gider</li>',
+    'help.personal.table.row_notes_purpose'  => 'Kısa hatırlatmalar',
+    'help.personal.table.row_notes_example'  => '"Arkadaşla beraber izle", "ilk 3 bölümden sonra hızlı izle"',
+    'help.personal.table.row_synopsis_field' => 'Kişisel Konu',
+    'help.personal.table.row_synopsis_purpose' => 'Uzun yorumlar, kendi özetiniz',
+    'help.personal.table.row_synopsis_example' => 'Kendi çevirisiniz, kendi yorumunuz, kendi özetiniz',
+    'help.personal.howto.h3'                 => '<i class="fas fa-sync icon-inline"></i> Kişisel Konu Nasıl Oluşur?',
+    'help.personal.howto.intro'              => '<strong>İlk durumda tek "Konu" alanı vardır.</strong> Kendiniz yazarsanız veya sunucudan gelen konu orada durur. Eğer katalogdan gelen yeni bir şey varsa ve siz o alana kendi yazınızı yazmışsanız, ilk sync sırasında:',
+    'help.personal.howto.list' => '<li>Sizin yazdığınız metin otomatik olarak <strong>"Kişisel Konu"</strong> alanına taşınır</li>
+        <li>Sunucudan gelen metin "Konu" alanına yazılır (düzenleyemezsiniz, salt okunur olur)</li>
+        <li>Artık iki alan göreceksiniz, düzenlediğiniz her şey "Kişisel Konu"ya gider</li>',
     'help.personal.warning_title'            => '<i class="fas fa-exclamation-triangle"></i> Dikkat:',
-    'help.personal.warning_body'             => 'Kisisel Konu\'yu silerseniz <strong>sync ile geri gelmez</strong>. Ayni sekilde Notlar alanini silerseniz o da geri gelmez. Bu iki alan size ozel ve kalici olarak sizin kontrolunuzde.',
+    'help.personal.warning_body'             => 'Kişisel Konu\'yu silerseniz <strong>sync ile geri gelmez</strong>. Aynı şekilde Notlar alanını silerseniz o da geri gelmez. Bu iki alan size özel ve kalıcı olarak sizin kontrolünüzde.',
 
     // Section: Emotions
     'help.emotions.h2'                       => 'Duygular — Animeye Tepki Ver',
-    'help.emotions.intro'                    => 'Bir animenin detay sayfasinda, o anime size ne hissettirdiyse isaretleyebilirsiniz. Dokuz duygu secenegi var:',
+    'help.emotions.intro'                    => 'Bir animenin detay sayfasında, o anime size ne hissettirdiyse işaretleyebilirsiniz. Dokuz duygu seçeneği var:',
     'help.emotions.list' => '<li><strong>Hüzünlendirdi</strong></li>
         <li><strong>Heyecanlandırdı</strong></li>
         <li><strong>Sıktı</strong></li>
@@ -580,110 +581,110 @@ return [
         <li><strong>Şaşırttı</strong></li>
         <li><strong>Dinlendirdi</strong></li>
         <li><strong>Motive Etti</strong></li>',
-    'help.emotions.cap_title'                => '<i class="fas fa-info-circle"></i> Anime basina en fazla 3:',
-    'help.emotions.cap_body'                 => 'Bir animede ayni anda en cok 3 duygu isaretli olabilir; boylece isaretler anlamli kalir. Bir duyguya tekrar basmak isareti kaldirir (ac/kapa). Isaret kaldirmak her zaman serbesttir, 3 sinirina takilmaz.',
-    'help.emotions.stats'                    => 'Duygu isaretleriniz kisiseldir ve Istatistikler sayfasinda "Duygulara Gore" dagilim olarak ozetlenir — en cok hangi duyguyu isaretlediginizi orada gorebilirsiniz.',
+    'help.emotions.cap_title'                => '<i class="fas fa-info-circle"></i> Anime başına en fazla 3:',
+    'help.emotions.cap_body'                 => 'Bir animede aynı anda en çok 3 duygu işaretli olabilir; böylece işaretler anlamlı kalır. Bir duyguya tekrar basmak işareti kaldırır (aç/kapa). İşaret kaldırmak her zaman serbesttir, 3 sınırına takılmaz.',
+    'help.emotions.stats'                    => 'Duygu işaretleriniz kişiseldir ve İstatistikler sayfasında "Duygulara Göre" dağılım olarak özetlenir — en çok hangi duyguyu işaretlediğinizi orada görebilirsiniz.',
 
     // Section: Filler / canon episodes
-    'help.filler.h2'                         => 'Dolgu ve Canon Bolumler',
-    'help.filler.intro'                      => 'Bir animenin bolumleri kaynak materyale gore siniflandirilabilir. Bu bilgi, "hangi bolumleri atlayabilirim" diye merak edenler icindir. Dort tur vardir:',
-    'help.filler.list' => '<li><strong>Manga Canon</strong> — Kaynak mangaya dayanan, ana hikayenin parcasi bolumler.</li>
-        <li><strong>Anime Canon</strong> — Mangada olmayan ama yapim tarafindan hikayeye dahil edilmis, canon sayilan bolumler.</li>
-        <li><strong>Karışık</strong> — Ayni bolum icinde hem canon hem dolgu kisimlar var.</li>
-        <li><strong>Dolgu</strong> — Ana hikayeyi etkilemeyen, atlanabilen dolgu bolumler.</li>',
-    'help.filler.unmarked'                   => 'Isaretlenmemis bir bolum "canon varsay" anlamina gelir — yani bir bolumde tur etiketi yoksa, ana hikayenin parcasi kabul edilir.',
+    'help.filler.h2'                         => 'Dolgu ve Canon Bölümler',
+    'help.filler.intro'                      => 'Bir animenin bölümleri kaynak materyale göre sınıflandırılabilir. Bu bilgi, "hangi bölümleri atlayabilirim" diye merak edenler içindir. Dört tür vardır:',
+    'help.filler.list' => '<li><strong>Manga Canon</strong> — Kaynak mangaya dayanan, ana hikayenin parçası bölümler.</li>
+        <li><strong>Anime Canon</strong> — Mangada olmayan ama yapım tarafından hikayeye dahil edilmiş, canon sayılan bölümler.</li>
+        <li><strong>Karışık</strong> — Aynı bölüm içinde hem canon hem dolgu kısımlar var.</li>
+        <li><strong>Dolgu</strong> — Ana hikayeyi etkilemeyen, atlanabilen dolgu bölümler.</li>',
+    'help.filler.unmarked'                   => 'İşaretlenmemiş bir bölüm "canon varsay" anlamına gelir — yani bir bölümde tür etiketi yoksa, ana hikayenin parçası kabul edilir.',
     'help.filler.warning_title'              => '<i class="fas fa-exclamation-triangle"></i> Katalog verisi:',
-    'help.filler.warning_body'               => 'Bolum siniflandirmasi katalog tarafindan tutulur; sync\'te sunucunun hali esas alinir. Yani kendiniz degistirirseniz bir sonraki sync\'te uzerine yazilabilir.',
+    'help.filler.warning_body'               => 'Bölüm sınıflandırması katalog tarafından tutulur; sync\'te sunucunun hali esas alınır. Yani kendiniz değiştirirseniz bir sonraki sync\'te üzerine yazılabilir.',
 
     // Section: Statistics
-    'help.stats.h2'                          => 'Istatistikler',
-    'help.stats.intro'                       => 'Istatistikler sayfasi listenizi ozetleyen sayilar sunar; uc sekmeye ayrilir:',
-    'help.stats.user.h3'                     => 'Kullanici Istatistigi',
-    'help.stats.user.text'                   => 'Size ozel ozet: toplam anime, toplam izlediginiz bolum, toplam bolum; medya turune gore dagilim (TV / Film / OVA vb.), yayin durumuna gore, izleme durumuna gore (Izleniyor / Izlendi / Planlandi / Ertelendi / Birakildi / Secim Yapilmamis) ve duygulara gore dagilim.',
-    'help.stats.recent.h3'                   => 'Son Izlenenler',
-    'help.stats.recent.text'                 => 'En son izleme islemi yaptiginiz animeler, en yeni en ustte olacak sekilde listelenir. "Neredeydim" diye bakmak icin pratiktir.',
-    'help.stats.global.h3'                   => 'Global Istatistik',
-    'help.stats.global.text'                 => 'Kisisel listenizden bagimsiz olarak, katalogun genel dagilimini gosterir (kac anime, hangi medya turleri vb.). Sizin izleme durumunuzu degil, katalogun butununu yansitir.',
+    'help.stats.h2'                          => 'İstatistikler',
+    'help.stats.intro'                       => 'İstatistikler sayfası listenizi özetleyen sayılar sunar; üç sekmeye ayrılır:',
+    'help.stats.user.h3'                     => 'Kullanıcı İstatistiği',
+    'help.stats.user.text'                   => 'Size özel özet: toplam anime, toplam izlediğiniz bölüm, toplam bölüm; medya türüne göre dağılım (TV / Film / OVA vb.), yayın durumuna göre, izleme durumuna göre (İzleniyor / İzlendi / Planlandı / Ertelendi / Bırakıldı / Seçim Yapılmamış) ve duygulara göre dağılım.',
+    'help.stats.recent.h3'                   => 'Son İzlenenler',
+    'help.stats.recent.text'                 => 'En son izleme işlemi yaptığınız animeler, en yeni en üstte olacak şekilde listelenir. "Neredeydim" diye bakmak için pratiktir.',
+    'help.stats.global.h3'                   => 'Global İstatistik',
+    'help.stats.global.text'                 => 'Kişisel listenizden bağımsız olarak, kataloğun genel dağılımını gösterir (kaç anime, hangi medya türleri vb.). Sizin izleme durumunuzu değil, kataloğun bütününü yansıtır.',
 
     // Section: Title language
-    'help.title_lang.h2'                     => 'Baslik Dili (Ingilizce / Romaji)',
-    'help.title_lang.intro'                  => 'Anime basliklari varsayilan olarak Romaji (orn. "Shingeki no Kyojin") gosterilir. Liste Ayarlari → "Baslik Dili" bolumunden, Ingilizce karsiligi olan animeleri Ingilizce basligiyla (orn. "Attack on Titan") gosterebilirsiniz.',
-    'help.title_lang.box_title'              => '<i class="fas fa-info-circle"></i> Arayuz dilinden bagimsiz:',
-    'help.title_lang.box_body'               => 'Bu tercih size ozeldir ve sitenin dilinden (Turkce/Ingilizce) bagimsiz calisir — arayuzu Turkce kullanip basliklari Ingilizce gormeyi tercih edebilirsiniz. Ingilizce karsiligi olmayan animeler Romaji basligiyla kalir.',
+    'help.title_lang.h2'                     => 'Başlık Dili (İngilizce / Romaji)',
+    'help.title_lang.intro'                  => 'Anime başlıkları varsayılan olarak Romaji (örn. "Shingeki no Kyojin") gösterilir. Liste Ayarları → "Başlık Dili" bölümünden, İngilizce karşılığı olan animeleri İngilizce başlığıyla (örn. "Attack on Titan") gösterebilirsiniz.',
+    'help.title_lang.box_title'              => '<i class="fas fa-info-circle"></i> Arayüz dilinden bağımsız:',
+    'help.title_lang.box_body'               => 'Bu tercih size özeldir ve sitenin dilinden (Türkçe/İngilizce) bağımsız çalışır — arayüzü Türkçe kullanıp başlıkları İngilizce görmeyi tercih edebilirsiniz. İngilizce karşılığı olmayan animeler Romaji başlığıyla kalır.',
 
     // Section: Recommendation system
     'help.translation.h2'                    => 'Çeviri Durumu',
     'help.translation.intro'                 => 'Bu sitedeki anime konuları aslen site küratörü tarafından Türkçe yazılır. İngilizce sürümler harici araçlarla AI çevirisi yapılıp elle eklenir. Konunun altında "Auto-translated from Turkish" etiketiyle gösterilir.',
     'help.translation.quality'               => 'Çeviri kalitesi değişebilir; Türkçe orijinal her zaman esas alınan sürümdür. Dili istediğiniz zaman dil seçicisinden değiştirebilirsiniz.',
     'help.recom.h2'                          => 'Ne İzlesem? — Öneri Sistemi',
-    'help.recom.intro'                       => 'Menudeki "Ne İzlesem?" linki, listenizden size uygun anime onermesi icin tasarlanmis bir aractir.',
-    'help.recom.howto.h3'                    => 'Nasil Calisir?',
-    'help.recom.howto.text'                  => 'Yonetici (admin) her animeye birkac <strong>cumle etiketi</strong> atar: "Okulda gecsin", "Spor olsun", "Buyu olsun" gibi. Siz bu cumlelerden istediginizi sec, "Oner" butonuna basin.',
-    'help.recom.scoop.h3'                    => 'Kepce Mantigi',
-    'help.recom.scoop.text'                  => 'Her secilen cumle bir kepce gibi dusunun. Kepce kendi eslesmesini listeden ceker. Birden fazla kepce secerseniz, en cok kepceye uyan anime ust sirada gozukur.',
-    'help.recom.scoop.box_title'             => '<i class="fas fa-check"></i> Onemli:',
-    'help.recom.scoop.box_body'              => 'Cok cumle secerseniz sonuclar azalmaz, aksine siralama netlesir. Sistem AND yerine OR + puan mantigi kullanir.',
-    'help.recom.surprise.h3'                 => 'Surpriz Sec',
-    'help.recom.surprise.text'               => 'Hic cumle secmeden "Surpriz Sec" derseniz, sistem size izlememis oldugunuz bir anime rastgele secer. Kararsiz kaldiginizda hizli bir cozum.',
+    'help.recom.intro'                       => 'Menüdeki "Ne İzlesem?" linki, listenizden size uygun anime önermesi için tasarlanmış bir araçtır.',
+    'help.recom.howto.h3'                    => 'Nasıl Çalışır?',
+    'help.recom.howto.text'                  => 'Yönetici (admin) her animeye birkaç <strong>cümle etiketi</strong> atar: "Okulda geçsin", "Spor olsun", "Büyü olsun" gibi. Siz bu cümlelerden istediğinizi seç, "Öner" butonuna basın.',
+    'help.recom.scoop.h3'                    => 'Kepçe Mantığı',
+    'help.recom.scoop.text'                  => 'Her seçilen cümle bir kepçe gibi düşünün. Kepçe kendi eşleşmesini listeden çeker. Birden fazla kepçe seçerseniz, en çok kepçeye uyan anime üst sırada gözükür.',
+    'help.recom.scoop.box_title'             => '<i class="fas fa-check"></i> Önemli:',
+    'help.recom.scoop.box_body'              => 'Çok cümle seçerseniz sonuçlar azalmaz, aksine sıralama netleşir. Sistem AND yerine OR + puan mantığı kullanır.',
+    'help.recom.surprise.h3'                 => 'Sürpriz Seç',
+    'help.recom.surprise.text'               => 'Hiç cümle seçmeden "Sürpriz Seç" derseniz, sistem size izlememiş olduğunuz bir anime rastgele seçer. Kararsız kaldığınızda hızlı bir çözüm.',
     'help.recom.search.h3'                   => 'Arama Kutusu',
-    'help.recom.search.text'                 => 'Cumle listesi uzadiginda arama kutusuna yazabilirsiniz. Yazdiginiz harflerle <strong>baslayan</strong> cumleler liste halinde gorulur. Turkce karakterler ayirt edilir — "u" yazarsaniz "U" ile baslayanlar, "ü" yazarsaniz "Ü" ile baslayanlar gelir.',
+    'help.recom.search.text'                 => 'Cümle listesi uzadığında arama kutusuna yazabilirsiniz. Yazdığınız harflerle <strong>başlayan</strong> cümleler liste halinde görülür. Türkçe karakterler ayırt edilir — "u" yazarsanız "U" ile başlayanlar, "ü" yazarsanız "Ü" ile başlayanlar gelir.',
 
     // Section: Series and Chronology
     'help.chrono.h2'                         => 'Seriler ve Kronoloji',
-    'help.chrono.intro'                      => 'Birbirine bagli animeler icin iki tur iliski sistemi var:',
+    'help.chrono.intro'                      => 'Birbirine bağlı animeler için iki tür ilişki sistemi var:',
     'help.chrono.series.h3'                  => 'Seri Bilgisi',
-    'help.chrono.series.text'                => 'Bir anime\'nin hangi seriye ait oldugu <strong>seri adi</strong> ve <strong>medya turu</strong> (TV / Film / OVA / Special / ONA) ile belirlenir. Ayni seri adini paylasan animeler anime detayinda "Bagli Animeler" bolumunde gozukur.',
+    'help.chrono.series.text'                => 'Bir anime\'nin hangi seriye ait olduğu <strong>seri adı</strong> ve <strong>medya türü</strong> (TV / Film / OVA / Special / ONA) ile belirlenir. Aynı seri adını paylaşan animeler anime detayında "Bağlı Animeler" bölümünde gözükür.',
     'help.chrono.next.h3'                    => 'Sonraki Seri (next_in_series)',
-    'help.chrono.next.text'                  => 'Bir animeyi bitirince hangi animeyi izlemeniz gerektigi. Detay sayfasinda "Sirada" kutusunda gozukur.',
-    'help.chrono.markers.h3'                 => 'Kronoloji Isaretleri',
-    'help.chrono.markers.text'               => 'Detective Conan gibi seriler icin: "54. bolumden sonra 1. filmi izle" gibi bolum seviyesinde isaretler tutulur. Detay sayfasinda aktif uyari olarak gorulur, ayri bir "Kronoloji" sayfasinda da timeline halinde listelenir.',
+    'help.chrono.next.text'                  => 'Bir animeyi bitirince hangi animeyi izlemeniz gerektiği. Detay sayfasında "Sırada" kutusunda gözükür.',
+    'help.chrono.markers.h3'                 => 'Kronoloji İşaretleri',
+    'help.chrono.markers.text'               => 'Detective Conan gibi seriler için: "54. bölümden sonra 1. filmi izle" gibi bölüm seviyesinde işaretler tutulur. Detay sayfasında aktif uyarı olarak görülür, ayrı bir "Kronoloji" sayfasında da timeline halinde listelenir.',
     'help.chrono.warning_title'              => '<i class="fas fa-exclamation-triangle"></i> Dikkat:',
-    'help.chrono.warning_body'               => 'Kronoloji isaretleri de sync\'te katalog otoritedir. Kendiniz marker eklediyseniz sync sonrasi kaybolur.',
+    'help.chrono.warning_body'               => 'Kronoloji işaretleri de sync\'te katalog otoritedir. Kendiniz marker eklediyseniz sync sonrası kaybolur.',
 
     // Section: Deletion warnings
-    'help.delete.h2'                         => 'Silme Uyarilari',
-    'help.delete.danger_title'               => '<i class="fas fa-trash-alt"></i> Geri Alinamaz Silmeler:',
-    'help.delete.danger_list' => '<li><strong>Notlar</strong> alanini bossaltmak → sync geri getirmez</li>
-            <li><strong>Kisisel Konu</strong> alanini bossaltmak → sync geri getirmez</li>
-            <li>Anime silmek → kalici, izleme verisi dahil her sey gider</li>
-            <li>Poster dosyasi silmek → sync sirasinda katalog posteri tekrar indirilir (ancak kendi yuklediginiz poster geri gelmez)</li>',
-    'help.delete.safe_title'                 => '<i class="fas fa-undo"></i> Geri Alinabilir (sync ile):',
-    'help.delete.safe_list' => '<li>Konu alanini degistirmek / bossaltmak → bir sonraki sync\'te katalog konusu geri gelir</li>
-            <li>Anime ismi degistirmek → sync\'te duzelir</li>
-            <li>Tur listesi / yayin bilgisi degistirmek → sync\'te duzelir</li>',
+    'help.delete.h2'                         => 'Silme Uyarıları',
+    'help.delete.danger_title'               => '<i class="fas fa-trash-alt"></i> Geri Alınamaz Silmeler:',
+    'help.delete.danger_list' => '<li><strong>Notlar</strong> alanını boşaltmak → sync geri getirmez</li>
+            <li><strong>Kişisel Konu</strong> alanını boşaltmak → sync geri getirmez</li>
+            <li>Anime silmek → kalıcı, izleme verisi dahil her şey gider</li>
+            <li>Poster dosyası silmek → sync sırasında katalog posteri tekrar indirilir (ancak kendi yüklediğiniz poster geri gelmez)</li>',
+    'help.delete.safe_title'                 => '<i class="fas fa-undo"></i> Geri Alınabilir (sync ile):',
+    'help.delete.safe_list' => '<li>Konu alanını değiştirmek / boşaltmak → bir sonraki sync\'te katalog konusu geri gelir</li>
+            <li>Anime ismi değiştirmek → sync\'te düzelir</li>
+            <li>Tür listesi / yayın bilgisi değiştirmek → sync\'te düzelir</li>',
 
     // Section: Update system
-    'help.update.h2'                         => 'Guncelleme Sistemi',
-    'help.update.intro'                      => 'Anime Tracker\'in kendisi zaman zaman yeni surumlerle gelir. Liste Ayarlari → "Guncelleme Kontrolu" dugmesi ile yeni sürüm olup olmadigini kontrol edebilirsiniz.',
-    'help.update.flow_intro'                 => 'Yeni surum varsa, tek tikla otomatik guncelleme yapilir:',
-    'help.update.flow_list' => '<li>Sunucudan yeni surum indirilir</li>
-        <li>Dosyalar yerinde guncellenir (<code>config.php</code>, <code>uploads/</code> ve izleme verileriniz korunur)</li>
-        <li>Veritabani gerekirse otomatik guncellenir</li>
-        <li>Sayfa yenilenir, yeni surum aktif</li>',
-    'help.update.safe_title'                 => '<i class="fas fa-shield-alt"></i> Guncelleme Sirasinda Kaybolmaz:',
-    'help.update.safe_body'                  => 'Animeleriniz, izleme verileriniz, notlariniz, poster\'leriniz, DB kimlik bilgileriniz — hic biri etkilenmez.',
+    'help.update.h2'                         => 'Güncelleme Sistemi',
+    'help.update.intro'                      => 'Anime Tracker\'ın kendisi zaman zaman yeni sürümlerle gelir. Liste Ayarları → "Güncelleme Kontrolü" düğmesi ile yeni sürüm olup olmadığını kontrol edebilirsiniz.',
+    'help.update.flow_intro'                 => 'Yeni sürüm varsa, tek tıkla otomatik güncelleme yapılır:',
+    'help.update.flow_list' => '<li>Sunucudan yeni sürüm indirilir</li>
+        <li>Dosyalar yerinde güncellenir (<code>config.php</code>, <code>uploads/</code> ve izleme verileriniz korunur)</li>
+        <li>Veritabanı gerekirse otomatik güncellenir</li>
+        <li>Sayfa yenilenir, yeni sürüm aktif</li>',
+    'help.update.safe_title'                 => '<i class="fas fa-shield-alt"></i> Güncelleme Sırasında Kaybolmaz:',
+    'help.update.safe_body'                  => 'Animeleriniz, izleme verileriniz, notlarınız, poster\'leriniz, DB kimlik bilgileriniz — hiçbiri etkilenmez.',
 
     // Section: Timezone
-    'help.tz.h2'                             => 'Saat Dilimi — Yayin Saati Nasil Gosterilir?',
-    'help.tz.intro'                          => 'Anime Tracker tum tarih ve saatleri veritabaninda <strong>UTC</strong> olarak saklar. Gosterirken her animenin kendi yayin saat dilimine cevirir.',
-    'help.tz.bc_tz.h3'                       => 'Yayin Saat Dilimi (animenin TZ\'i)',
-    'help.tz.bc_tz.text'                     => 'Anime ekleme/duzenleme formundaki "Yayin Saat Dilimi" alani. Listede 6 sabit secenek var: Asia/Tokyo (JST), Europe/Istanbul (TRT), UTC, America/New_York (ET), America/Los_Angeles (PT), Europe/London. Cogu Japon animesi icin <code>Asia/Tokyo</code> dogru secimdir.',
-    'help.tz.autofill_title'                 => '<i class="fas fa-magic"></i> Hizli Yol — Otomatik Doldur:',
-    'help.tz.autofill_body'                  => 'AnimeSchedule URL\'sini girip "Otomatik Doldur" (Senkronize Et) butonuna basarsaniz <strong>broadcast_day, broadcast_time ve broadcast_timezone alanlari otomatik olarak Asia/Tokyo + Tokyo saati ile dolar</strong>. AnimeSchedule API\'si Japon animesi verilerini dogru sekilde Tokyo TZ\'de donderir. Elle giris yapmaniza gerek kalmaz.',
-    'help.tz.workflows.h3'                   => 'Iki Gecerli Workflow',
-    'help.tz.workflows.intro'                => 'TZ alani ve saat alani ayni saat dilimini yansitmali. Iki yol da gecerli:',
-    'help.tz.workflows.list' => '<li><strong>Animenin yayin yeri:</strong> "JST" sec + Tokyo saatini gir (orn. 23:30). Anime detay sayfasi "23:30 (JST)" gosterir, kendi saatinizi manuel hesaplarsiniz. AnimeSchedule Otomatik Doldur bu yontemi kullanir.</li>
-        <li><strong>Kendi yerel saatiniz:</strong> "TRT" sec + Turkiye saatini 24 saat formatinda gir (orn. 17:30). Anime detay sayfasi "17:30 (TRT)" gosterir, dogrudan okunabilir. AnimeSchedule sitesinden manuel okuyorsaniz site zaten Turkiye saatini gosteriyor; sadece am/pm\'i 24 saate cevirip yazin.</li>',
-    'help.tz.consistency'                    => 'Onemli: TZ secimi ile saat alani <strong>tutarli</strong> olmali. "JST" secip Turkiye saatini girerseniz veya "TRT" secip Tokyo saatini girerseniz, "sonraki bolum ne zaman" hesabi yanlis olur.',
-    'help.tz.box_animeschedule_title'        => '<i class="fas fa-info-circle"></i> AnimeSchedule sitesi ne gosterir:',
-    'help.tz.box_animeschedule_body'         => 'AnimeSchedule sitesini tarayicidan acarsaniz saatleri <strong>am/pm (12 saat) formatinda</strong>, <strong>sizin lokal TZ\'inizde</strong> gosterir (Turkiye\'den ziyaret edenlere Turkiye saati, baska ulkeden ziyaret edenlere o ulkenin saati). Manuel doldurma yapiyorsaniz: formda lokal TZ\'inizi secin (Turkiye icin TRT), am/pm\'i 24 saat formatina cevirin (orn. "5:30 PM" -> 17:30), "Yayin Saati" alanina yazin. Site Tokyo TZ\'ini gostermez — Tokyo TZ verisi sadece "Otomatik Doldur" butonu ile AnimeSchedule API\'sinden dogrudan cekilir.',
-    'help.tz.box_dst_title'                  => '<i class="fas fa-info-circle"></i> Yaz/Kis Saati (DST):',
-    'help.tz.box_dst_body'                   => 'Animenin yayinlandigi TZ yaz/kis saati kullaniyorsa (Avrupa, ABD gibi), yayin saati yilda 2 kez 1 saat kayar (Mart sonu ve Ekim sonu). Asia/Tokyo DST kullanmadigi icin Japon anime saatleri yil boyu sabittir.',
-    'help.tz.upgrade.h3'                     => 'Eski v0.5 Kurulumlardan Yukseltme',
-    'help.tz.upgrade.text'                   => 'v0.5.1\'e gectikten sonra hicbir veriniz kaybolmaz. Yayin saatleri ayni gorunur (Asia/Tokyo varsayilan TZ\'de eklenmis kayitlar hala Asia/Tokyo\'da). Anime detay sayfasinda yayin saatinin yaninda TZ etiketi (JST, vs.) gozukur.',
+    'help.tz.h2'                             => 'Saat Dilimi — Yayın Saati Nasıl Gösterilir?',
+    'help.tz.intro'                          => 'Anime Tracker tüm tarih ve saatleri veritabanında <strong>UTC</strong> olarak saklar. Gösterirken her animenin kendi yayın saat dilimine çevirir.',
+    'help.tz.bc_tz.h3'                       => 'Yayın Saat Dilimi (animenin TZ\'i)',
+    'help.tz.bc_tz.text'                     => 'Anime ekleme/düzenleme formundaki "Yayın Saat Dilimi" alanı. Listede 6 sabit seçenek var: Asia/Tokyo (JST), Europe/Istanbul (TRT), UTC, America/New_York (ET), America/Los_Angeles (PT), Europe/London. Çoğu Japon animesi için <code>Asia/Tokyo</code> doğru seçimdir.',
+    'help.tz.autofill_title'                 => '<i class="fas fa-magic"></i> Hızlı Yol — Otomatik Doldur:',
+    'help.tz.autofill_body'                  => 'AnimeSchedule URL\'sini girip "Otomatik Doldur" (Senkronize Et) butonuna basarsanız <strong>broadcast_day, broadcast_time ve broadcast_timezone alanları otomatik olarak Asia/Tokyo + Tokyo saati ile dolar</strong>. AnimeSchedule API\'si Japon animesi verilerini doğru şekilde Tokyo TZ\'de dönderir. Elle giriş yapmanıza gerek kalmaz.',
+    'help.tz.workflows.h3'                   => 'İki Geçerli Workflow',
+    'help.tz.workflows.intro'                => 'TZ alanı ve saat alanı aynı saat dilimini yansıtmalı. İki yol da geçerli:',
+    'help.tz.workflows.list' => '<li><strong>Animenin yayın yeri:</strong> "JST" seç + Tokyo saatini gir (örn. 23:30). Anime detay sayfası "23:30 (JST)" gösterir, kendi saatinizi manuel hesaplarsınız. AnimeSchedule Otomatik Doldur bu yöntemi kullanır.</li>
+        <li><strong>Kendi yerel saatiniz:</strong> "TRT" seç + Türkiye saatini 24 saat formatında gir (örn. 17:30). Anime detay sayfası "17:30 (TRT)" gösterir, doğrudan okunabilir. AnimeSchedule sitesinden manuel okuyorsanız site zaten Türkiye saatini gösteriyor; sadece am/pm\'i 24 saate çevirip yazın.</li>',
+    'help.tz.consistency'                    => 'Önemli: TZ seçimi ile saat alanı <strong>tutarlı</strong> olmalı. "JST" seçip Türkiye saatini girerseniz veya "TRT" seçip Tokyo saatini girerseniz, "sonraki bölüm ne zaman" hesabı yanlış olur.',
+    'help.tz.box_animeschedule_title'        => '<i class="fas fa-info-circle"></i> AnimeSchedule sitesi ne gösterir:',
+    'help.tz.box_animeschedule_body'         => 'AnimeSchedule sitesini tarayıcıdan açarsanız saatleri <strong>am/pm (12 saat) formatında</strong>, <strong>sizin lokal TZ\'inizde</strong> gösterir (Türkiye\'den ziyaret edenlere Türkiye saati, başka ülkeden ziyaret edenlere o ülkenin saati). Manuel doldurma yapıyorsanız: formda lokal TZ\'inizi seçin (Türkiye için TRT), am/pm\'i 24 saat formatına çevirin (örn. "5:30 PM" -> 17:30), "Yayın Saati" alanına yazın. Site Tokyo TZ\'ini göstermez — Tokyo TZ verisi sadece "Otomatik Doldur" butonu ile AnimeSchedule API\'sinden doğrudan çekilir.',
+    'help.tz.box_dst_title'                  => '<i class="fas fa-info-circle"></i> Yaz/Kış Saati (DST):',
+    'help.tz.box_dst_body'                   => 'Animenin yayınlandığı TZ yaz/kış saati kullanıyorsa (Avrupa, ABD gibi), yayın saati yılda 2 kez 1 saat kayar (Mart sonu ve Ekim sonu). Asia/Tokyo DST kullanmadığı için Japon anime saatleri yıl boyu sabittir.',
+    'help.tz.upgrade.h3'                     => 'Eski v0.5 Kurulumlardan Yükseltme',
+    'help.tz.upgrade.text'                   => 'v0.5.1\'e geçtikten sonra hiçbir veriniz kaybolmaz. Yayın saatleri aynı görünür (Asia/Tokyo varsayılan TZ\'de eklenmiş kayıtlar hâlâ Asia/Tokyo\'da). Anime detay sayfasında yayın saatinin yanında TZ etiketi (JST, vs.) gözükür.',
 
     // Footer
-    'help.footer'                            => 'Daha fazla sorunuz icin: daha fazla ayrintili teknik bilgi proje GitHub sayfasinda bulunur.',
+    'help.footer'                            => 'Daha fazla sorunuz için: daha fazla ayrıntılı teknik bilgi proje <a href="https://github.com/hitsumo/animetracker" target="_blank" rel="noopener">GitHub sayfasında</a> bulunur.',
 
     // -----------------------------------------------------------------
     // statistics.php
@@ -1094,6 +1095,7 @@ Hemen guncellemek ister misiniz?',
     'invite_request.ok'                 => 'Talebin alındı. Uygun görülürse sana bir davet kodu iletilecek.',
     'invite_request.err'                => 'Talep gönderilemedi. Lütfen e-posta ve neden alanlarını kontrol edip tekrar dene.',
     'invite_request.rate'               => 'Çok fazla talep gönderdin. Lütfen bir süre sonra tekrar dene.',
+    'invite_request.full'               => 'Şu anda yeni davetiye talebi alınmıyor. Kontenjan dolu; lütfen daha sonra tekrar dene.',
     'invite_request.mail.subject'       => 'Yeni davetiye talebi',
     'invite_request.mail.line_email'    => 'E-posta:',
     'invite_request.mail.line_reason'   => 'Neden:',
