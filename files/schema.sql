@@ -273,6 +273,18 @@ CREATE TABLE IF NOT EXISTS `settings` (
 -- anime can have many markers, each pointing to another anime that
 -- should be inserted into the watch order at that point.
 --
+-- after_episode vs story_after_episode (1.1.15): a marker carries TWO
+-- optional insertion points. after_episode is the RELEASE-order point
+-- (where the related anime aired); story_after_episode is the STORY /
+-- recommended-watch point, which can differ. Example (Card Captor
+-- Sakura): first film aired after episode 46 but is best watched after
+-- episode 35 -> after_episode=46, story_after_episode=35. A NULL
+-- story_after_episode means "no divergence" - the story view falls back
+-- to after_episode via COALESCE(story_after_episode, after_episode), so
+-- most markers leave it NULL. It is deliberately NOT part of the UNIQUE
+-- KEY (it is an attribute, not part of the marker identity), so a
+-- catalog re-push updates it through ON DUPLICATE KEY UPDATE.
+--
 -- Used by:
 --   - add_chronology_marker.php / delete_chronology_marker.php (write)
 --   - chronology.php (list view)
@@ -298,6 +310,7 @@ CREATE TABLE IF NOT EXISTS `chronology_markers` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `anime_id` int(11) NOT NULL,
   `after_episode` int(11) NOT NULL,
+  `story_after_episode` int(11) DEFAULT NULL,
   `related_anime_id` int(11) NOT NULL,
   `note` text DEFAULT NULL,
   `source` enum('catalog','user') NOT NULL DEFAULT 'user',

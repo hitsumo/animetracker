@@ -54,12 +54,20 @@ function getRelatedAnimes($pdo, $series_name, $exclude_id) {
  * Return all chronology markers for a given anime, with full details
  * of the related anime (title, watch_status, etc.) via JOIN.
  *
- * Results are sorted by after_episode ascending so the UI can display
- * them in episode order.
+ * $order selects the sort axis (1.1.15):
+ *   'release' (default) - by after_episode (where the related anime aired).
+ *   'story'             - by COALESCE(story_after_episode, after_episode),
+ *                         i.e. the recommended-watch point, falling back to
+ *                         the release point when a marker has no story point.
+ * $order is an internal enum (never raw user input), so the ORDER BY clause
+ * is chosen from fixed strings - no injection surface.
  */
-function getChronologyMarkers($pdo, $anime_id) {
+function getChronologyMarkers($pdo, $anime_id, $order = 'release') {
+    $orderBy = ($order === 'story')
+        ? 'COALESCE(cm.story_after_episode, cm.after_episode) ASC, cm.after_episode ASC'
+        : 'cm.after_episode ASC';
     $stmt = $pdo->prepare("
-        SELECT cm.id, cm.after_episode, cm.related_anime_id, cm.note,
+        SELECT cm.id, cm.after_episode, cm.story_after_episode, cm.related_anime_id, cm.note,
                a.title AS related_title,
                a.title_english AS related_title_english,
                ua.watch_status AS related_watch_status,
@@ -69,10 +77,60 @@ function getChronologyMarkers($pdo, $anime_id) {
         LEFT JOIN user_anime ua
                ON ua.anime_id = a.id AND ua.user_id = ?
         WHERE cm.anime_id = ?
-        ORDER BY cm.after_episode ASC
+        ORDER BY $orderBy
     ");
     $stmt->execute([current_user_id(), (int)$anime_id]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// =====================================================================
+// Chronology display mode (1.1.15)
+// =====================================================================
+// The marker list (anime_details) and the timeline (chronology.php) can be
+// shown in three modes:
+//   'release' - order by the release point (after_episode).
+//   'story'   - order by the story point (COALESCE(story_after_episode, ...)).
+//   'both'    - render both lists, one under the other.
+// The persistent default is a per-user preference set in list settings
+// (key 'chrono_display_mode', default 'release'). A single cycle button
+// stores an EPHEMERAL override in the session so it never overwrites the
+// saved default. Precedence: session override > saved pref > 'release'.
+
+/** Valid display modes, also the cycle order for chrono_next_mode(). */
+function chrono_display_modes() {
+    return ['release', 'story', 'both'];
+}
+
+/**
+ * Resolve the active display mode for this request.
+ * session override (cycle button) > saved user pref > 'release'.
+ */
+function chrono_current_mode($pdo) {
+    if (isset($_SESSION['chrono_display_mode'])
+        && in_array($_SESSION['chrono_display_mode'], chrono_display_modes(), true)) {
+        return $_SESSION['chrono_display_mode'];
+    }
+    $pref = get_user_pref($pdo, current_user_id(), 'chrono_display_mode', 'release');
+    return in_array($pref, chrono_display_modes(), true) ? $pref : 'release';
+}
+
+/** Next mode in the cycle release -> story -> both -> release. */
+function chrono_next_mode($mode) {
+    switch ($mode) {
+        case 'release': return 'story';
+        case 'story':   return 'both';
+        default:        return 'release';
+    }
+}
+
+/**
+ * Localized label for a display mode (for the cycle button / settings).
+ * Falls back to the raw mode key if a translation is missing.
+ */
+function chrono_mode_label($mode, $lang = null) {
+    $key = 'chrono.mode.' . $mode;
+    $label = t($key);
+    return ($label === $key) ? $mode : $label;
 }
 
 /**

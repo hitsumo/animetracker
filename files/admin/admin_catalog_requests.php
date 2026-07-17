@@ -144,6 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $pendingMarkers[] = [
                                 'host'  => $hostId,
                                 'after' => max(0, (int)($mk['after_episode'] ?? 0)),
+                                'story' => (isset($mk['story_after_episode']) && $mk['story_after_episode'] !== null && $mk['story_after_episode'] !== '') ? (int)$mk['story_after_episode'] : null,
                                 'note'  => $mk['note'] ?? null,
                                 'mal'   => $mk['related_mal_id']       ?? null,
                                 'anidb' => $mk['related_anidb_id']     ?? null,
@@ -166,14 +167,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $markersSkipped = 0;
             if (!empty($pendingMarkers)) {
                 $markerIns = $pdo->prepare(
-                    "INSERT INTO chronology_markers (anime_id, after_episode, related_anime_id, note, source)
-                     VALUES (?, ?, ?, ?, 'catalog')"
+                    "INSERT INTO chronology_markers (anime_id, after_episode, story_after_episode, related_anime_id, note, source)
+                     VALUES (?, ?, ?, ?, ?, 'catalog')"
                 );
                 foreach ($pendingMarkers as $pm) {
                     $relId = $resolveId($pm['mal'], $pm['anidb'], $pm['uuid'], $pm['title']);
                     if ($relId <= 0 || $relId === $pm['host']) { $markersSkipped++; continue; }
                     try {
-                        $markerIns->execute([$pm['host'], $pm['after'], $relId, $pm['note']]);
+                        $markerIns->execute([$pm['host'], $pm['after'], $pm['story'] ?? null, $relId, $pm['note']]);
                         $markersLinked++;
                     } catch (PDOException $e) {
                         // UNIQUE violation = marker already exists (re-approval).

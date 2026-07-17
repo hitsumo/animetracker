@@ -197,13 +197,27 @@ return [
 
     // Chronology marker list
     'anime_details.marker.after_episode' => '%d. bölümden sonra',
+    'anime_details.marker.story_after_episode' => 'Hikaye: %d. bölümden sonra', // 1.1.15
+    'anime_details.marker.story_placeholder' => 'Hikaye böl.',                  // 1.1.15
+    'anime_details.marker.story_edit_hint' => 'Hikaye sırasında hangi bölümden sonra izlenmeli (boşsa yayınla aynı)', // 1.1.15
+    'anime_details.marker.release_edit_hint' => 'Yayın sırasında hangi bölümden sonra (çıkış noktası)', // 1.1.15
+    'anime_details.marker.story_save' => 'Hikaye noktasını kaydet',            // 1.1.15
     'anime_details.marker.delete_tooltip' => 'Sil',
     'anime_details.marker.delete_confirm' => 'Bu kronoloji notunu silmek istediğinize emin misiniz?',
 
+    // Chronology display mode (1.1.15)
+    'chrono.mode.release'     => 'Yayın Sırası',
+    'chrono.mode.story'       => 'Hikaye Sırası',
+    'chrono.mode.both'        => 'İkisi de',
+    'chrono.mode.showing'     => 'Gösterim: %s',
+    'chrono.mode.toggle_hint' => 'Görünümü değiştir (yayın → hikaye → ikisi)',
+
     // Chronology marker add form
     'anime_details.marker_form.title'    => 'Yeni Kronoloji Notu Ekle',
-    'anime_details.marker_form.after_episode' => 'Bölümden sonra:',
-    'anime_details.marker_form.after_episode_placeholder' => 'Örn: 23',
+    'anime_details.marker_form.after_episode' => 'Yayın sırasında (bölümden sonra):',
+    'anime_details.marker_form.after_episode_placeholder' => 'Örn: 46',
+    'anime_details.marker_form.story_after_episode' => 'Hikaye sırasında (opsiyonel):',                 // 1.1.15
+    'anime_details.marker_form.story_after_episode_placeholder' => 'Örn: 35 (boşsa yayınla aynı)',       // 1.1.15
     'anime_details.marker_form.target_anime' => 'İzlenecek anime:',
     'anime_details.marker_form.choose'   => 'Seçiniz',
     'anime_details.marker_form.note'     => 'Not (opsiyonel):',
@@ -647,6 +661,8 @@ return [
     'help.chrono.next.text'                  => 'Bir animeyi bitirince hangi animeyi izlemeniz gerektiği. Detay sayfasında "Sırada" kutusunda gözükür.',
     'help.chrono.markers.h3'                 => 'Kronoloji İşaretleri',
     'help.chrono.markers.text'               => 'Detective Conan gibi seriler için: "54. bölümden sonra 1. filmi izle" gibi bölüm seviyesinde işaretler tutulur. Detay sayfasında aktif uyarı olarak görülür, ayrı bir "Kronoloji" sayfasında da timeline halinde listelenir.',
+    'help.chrono.story.h3'                   => 'Yayın Sırası ve Hikaye Sırası',
+    'help.chrono.story.text'                 => 'Bir işaretin iki ekleme noktası olabilir: <strong>yayın sırası</strong> (içeriğin gerçekte çıktığı bölüm) ve <strong>hikaye sırası</strong> (izlenmesi önerilen bölüm). Örnek: Card Captor Sakura ilk filmi 46. bölümden sonra çıktı ama 35. bölümden sonra izlenmesi önerilir. Hikaye noktası boş bırakılırsa yayın noktasıyla aynı sayılır — yalnızca ayrışan işaretlere ikinci sayıyı girersiniz. Detay sayfasındaki ve kronoloji sayfasındaki tek düğme görünümü sırayla değiştirir: yayın → hikaye → ikisi. Varsayılanı Liste Ayarları\'ndan seçebilirsiniz.',
     'help.chrono.warning_title'              => '<i class="fas fa-exclamation-triangle"></i> Dikkat:',
     'help.chrono.warning_body'               => 'Kronoloji işaretleri de sync\'te katalog otoritedir. Kendiniz marker eklediyseniz sync sonrası kaybolur.',
 
@@ -905,6 +921,11 @@ return [
     'list_settings.list_view.option_all'     => 'Genel Liste',
     'list_settings.list_view.option_personal' => 'Kişisel Liste',
     'list_settings.list_view.save'           => 'Kaydet',
+
+    // 1.1.15 - kronoloji gorunum modu varsayilani (list_settings)
+    'list_settings.section.chrono_mode'      => 'Kronoloji Görünümü',
+    'list_settings.section.chrono_mode.desc' => 'Detay sayfasındaki kronoloji notları ve kronoloji sayfası hangi sırayla açılsın: yayın çıkış sırası, hikaye (önerilen izleme) sırası ya da ikisi birden. Detaydaki düğmeyle geçici olarak değiştirebilirsiniz. Bu tercih yalnızca sizi etkiler.',
+    'list_settings.chrono_mode.save'         => 'Kaydet',
 
     // 1.1.2 - yetiskin (+18) icerik gorunurluk toggle (list_settings)
     'list_settings.section.adult'            => 'Yetişkin İçerik',

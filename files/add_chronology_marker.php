@@ -13,10 +13,12 @@
  *   csrf_token       - CSRF protection token
  *   anime_id         - The host anime (e.g. Detective Conan S1)
  *   after_episode    - Episode number after which the related anime
- *                      should be watched (1-indexed)
+ *                      should be watched in RELEASE order (1-indexed)
  *   related_anime_id - The anime to watch at that point (e.g. Film 1)
  *
  * Optional POST fields:
+ *   story_after_episode - Episode number for the STORY / recommended-watch
+ *                         order (1.1.15). Empty -> NULL -> "same as release".
  *   note             - Free text comment
  *
  * On success: redirects back to anime_details.php?id={anime_id}
@@ -49,6 +51,10 @@ $related_anime_id = (int)($_POST['related_anime_id'] ?? 0);
 $note             = trim($_POST['note'] ?? '');
 if ($note === '') { $note = null; }
 
+// Story-order point (1.1.15). Optional: empty stays NULL ("same as release").
+$story_raw           = trim($_POST['story_after_episode'] ?? '');
+$story_after_episode = ($story_raw === '') ? null : (int)$story_raw;
+
 // Basic validation
 if ($anime_id <= 0) {
     die('Gecersiz anime ID.');
@@ -77,6 +83,16 @@ if ($hostAnime['total_episodes'] !== null && $after_episode > (int)$hostAnime['t
     die('Bolum numarasi toplam bolum sayisindan (' . (int)$hostAnime['total_episodes'] . ') buyuk olamaz.');
 }
 
+// Story point, when provided, follows the same bounds as after_episode.
+if ($story_after_episode !== null) {
+    if ($story_after_episode <= 0) {
+        die('Hikaye bolum numarasi 1 veya daha buyuk olmali.');
+    }
+    if ($hostAnime['total_episodes'] !== null && $story_after_episode > (int)$hostAnime['total_episodes']) {
+        die('Hikaye bolum numarasi toplam bolum sayisindan (' . (int)$hostAnime['total_episodes'] . ') buyuk olamaz.');
+    }
+}
+
 // Verify that the related anime exists
 $relatedStmt = $pdo->prepare("SELECT id, series_name FROM animes WHERE id = ?");
 $relatedStmt->execute([$related_anime_id]);
@@ -97,10 +113,10 @@ if (!$relatedAnime) {
 // it stays 'user', so import never wipes an unsynced marker.
 try {
     $insertStmt = $pdo->prepare("
-        INSERT INTO chronology_markers (anime_id, after_episode, related_anime_id, note, source)
-        VALUES (?, ?, ?, ?, 'user')
+        INSERT INTO chronology_markers (anime_id, after_episode, story_after_episode, related_anime_id, note, source)
+        VALUES (?, ?, ?, ?, ?, 'user')
     ");
-    $insertStmt->execute([$anime_id, $after_episode, $related_anime_id, $note]);
+    $insertStmt->execute([$anime_id, $after_episode, $story_after_episode, $related_anime_id, $note]);
     $markerId = (int)$pdo->lastInsertId();
 } catch (PDOException $e) {
     // Error code 23000 = integrity constraint violation (duplicate entry)

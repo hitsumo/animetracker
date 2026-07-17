@@ -138,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['do_push'])) {
             // reaching the catalog and re-break the 14 Nisan 2026
             // marker-loss fix from the other direction.
             $markers = $pdo->query("
-                SELECT anime_id, after_episode, related_anime_id, note
+                SELECT anime_id, after_episode, story_after_episode, related_anime_id, note
                 FROM chronology_markers
                 ORDER BY anime_id, after_episode
             ")->fetchAll(PDO::FETCH_ASSOC);

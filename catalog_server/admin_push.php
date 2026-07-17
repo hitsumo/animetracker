@@ -328,7 +328,7 @@ try {
             ':title'               => $a['title']               ?? '',
             ':alternative_titles'  => $a['alternative_titles']  ?? null,
             ':title_english'       => $a['title_english']        ?? null,
-            ':status'              => $a['status']              ?? 'Yayin Tamamlandi',
+            ':status'              => $a['status']              ?? 'Seçim Yapılmadı',
             ':total_episodes'      => $a['total_episodes']      ?? null,
             ':aired_episodes'      => $a['aired_episodes']      ?? null,
             ':synopsis_tr'         => $a['synopsis_tr']         ?? null,
@@ -430,9 +430,10 @@ try {
 
     if (!$skipChronology && !empty($chronology)) {
         $markerStmt = $pdo->prepare("
-            INSERT INTO chronology_markers (anime_id, after_episode, related_anime_id, note, source)
-            VALUES (?, ?, ?, ?, 'catalog')
+            INSERT INTO chronology_markers (anime_id, after_episode, story_after_episode, related_anime_id, note, source)
+            VALUES (?, ?, ?, ?, ?, 'catalog')
             ON DUPLICATE KEY UPDATE
+                story_after_episode = VALUES(story_after_episode),
                 note = VALUES(note),
                 source = 'catalog'
         ");
@@ -448,9 +449,15 @@ try {
                 continue; // skip unresolvable
             }
 
+            // story_after_episode (1.1.15): NULL stays NULL ("same as release").
+            $storyAfter = (isset($m['story_after_episode']) && $m['story_after_episode'] !== null && $m['story_after_episode'] !== '')
+                ? (int)$m['story_after_episode']
+                : null;
+
             $markerStmt->execute([
                 $serverAnimeId,
                 (int)($m['after_episode'] ?? 0),
+                $storyAfter,
                 $serverRelatedId,
                 $m['note'] ?? null,
             ]);

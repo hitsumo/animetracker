@@ -5,13 +5,22 @@
  * Copyright (C) 2025 Okan Sumer
  * Licensed under GNU General Public License v2
  *
- * Displays the full chronological watch order for an anime that has
- * chronology markers. Episode ranges are interleaved with related
- * anime (films, OVAs, etc.) based on the markers' after_episode values.
+ * Displays the full watch-order timeline for an anime that has
+ * chronology markers. Episode ranges are interleaved with related anime
+ * (films, OVAs, etc.) based on the markers' insertion points.
  *
- * The page automatically builds the timeline from the markers — no
- * manual ordering needed. Adding/removing markers on the detail page
- * instantly updates this view.
+ * Display mode (1.1.15): a single cycle button switches between
+ *   - release : order by after_episode (where the related anime aired)
+ *   - story   : order by COALESCE(story_after_episode, after_episode)
+ *               (the recommended-watch point)
+ *   - both    : render both timelines, one under the other
+ * The default comes from the per-user list-settings preference; the button
+ * stores an ephemeral session override (see set_chrono_mode.php). The mode
+ * is shared with the marker list on anime_details.php.
+ *
+ * The page automatically builds the timeline from the markers - no manual
+ * ordering needed. Adding/removing markers (or their story point) on the
+ * detail page instantly updates this view.
  *
  * Watch progress is shown for each item:
  *   - Episode ranges: based on watched_episodes vs range boundaries
@@ -53,71 +62,95 @@ $anime['notes']            = $uaState['notes'];
 $anime['user_synopsis']    = $uaState['user_synopsis'];
 $anime['user_synopsis_en'] = $uaState['user_synopsis_en'];
 
-// Kronoloji markerlarini cek (after_episode sirali)
-$markers = getChronologyMarkers($pdo, $id);
-
-if (empty($markers)) {
-    // Marker yoksa detay sayfasina geri don
+// Kronoloji markerlari (yayin sirali). Marker yoksa detaya geri don.
+$markersRelease = getChronologyMarkers($pdo, $id, 'release');
+if (empty($markersRelease)) {
     header('Location: anime_details.php?id=' . $id);
     exit;
 }
 
-// Timeline olustur: bolum araliklari + araya giren animeler
-// Mantik:
-//   marker[0].after_episode = 54 → Bolum 1-54, sonra Film 1
-//   marker[1].after_episode = 97 → Bolum 55-97, sonra Film 2
-//   ...
-//   Son markerdan sonra: kalan bolumler (total_episodes veya "devam")
-$timeline = [];
-$prevEnd = 0; // Onceki aralik sonu
+// Gorunum modu (1.1.15): session override > kayitli tercih > 'release'.
+$chronoMode = chrono_current_mode($pdo);
 
-foreach ($markers as $m) {
-    $rangeStart = $prevEnd + 1;
-    $rangeEnd = (int)$m['after_episode'];
+$totalEp = $anime['total_episodes'] ?? $anime['aired_episodes'] ?? null;
+$watched = (int)$anime['watched_episodes'];
 
-    // Bolum araligi (eger aralik gecerli ise)
-    if ($rangeStart <= $rangeEnd) {
+/**
+ * Build the interleaved timeline (episode ranges + related-anime inserts)
+ * from an ordered marker list. When $useStory is true the range boundary is
+ * the story point (story_after_episode, falling back to after_episode);
+ * otherwise it is the release point (after_episode). Markers must already be
+ * sorted by the matching axis so boundaries are non-decreasing.
+ *
+ *   marker.boundary = 54 -> Bolum 1-54, sonra Film 1
+ *   marker.boundary = 97 -> Bolum 55-97, sonra Film 2
+ *   ... son markerdan sonra: kalan bolumler (total_episodes veya "devam")
+ */
+function buildChronologyTimeline($markers, $totalEp, $useStory) {
+    $timeline = [];
+    $prevEnd = 0;
+
+    foreach ($markers as $m) {
+        $rangeStart = $prevEnd + 1;
+        if ($useStory) {
+            $rangeEnd = ($m['story_after_episode'] !== null)
+                ? (int)$m['story_after_episode']
+                : (int)$m['after_episode'];
+        } else {
+            $rangeEnd = (int)$m['after_episode'];
+        }
+
+        if ($rangeStart <= $rangeEnd) {
+            $timeline[] = [
+                'type'  => 'episodes',
+                'start' => $rangeStart,
+                'end'   => $rangeEnd,
+            ];
+        }
+
         $timeline[] = [
-            'type' => 'episodes',
-            'start' => $rangeStart,
-            'end' => $rangeEnd,
+            'type'          => 'anime',
+            'id'            => (int)$m['related_anime_id'],
+            'title'         => $m['related_title'],
+            'title_english' => $m['related_title_english'] ?? null,
+            'media_type'    => $m['related_media_type'],
+            'watch_status'  => $m['related_watch_status'],
+            'note'          => $m['note'] ?? null,
+        ];
+
+        $prevEnd = $rangeEnd;
+    }
+
+    $remainStart = $prevEnd + 1;
+    if ($totalEp !== null && $remainStart <= $totalEp) {
+        $timeline[] = [
+            'type'  => 'episodes',
+            'start' => $remainStart,
+            'end'   => (int)$totalEp,
+        ];
+    } elseif ($totalEp === null) {
+        $timeline[] = [
+            'type'  => 'episodes',
+            'start' => $remainStart,
+            'end'   => null, // "devam ediyor"
         ];
     }
 
-    // Araya giren anime (film, OVA, vs.)
-    $timeline[] = [
-        'type' => 'anime',
-        'id' => (int)$m['related_anime_id'],
-        'title' => $m['related_title'],
-        'title_english' => $m['related_title_english'] ?? null,
-        'media_type' => $m['related_media_type'],
-        'watch_status' => $m['related_watch_status'],
-        'note' => $m['note'] ?? null,
-    ];
-
-    $prevEnd = $rangeEnd;
+    return $timeline;
 }
 
-// Son markerdan sonraki kalan bolumler
-$totalEp = $anime['total_episodes'] ?? $anime['aired_episodes'] ?? null;
-$remainStart = $prevEnd + 1;
-
-if ($totalEp !== null && $remainStart <= $totalEp) {
-    $timeline[] = [
-        'type' => 'episodes',
-        'start' => $remainStart,
-        'end' => (int)$totalEp,
-    ];
-} elseif ($totalEp === null) {
-    // Devam eden anime, son bolum bilinmiyor
-    $timeline[] = [
-        'type' => 'episodes',
-        'start' => $remainStart,
-        'end' => null, // "devam ediyor"
-    ];
+// Modun gerektirdigi timeline(lar)i olustur. 'both' iki ayri baslikli liste.
+$views = [];
+if ($chronoMode === 'both') {
+    $views[] = ['label' => t('chrono.mode.release'), 'timeline' => buildChronologyTimeline($markersRelease, $totalEp, false)];
+    $markersStory = getChronologyMarkers($pdo, $id, 'story');
+    $views[] = ['label' => t('chrono.mode.story'),   'timeline' => buildChronologyTimeline($markersStory, $totalEp, true)];
+} elseif ($chronoMode === 'story') {
+    $markersStory = getChronologyMarkers($pdo, $id, 'story');
+    $views[] = ['label' => null, 'timeline' => buildChronologyTimeline($markersStory, $totalEp, true)];
+} else {
+    $views[] = ['label' => null, 'timeline' => buildChronologyTimeline($markersRelease, $totalEp, false)];
 }
-
-$watched = (int)$anime['watched_episodes'];
 
 // Her bolum araligi icin izleme durumunu hesapla
 function getEpisodeRangeStatus($watched, $start, $end) {
@@ -158,14 +191,28 @@ function getMediaTypeIcon($type) {
             <small><?php echo htmlspecialchars(t('chronology.subtitle'), ENT_QUOTES, 'UTF-8'); ?></small>
         </h1>
 
+        <?php // 1.1.15: single cycle button - release -> story -> both -> release. ?>
+        <form method="POST" action="set_chrono_mode.php" class="chrono-mode-toggle">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+            <input type="hidden" name="mode" value="<?php echo htmlspecialchars(chrono_next_mode($chronoMode), ENT_QUOTES, 'UTF-8'); ?>">
+            <button type="submit" class="chrono-mode-btn" title="<?php echo htmlspecialchars(t('chrono.mode.toggle_hint'), ENT_QUOTES, 'UTF-8'); ?>">
+                <i class="fas fa-sort"></i>
+                <?php echo htmlspecialchars(sprintf(t('chrono.mode.showing'), chrono_mode_label($chronoMode)), ENT_QUOTES, 'UTF-8'); ?>
+            </button>
+        </form>
+
+        <?php foreach ($views as $view): ?>
+        <?php if ($view['label'] !== null): ?>
+        <h2 class="chrono-section-heading"><?php echo htmlspecialchars($view['label'], ENT_QUOTES, 'UTF-8'); ?></h2>
+        <?php endif; ?>
         <div class="chronology-timeline">
-            <?php foreach ($timeline as $item): ?>
+            <?php foreach ($view['timeline'] as $item): ?>
                 <?php if ($item['type'] === 'episodes'): ?>
                     <?php
                     $status = getEpisodeRangeStatus($watched, $item['start'], $item['end']);
                     $endLabel = $item['end'] !== null ? $item['end'] : '...';
                     $statusClass = $status;
-                    
+
                     if ($status === 'watched') {
                         $statusText = t('chronology.status.watched');
                         $statusCss = 'done';
@@ -202,11 +249,6 @@ function getMediaTypeIcon($type) {
 
                 <?php elseif ($item['type'] === 'anime'): ?>
                     <?php
-                    // 0.6.1 fix: 0.6'da DB ASCII enum'a gecti ama bu blok TR
-                    // enum karsilastirmasinda kaldi - tum animeler else dalina
-                    // (upcoming) dusuyordu, kronoloji sayfasi yanlis goruntulu.
-                    // KARARLAR Bolum 2: substring/gevsek karsilastirma kontrolu
-                    // disinda "kesin TR enum karsilastirma" da arananacak.
                     if ($item['watch_status'] === 'Watched') {
                         $statusClass = 'watched';
                         $statusText = htmlspecialchars(t('chronology.status.watched'));
@@ -239,6 +281,7 @@ function getMediaTypeIcon($type) {
                 <?php endif; ?>
             <?php endforeach; ?>
         </div>
+        <?php endforeach; ?>
 
         <div class="chronology-back">
             <a href="anime_details.php?id=<?php echo (int)$anime['id']; ?>" class="back-button">

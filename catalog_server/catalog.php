@@ -136,7 +136,7 @@ try {
     // Chronology markers - one flat list. Client translates server IDs
     // to local IDs via the anime id mapping built during import.
     $chronologySql = "
-        SELECT anime_id, after_episode, related_anime_id, note
+        SELECT anime_id, after_episode, story_after_episode, related_anime_id, note
         FROM chronology_markers
         ORDER BY anime_id, after_episode
     ";

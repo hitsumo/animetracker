@@ -531,9 +531,10 @@ try {
 
     if (!empty($catalogMarkers)) {
         $markerStmt = $pdo->prepare("
-            INSERT INTO chronology_markers (anime_id, after_episode, related_anime_id, note, source)
-            VALUES (?, ?, ?, ?, 'catalog')
+            INSERT INTO chronology_markers (anime_id, after_episode, story_after_episode, related_anime_id, note, source)
+            VALUES (?, ?, ?, ?, ?, 'catalog')
             ON DUPLICATE KEY UPDATE
+                story_after_episode = VALUES(story_after_episode),
                 note = VALUES(note),
                 source = 'catalog'
         ");
@@ -548,9 +549,15 @@ try {
                 continue;
             }
 
+            // story_after_episode (1.1.15): NULL stays NULL ("same as release").
+            $storyAfter = (isset($m['story_after_episode']) && $m['story_after_episode'] !== null && $m['story_after_episode'] !== '')
+                ? (int)$m['story_after_episode']
+                : null;
+
             $markerStmt->execute([
                 $localAnimeId,
                 (int)($m['after_episode'] ?? 0),
+                $storyAfter,
                 $localRelatedId,
                 $m['note'] ?? null,
             ]);

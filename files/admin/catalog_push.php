@@ -149,7 +149,7 @@ if (!function_exists('catalog_push_to_server')) {
             $markers = [];
             if ($scopeIds === null) {
                 $markers = $pdo->query("
-                    SELECT anime_id, after_episode, related_anime_id, note
+                    SELECT anime_id, after_episode, story_after_episode, related_anime_id, note
                     FROM chronology_markers
                     ORDER BY anime_id, after_episode
                 ")->fetchAll(PDO::FETCH_ASSOC);

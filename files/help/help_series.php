@@ -70,6 +70,11 @@ lang_init($pdo);
         <?php echo t('help.chrono.markers.text'); ?>
     </p>
 
+    <h3><?php echo htmlspecialchars(t('help.chrono.story.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
+    <p>
+        <?php echo t('help.chrono.story.text'); ?>
+    </p>
+
     <div class="box warning">
         <strong><?php echo t('help.chrono.warning_title'); ?></strong>
         <?php echo t('help.chrono.warning_body'); ?>

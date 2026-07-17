@@ -225,7 +225,7 @@ if (isset($_POST['export'])) {
     // identity (mal_id, anidb_id, catalog_uuid, title), never the local SQL
     // id, which is install-specific (same rule the genres/tags export uses).
     $exportMarkerStmt = $pdo->prepare(
-        "SELECT cm.after_episode, cm.note, cm.source,
+        "SELECT cm.after_episode, cm.story_after_episode, cm.note, cm.source,
                 r.mal_id       AS related_mal_id,
                 r.anidb_id     AS related_anidb_id,
                 r.catalog_uuid AS related_catalog_uuid,
@@ -378,6 +378,7 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                     if (!is_array($mk)) { continue; }
                     $mkPayload[] = [
                         'after_episode'        => max(0, (int)($mk['after_episode'] ?? 0)),
+                        'story_after_episode'  => (isset($mk['story_after_episode']) && $mk['story_after_episode'] !== null && $mk['story_after_episode'] !== '') ? (int)$mk['story_after_episode'] : null,
                         'note'                 => $mk['note'] ?? null,
                         'related_mal_id'       => !empty($mk['related_mal_id'])       ? (int)$mk['related_mal_id']   : null,
                         'related_anidb_id'     => !empty($mk['related_anidb_id'])     ? (int)$mk['related_anidb_id'] : null,
@@ -539,6 +540,7 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                             $pendingMarkers[] = [
                                 'host'   => $animeId,
                                 'after'  => max(0, (int)($mk['after_episode'] ?? 0)),
+                                'story'  => (isset($mk['story_after_episode']) && $mk['story_after_episode'] !== null && $mk['story_after_episode'] !== '') ? (int)$mk['story_after_episode'] : null,
                                 'note'   => $mk['note'] ?? null,
                                 'source' => $mkSource,
                                 'mal'    => !empty($mk['related_mal_id'])       ? (int)$mk['related_mal_id']   : null,
@@ -566,8 +568,8 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
             if (!empty($pendingMarkers)) {
                 $matchTitle = $pdo->prepare("SELECT id FROM animes WHERE title = ? LIMIT 1");
                 $markerIns  = $pdo->prepare(
-                    "INSERT INTO chronology_markers (anime_id, after_episode, related_anime_id, note, source)
-                     VALUES (?, ?, ?, ?, ?)"
+                    "INSERT INTO chronology_markers (anime_id, after_episode, story_after_episode, related_anime_id, note, source)
+                     VALUES (?, ?, ?, ?, ?, ?)"
                 );
                 foreach ($pendingMarkers as $pm) {
                     $relId = 0;
@@ -580,7 +582,7 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                     // meaningless. Skip (and count) otherwise.
                     if ($relId <= 0 || $relId === $pm['host']) { $markersSkipped++; continue; }
                     try {
-                        $markerIns->execute([$pm['host'], $pm['after'], $relId, $pm['note'], $pm['source']]);
+                        $markerIns->execute([$pm['host'], $pm['after'], $pm['story'] ?? null, $relId, $pm['note'], $pm['source']]);
                         $markersLinked++;
                     } catch (PDOException $e) {
                         // UNIQUE (anime_id, after_episode, related_anime_id):
@@ -1456,6 +1458,31 @@ if (isset($_POST['clear'])) {
                     </select>
                     <noscript>
                         <button type="submit" class="settings-button"><?php echo htmlspecialchars(t('list_settings.list_view.save'), ENT_QUOTES, 'UTF-8'); ?></button>
+                    </noscript>
+                </form>
+            </div>
+
+            <?php // 1.1.15 - kronoloji gorunum modu varsayilani. Detay sayfasindaki
+                  // marker listesi ve kronoloji timeline'i hangi sirayla acilsin:
+                  // yayin / hikaye / ikisi. Kisi bazli tercih (user_pref
+                  // 'chrono_display_mode'); detaydaki dongu butonu bu varsayilani
+                  // ezmeden gecici olarak degistirir. set_chrono_mode.php'ye
+                  // persist=1 ile POST eder. ?>
+            <?php $chronoModeDefault = get_user_pref($pdo, current_user_id(), 'chrono_display_mode', 'release');
+                  if (!in_array($chronoModeDefault, ['release', 'story', 'both'], true)) { $chronoModeDefault = 'release'; } ?>
+            <div class="settings-section">
+                <h3><?php echo htmlspecialchars(t('list_settings.section.chrono_mode'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                <p><?php echo htmlspecialchars(t('list_settings.section.chrono_mode.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
+                <form method="post" action="set_chrono_mode.php">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="persist" value="1">
+                    <select name="mode" onchange="this.form.submit()" aria-label="<?php echo htmlspecialchars(t('list_settings.section.chrono_mode'), ENT_QUOTES, 'UTF-8'); ?>">
+                        <option value="release"<?php echo $chronoModeDefault === 'release' ? ' selected' : ''; ?>><?php echo htmlspecialchars(t('chrono.mode.release'), ENT_QUOTES, 'UTF-8'); ?></option>
+                        <option value="story"<?php echo $chronoModeDefault === 'story' ? ' selected' : ''; ?>><?php echo htmlspecialchars(t('chrono.mode.story'), ENT_QUOTES, 'UTF-8'); ?></option>
+                        <option value="both"<?php echo $chronoModeDefault === 'both' ? ' selected' : ''; ?>><?php echo htmlspecialchars(t('chrono.mode.both'), ENT_QUOTES, 'UTF-8'); ?></option>
+                    </select>
+                    <noscript>
+                        <button type="submit" class="settings-button"><?php echo htmlspecialchars(t('list_settings.chrono_mode.save'), ENT_QUOTES, 'UTF-8'); ?></button>
                     </noscript>
                 </form>
             </div>

@@ -97,6 +97,23 @@ $chronologyAlert = getActiveChronologyAlert($pdo, $anime['id'], $anime['watched_
 // visible to everyone (detail viewing is free).
 $canModerate = can($pdo, 'moderate');
 
+// Chronology display mode (1.1.15): release / story / both. The marker list
+// below follows the same mode as the chronology.php timeline (session
+// override from the cycle button, else the saved list-settings default).
+// 'both' shows two labeled lists; the other modes show one ordered list.
+$chronoMode = chrono_current_mode($pdo);
+$markerSections = [];
+if (!empty($chronologyMarkers)) {
+    if ($chronoMode === 'both') {
+        $markerSections[] = ['label' => t('chrono.mode.release'), 'rows' => $chronologyMarkers, 'story' => false];
+        $markerSections[] = ['label' => t('chrono.mode.story'),   'rows' => getChronologyMarkers($pdo, $anime['id'], 'story'), 'story' => true];
+    } elseif ($chronoMode === 'story') {
+        $markerSections[] = ['label' => null, 'rows' => getChronologyMarkers($pdo, $anime['id'], 'story'), 'story' => true];
+    } else {
+        $markerSections[] = ['label' => null, 'rows' => $chronologyMarkers, 'story' => false];
+    }
+}
+
 // Siradaki anime bilgisi (next_in_series foreign key)
 $nextAnime = null;
 if (!empty($anime['next_in_series'])) {
@@ -643,10 +660,36 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                 <h3><i class="fas fa-clock"></i> <?php echo htmlspecialchars(t('anime_details.section.chronology'), ENT_QUOTES, 'UTF-8'); ?></h3>
 
                 <?php if (!empty($chronologyMarkers)): ?>
+                <?php // 1.1.15: single cycle button - release -> story -> both -> release.
+                      // Ephemeral (session), does not overwrite the saved default. ?>
+                <form method="POST" action="set_chrono_mode.php" class="chrono-mode-toggle">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+                    <input type="hidden" name="mode" value="<?php echo htmlspecialchars(chrono_next_mode($chronoMode), ENT_QUOTES, 'UTF-8'); ?>">
+                    <button type="submit" class="chrono-mode-btn" title="<?php echo htmlspecialchars(t('chrono.mode.toggle_hint'), ENT_QUOTES, 'UTF-8'); ?>">
+                        <i class="fas fa-sort"></i>
+                        <?php echo htmlspecialchars(sprintf(t('chrono.mode.showing'), chrono_mode_label($chronoMode)), ENT_QUOTES, 'UTF-8'); ?>
+                    </button>
+                </form>
+                <?php endif; ?>
+
+                <?php foreach ($markerSections as $section): ?>
+                <?php if ($section['label'] !== null): ?>
+                <h4 class="marker-section-label"><?php echo htmlspecialchars($section['label'], ENT_QUOTES, 'UTF-8'); ?></h4>
+                <?php endif; ?>
                 <div class="marker-list">
-                    <?php foreach ($chronologyMarkers as $cm): ?>
+                    <?php foreach ($section['rows'] as $cm): ?>
+                        <?php
+                            // Show the episode for THIS section's axis: the story
+                            // section uses story_after_episode (falling back to the
+                            // release point when unset), the release section uses
+                            // after_episode. So the "Hikaye Sirasi" list reads 35,
+                            // the "Yayin Sirasi" list reads 46 (1.1.15).
+                            $displayEp = (!empty($section['story']) && $cm['story_after_episode'] !== null)
+                                ? (int)$cm['story_after_episode']
+                                : (int)$cm['after_episode'];
+                        ?>
                         <div class="marker-item">
-                            <span class="marker-episode"><?php echo htmlspecialchars(sprintf(t('anime_details.marker.after_episode'), (int)$cm['after_episode'])); ?></span>
+                            <span class="marker-episode"><?php echo htmlspecialchars(sprintf(t('anime_details.marker.after_episode'), $displayEp)); ?></span>
                             <span class="marker-arrow">→</span>
                             <a href="anime_details.php?id=<?php echo (int)$cm['related_anime_id']; ?>" class="marker-anime-link">
                                 <?php echo htmlspecialchars(display_related_title($cm)); ?>
@@ -661,6 +704,34 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                                 <small class="marker-note">(<?php echo htmlspecialchars($cm['note']); ?>)</small>
                             <?php endif; ?>
                             <?php if ($canModerate): ?>
+                            <?php
+                                // 1.1.15: inline edit. Each section edits ITS OWN axis:
+                                // the release section edits after_episode (required),
+                                // the story section edits story_after_episode (empty
+                                // clears it back to NULL / "same as release"). So the
+                                // two boxes are independent - changing one no longer
+                                // moves the other.
+                                $isStorySection = !empty($section['story']);
+                                $boxValue = $isStorySection
+                                    ? ($cm['story_after_episode'] !== null ? (int)$cm['story_after_episode'] : '')
+                                    : (int)$cm['after_episode'];
+                                $boxHint = $isStorySection
+                                    ? t('anime_details.marker.story_edit_hint')
+                                    : t('anime_details.marker.release_edit_hint');
+                            ?>
+                            <form method="POST" action="update_chronology_marker.php" class="marker-story-form">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+                                <input type="hidden" name="marker_id" value="<?php echo (int)$cm['id']; ?>">
+                                <input type="hidden" name="anime_id" value="<?php echo (int)$anime['id']; ?>">
+                                <input type="hidden" name="field" value="<?php echo $isStorySection ? 'story' : 'release'; ?>">
+                                <input type="number" name="episode" class="marker-story-input"
+                                       min="1" max="<?php echo $anime['total_episodes'] ? (int)$anime['total_episodes'] : 9999; ?>"
+                                       value="<?php echo $boxValue; ?>"
+                                       <?php echo $isStorySection ? '' : 'required'; ?>
+                                       placeholder="<?php echo htmlspecialchars(t('anime_details.marker.story_placeholder'), ENT_QUOTES, 'UTF-8'); ?>"
+                                       title="<?php echo htmlspecialchars($boxHint, ENT_QUOTES, 'UTF-8'); ?>">
+                                <button type="submit" class="marker-story-btn" title="<?php echo htmlspecialchars(t('anime_details.marker.story_save'), ENT_QUOTES, 'UTF-8'); ?>"><i class="fas fa-check"></i></button>
+                            </form>
                             <form method="POST" action="delete_chronology_marker.php" class="marker-delete-form"
                                   onsubmit="return confirm(<?php echo htmlspecialchars(json_encode(t('anime_details.marker.delete_confirm'), JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8'); ?>);">
                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
@@ -672,7 +743,7 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                         </div>
                     <?php endforeach; ?>
                 </div>
-                <?php endif; ?>
+                <?php endforeach; ?>
 
                 <?php if ($canModerate && !empty($sameSeriesAnimes)): ?>
                 <div class="marker-add-form">
@@ -683,6 +754,10 @@ if ($anime['status'] == 'Yayın Tamamlandı'
                         <div class="marker-form-row">
                             <label><?php echo htmlspecialchars(t('anime_details.marker_form.after_episode'), ENT_QUOTES, 'UTF-8'); ?></label>
                             <input type="number" name="after_episode" min="1" max="<?php echo $anime['total_episodes'] ? (int)$anime['total_episodes'] : 9999; ?>" required placeholder="<?php echo htmlspecialchars(t('anime_details.marker_form.after_episode_placeholder'), ENT_QUOTES, 'UTF-8'); ?>">
+                        </div>
+                        <div class="marker-form-row">
+                            <label><?php echo htmlspecialchars(t('anime_details.marker_form.story_after_episode'), ENT_QUOTES, 'UTF-8'); ?></label>
+                            <input type="number" name="story_after_episode" min="1" max="<?php echo $anime['total_episodes'] ? (int)$anime['total_episodes'] : 9999; ?>" placeholder="<?php echo htmlspecialchars(t('anime_details.marker_form.story_after_episode_placeholder'), ENT_QUOTES, 'UTF-8'); ?>">
                         </div>
                         <div class="marker-form-row">
                             <label><?php echo htmlspecialchars(t('anime_details.marker_form.target_anime'), ENT_QUOTES, 'UTF-8'); ?></label>

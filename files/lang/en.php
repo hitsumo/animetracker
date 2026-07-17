@@ -167,12 +167,26 @@ return [
     'anime_details.alert.watch_after'    => 'Watch after episode %d:',
 
     'anime_details.marker.after_episode' => 'After episode %d',
+    'anime_details.marker.story_after_episode' => 'Story: after episode %d', // 1.1.15
+    'anime_details.marker.story_placeholder' => 'Story ep.',                 // 1.1.15
+    'anime_details.marker.story_edit_hint' => 'Which episode it should be watched after in story order (empty = same as release)', // 1.1.15
+    'anime_details.marker.release_edit_hint' => 'Which episode it aired after in release order', // 1.1.15
+    'anime_details.marker.story_save' => 'Save story point',                 // 1.1.15
     'anime_details.marker.delete_tooltip' => 'Delete',
     'anime_details.marker.delete_confirm' => 'Are you sure you want to delete this chronology note?',
 
+    // Chronology display mode (1.1.15)
+    'chrono.mode.release'     => 'Release Order',
+    'chrono.mode.story'       => 'Story Order',
+    'chrono.mode.both'        => 'Both',
+    'chrono.mode.showing'     => 'Showing: %s',
+    'chrono.mode.toggle_hint' => 'Change view (release → story → both)',
+
     'anime_details.marker_form.title'    => 'Add New Chronology Note',
-    'anime_details.marker_form.after_episode' => 'After episode:',
-    'anime_details.marker_form.after_episode_placeholder' => 'e.g. 23',
+    'anime_details.marker_form.after_episode' => 'In release order (after episode):',
+    'anime_details.marker_form.after_episode_placeholder' => 'e.g. 46',
+    'anime_details.marker_form.story_after_episode' => 'In story order (optional):',                  // 1.1.15
+    'anime_details.marker_form.story_after_episode_placeholder' => 'e.g. 35 (empty = same as release)', // 1.1.15
     'anime_details.marker_form.target_anime' => 'Anime to watch:',
     'anime_details.marker_form.choose'   => 'Choose...',
     'anime_details.marker_form.note'     => 'Note (optional):',
@@ -615,6 +629,8 @@ return [
     'help.chrono.next.text'                  => 'Which anime to watch after finishing the current one. Appears in the "Next Up" box on the detail page.',
     'help.chrono.markers.h3'                 => 'Chronology Markers',
     'help.chrono.markers.text'               => 'For series like Detective Conan: episode-level markers such as "after episode 54, watch the first movie" are stored. They appear as active alerts on the detail page and are listed as a timeline on a separate "Chronology" page.',
+    'help.chrono.story.h3'                   => 'Release Order and Story Order',
+    'help.chrono.story.text'                 => 'A marker can carry two insertion points: the <strong>release order</strong> point (where the content actually aired) and the <strong>story order</strong> point (where it is best watched). Example: the first Card Captor Sakura film aired after episode 46 but is recommended after episode 35. Leaving the story point empty means "same as release" - you only fill the second number for markers that diverge. A single button on the detail page and the chronology page cycles the view: release → story → both. You can pick the default in List Settings.',
     'help.chrono.warning_title'              => '<i class="fas fa-exclamation-triangle"></i> Heads up:',
     'help.chrono.warning_body'               => 'Chronology markers also follow the sync\'s catalog-is-authoritative rule. If you added markers yourself, they are lost after the next sync.',
 
@@ -873,6 +889,11 @@ return [
     'list_settings.list_view.option_all'     => 'General List',
     'list_settings.list_view.option_personal' => 'Personal List',
     'list_settings.list_view.save'           => 'Save',
+
+    // 1.1.15 - chronology display mode default (list_settings)
+    'list_settings.section.chrono_mode'      => 'Chronology View',
+    'list_settings.section.chrono_mode.desc' => 'Chooses the order the chronology notes on the detail page and the chronology page open in: release order, story (recommended-watch) order, or both. You can switch it temporarily with the button on the detail page. This preference affects only you.',
+    'list_settings.chrono_mode.save'         => 'Save',
 
     // 1.1.2 - adult (18+) content visibility toggle (list_settings)
     'list_settings.section.adult'            => 'Adult Content',
