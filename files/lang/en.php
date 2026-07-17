@@ -56,6 +56,10 @@ return [
     'index.warn.catalog_push_failed' => 'Saved, but the change could not be pushed to the central catalog. It is stored on this installation; saving the anime again will retry the push.',
     'index.filter.broadcast'        => 'Filter by Broadcast Status:',
     'index.filter.letter'           => 'Filter by Letter',
+    // 1.1.14: year filter (single or multiple, non-contiguous years)
+    'index.filter.year'             => 'Filter by Year',
+    'index.filter.year_none'        => 'No release years recorded yet.',
+    'index.filter.year_clear'       => 'Clear year selection',
     'index.filter.per_page'         => 'Show per Page:',
     'index.filter.all'              => 'All',
     'index.filter.show_all'         => 'All',
@@ -395,8 +399,8 @@ return [
     // Page meta
     'help.page_title'                        => 'Help - Anime Tracker',
     'help.heading'                           => 'Help',
-    'help.back_to_home'                      => '&larr; Back to Home',
-    'help.back_to_index'                     => '&larr; Help Contents',
+    'help.back_to_home'                      => 'Back to Home',
+    'help.back_to_index'                     => 'Help Contents',
 
     // Help sub-page group titles (1.0.22 split)
     'help.group.basics.heading'              => 'Watching Basics — Statuses and Buttons',

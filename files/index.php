@@ -46,6 +46,18 @@ $genres = getAllGenres($pdo);
 // animes.is_adult). adult_pref_init() already ran above.
 $genres = adult_filter_terms($genres);
 
+// 1.1.14: Yila gore filtre. Yil ayri bir kolon degil - release_date
+// (ilk bolum yayin tarihi) uzerinden YEAR() ile turetilir. Onay kutulari
+// icin katalogda gercekten bulunan farkli yillari cekiyoruz (bos/NULL
+// release_date haric), azalan sirada. adult_filter_where ile, yetiskin modu
+// kapaliyken sadece +18 iceren yillar listede gorunmez.
+$year_stmt = $pdo->query(
+    "SELECT DISTINCT YEAR(release_date) AS y FROM animes
+     WHERE release_date IS NOT NULL" . adult_filter_where('animes') . "
+     ORDER BY y DESC"
+);
+$available_years = array_map('intval', $year_stmt->fetchAll(PDO::FETCH_COLUMN));
+
 // Delete operation - POST + CSRF token
 // GET kullanmiyoruz cunku (a) HTTP standartina aykiri, (b) tarayici pre-fetch
 // veya <img> tag injection ile kazara/niyetli silinebilir, (c) CSRF saldirisi
@@ -106,6 +118,30 @@ $watch_status_filter = isset($_GET['watch_status_filter']) ? $_GET['watch_status
 $broadcast_status_filter = isset($_GET['broadcast_status_filter']) ? $_GET['broadcast_status_filter'] : '';
 $letter_filter = isset($_GET['letter_filter']) ? $_GET['letter_filter'] : '';
 $search_query = isset($_GET['q']) ? trim($_GET['q']) : '';
+
+// 1.1.14: Yil filtresi - kullanici tek ya da coklu (bitisik olmayan) yil
+// secebilir; year_filter[] dizisi olarak gelir (1972 tek; 1972,1973 iki;
+// 1972,1986,2004 gibi dagik da olabilir). Her deger (int)'e cast edilir,
+// makul araliga ve KATALOGDA gercekten var olan yillara (available_years)
+// whitelist edilir. Boylece hem gecersiz/uydurma degerler elenir hem de
+// asagida IN listesine dogrudan gomulen degerler garantili tamsayi olur
+// (bound placeholder gerekmez, enjeksiyon yuzeyi yok).
+$year_filter = [];
+if (isset($_GET['year_filter'])) {
+    $raw_years = is_array($_GET['year_filter']) ? $_GET['year_filter'] : [$_GET['year_filter']];
+    foreach ($raw_years as $ry) {
+        $ry = (int)$ry;
+        if ($ry >= 1900 && $ry <= 2100 && in_array($ry, $available_years, true)) {
+            $year_filter[$ry] = $ry; // anahtarla tekillestir (ayni yil iki kez gelmesin)
+        }
+    }
+    $year_filter = array_values($year_filter);
+}
+// Ana sorgu ve watched_episodes ozel siralama dalinda ayni predikat kullanilir.
+$year_filter_clause = '';
+if (!empty($year_filter)) {
+    $year_filter_clause = " AND YEAR(a.release_date) IN (" . implode(',', $year_filter) . ")";
+}
 
 // 1.1.5: duygu filtresi. Istatistik sayfasindaki kisisel duygu rozetinden gelir
 // (index.php?emotion_filter=Guldurdu). Kisisel isaretlere (user_anime_emotion,
@@ -260,6 +296,10 @@ if ($emotion_filter) {
     $sql .= $emotion_filter_clause;
 }
 
+if ($year_filter_clause) {
+    $sql .= $year_filter_clause;
+}
+
 if ($watch_status_filter) {
     if ($watch_status_filter === '__unselected__') {
         // user_anime satiri olmayan (hic secim yapilmamis) animeler
@@ -318,7 +358,11 @@ if ($sort_column == 'watched_episodes') {
     if ($emotion_filter) {
         $sql .= $emotion_filter_clause;
     }
-    
+
+    if ($year_filter_clause) {
+        $sql .= $year_filter_clause;
+    }
+
     if ($watch_status_filter) {
         if ($watch_status_filter === '__unselected__') {
             $sql .= " AND ua.watch_status IS NULL";
@@ -497,6 +541,14 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
     global $emotion_filter;
     if ($emotion_filter) {
         $params['emotion_filter'] = $emotion_filter;
+    }
+
+    // 1.1.14: aktif yil filtresini (dizi) siralama baglantilarinda koru.
+    // http_build_query dizileri year_filter[0]=..&year_filter[1]=.. seklinde
+    // serilestirir, PHP karsi tarafta yine diziye cozer.
+    global $year_filter;
+    if (!empty($year_filter)) {
+        $params['year_filter'] = $year_filter;
     }
 
     global $per_page;
@@ -885,6 +937,56 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                     </select>
                 </div>
                 <div style="margin-top: 20px;"></div>
+                <?php // 1.1.14: Yila gore filtre. letter-filter-details desenini
+                      // izler; icinde katalogda bulunan yillarin onay kutulari var,
+                      // boylece tek ya da coklu (bitisik olmayan) yil secilebilir.
+                      // Kutular ayni filtre formunda oldugundan "Filtrele" ile birlikte
+                      // gonderilir; sekli/harf/sayfalama baglantilarinda year_filter
+                      // ayrica korunur (getSortLink / $preserve / $_GET). ?>
+                <div class="filter-group filter-full">
+                    <details class="letter-filter-details" <?php echo !empty($year_filter) ? 'open' : ''; ?>>
+                        <summary><?php echo htmlspecialchars(t('index.filter.year'), ENT_QUOTES, 'UTF-8'); ?><?php echo !empty($year_filter) ? ' (' . htmlspecialchars(implode(', ', $year_filter)) . ')' : ''; ?></summary>
+                        <?php if (empty($available_years)): ?>
+                            <div class="year-filter-empty"><?php echo htmlspecialchars(t('index.filter.year_none'), ENT_QUOTES, 'UTF-8'); ?></div>
+                        <?php else: ?>
+                        <div class="year-filter">
+                            <?php // Cip rengi SUNUCU tarafi bir class'a degil, canli checkbox
+                                  // durumuna bagli: :has(input:checked) (modern tarayici) + asagidaki
+                                  // JS (.active senkronu, tum tarayicilar). Boylece kutunun isareti
+                                  // kaldirilinca cip aninda beyaza doner. 'checked' server tarafinda
+                                  // basilir ki uygulanmis filtre sayfa yuklendiginde secili gorunsun. ?>
+                            <?php foreach ($available_years as $yr): ?>
+                                <label class="year-chk">
+                                    <input type="checkbox" name="year_filter[]" value="<?php echo $yr; ?>"<?php echo in_array($yr, $year_filter, true) ? ' checked' : ''; ?>>
+                                    <span><?php echo $yr; ?></span>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php if (!empty($year_filter)): ?>
+                        <?php
+                            // 1.1.14: "Yil secimini temizle" - year_filter'i dusurup diger
+                            // aktif filtreleri koruyan SUNUCU tarafi baglanti (aninda uygulanir,
+                            // form gonderimine gerek yok). letter-filter $preserve deseniyle ayni
+                            // alanlar + harf filtresi korunur; hepsi bosalirsa duz index.php'ye doner.
+                            $yc = [];
+                            if ($search_query !== '')       $yc['q'] = $search_query;
+                            if ($genre_filter)              $yc['genre_filter'] = $genre_filter;
+                            if ($watch_status_filter)       $yc['watch_status_filter'] = $watch_status_filter;
+                            if ($broadcast_status_filter)   $yc['broadcast_status_filter'] = $broadcast_status_filter;
+                            if ($letter_filter)             $yc['letter_filter'] = $letter_filter;
+                            if ($emotion_filter)            $yc['emotion_filter'] = $emotion_filter;
+                            if ($per_page !== 10)           $yc['per_page'] = $per_page;
+                            if ($view_needs_param)          $yc['view'] = $view;
+                            $year_clear_url = $yc ? ('?' . http_build_query($yc)) : 'index.php';
+                        ?>
+                        <div class="year-filter-actions">
+                            <a href="<?php echo htmlspecialchars($year_clear_url); ?>" class="year-clear-btn"><?php echo htmlspecialchars(t('index.filter.year_clear'), ENT_QUOTES, 'UTF-8'); ?></a>
+                        </div>
+                        <?php endif; ?>
+                        <?php endif; ?>
+                    </details>
+                </div>
+                <div style="margin-top: 20px;"></div>
                 <div class="filter-group filter-full">
                     <details class="letter-filter-details" <?php echo $letter_filter ? 'open' : ''; ?>>
                         <summary><?php echo htmlspecialchars(t('index.filter.letter'), ENT_QUOTES, 'UTF-8'); ?> <?php echo $letter_filter ? '(' . htmlspecialchars($letter_filter) . ')' : ''; ?></summary>
@@ -898,6 +1000,7 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                         if ($broadcast_status_filter) $preserve['broadcast_status_filter'] = $broadcast_status_filter;
                         if ($per_page !== 10) $preserve['per_page'] = $per_page;
                         if ($emotion_filter) $preserve['emotion_filter'] = $emotion_filter;
+                        if (!empty($year_filter)) $preserve['year_filter'] = $year_filter; // 1.1.14: yil filtresi (dizi)
                         if ($view_needs_param) $preserve['view'] = $view; // 1.1.13: sekme
 
                         $letters = array_merge(['All', '0-9'], range('A', 'Z'), ['Other']);
@@ -1273,6 +1376,23 @@ if ($anime['status'] == 'Yayın Tamamlandı') {
             alert(<?php echo json_encode(t('index.js.network_error'), JSON_UNESCAPED_UNICODE); ?>);
         });
     }
+    </script>
+    <script>
+    // 1.1.14: Yil filtresi cip vurgusunu canli checkbox durumuyla senkron tut.
+    // CSS :has(input:checked) modern tarayicilarda yeter; bu JS .active class'ini
+    // yukleme aninda ve her degisiklikte esitleyerek :has desteklemeyen
+    // tarayicilarda da isareti kaldirinca cipin aninda beyaza donmesini saglar.
+    (function () {
+        var boxes = document.querySelectorAll('.year-filter .year-chk input[type="checkbox"]');
+        boxes.forEach(function (cb) {
+            function sync() {
+                var chip = cb.closest('.year-chk');
+                if (chip) chip.classList.toggle('active', cb.checked);
+            }
+            sync();
+            cb.addEventListener('change', sync);
+        });
+    })();
     </script>
     <script src="js/select_enhance.js" defer></script>
 </body>

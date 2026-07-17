@@ -76,6 +76,10 @@ return [
     'index.warn.catalog_push_failed' => 'Kayıt yapıldı ancak merkez kataloğa gönderilemedi. Değişiklik bu kurulumda saklı; animeyi yeniden kaydederek göndermeyi tekrar deneyebilirsiniz.',
     'index.filter.broadcast'        => 'Yayın Durumuna Göre Filtrele:',
     'index.filter.letter'           => 'Harfe Göre Filtrele',
+    // 1.1.14: yıla göre filtre (tek ya da çoklu, bitişik olmayan yıllar)
+    'index.filter.year'             => 'Yıla Göre Filtrele',
+    'index.filter.year_none'        => 'Henüz kayıtlı yayın yılı yok.',
+    'index.filter.year_clear'       => 'Yıl seçimini temizle',
     'index.filter.per_page'         => 'Sayfada Göster:',
     'index.filter.all'              => 'Tümü',
     'index.filter.show_all'         => 'Hepsi',
@@ -427,8 +431,8 @@ return [
     // Page meta
     'help.page_title'                        => 'Yardım - Anime Tracker',
     'help.heading'                           => 'Yardım',
-    'help.back_to_home'                      => '&larr; Ana Sayfaya Dön',
-    'help.back_to_index'                     => '&larr; Yardım İçindekiler',
+    'help.back_to_home'                      => 'Ana Sayfaya Dön',
+    'help.back_to_index'                     => 'Yardım İçindekiler',
 
     // Help sub-page group titles (1.0.22 split)
     'help.group.basics.heading'              => 'Temel İzleme — Durumlar ve Butonlar',

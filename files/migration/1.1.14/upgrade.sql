@@ -1,0 +1,25 @@
+-- =====================================================================
+-- 1.1.14 - Yila gore filtre
+-- =====================================================================
+-- Bu surum ana liste sayfasina (index.php) "Yila Gore Filtrele" filtresini
+-- ekler: kullanici tek bir yil ya da birden cok (bitisik olmayan da olabilir,
+-- orn. 1972 + 1986 + 2004) yil secebilir. Secilebilir yillar KATALOGTAN
+-- otomatik uretilir - animelerin `release_date` (ilk bolum yayin tarihi)
+-- alanindan YEAR() ile turetilen farkli yillar, azalan sirada listelenir.
+--
+-- SEMA DEGISIKLIGI YOKTUR. Yil ayri bir kolon degildir; filtre mevcut
+-- `animes.release_date` kolonu uzerinde `YEAR(release_date) IN (...)` olarak
+-- calisir. Yeni tablo, alan veya ayar anahtari gerekmez. Bu migration
+-- klasorunun tek amaci settings.version'i 1.1.14'e tasimaktir (migration
+-- runner SQL calistiktan sonra surumu damgalar; bu dosyada calistirilacak
+-- ifade yoktur, yalniz yorum vardir - runner yorumlari temizler ve bos ifade
+-- listesiyle surumu gunceller).
+--
+-- GUVENLIK: secilen yil degerleri sunucuda (int)'e cast edilip yalnizca
+-- katalogda gercekten bulunan yillarla eslesecek sekilde beyaz listeye alinir;
+-- SQL'e yalnizca dogrulanmis tamsayilar gomulur (enjeksiyon yuzeyi yoktur).
+--
+-- MERKEZ KATALOG ETKISI YOKTUR - degisiklik yalnizca app tarafindadir; merkez
+-- katalog sunucusuna (catalog_server/) hic gitmez, orada elle bir islem
+-- GEREKMEZ.
+-- =====================================================================

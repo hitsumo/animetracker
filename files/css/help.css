@@ -124,10 +124,19 @@
     background: #f4f6f8;
     font-weight: 600;
 }
+/* 1.1.14: help sayfalarindaki "Ana Sayfaya/Indekse Don" baglantisi artik
+   cercerveli buton gorunumunde (duz mavi yazi degil): beyaz zemin, mavi
+   kenar+yazi, altı cizgisiz - yil filtresindeki temizle butonuyla tutarli. */
 .back-link {
     display: inline-block;
     margin: 20px 0;
+    padding: 8px 18px;
+    background: #fff;
+    border: 1px solid #4a90e2;
+    border-radius: 4px;
     color: #4a90e2;
+    font-weight: 500;
     text-decoration: none;
+    transition: all 0.15s;
 }
-.back-link:hover { text-decoration: underline; }
+.back-link:hover { background: #eaf2fb; border-color: #357abd; color: #357abd; text-decoration: none; }
