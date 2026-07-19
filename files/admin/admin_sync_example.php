@@ -110,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['do_push'])) {
                        synopsis_tr, synopsis_en, translation_status, release_date, end_date,
                        anidb_link, mal_link, anime_schedule_link,
                        episode_interval, broadcast_day, broadcast_time, broadcast_timezone,
-                       series_name, media_type, is_adult,
+                       series_name, media_type, country, is_adult,
                        mal_id, anidb_id, catalog_uuid,
                        image_path
                 FROM animes

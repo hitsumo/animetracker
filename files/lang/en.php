@@ -60,6 +60,11 @@ return [
     'index.filter.year'             => 'Filter by Year',
     'index.filter.year_none'        => 'No release years recorded yet.',
     'index.filter.year_clear'       => 'Clear year selection',
+    // 1.1.17: country filter. The dropdown lists ONLY countries entered on
+    // at least one anime (DISTINCT over animes.country), so the _none
+    // message shows while the catalog has none.
+    'index.filter.country'          => 'Filter by Country:',
+    'index.filter.country_none'     => 'No countries recorded yet.',
     'index.filter.per_page'         => 'Show per Page:',
     'index.filter.all'              => 'All',
     'index.filter.show_all'         => 'All',
@@ -72,6 +77,18 @@ return [
     // Personal = anime the user has set a watch status on.
     'index.tab.all'                 => 'General List',
     'index.tab.personal'            => 'Personal List',
+
+    // 1.1.17: country names. animes.country stores an ISO 3166-1 alpha-2
+    // CODE (JP, CN, ...); the user never types or sees the code - the form
+    // dropdown, the anime detail page and the filter all print these names
+    // via country_label(). To add a country: one line in country_codes()
+    // in country_helpers.php plus one line here.
+    'country.jp'                    => 'Japan',
+    'country.cn'                    => 'China',
+    'country.kr'                    => 'South Korea',
+    'country.tw'                    => 'Taiwan',
+    'country.us'                    => 'United States',
+    'country.fr'                    => 'France',
 
     // Broadcast status labels. The DB stores the Turkish strings as
     // free-text values in animes.status (legacy), so the lookup is
@@ -129,6 +146,7 @@ return [
     'anime_details.label.aired_episodes' => 'Aired Episodes:',
     'anime_details.label.release_date'   => 'Release Date:',
     'anime_details.label.end_date'       => 'End Date:',
+    'anime_details.label.country'        => 'Country of Origin:',
     'anime_details.label.unset'          => 'Not set',
     'anime_details.label.broadcast_attribution' => 'Broadcast time data from %s',
     'anime_details.label.watched_episodes' => 'Watched Episodes:',
@@ -233,6 +251,7 @@ return [
     'add_anime.label.notes'                  => 'Notes:',
     'add_anime.label.series_name'            => 'Series Name (optional):',
     'add_anime.label.media_type'             => 'Media Type (optional):',
+    'add_anime.label.country'                => 'Country of Origin (optional):',
     'add_anime.label.anidb_link'             => 'AniDB Link:',
     'add_anime.label.mal_link'               => 'MyAnimeList Link:',
     'add_anime.label.animeschedule_link'     => 'AnimeSchedule Link:',

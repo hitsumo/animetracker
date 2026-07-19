@@ -272,6 +272,7 @@ $updateSql = "
         broadcast_timezone = :broadcast_timezone,
         series_name = :series_name,
         media_type = :media_type,
+        country = :country,
         is_adult = :is_adult,
         mal_id = :mal_id,
         anidb_id = :anidb_id,
@@ -318,7 +319,7 @@ $insertSql = "
         anidb_link, mal_link, anime_schedule_link,
         episode_interval, broadcast_day, broadcast_time, broadcast_timezone,
         synopsis_tr, synopsis_en, translation_status, release_date,
-        series_name, media_type, next_in_series,
+        series_name, media_type, country, next_in_series,
         mal_id, anidb_id, catalog_uuid, source, title_english, is_adult
     ) VALUES (
         :title, :alternative_titles, :status, :total_episodes, :aired_episodes,
@@ -327,7 +328,7 @@ $insertSql = "
         :anidb_link, :mal_link, :anime_schedule_link,
         :episode_interval, :broadcast_day, :broadcast_time, :broadcast_timezone,
         :synopsis_tr, :synopsis_en, :translation_status, :release_date,
-        :series_name, :media_type, NULL,
+        :series_name, :media_type, :country, NULL,
         :mal_id, :anidb_id, :catalog_uuid, 'catalog', :title_english, :is_adult
     )
 ";
@@ -397,6 +398,10 @@ try {
             ':broadcast_timezone'  => $ca['broadcast_timezone']  ?? 'Asia/Tokyo',
             ':series_name'         => $ca['series_name']         ?? null,
             ':media_type'          => $ca['media_type']          ?? null,
+            // 1.1.17 - yapim ulkesi (ISO alpha-2). 1.1.17 oncesi uretilmis
+            // katalog JSON'i bu alani tasimaz; eksikse NULL (ulke girilmemis)
+            // - is_adult'taki geriye uyumluluk kalibinin aynisi.
+            ':country'             => $ca['country']             ?? null,
             // 1.1.2 - yetiskin bayragi. Eski/alansiz katalog JSON'i is_adult
             // tasimayabilir; eksikse 0 (yetiskin degil) - geriye uyumlu.
             ':is_adult'            => !empty($ca['is_adult']) ? 1 : 0,

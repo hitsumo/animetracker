@@ -118,6 +118,7 @@ try {
             broadcast_timezone,
             series_name,
             media_type,
+            country,
             mal_id,
             anidb_id,
             catalog_uuid,

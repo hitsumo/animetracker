@@ -70,10 +70,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     episode_interval, broadcast_day, broadcast_time,
                     broadcast_timezone, synopsis_tr, synopsis_en,
                     translation_status, release_date, end_date, series_name,
-                    media_type, mal_id, anidb_id, source
+                    media_type, country, mal_id, anidb_id, source
                 ) VALUES (
                     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'none',
-                    ?, ?, ?, ?, ?, ?, 'local'
+                    ?, ?, ?, ?, ?, ?, ?, 'local'
                 )");
             $mark = $pdo->prepare(
                 "UPDATE catalog_requests
@@ -121,7 +121,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $s['broadcast_timezone'] ?: 'Asia/Tokyo',
                         $s['synopsis_tr'], $s['synopsis_en'],
                         $s['release_date'], $s['end_date'], $s['series_name'],
-                        $s['media_type'], $s['mal_id'], $s['anidb_id'],
+                        // 1.1.17: oneri satirindaki ulkeyi onayda tasi. Bugun
+                        // oneriler ice aktarmadan gelir ve ulke tasimaz (deger
+                        // NULL olur); alan yine de bagli tutuluyor ki oneri
+                        // akisi ileride ulke tasidiginda onayda sessizce
+                        // dusmesin - catalog_requests animes'in ikizidir.
+                        $s['media_type'], $s['country'] ?? null,
+                        $s['mal_id'], $s['anidb_id'],
                     ]);
                     $hostId = (int)$pdo->lastInsertId();
                 } catch (PDOException $e) {

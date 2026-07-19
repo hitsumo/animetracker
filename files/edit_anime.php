@@ -269,6 +269,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $media_type = $_POST['media_type'] ?? null;
     $next_in_series = $_POST['next_in_series'] ?? null;
 
+    // 1.1.17: yapim ulkesi (ISO 3166-1 alpha-2 kodu). Bkz. add_anime.php -
+    // acilir kutudan gelir ama elle duzenlenmis POST'a karsi suzuluyor.
+    $country = $_POST['country'] ?? null;
+
     // MySQL'in TIME / DATE / DATETIME kolonlari bos string kabul etmez,
     // sadece NULL veya gecerli bir tarih/saat. Form bos gonderirse '' gelir,
     // bunu NULL'a cevirerek INSERT/UPDATE hatasini engelliyoruz.
@@ -313,6 +317,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if ($series_name === '') { $series_name = null; }
     if ($media_type === '')  { $media_type = null; }
     if ($next_in_series === '' || $next_in_series === '0') { $next_in_series = null; }
+    $country = is_valid_country_code($country) ? strtoupper($country) : null;
 
     // Circular reference check: A -> B -> A dongusu olusmasin
     if ($next_in_series !== null && !validateNextInSeries($pdo, $id, $next_in_series)) {
@@ -421,6 +426,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             end_date = ?,
             series_name = ?,
             media_type = ?,
+            country = ?,
             next_in_series = ?,
             mal_id = ?,
             anidb_id = ?,
@@ -463,6 +469,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $end_date,
             $series_name,
             $media_type,
+            $country,
             $next_in_series,
             $mal_id,
             $anidb_id,
@@ -1126,6 +1133,22 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                         <option value="OVA" <?php echo ($anime['media_type'] ?? '') === 'OVA' ? 'selected' : ''; ?>>OVA</option>
                         <option value="Special" <?php echo ($anime['media_type'] ?? '') === 'Special' ? 'selected' : ''; ?>>Special</option>
                         <option value="ONA" <?php echo ($anime['media_type'] ?? '') === 'ONA' ? 'selected' : ''; ?>>ONA</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 1.1.17: yapim ulkesi. value ISO kodu, gorunen metin cevrilmis
+                 ulke adi. Kayitli kod artik listede degilse (country_codes()
+                 haritasindan cikarilmissa) hicbir secenek 'selected' olmaz ve
+                 kutu "Seciniz"e duser - kaydedilirse alan NULL'a doner. -->
+            <div class="form-group">
+                <label for="country"><?php echo htmlspecialchars(t('add_anime.label.country'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <div class="input-area">
+                    <select name="country" id="country">
+                        <option value=""><?php echo htmlspecialchars(t('add_anime.option.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
+                        <?php foreach (country_options() as $c_code => $c_label): ?>
+                        <option value="<?php echo htmlspecialchars($c_code, ENT_QUOTES, 'UTF-8'); ?>" <?php echo ($anime['country'] ?? '') === $c_code ? 'selected' : ''; ?>><?php echo htmlspecialchars($c_label, ENT_QUOTES, 'UTF-8'); ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
             </div>

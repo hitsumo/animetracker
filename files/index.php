@@ -58,6 +58,26 @@ $year_stmt = $pdo->query(
 );
 $available_years = array_map('intval', $year_stmt->fetchAll(PDO::FETCH_COLUMN));
 
+// 1.1.17: Ulkeye gore filtre. Yil filtresiyle ayni felsefe - acilir kutu
+// sabit bir ulke listesi degil, KATALOGDA GERCEKTEN GIRILMIS ulkeleri
+// gosterir. Boylece katalogda tek bir Kore yapimi yokken "Guney Kore"
+// secenegi durup bos sonuc uretmez; moderator ulke girdikce secenek belirir.
+// adult_filter_where ile, yetiskin modu kapaliyken yalnizca +18 animelerde
+// gecen bir ulke listede gorunmez (yil filtresindeki kalibin aynisi).
+$country_stmt = $pdo->query(
+    "SELECT DISTINCT country FROM animes
+     WHERE country IS NOT NULL AND country <> ''" . adult_filter_where('animes')
+);
+$available_countries = $country_stmt->fetchAll(PDO::FETCH_COLUMN);
+// Kodlari cevrilmis ada gore sirala (country_options() sirali doner; DB'den
+// gelen kod kumesiyle kesisimini alarak o sirayi koruyoruz). Ayrica
+// country_codes()'ta artik bulunmayan eski bir kod DB'de kalmissa burada
+// elenir - ekranda adsiz bir secenek cikmaz.
+$available_countries = array_intersect_key(
+    country_options(),
+    array_flip(array_map('strtoupper', $available_countries))
+);
+
 // Delete operation - POST + CSRF token
 // GET kullanmiyoruz cunku (a) HTTP standartina aykiri, (b) tarayici pre-fetch
 // veya <img> tag injection ile kazara/niyetli silinebilir, (c) CSRF saldirisi
@@ -118,6 +138,18 @@ $watch_status_filter = isset($_GET['watch_status_filter']) ? $_GET['watch_status
 $broadcast_status_filter = isset($_GET['broadcast_status_filter']) ? $_GET['broadcast_status_filter'] : '';
 $letter_filter = isset($_GET['letter_filter']) ? $_GET['letter_filter'] : '';
 $search_query = isset($_GET['q']) ? trim($_GET['q']) : '';
+
+// 1.1.17: ulke filtresi. Iki asamali dogrulama: once kod country_codes()
+// haritasinda mi (is_valid_country_code), sonra o kod katalogda gercekten
+// geciyor mu ($available_countries). Ikincisi olmadan, elle yazilmis bir
+// ?country_filter=FR bagini secili gosterip bos liste dondururdu.
+// Deger asagida bound parameter olarak gider - bu whitelist SQL guvenligi
+// icin degil, tutarli arayuz durumu icin.
+$country_filter = isset($_GET['country_filter']) ? strtoupper(trim($_GET['country_filter'])) : '';
+if ($country_filter !== ''
+    && (!is_valid_country_code($country_filter) || !isset($available_countries[$country_filter]))) {
+    $country_filter = '';
+}
 
 // 1.1.14: Yil filtresi - kullanici tek ya da coklu (bitisik olmayan) yil
 // secebilir; year_filter[] dizisi olarak gelir (1972 tek; 1972,1973 iki;
@@ -282,6 +314,17 @@ if ($view === 'personal') {
     $select_from .= " AND ua.watch_status IS NOT NULL";
 }
 
+// 1.1.17: ulke filtresi. Digerlerinin aksine $sql'e DEGIL, select_from'a
+// ekleniyor - tipki yukaridaki +18 ve kisisel liste kapsami gibi. Sebep:
+// asagidaki watched_episodes ozel dali "$sql = $select_from;" ile sorguyu
+// SIFIRDAN kurar, yani $sql'e eklenen her kosul o dalda kaybolur ve o
+// filtreler orada elle TEKRARLANMAK zorundadir. select_from'a eklenen kosul
+// ise iki dala da kendiliginden gider; unutulacak ikinci bir yer kalmaz.
+// Deger bound parameter (:country), asagida prepare sonrasi baglaniyor.
+if ($country_filter !== '') {
+    $select_from .= " AND a.country = :country";
+}
+
 $sql = $select_from;
 
 if ($search_query !== '') {
@@ -419,6 +462,11 @@ if ($broadcast_status_filter) {
 if ($letter_filter && preg_match('/^[A-Za-z]$/', $letter_filter)) {
     $stmt->bindValue(':letter', $letter_filter . '%');
 }
+// 1.1.17: :country her iki sorgu dalinda da mevcut (kosul select_from'a
+// eklendi), bu yuzden tek bir baglama yeterli - dal ayrimi yok.
+if ($country_filter !== '') {
+    $stmt->bindValue(':country', $country_filter);
+}
 
 $stmt->execute();
 $animes = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -541,6 +589,12 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
     global $emotion_filter;
     if ($emotion_filter) {
         $params['emotion_filter'] = $emotion_filter;
+    }
+
+    // 1.1.17: aktif ulke filtresini siralama baglantilarinda koru.
+    global $country_filter;
+    if ($country_filter !== '') {
+        $params['country_filter'] = $country_filter;
     }
 
     // 1.1.14: aktif yil filtresini (dizi) siralama baglantilarinda koru.
@@ -890,6 +944,12 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                 <?php if ($view_needs_param): ?>
                     <input type="hidden" name="view" value="<?php echo htmlspecialchars($view); ?>">
                 <?php endif; ?>
+                <?php // 1.1.17: aktif ulke filtresini arama gonderiminde koru. Ulke
+                      // secici asagidaki AYRI filtre formunda oldugu icin, bu form
+                      // gonderildiginde tasinmazsa secim sessizce dusardi. ?>
+                <?php if ($country_filter !== ''): ?>
+                    <input type="hidden" name="country_filter" value="<?php echo htmlspecialchars($country_filter); ?>">
+                <?php endif; ?>
                 <button type="submit" style="padding: 10px 18px; background: #4a90e2; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;"><?php echo htmlspecialchars(t('index.search.submit'), ENT_QUOTES, 'UTF-8'); ?></button>
                 <?php if ($search_query !== ''): ?>
                     <a href="index.php" style="padding: 10px 14px; background: #e0e0e0; color: #333; border-radius: 6px; text-decoration: none; font-size: 14px; display: flex; align-items: center;"><?php echo htmlspecialchars(t('index.search.clear'), ENT_QUOTES, 'UTF-8'); ?></a>
@@ -937,6 +997,25 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                     </select>
                 </div>
                 <div style="margin-top: 20px;"></div>
+                <?php // 1.1.17: Ulkeye gore filtre. Secenekler sabit bir ulke
+                      // listesi DEGIL, $available_countries - yani katalogda en az
+                      // bir animeye girilmis ulkeler. Hicbir animede ulke yoksa
+                      // acilir kutu yerine kisa bir bilgi metni gosterilir; bos bir
+                      // kutu kullaniciya bozuk bir filtre gibi gorunurdu. ?>
+                <div class="filter-group">
+                    <label for="country_filter"><?php echo htmlspecialchars(t('index.filter.country'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <?php if (empty($available_countries)): ?>
+                        <div class="year-filter-empty"><?php echo htmlspecialchars(t('index.filter.country_none'), ENT_QUOTES, 'UTF-8'); ?></div>
+                    <?php else: ?>
+                    <select name="country_filter" id="country_filter">
+                        <option value=""><?php echo htmlspecialchars(t('index.filter.all'), ENT_QUOTES, 'UTF-8'); ?></option>
+                        <?php foreach ($available_countries as $c_code => $c_label): ?>
+                        <option value="<?php echo htmlspecialchars($c_code, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $country_filter === $c_code ? 'selected' : ''; ?>><?php echo htmlspecialchars($c_label, ENT_QUOTES, 'UTF-8'); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?php endif; ?>
+                </div>
+                <div style="margin-top: 20px;"></div>
                 <?php // 1.1.14: Yila gore filtre. letter-filter-details desenini
                       // izler; icinde katalogda bulunan yillarin onay kutulari var,
                       // boylece tek ya da coklu (bitisik olmayan) yil secilebilir.
@@ -975,6 +1054,7 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                             if ($broadcast_status_filter)   $yc['broadcast_status_filter'] = $broadcast_status_filter;
                             if ($letter_filter)             $yc['letter_filter'] = $letter_filter;
                             if ($emotion_filter)            $yc['emotion_filter'] = $emotion_filter;
+                            if ($country_filter !== '')     $yc['country_filter'] = $country_filter; // 1.1.17
                             if ($per_page !== 10)           $yc['per_page'] = $per_page;
                             if ($view_needs_param)          $yc['view'] = $view;
                             $year_clear_url = $yc ? ('?' . http_build_query($yc)) : 'index.php';
@@ -1001,6 +1081,7 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                         if ($per_page !== 10) $preserve['per_page'] = $per_page;
                         if ($emotion_filter) $preserve['emotion_filter'] = $emotion_filter;
                         if (!empty($year_filter)) $preserve['year_filter'] = $year_filter; // 1.1.14: yil filtresi (dizi)
+                        if ($country_filter !== '') $preserve['country_filter'] = $country_filter; // 1.1.17: ulke
                         if ($view_needs_param) $preserve['view'] = $view; // 1.1.13: sekme
 
                         $letters = array_merge(['All', '0-9'], range('A', 'Z'), ['Other']);

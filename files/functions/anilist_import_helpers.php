@@ -410,7 +410,7 @@ function anilist_fetch_list($username, $maxPages = 100)
           notes
           startedAt { year month day }
           completedAt { year month day }
-          media { idMal status isAdult title { romaji english } }
+          media { idMal status isAdult countryOfOrigin title { romaji english } }
         }
       }
     }';
@@ -489,6 +489,18 @@ function anilist_fetch_list($username, $maxPages = 100)
                     // (1.1.7): flag imported adult titles so they are not written as
                     // is_adult=0 and slip past the +18 filter (1.1.2/1.1.3). Bool->tinyint.
                     'is_adult'          => !empty($media['isAdult']) ? 1 : 0,
+                    // AniList media.countryOfOrigin -> animes.country (1.1.17). Already
+                    // an ISO 3166-1 alpha-2 code, the exact form we store, so this is a
+                    // read and not a guess. Filtered through is_valid_country_code():
+                    // AniList can return a code we have no name for, and writing one
+                    // would leave the anime unshowable by country_label() and
+                    // unreachable by the country filter - NULL is the honest value
+                    // there, and the one-time backfill script reports such codes so
+                    // the list can be extended deliberately.
+                    'country'           => (isset($media['countryOfOrigin'])
+                                            && is_valid_country_code($media['countryOfOrigin']))
+                                            ? strtoupper($media['countryOfOrigin'])
+                                            : null,
                 ];
             }
         }

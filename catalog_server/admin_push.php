@@ -268,6 +268,7 @@ try {
             broadcast_timezone = :broadcast_timezone,
             series_name = :series_name,
             media_type = :media_type,
+            country = :country,
             mal_id = :mal_id,
             anidb_id = :anidb_id,
             catalog_uuid = :catalog_uuid,
@@ -288,7 +289,7 @@ try {
             anidb_link, mal_link, anime_schedule_link,
             episode_interval, broadcast_day, broadcast_time, broadcast_timezone,
             synopsis_tr, synopsis_en, translation_status, release_date, end_date,
-            series_name, media_type,
+            series_name, media_type, country,
             mal_id, anidb_id, catalog_uuid, source, title_english, is_adult
         ) VALUES (
             :title, :alternative_titles, :status, :total_episodes, :aired_episodes,
@@ -297,7 +298,7 @@ try {
             :anidb_link, :mal_link, :anime_schedule_link,
             :episode_interval, :broadcast_day, :broadcast_time, :broadcast_timezone,
             :synopsis_tr, :synopsis_en, :translation_status, :release_date, :end_date,
-            :series_name, :media_type,
+            :series_name, :media_type, :country,
             :mal_id, :anidb_id, :catalog_uuid, 'catalog', :title_english, :is_adult
         )
     ";
@@ -345,6 +346,10 @@ try {
             ':broadcast_timezone'  => $a['broadcast_timezone']  ?? 'Asia/Tokyo',
             ':series_name'         => $a['series_name']         ?? null,
             ':media_type'          => $a['media_type']          ?? null,
+            // 1.1.17: yapim ulkesi (ISO alpha-2). Sunucu tarafinda animes
+            // tablosuna `country` kolonu ELLE eklenmis olmali - catalog_server
+            // migration calistirmaz. Kolon yoksa bu push HATA verir.
+            ':country'             => $a['country']             ?? null,
             ':mal_id'              => !empty($a['mal_id'])      ? (int)$a['mal_id']   : null,
             ':anidb_id'            => !empty($a['anidb_id'])    ? (int)$a['anidb_id'] : null,
             ':catalog_uuid'        => $a['catalog_uuid']        ?? null,

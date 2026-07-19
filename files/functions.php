@@ -31,6 +31,7 @@
 
 require_once __DIR__ . '/functions/watch_status_helpers.php';
 require_once __DIR__ . '/functions/broadcast_status_helpers.php';
+require_once __DIR__ . '/functions/country_helpers.php';
 require_once __DIR__ . '/functions/emotion_helpers.php';
 require_once __DIR__ . '/functions/filler_helpers.php';
 require_once __DIR__ . '/functions/i18n_helpers.php';

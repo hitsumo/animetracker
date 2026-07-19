@@ -281,6 +281,21 @@ if ($anime['status'] == 'Yayın Tamamlandı'
     </span>
 </div>
 <?php endif; ?>
+<?php
+// 1.1.17 - Yapim ulkesi. DB'de ISO kodu (JP) durur, ekranda cevrilmis ad
+// (Japonya / Japan) gorunur. Yukaridaki yayin tarihinin aksine BOSSA HIC
+// BASILMAZ ("Belirtilmemis" yazilmaz): ulke sonradan eklenen opsiyonel bir
+// alan, katalogdaki animelerin cogunda henuz bos ve her detay sayfasina
+// bos bir satir koymak bilgi degil gurultu olurdu.
+// country_label() taninmayan kodda '' dondugu icin tek kontrol yeterli.
+$country_name = country_label($anime['country'] ?? null);
+if ($country_name !== ''):
+?>
+<div class="detail-row">
+    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.country'), ENT_QUOTES, 'UTF-8'); ?></span>
+    <span class="detail-value"><?php echo htmlspecialchars($country_name, ENT_QUOTES, 'UTF-8'); ?></span>
+</div>
+<?php endif; ?>
 <?php if ($anime['status'] == 'Yayın Devam Ediyor'): ?>
 <div class="detail-row" style="margin-top: -8px;">
     <span class="detail-label"></span>

@@ -80,6 +80,11 @@ return [
     'index.filter.year'             => 'Yıla Göre Filtrele',
     'index.filter.year_none'        => 'Henüz kayıtlı yayın yılı yok.',
     'index.filter.year_clear'       => 'Yıl seçimini temizle',
+    // 1.1.17: ülkeye göre filtre. Açılır kutu YALNIZCA en az bir animeye
+    // girilmiş ülkeleri listeler (animes.country üzerinde DISTINCT), bu
+    // yüzden katalog boşken _none mesajı görünür.
+    'index.filter.country'          => 'Ülkeye Göre Filtrele:',
+    'index.filter.country_none'     => 'Henüz kayıtlı ülke yok.',
     'index.filter.per_page'         => 'Sayfada Göster:',
     'index.filter.all'              => 'Tümü',
     'index.filter.show_all'         => 'Hepsi',
@@ -92,6 +97,18 @@ return [
     // Kisisel = kullanicinin bir izleme durumu sectigi animeler.
     'index.tab.all'                 => 'Genel Liste',
     'index.tab.personal'            => 'Kişisel Liste',
+
+    // 1.1.17: ülke adları. animes.country ISO 3166-1 alpha-2 KODU saklar
+    // (JP, CN, ...); kullanıcı kodu ne girer ne görür - form açılır kutusu,
+    // anime detayı ve filtre hepsi country_label() üzerinden bu adları
+    // basar. Yeni ülke eklemek için country_helpers.php'deki
+    // country_codes() haritasına bir satır + buraya bir satır yeterli.
+    'country.jp'                    => 'Japonya',
+    'country.cn'                    => 'Çin',
+    'country.kr'                    => 'Güney Kore',
+    'country.tw'                    => 'Tayvan',
+    'country.us'                    => 'Amerika Birleşik Devletleri',
+    'country.fr'                    => 'Fransa',
 
     // Broadcast status values (free text in animes.status, kept as
     // Turkish constants in the DB for now). 1.1.10: three new values
@@ -155,6 +172,7 @@ return [
     'anime_details.label.aired_episodes' => 'Yayınlanan Bölüm:',
     'anime_details.label.release_date'   => 'Yayın Tarihi:',
     'anime_details.label.end_date'       => 'Yayın Bitiş Tarihi:',
+    'anime_details.label.country'        => 'Yapım Ülkesi:',
     'anime_details.label.unset'          => 'Belirtilmemiş',
     'anime_details.label.broadcast_attribution' => 'Saat bilgisi %s\'den alınmıştır',
     'anime_details.label.watched_episodes' => 'İzlenen Bölüm:',
@@ -266,6 +284,7 @@ return [
     'add_anime.label.notes'                  => 'Notlar:',
     'add_anime.label.series_name'            => 'Seri Adı (opsiyonel):',
     'add_anime.label.media_type'             => 'Medya Türü (opsiyonel):',
+    'add_anime.label.country'                => 'Yapım Ülkesi (opsiyonel):',
     'add_anime.label.anidb_link'             => 'AniDB Linki:',
     'add_anime.label.mal_link'               => 'MyAnimeList Linki:',
     'add_anime.label.animeschedule_link'     => 'AnimeSchedule Linki:',

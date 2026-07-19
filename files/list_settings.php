@@ -317,10 +317,10 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                     status, total_episodes, mal_link, anidb_link,
                     anime_schedule_link, episode_interval, broadcast_day,
                     broadcast_time, broadcast_timezone, synopsis_tr, synopsis_en,
-                    release_date, end_date, series_name, media_type, suggested_by,
-                    pending_markers
+                    release_date, end_date, series_name, media_type, country,
+                    suggested_by, pending_markers
                 ) VALUES (
-                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
                 )");
 
             $validStatus = ['Watched', 'Watching', 'PlanToWatch', 'OnHold', 'Dropped'];
@@ -363,6 +363,12 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                 if (!in_array($bstatus, ['Yayın Tamamlandı', 'Yayın Devam Ediyor', 'Yayın Başlamadı', 'Seçim Yapılmadı', 'Yayın İptal Edildi'], true)) { $bstatus = null; }
                 $mtype = $anime['media_type'] ?? null;
                 if (!in_array($mtype, ['TV', 'Film', 'OVA', 'Special', 'ONA'], true)) { $mtype = null; }
+                // 1.1.17: yedekteki yapim ulkesini oneriye tasi. $bstatus /
+                // $mtype ile ayni kalip: JSON'dan gelen deger dogrulanmadan
+                // yazilmaz, taninmayan kod NULL'a duser.
+                $ccode = $anime['country'] ?? null;
+                if (!is_valid_country_code($ccode)) { $ccode = null; }
+                else { $ccode = strtoupper($ccode); }
 
                 // Carry any chronology markers attached to this anime so the
                 // moderator can re-link them on approval (admin_catalog_requests).
@@ -410,6 +416,7 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                     $anime['end_date']            ?? null,
                     $anime['series_name']         ?? null,
                     $mtype,
+                    $ccode,
                     $uid,
                     $markersJson,
                 ]);
@@ -445,11 +452,11 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                     anidb_link, mal_link, anime_schedule_link, episode_interval,
                     broadcast_day, broadcast_time, broadcast_timezone,
                     synopsis, synopsis_tr, synopsis_en, translation_status,
-                    release_date, end_date, series_name, media_type,
+                    release_date, end_date, series_name, media_type, country,
                     mal_id, anidb_id, catalog_uuid, source, filler_tracking
                 ) VALUES (
                     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
                 )");
 
             foreach ($animes as $anime) {
@@ -496,6 +503,11 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                         $anime['end_date']            ?? null,
                         $anime['series_name']         ?? null,
                         $anime['media_type']          ?? null,
+                        // 1.1.17: yedek disa aktarimi "SELECT * FROM animes"
+                        // oldugu icin country zaten JSON'a giriyor; burada
+                        // tasinmazsa yedek-al/geri-yukle turunda sessizce
+                        // kaybolurdu. 1.1.17 oncesi yedeklerde alan yok -> NULL.
+                        $anime['country']             ?? null,
                         $anime['mal_id']              ?? null,
                         $anime['anidb_id']            ?? null,
                         $anime['catalog_uuid']        ?? null,
@@ -1013,8 +1025,11 @@ if (isset($_POST['anilist_commit'])) {
             // anime is created with the real status (admin_catalog_requests uses
             // catalog_requests.status ?: 'Yayın Tamamlandı'). Without this an
             // ongoing anime would be promoted as "finished".
+            // 1.1.17: country da tasinir - onayda admin_catalog_requests bunu
+            // animes.country'ye gecirir, boylece ice aktarilan bir donghua
+            // katalogda dogru ulkeyle dogar ve backfill'i beklemez.
             $suggInsert = $pdo->prepare(
-                "INSERT INTO catalog_requests (mal_id, title, status, is_adult, suggested_by) VALUES (?, ?, ?, ?, ?)"
+                "INSERT INTO catalog_requests (mal_id, title, status, is_adult, country, suggested_by) VALUES (?, ?, ?, ?, ?, ?)"
             );
 
             foreach ($entries as $e) {
@@ -1056,7 +1071,8 @@ if (isset($_POST['anilist_commit'])) {
                     continue;
                 }
                 $suggInsert->execute([
-                    $e['mal_id'], $e['title'], $e['airing_status'] ?? null, $e['is_adult'] ?? 0, $uid
+                    $e['mal_id'], $e['title'], $e['airing_status'] ?? null,
+                    $e['is_adult'] ?? 0, $e['country'] ?? null, $uid
                 ]);
                 if ($contentOnly) { $catNew++; } else { $requested++; }
             }
@@ -1067,8 +1083,8 @@ if (isset($_POST['anilist_commit'])) {
             // real airing status (media.status), so a still-airing anime is not
             // forced to "Yayın Tamamlandı".
             $addAnime = $pdo->prepare(
-                "INSERT INTO animes (title, mal_id, status, is_adult, source)
-                 VALUES (?, ?, ?, ?, 'local')"
+                "INSERT INTO animes (title, mal_id, status, is_adult, country, source)
+                 VALUES (?, ?, ?, ?, ?, 'local')"
             );
 
             foreach ($entries as $e) {
@@ -1104,8 +1120,12 @@ if (isset($_POST['anilist_commit'])) {
                 try {
                     // airing_status defaults defensively (older session stash / a
                     // rare entry AniList gave no status for) to the historical value.
+                    // country defaults to NULL for the same defensive reason as
+                    // airing_status: an older session stash (import previewed
+                    // before 1.1.17, applied after) has no country key.
                     $addAnime->execute([
-                        $e['title'], $e['mal_id'], $e['airing_status'] ?? 'Seçim Yapılmadı', $e['is_adult'] ?? 0
+                        $e['title'], $e['mal_id'], $e['airing_status'] ?? 'Seçim Yapılmadı',
+                        $e['is_adult'] ?? 0, $e['country'] ?? null
                     ]);
                     $newId = (int)$pdo->lastInsertId();
                     if ($newId > 0) {

@@ -146,6 +146,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $media_type = $_POST['media_type'] ?? null;
     $next_in_series = $_POST['next_in_series'] ?? null;
 
+    // 1.1.17: yapim ulkesi (ISO 3166-1 alpha-2 kodu, orn. JP). Form bir
+    // acilir kutu oldugu icin normalde zaten gecerli bir kod gelir; yine de
+    // is_valid_country_code() ile suzuyoruz ki elle duzenlenmis bir POST
+    // DB'ye taninmayan bir kod yazamasin (filtre o kodu hicbir zaman
+    // gosteremeyecegi icin satir filtreden sessizce dusardi).
+    $country = $_POST['country'] ?? null;
+
     // MySQL'in TIME / DATE / DATETIME kolonlari bos string kabul etmez,
     // sadece NULL veya gecerli bir tarih/saat. Form bos gonderirse '' gelir,
     // bunu NULL'a cevirerek INSERT hatasini engelliyoruz.
@@ -188,6 +195,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if ($series_name === '') { $series_name = null; }
     if ($media_type === '')  { $media_type = null; }
     if ($next_in_series === '' || $next_in_series === '0') { $next_in_series = null; }
+    $country = is_valid_country_code($country) ? strtoupper($country) : null;
 
     // Status-based normalization for episode counts.
     // Frontend (JS) already hides aired_episodes when status is 'Yayın Tamamlandı',
@@ -264,7 +272,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // approval), so the historical default is preserved.
     $source = (MULTI_USER_MODE && can($pdo, 'moderate')) ? 'catalog' : 'local';
 
-    $sql = "INSERT INTO animes (title, title_english, alternative_titles, status, total_episodes, aired_episodes, image_path, next_episode_date, anidb_link, mal_link, anime_schedule_link, episode_interval, broadcast_day, broadcast_time, broadcast_timezone, synopsis_tr, synopsis_en, translation_status, release_date, end_date, series_name, media_type, next_in_series, mal_id, anidb_id, filler_tracking, is_adult, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO animes (title, title_english, alternative_titles, status, total_episodes, aired_episodes, image_path, next_episode_date, anidb_link, mal_link, anime_schedule_link, episode_interval, broadcast_day, broadcast_time, broadcast_timezone, synopsis_tr, synopsis_en, translation_status, release_date, end_date, series_name, media_type, country, next_in_series, mal_id, anidb_id, filler_tracking, is_adult, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     $stmt = $pdo->prepare($sql);
 
@@ -296,6 +304,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $end_date,
             $series_name,
             $media_type,
+            $country,
             $next_in_series,
             $mal_id,
             $anidb_id,
@@ -815,6 +824,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     <option value="OVA">OVA</option>
                     <option value="Special">Special</option>
                     <option value="ONA">ONA</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 1.1.17: yapim ulkesi. Kullanici ulke ADINI secer (Japonya, Cin,
+             ...); value ISO kodudur (JP, CN, ...) ve DB'ye o yazilir. Liste
+             country_options() ile cevrilmis ada gore sirali gelir. -->
+        <div class="form-group">
+            <label for="country"><?php echo htmlspecialchars(t('add_anime.label.country'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <div class="input-area">
+                <select name="country" id="country">
+                    <option value=""><?php echo htmlspecialchars(t('add_anime.option.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
+                    <?php foreach (country_options() as $c_code => $c_label): ?>
+                    <option value="<?php echo htmlspecialchars($c_code, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($c_label, ENT_QUOTES, 'UTF-8'); ?></option>
+                    <?php endforeach; ?>
                 </select>
             </div>
         </div>
