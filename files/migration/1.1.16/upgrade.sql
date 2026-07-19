@@ -1,0 +1,28 @@
+-- =====================================================================
+-- 1.1.16 - Uye olmayan ziyaretciler icin arayuz dili secimi
+-- =====================================================================
+-- Bu surum, cok kullanicili (online) modda GIRIS YAPMAMIS ziyaretcilerin
+-- de arayuz dilini (TR / EN) secebilmesini saglar. Onceden dil tercihi
+-- yalnizca user_pref tablosunda saklaniyordu; anonim ziyaretcinin user_id'si
+-- olmadigi icin tercih hicbir zaman yazilamiyor, bu yuzden her zaman
+-- Turkce goruyorlardi.
+--
+-- COZUM UYGULAMA KATMANINDADIR, VERITABANI DEGISMEZ. Anonim ziyaretcinin
+-- dil secimi PHP oturumunda ($_SESSION) tutulur; lang_init() ayni yerden
+-- okur, set_language.php ayni yere yazar. Giris yapmis kullanicilar ve
+-- self-host (tek kullanici) icin davranis birebir aynidir - onlar dili
+-- yine list_settings.php'deki "Arayuz Dili" bolumunden (user_pref) secer.
+--
+-- Guest'lere dili secebilecekleri bir arayuz sunmak icin login / register /
+-- request_invite sayfalarina kucuk bir TR/EN secici eklendi (uye/self-host
+-- icin gorunmez).
+--
+-- SEMA DEGISIKLIGI YOKTUR. Yeni tablo, kolon veya ayar anahtari gerekmez.
+-- Bu migration klasorunun tek amaci settings.version'i 1.1.16'ya tasimaktir
+-- (migration runner yorumlari temizler ve bos ifade listesiyle surumu
+-- damgalar; bu dosyada calistirilacak SQL ifadesi yoktur).
+--
+-- MERKEZ KATALOG ETKISI YOKTUR - degisiklik yalnizca app tarafindadir;
+-- merkez katalog sunucusuna (catalog_server/) hic gitmez, orada elle bir
+-- islem GEREKMEZ.
+-- =====================================================================

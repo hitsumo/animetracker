@@ -125,6 +125,24 @@ $slotOpen = invite_request_limit_state($pdo)['open'];
         .banner-err { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
         .banner-rate { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
         .auth-alt { margin-top: 18px; text-align: center; font-size: 14px; color: #555; }
+        /* 1.1.16: secondary action ("back to register") as a button rather than
+           a plain purple link, matching register.php. Colors match the "add
+           anime" button (.anime-list-button): teal #17a2b8, hover #138496. */
+        .auth-alt a {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 9px 18px;
+            background-color: #17a2b8;
+            color: #fff;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 700;
+            transition: all 0.3s ease;
+        }
+        .auth-alt a:hover {
+            background-color: #138496;
+            transform: translateY(-1px);
+        }
     </style>
 </head>
 <body>
@@ -180,6 +198,12 @@ $slotOpen = invite_request_limit_state($pdo)['open'];
             <a href="register.php"><?php echo htmlspecialchars(t('invite_request.back_to_register'), ENT_QUOTES, 'UTF-8'); ?></a>
         </div>
         <?php endif; ?>
+
+        <?php // 1.1.16: anonim ziyaretci dil secici, kartin altinda. Uye
+              // olmayanlarin user_pref satiri yoktur; bu switcher secimi
+              // oturuma yazar (set_language.php). Uye/self-host icin ''
+              // doner - gorunmez. ?>
+        <?php echo guest_lang_switcher(); ?>
     </div>
 </body>
 </html>

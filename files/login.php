@@ -133,6 +133,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <i class="fas fa-sign-in-alt"></i> <?php echo htmlspecialchars(t('auth.login.submit'), ENT_QUOTES, 'UTF-8'); ?>
             </button>
         </form>
+
+        <?php // 1.1.16: anonim ziyaretci dil secici, kartin altinda. Uye
+              // olmayanlarin user_pref satiri yoktur; bu switcher secimi
+              // oturuma yazar (set_language.php). Uye/self-host icin ''
+              // doner - gorunmez. ?>
+        <?php echo guest_lang_switcher(); ?>
     </div>
 </body>
 </html>

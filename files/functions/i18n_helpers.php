@@ -154,7 +154,20 @@ function lang_init($pdo) {
     $allowed = ['tr', 'en'];
     // display_language is a per-user preference (user_pref, 1.0.1), read for
     // the current user (id 1 when MULTI_USER_MODE is off).
-    $lang = get_user_pref($pdo, current_user_id(), 'display_language', 'tr');
+    //
+    // Guests (1.1.16): in multi-user mode an anonymous visitor has no user id
+    // and therefore no user_pref row, so their choice cannot be stored there.
+    // For them the preference lives in the session instead (written by
+    // set_language.php the same way). current_user_id() is null ONLY for an
+    // anonymous multi-user visitor - self-host always returns 1 - so this
+    // branch never affects self-host. The '??' guards against a missing
+    // $_SESSION on CLI (cron), where no session is started.
+    $uid = current_user_id();
+    if ($uid === null) {
+        $lang = $_SESSION['guest_display_language'] ?? 'tr';
+    } else {
+        $lang = get_user_pref($pdo, $uid, 'display_language', 'tr');
+    }
     if (!in_array($lang, $allowed, true)) {
         $lang = 'tr';
     }
@@ -284,4 +297,51 @@ function _lang_load_admin($lang) {
     }
     $data = include $path;
     return is_array($data) ? $data : [];
+}
+
+/**
+ * Render an inline TR / EN language switcher for anonymous visitors (1.1.16).
+ *
+ * Logged-in users pick their interface language from list_settings.php (the
+ * "Arayuz Dili" section, 1.1.4) and self-host has a single always-present
+ * owner - neither needs an inline switcher, so this returns an empty string
+ * for them and the surrounding markup is unchanged. It renders the control
+ * ONLY for a guest in multi-user mode, whose choice cannot be stored in
+ * user_pref (no user id) and instead lives in the session; the form posts to
+ * the unchanged set_language.php, which routes the guest write to the session.
+ *
+ * The markup mirrors the settings-page switcher: a <select> with onchange
+ * auto-submit, plus a <noscript> save button for JS-off browsers. It reuses
+ * the same translation keys so there is no new copy to maintain. Callers echo
+ * the return value where they want the control to appear (the auth pages:
+ * login / register / request_invite).
+ *
+ * @return string  HTML for the switcher, or '' when it should not show.
+ */
+function guest_lang_switcher()
+{
+    // Guest = multi-user mode AND not logged in. is_logged_in() already
+    // encodes the self-host "always logged in" rule, so this single check
+    // covers both non-guest cases.
+    if (!MULTI_USER_MODE || is_logged_in()) {
+        return '';
+    }
+
+    $cur     = current_lang();
+    $csrf    = htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8');
+    $aria    = htmlspecialchars(t('list_settings.section.language'), ENT_QUOTES, 'UTF-8');
+    $trLabel = htmlspecialchars(t('list_settings.language.option_tr'), ENT_QUOTES, 'UTF-8');
+    $enLabel = htmlspecialchars(t('list_settings.language.option_en'), ENT_QUOTES, 'UTF-8');
+    $save    = htmlspecialchars(t('list_settings.language.save'), ENT_QUOTES, 'UTF-8');
+    $trSel   = $cur === 'tr' ? ' selected' : '';
+    $enSel   = $cur === 'en' ? ' selected' : '';
+
+    return '<form method="post" action="set_language.php" class="guest-lang-switcher">'
+        . '<input type="hidden" name="csrf_token" value="' . $csrf . '">'
+        . '<select name="lang" onchange="this.form.submit()" aria-label="' . $aria . '">'
+        . '<option value="tr"' . $trSel . '>' . $trLabel . '</option>'
+        . '<option value="en"' . $enSel . '>' . $enLabel . '</option>'
+        . '</select>'
+        . '<noscript><button type="submit">' . $save . '</button></noscript>'
+        . '</form>';
 }

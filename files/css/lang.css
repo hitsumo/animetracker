@@ -11,8 +11,48 @@
  * language is now chosen from a dropdown in list_settings.php (the
  * "Arayuz Dili" section, posting to the unchanged set_language.php).
  * The old rules are deleted because nothing references those classes
- * anymore. This file is intentionally kept (not deleted) so the
- * @import chain in style.css stays byte-for-byte unchanged; it is a
- * no-op stylesheet now. Safe to fold away in a later cleanup that also
- * drops the style.css @import line.
+ * anymore.
+ *
+ * 1.1.16: this file holds one rule again - the anonymous-visitor language
+ * switcher (guest_lang_switcher(), i18n_helpers.php) shown on the auth
+ * pages (login / register / request_invite). Logged-in users still choose
+ * their language in list_settings.php; this control exists only so a guest,
+ * who has no user_pref row, can pick a language before signing in. Placed
+ * here (not in the auth pages' inline <style>) because all three pages link
+ * style.css, which @imports this file, so one rule covers all of them.
  */
+
+/* Sits at the BOTTOM of the .auth-container card, below the sign-in /
+   register action (and any "have an account?" links), separated by a thin
+   rule so it reads as a small footer control rather than part of the form.
+   Centered to line up with the card. The <select> is compact; the
+   <noscript> save button only appears when JavaScript is off (onchange
+   auto-submit does the work otherwise). */
+.guest-lang-switcher {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #eee;
+    text-align: center;
+    font-family: 'Poppins', 'Quicksand', sans-serif;
+}
+
+.guest-lang-switcher select {
+    padding: 5px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #fff;
+    color: #333;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.guest-lang-switcher noscript button {
+    margin-left: 6px;
+    padding: 5px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #f8f9fa;
+    color: #333;
+    font-size: 13px;
+    cursor: pointer;
+}

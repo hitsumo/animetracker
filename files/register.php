@@ -43,7 +43,20 @@ $inviteMode = ($mode !== 'open');
 
 // Operator announcement shown on the registration screen (1.1.12). Free text
 // set in the admin panel (admin_invites.php); empty means no notice.
+//
+// 1.1.16: the announcement can be written per language. register_announcement
+// is the Turkish (base) text; register_announcement_en is the optional English
+// text. On the English interface the English text is shown IF it is set;
+// otherwise it falls back to the Turkish text, so an operator who only writes
+// one announcement still has it appear in both languages (unchanged 1.1.12
+// behaviour for single-language operators).
 $announcement = trim((string)get_setting($pdo, 'register_announcement', ''));
+if (current_lang() === 'en') {
+    $announcementEn = trim((string)get_setting($pdo, 'register_announcement_en', ''));
+    if ($announcementEn !== '') {
+        $announcement = $announcementEn;
+    }
+}
 
 $error = '';
 
@@ -239,6 +252,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 14px;
             color: #555;
         }
+        /* 1.1.16: secondary actions ("have an account? sign in" / "request an
+           invite") as buttons rather than plain purple links, so they read as
+           tappable controls. Colors match the "add anime" button
+           (.anime-list-button): teal #17a2b8, hover #138496, white text. */
+        .auth-alt a {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 9px 18px;
+            background-color: #17a2b8;
+            color: #fff;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 700;
+            transition: all 0.3s ease;
+        }
+        .auth-alt a:hover {
+            background-color: #138496;
+            transform: translateY(-1px);
+        }
     </style>
 </head>
 <body>
@@ -294,6 +326,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <br><a href="request_invite.php"><?php echo htmlspecialchars(t('auth.register.request_invite'), ENT_QUOTES, 'UTF-8'); ?></a>
             <?php endif; ?>
         </div>
+
+        <?php // 1.1.16: anonim ziyaretci dil secici, kartin altinda. Uye
+              // olmayanlarin user_pref satiri yoktur; bu switcher secimi
+              // oturuma yazar (set_language.php). Uye/self-host icin ''
+              // doner - gorunmez. ?>
+        <?php echo guest_lang_switcher(); ?>
     </div>
 </body>
 </html>

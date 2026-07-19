@@ -56,8 +56,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'generate') {
         // moderator+ already enforced by the page guard.
+        //
+        // 1.1.16: the email is now REQUIRED. Every invite must be tied to a
+        // recipient address so the operator knows who each code is for (the
+        // invite is still sent manually - the address is not auto-mailed). An
+        // empty or malformed address is rejected here (authoritative check,
+        // alongside the required + type=email attributes on the form) and no
+        // token is created; the form redirects back with an error flag.
         $email = trim($_POST['email'] ?? '');
-        $emailVal = ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) ? $email : null;
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            header('Location: admin_invites.php?gen=email#it-panel-invites');
+            exit;
+        }
+        $emailVal = $email;
 
         // Random single-use token. Retry on the (astronomically unlikely)
         // unique collision; give up after a few tries rather than loop forever.
@@ -115,12 +126,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // registration screen (register.php). Operator policy -> admin only
         // (hide + protect). An empty value hides the notice. Capped at 2000
         // chars; stored raw and escaped at output.
+        //
+        // 1.1.16: a second, optional English text (register_announcement_en) is
+        // saved from the same form. The Turkish field is the base; the English
+        // field overrides it only on the English interface (register.php falls
+        // back to Turkish when the English field is empty). Both are saved
+        // together so the operator edits them side by side.
         require_role($pdo, 'admin');
         $text = trim($_POST['register_announcement'] ?? '');
         if (mb_strlen($text) > 2000) {
             $text = mb_substr($text, 0, 2000);
         }
         set_setting($pdo, 'register_announcement', $text);
+
+        $textEn = trim($_POST['register_announcement_en'] ?? '');
+        if (mb_strlen($textEn) > 2000) {
+            $textEn = mb_substr($textEn, 0, 2000);
+        }
+        set_setting($pdo, 'register_announcement_en', $textEn);
     } elseif ($action === 'invite_for_request') {
         // moderator+ (page guard). Generate a single-use invite carrying the
         // requester's email, then mark the request 'invited'. The new token
@@ -189,7 +212,8 @@ $notifyEmail = (string)get_setting($pdo, 'invite_notify_email', '');
 
 // 1.1.12 admin-configurable registration policy (admin only in the UI).
 $requestLimit         = (int)get_setting($pdo, 'invite_request_limit', '0');
-$registerAnnouncement = (string)get_setting($pdo, 'register_announcement', '');
+$registerAnnouncement   = (string)get_setting($pdo, 'register_announcement', '');
+$registerAnnouncementEn = (string)get_setting($pdo, 'register_announcement_en', '');
 $slotState            = invite_request_limit_state($pdo); // for the live status line
 
 $requests = $pdo->query(
@@ -331,6 +355,18 @@ foreach ($requests as $r) {
                     <textarea id="register_announcement" name="register_announcement" maxlength="2000"
                               placeholder="<?php echo htmlspecialchars(t('admin_invites.announce.placeholder'), ENT_QUOTES, 'UTF-8'); ?>"
                               style="width:100%; min-height:90px; padding:8px 10px; border:1px solid #ccc; border-radius:4px; font-family:inherit; font-size:14px; box-sizing:border-box; resize:vertical;"><?php echo htmlspecialchars($registerAnnouncement, ENT_QUOTES, 'UTF-8'); ?></textarea>
+
+                    <?php // 1.1.16: optional English announcement. Empty -> the
+                          // English interface falls back to the Turkish text. ?>
+                    <label for="register_announcement_en" style="display:block; margin-top:12px; margin-bottom:6px;"><?php echo htmlspecialchars(t('admin_invites.announce.label_en'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <textarea id="register_announcement_en" name="register_announcement_en" maxlength="2000"
+                              placeholder="<?php echo htmlspecialchars(t('admin_invites.announce.placeholder_en'), ENT_QUOTES, 'UTF-8'); ?>"
+                              style="width:100%; min-height:90px; padding:8px 10px; border:1px solid #ccc; border-radius:4px; font-family:inherit; font-size:14px; box-sizing:border-box; resize:vertical;"><?php echo htmlspecialchars($registerAnnouncementEn, ENT_QUOTES, 'UTF-8'); ?></textarea>
+                    <div class="mode-status status-off" style="margin-top:8px;">
+                        <i class="fas fa-info-circle"></i>
+                        <?php echo htmlspecialchars(t('admin_invites.announce.hint_en'), ENT_QUOTES, 'UTF-8'); ?>
+                    </div>
+
                     <div style="margin-top:10px;">
                         <button type="submit" class="btn"><?php echo htmlspecialchars(t('admin_invites.announce.save'), ENT_QUOTES, 'UTF-8'); ?></button>
                     </div>
@@ -348,10 +384,18 @@ foreach ($requests as $r) {
             <div class="cap-card">
                 <h3><i class="fas fa-plus-circle"></i> <?php echo htmlspecialchars(t('admin_invites.generate.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
                 <p><?php echo htmlspecialchars(t('admin_invites.generate.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
+                <?php // 1.1.16: e-posta zorunlu; bos/gecersiz gonderimde geri
+                      // donuste bu uyari gosterilir. ?>
+                <?php if (($_GET['gen'] ?? '') === 'email'): ?>
+                    <div class="mode-status status-off">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <?php echo htmlspecialchars(t('admin_invites.generate.err_email'), ENT_QUOTES, 'UTF-8'); ?>
+                    </div>
+                <?php endif; ?>
                 <form method="post" action="admin_invites.php" class="inline-form">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
                     <input type="hidden" name="action" value="generate">
-                    <input type="email" name="email" placeholder="<?php echo htmlspecialchars(t('admin_invites.generate.email_label'), ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="email" name="email" required placeholder="<?php echo htmlspecialchars(t('admin_invites.generate.email_label'), ENT_QUOTES, 'UTF-8'); ?>">
                     <button type="submit" class="btn"><i class="fas fa-ticket-alt"></i> <?php echo htmlspecialchars(t('admin_invites.generate.submit'), ENT_QUOTES, 'UTF-8'); ?></button>
                 </form>
             </div>

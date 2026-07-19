@@ -59,7 +59,18 @@ $lang    = $_POST['lang'] ?? '';
 
 if (in_array($lang, $allowed, true)) {
     // display_language is a per-user preference (user_pref, 1.0.1).
-    set_user_pref($pdo, current_user_id(), 'display_language', $lang);
+    //
+    // Guests (1.1.16): an anonymous multi-user visitor has no user id and so
+    // no user_pref row to write - current_user_id() is null. Their choice is
+    // kept in the session instead, and lang_init() reads it back from the same
+    // place. Self-host is unaffected: current_user_id() is always 1 there, so
+    // the else branch runs exactly as before.
+    $uid = current_user_id();
+    if ($uid === null) {
+        $_SESSION['guest_display_language'] = $lang;
+    } else {
+        set_user_pref($pdo, $uid, 'display_language', $lang);
+    }
 }
 
 // Redirect back to the page that triggered the switch. We accept
