@@ -185,7 +185,6 @@ return [
     'anime_details.alert.watch_after'    => 'Watch after episode %d:',
 
     'anime_details.marker.after_episode' => 'After episode %d',
-    'anime_details.marker.story_after_episode' => 'Story: after episode %d', // 1.1.15
     'anime_details.marker.story_placeholder' => 'Story ep.',                 // 1.1.15
     'anime_details.marker.story_edit_hint' => 'Which episode it should be watched after in story order (empty = same as release)', // 1.1.15
     'anime_details.marker.release_edit_hint' => 'Which episode it aired after in release order', // 1.1.15

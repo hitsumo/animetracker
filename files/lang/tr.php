@@ -215,7 +215,6 @@ return [
 
     // Chronology marker list
     'anime_details.marker.after_episode' => '%d. bölümden sonra',
-    'anime_details.marker.story_after_episode' => 'Hikaye: %d. bölümden sonra', // 1.1.15
     'anime_details.marker.story_placeholder' => 'Hikaye böl.',                  // 1.1.15
     'anime_details.marker.story_edit_hint' => 'Hikaye sırasında hangi bölümden sonra izlenmeli (boşsa yayınla aynı)', // 1.1.15
     'anime_details.marker.release_edit_hint' => 'Yayın sırasında hangi bölümden sonra (çıkış noktası)', // 1.1.15

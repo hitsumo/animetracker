@@ -75,7 +75,7 @@ $total_watched = (int)$total_watched_stmt->fetchColumn();
 // watch_status / watched_episodes / ua.updated_at hepsi user_anime'da (1.0.1),
 // current_user_id() ile kapsanir (self-host=1, online=oturum kullanicisi).
 $recent_watched_stmt = $pdo->prepare("
-    SELECT a.id, a.title, a.total_episodes, a.aired_episodes,
+    SELECT a.id, a.title, a.title_english, a.image_path, a.total_episodes, a.aired_episodes,
            ua.watch_status, ua.watched_episodes, ua.updated_at
     FROM user_anime ua
     JOIN animes a ON a.id = ua.anime_id
@@ -158,6 +158,21 @@ $emotion_anime_count_global = (int)$pdo->query(
         .stats-emotion-summary { color: #4a5568; margin: 0 0 12px; }
         .stats-emotion-empty { color: #4a5568; margin: 6px 0; }
         table.stats-table td .emotion-badge { font-size: 0.95em; }
+        /* Son Izlenenler: her anime IKI satir kaplar - ustte poster + durum
+           bilgileri, altta anime adi colspan=4 ile TUM TABLO GENISLIGINDE. Ad
+           dar Anime sutununa (110px) sigdirilinca uzun basliklar 5-6 satira
+           sariyordu; tam genislikte 1-2 satira duser. Poster kutusu 2:3 (poster
+           orani) oldugu icin object-fit:cover bozmadan kirpar; postersiz satirda
+           poster_src() dile duyarli placeholder'i verir (1.1.9). */
+        table.stats-table td.stats-anime-cell { width: 110px; vertical-align: top; }
+        table.stats-table tr.stats-anime-row td { border-bottom: none; padding-bottom: 4px; }
+        .stats-anime-link { display: block; }
+        .stats-anime-link img { display: block; width: 80px; height: 120px; object-fit: cover; border-radius: 4px; }
+        /* colspan hucresi ayni zamanda td:last-child oldugu icin yukaridaki
+           "son sutun saga yasli + kalin" kuralini devralir - burada geri alinir. */
+        table.stats-table td.stats-anime-name-cell { text-align: left; font-weight: normal; padding-top: 0; }
+        .stats-anime-name-cell a { color: #2b6cb0; text-decoration: none; font-size: 0.95em; line-height: 1.35; }
+        .stats-anime-name-cell a:hover { text-decoration: underline; }
         .stats-tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid #cbd5e0; }
         .stats-tab-btn { appearance: none; background: transparent; border: none; border-bottom: 3px solid transparent; padding: 10px 18px; font-size: 1.05em; color: #4a5568; cursor: pointer; margin-bottom: -2px; }
         .stats-tab-btn:hover { color: #2b6cb0; }
@@ -255,11 +270,25 @@ $emotion_anime_count_global = (int)$pdo->query(
                             $rw_timeAgo = sprintf(t('recent.time.days_ago'), floor($rw_diff / 86400));
                         }
                     ?>
-                    <tr>
-                        <td><a href="anime_details.php?id=<?php echo (int)$row['id']; ?>"><?php echo htmlspecialchars($row['title']); ?></a></td>
+                    <?php
+                        $rw_title = display_title($row);
+                        $rw_href  = 'anime_details.php?id=' . (int)$row['id'];
+                    ?>
+                    <tr class="stats-anime-row">
+                        <td class="stats-anime-cell">
+                            <a class="stats-anime-link" href="<?php echo $rw_href; ?>">
+                                <img src="<?php echo htmlspecialchars(poster_src($row['image_path'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                     alt="<?php echo htmlspecialchars($rw_title, ENT_QUOTES, 'UTF-8'); ?>">
+                            </a>
+                        </td>
                         <td><?php echo htmlspecialchars(watch_status_label($row['watch_status'] ?? '')); ?></td>
                         <td><?php echo htmlspecialchars($rw_epDisplay); ?></td>
                         <td><?php echo htmlspecialchars($rw_timeAgo); ?></td>
+                    </tr>
+                    <tr class="stats-anime-name-row">
+                        <td class="stats-anime-name-cell" colspan="4">
+                            <a href="<?php echo $rw_href; ?>"><?php echo htmlspecialchars($rw_title, ENT_QUOTES, 'UTF-8'); ?></a>
+                        </td>
                     </tr>
                 <?php endforeach; ?>
             </table>

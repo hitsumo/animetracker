@@ -1,0 +1,41 @@
+-- =====================================================================
+-- 1.1.18 - Son Izlenenler tablosunda poster + olu kod temizligi
+-- =====================================================================
+-- Bu surum istatistik sayfasindaki (statistics.php) "Son Izlenenler"
+-- tablosuna animenin posterini ekler. Her anime artik IKI satir kaplar: ust
+-- satirda poster + durum / izlenen bolum / son izleme, alt satirda `colspan=4`
+-- ile TUM TABLO GENISLIGINDE animenin adi. Ad dar Anime sutununa (110px)
+-- sigdirilinca uzun basliklar 5-6 satira sariyordu; tam genislikte 1-2 satira
+-- duser. Postere de isme de tiklamak anime detayina goturur. Sorgu artik
+-- `a.image_path` de cekiyor - onceden cekmiyordu, o yuzden poster
+-- gosterilemiyordu.
+--
+-- Postersiz animeler icin ek bir is YAPILMADI: mevcut poster_src() yardimcisi
+-- (1.1.9) image_path bos oldugunda arayuz diline gore no_poster_tr.png /
+-- no_poster_en.png dondurur, yani kirik resim cikmaz.
+--
+-- Ayni tabloda BASLIK DILI hatasi da duzeltildi: hucre ham `title` basiyordu,
+-- yani kullanicinin "Baslik Dili" (display_title_english) tercihi bu tabloda
+-- CALISMIYORDU - index ve anime detayinda calisirken burada calismamasi
+-- tutarsizlikti. Artik display_title() kullaniliyor (sorguya `a.title_english`
+-- eklendi). NOT: istatistik sayfasindaki diger tablolar toplam/sayac
+-- tablolaridir (medya turu, yayin durumu, izleme durumu, duygu dagilimi) ve
+-- anime basligi GOSTERMEZ - bu yuzden baslik dili duzeltmesi tek noktadadir.
+--
+-- Ayrica 1.1.15'ten kalan iki OLU kalinti silindi (ikisinin de projede sifir
+-- kullanimi oldugu dogrulandi): `.marker-episode-story` CSS kurali ve
+-- `anime_details.marker.story_after_episode` dil anahtari (TR+EN). Bunlar
+-- 1.1.15'te kaldirilan mor "Hikaye: 35" rozetinden arta kalmisti. TR/EN
+-- parite korundu (ikisinden de ayni anahtar dustu: 815 -> 814).
+--
+-- SEMA DEGISIKLIGI YOKTUR. Yeni tablo, kolon veya ayar anahtari gerekmez;
+-- `animes.image_path` ve `animes.title_english` kolonlari coktan var, yalniz
+-- bu sorguda secilmiyorlardi. Bu migration klasorunun tek amaci
+-- settings.version'i 1.1.18'e tasimaktir (migration runner yorumlari temizler
+-- ve bos ifade listesiyle surumu damgalar; bu dosyada calistirilacak SQL
+-- ifadesi yoktur).
+--
+-- MERKEZ KATALOG ETKISI YOKTUR - degisiklik yalnizca app tarafindadir; merkez
+-- katalog sunucusuna (catalog_server/) hic gitmez, orada elle bir islem
+-- GEREKMEZ.
+-- =====================================================================

@@ -595,17 +595,6 @@
     border-bottom: 1px solid #e9ecef;
 }
 
-/* Marker satirindaki hikaye noktasi rozeti (yayindan farkliysa gosterilir) */
-.marker-episode-story {
-    font-size: 12px;
-    font-weight: 600;
-    color: #6c5ce7;
-    background: #f1effc;
-    border-radius: 4px;
-    padding: 1px 6px;
-    white-space: nowrap;
-}
-
 /* Marker satirindaki satir-ici hikaye noktasi duzenleme formu (moderator) */
 .marker-story-form {
     display: inline-flex;
