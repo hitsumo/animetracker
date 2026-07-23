@@ -1,0 +1,34 @@
+-- =====================================================================
+-- 1.1.19 - Konu icinde tiklanabilir anime linki ([[anime:..]] shortcode)
+-- =====================================================================
+-- Bu surum, bir animenin konusu (synopsis) icinde BASKA bir animeye
+-- tiklanabilir link kurmaya izin verir. Yontem guvenli bir kisa koddur:
+--
+--     [[anime:52991|Frieren]]  -> Frieren detay sayfasina link
+--     [[anime:52991]]          -> hedefin kendi basligiyla etiketli link
+--
+-- Koddaki sayi HEDEFIN MAL ID'sidir, yerel animes.id DEGIL. Sebep: animes
+-- MERKEZ KATALOGtur; synopsis_tr/synopsis_en metni her uyeye ayni gider ama
+-- animes.id her kurulumda AUTO_INCREMENT ile ayri atanir. Kodda yerel id
+-- tutulsaydi senkron sonrasi baska kurulumda yanlis (ya da olmayan) satira
+-- giderdi. mal_id evrensel ve UNIQUE oldugundan render_synopsis() onu goster
+-- aninda O KURULUMUN yerel id'sine cevirir. O mal_id'ye sahip yerel satir
+-- yoksa (ilgili anime bu katalogda degilse) link, yazarin duz metin
+-- etiketine sessizce dusrer - cumle yine okunur kalir.
+--
+-- GUVENLIK: synopsis kullanici/kurator metnidir ve katalog uzerinden herkese
+-- yayilir. Ham <a> HTML'ine izin verilseydi depolanan XSS ve rastgele dis URL
+-- riski dogardi. Kod yalnizca bir MAL id tasir; geri kalan her sey
+-- htmlspecialchars ile kacirilmaya devam eder ve link hedefi DAIMA yerel bir
+-- anime_details.php satiridir - saldirganin sectigi bir URL asla degil.
+--
+-- SEMA DEGISIKLIGI YOKTUR. Yeni tablo, kolon veya ayar anahtari gerekmez;
+-- ozellik tamamen render katmanindadir (files/functions/synopsis_helpers.php).
+-- Bu migration klasorunun tek amaci settings.version'i 1.1.19'a tasimaktir
+-- (runner yorumlari temizler ve bos ifade listesiyle surumu damgalar; bu
+-- dosyada calistirilacak SQL ifadesi yoktur).
+--
+-- MERKEZ KATALOG ETKISI YOKTUR - degisiklik yalnizca app tarafindadir. Konu
+-- metnindeki kisa kod katalog teline duz metin olarak gider; katalog
+-- sunucusunda (catalog_server/) elle bir islem GEREKMEZ.
+-- =====================================================================

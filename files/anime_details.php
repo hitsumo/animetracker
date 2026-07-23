@@ -348,7 +348,7 @@ if ($country_name !== ''):
                 <div class="detail-row">
                     <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.synopsis'), ENT_QUOTES, 'UTF-8'); ?></span>
                     <div class="detail-value synopsis">
-                        <?php echo nl2br(htmlspecialchars($showSyn)); ?>
+                        <?php echo render_synopsis($pdo, $showSyn); ?>
                         <?php if ($enLabeled): ?>
                         <span class="synopsis-meta">
                             <span class="synopsis-status synopsis-status-<?php echo htmlspecialchars($transStatus, ENT_QUOTES, 'UTF-8'); ?>"></span>
@@ -367,7 +367,7 @@ if ($country_name !== ''):
                 <?php if ($hasPersonal): ?>
                 <div class="detail-row">
                     <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.user_synopsis'), ENT_QUOTES, 'UTF-8'); ?></span>
-                    <span class="detail-value synopsis"><?php echo nl2br(htmlspecialchars($personalSyn)); ?></span>
+                    <span class="detail-value synopsis"><?php echo render_synopsis($pdo, $personalSyn); ?></span>
                 </div>
                 <?php endif; ?>
 

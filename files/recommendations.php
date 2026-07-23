@@ -543,6 +543,10 @@ $useCombinedTemplates  = ($totalEmotionsSelected > 0);
                 } else {
                     $synopsis = $surpriseAnime['synopsis_tr'] ?? '';
                 }
+                // 1.1.19 - reduce any [[anime:..]] shortcode to its plain
+                // label before truncating, so the teaser never shows raw
+                // markup or a shortcode sliced in half by the 200-char cut.
+                $synopsis = synopsis_plain($synopsis);
                 if (mb_strlen($synopsis) > 200) {
                     $synopsis = mb_substr($synopsis, 0, 200) . '...';
                 }

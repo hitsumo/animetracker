@@ -142,3 +142,16 @@ body {
 .synopsis-status-reviewed {
     background-color: #2e9e4f;
 }
+
+/* Inline anime link inside a synopsis (1.1.19), produced from the
+   [[anime:<mal_id>|label]] shortcode by render_synopsis(). Kept subtle so
+   the reference reads as part of the prose, not a button. */
+.synopsis-link {
+    color: #3a7bd5;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.synopsis-link:hover {
+    color: #285a9e;
+}
