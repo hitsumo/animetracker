@@ -81,6 +81,23 @@
 -- calistirir; tekrar calismada gelen 1091 (kolon yok) hatasi yok sayilir ve
 -- settings.version 1.1.21'e tasinir.
 
+-- (0) YENIDEN CALISTIRILABILIRLIK KALKANI.
+--
+-- Asagidaki kurtarma adimlari title_english'i OKUR. Kolon bu migration
+-- tamamlanmadan once kaybolduysa (yarim kalmis bir kosu, ya da operatorun
+-- merkez katalog icin verilen elle ALTER'i yanlislikla UYGULAMA veritabaninda
+-- calistirmasi) o adimlar 1054 "Unknown column" verir - ve 1054 runner'in
+-- idempotent listesinde OLMADIGI icin yukseltme kalici olarak KILITLENIRDI.
+--
+-- Cozum: kolonu once geri ekle. Zaten duruyorsa MySQL 1060 (duplicate column)
+-- verir, runner onu yok sayar ve devam eder. Kayipsa bos (tumu NULL) olarak
+-- geri gelir; kurtarma adimlari o satirlarda yapacak is bulamaz (dogru
+-- davranis - isimler zaten etiketlenmis olduğu icin kaybolmustu) ve kolon
+-- en sonda yine dusurulur. Her iki durumda da sonuc AYNI.
+ALTER TABLE `animes` ADD COLUMN `title_english` varchar(255) DEFAULT NULL;
+
+ALTER TABLE `catalog_requests` ADD COLUMN `title_english` varchar(255) DEFAULT NULL;
+
 -- (1) Ayni metin listede etiketsiz duruyorsa: yerinde [en] ile etiketle.
 UPDATE `animes`
    SET `alternative_titles` = TRIM(BOTH '|' FROM REPLACE(
@@ -133,12 +150,24 @@ UPDATE `catalog_requests`
         OR CONCAT('|', `alternative_titles`, '|') NOT LIKE '%|[en]%');
 
 -- (4) Tercih gocu: boolean -> dil kodu.
-INSERT INTO `user_pref` (`user_id`, `name`, `value`)
-SELECT `user_id`, 'display_title_lang', 'en'
-  FROM `user_pref`
- WHERE `name` = 'display_title_english' AND `value` = '1'
-ON DUPLICATE KEY UPDATE `value` = `value`;
+--
+-- Satiri YERINDE yeniden adlandiriyoruz: ayni satir hem anahtar adini hem
+-- degerini degistirir. (Ilk yazimda bu bir INSERT ... SELECT + ON DUPLICATE
+-- KEY UPDATE idi; kaynak tablo hedefin AYNISI oldugu icin MySQL "Column
+-- 'value' in field list is ambiguous" (1052) verip migration'i dusurdu.
+-- Tek tablolu UPDATE'te belirsizlik yoktur.)
+--
+-- IGNORE su nadir durum icin: kullanicinin ZATEN bir display_title_lang
+-- satiri varsa yeniden adlandirma birincil anahtari (user_id, name) ihlal
+-- ederdi. IGNORE o satiri atlar, asagidaki DELETE eskisini yine temizler -
+-- yani mevcut secim korunur. 1062 idempotent listesinde OLMADIGI icin bu
+-- onemli: IGNORE olmasaydi migration orada patlardi.
+UPDATE IGNORE `user_pref`
+   SET `name` = 'display_title_lang', `value` = 'en'
+ WHERE `name` = 'display_title_english' AND `value` = '1';
 
+-- Geriye kalan (deger '0' ya da yeniden adlandirilamamis) eski satirlari sil;
+-- okuyan kod kalmadi ve varsayilan zaten Romaji.
 DELETE FROM `user_pref` WHERE `name` = 'display_title_english';
 
 -- (5) Kolonu emekli et.

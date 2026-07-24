@@ -62,6 +62,10 @@
   senkronu etiketleri sunucudaki eski sürümle ezmiş olabilir.
 - Tercih göçü aynı dosyada: `display_title_english = '1'` olan kullanıcılar
   `display_title_lang = 'en'` olur, eski satırlar silinir.
+- **Migration yeniden çalıştırılabilir.** İlk iş olarak kolonu geri ekler
+  (zaten varsa hata yok sayılır). Böylece yarım kalmış bir yükseltme ya da
+  kolonun elle düşürülmüş olması yükseltmeyi kilitlemez — kurtarma adımları
+  okuyacak bir kolon bulur, sonda yine düşürülür, sonuç her iki durumda aynı.
 
 ## Merkez katalog sunucusunda elle işlem GEREKİR
 

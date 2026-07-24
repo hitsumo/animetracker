@@ -64,6 +64,11 @@
 - The preference migration is in the same file: users with
   `display_title_english = '1'` become `display_title_lang = 'en'`, and the old
   rows are deleted.
+- **The migration is restartable.** Its first act is to re-add the column (a
+  "duplicate column" error is ignored when it is still there). So a half-finished
+  upgrade, or a column dropped by hand, cannot lock the upgrade out — the rescue
+  steps find a column to read, it is dropped again at the end, and the outcome is
+  identical either way.
 
 ## Manual work IS required on the central catalog server
 
