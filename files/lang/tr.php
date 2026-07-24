@@ -110,6 +110,18 @@ return [
     'country.us'                    => 'Amerika Birleşik Devletleri',
     'country.fr'                    => 'Fransa',
 
+    // 1.1.20: alternatif isim dilleri. animes.alternative_titles her ismin
+    // önüne isteğe bağlı bir [xx] etiketi koyar ([en]My Neighbor Totoro);
+    // kullanıcı kodu ne yazar ne görür - ekle/düzenle formundaki açılır kutu
+    // bu adları basar. Yeni dil eklemek için title_lang_helpers.php'deki
+    // title_lang_codes() haritasına bir satır + buraya bir satır yeterli.
+    'title_lang.en'                 => 'İngilizce',
+    'title_lang.ja'                 => 'Japonca',
+    'title_lang.tr'                 => 'Türkçe',
+    'title_lang.zh'                 => 'Çince',
+    'title_lang.ko'                 => 'Korece',
+    'title_lang.fr'                 => 'Fransızca',
+
     // Broadcast status values (free text in animes.status, kept as
     // Turkish constants in the DB for now). 1.1.10: three new values
     // (not_started / unselected / cancelled) alongside the original two.
@@ -291,9 +303,8 @@ return [
 
     // Input placeholders
     'add_anime.ph.alternative_title'         => 'Alternatif isim',
-    'add_anime.label.title_english'          => 'İngilizce Başlık:',
-    'add_anime.ph.title_english'             => 'İngilizce başlık (opsiyonel)',
-    'add_anime.hint.title_english'           => 'İsteğe bağlı. Doldurulduğunda, Liste Ayarları\'nda "İngilizce başlıkları göster" açıksa Romaji başlık yerine bu gösterilir.',
+    'add_anime.opt.alt_title_lang_none'      => '— Dil belirtilmedi',
+    'add_anime.hint.alternative_titles'      => 'Her alternatif ismin dilini yanındaki kutudan seçebilirsiniz. "İngilizce" seçtiğiniz isim, Liste Ayarları\'nda "İngilizce başlıkları göster" açıkken Romaji başlık yerine gösterilir.',
     'add_anime.ph.synopsis'                  => 'Animenin konusunu yazın',
     'add_anime.label.synopsis_en'            => 'Konu (EN):',
     'add_anime.ph.synopsis_en'               => 'Animenin İngilizce konusu (AI ile çevrilmiş)',

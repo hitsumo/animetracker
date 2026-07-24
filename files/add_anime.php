@@ -56,7 +56,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     $title = $_POST['title'];
-    $title_english = trim($_POST['title_english'] ?? '');
     $status = $_POST['status'];
     $total_episodes = $_POST['total_episodes'] ?? null;
     $aired_episodes = $_POST['aired_episodes'] ?? null;
@@ -70,7 +69,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $watched_episodes = $_POST['watched_episodes'] ?? 0;
     if ($watched_episodes === '') { $watched_episodes = 0; }
     $notes = $_POST['notes'];
-    $alternative_titles = isset($_POST['alternative_titles']) ? array_filter($_POST['alternative_titles']) : [];
+    // 1.1.20 - alternatif isimler artik dil etiketi tasir. build_alt_titles()
+    // isim ve dil dizilerini tek bir kolon degerine cevirir ([en]Title|...);
+    // bos satirlari ve gecersiz dil kodlarini kendisi eler, bu yuzden burada
+    // ayrica array_filter'a gerek yok.
+    $alternative_titles = build_alt_titles(
+        $_POST['alternative_titles'] ?? [],
+        $_POST['alt_title_langs']    ?? []
+    );
+    // Ayri "Ingilizce Baslik" alani 1.1.20'de kaldirildi: title_english artik
+    // listedeki [en] etiketli isimden TURETILIR. Kolon duruyor cunku
+    // display_title() (dolayisiyla her liste sayfasi) ve katalog senkronu
+    // onu okuyor - kullanici ismi yine tek bir yere yaziyor.
+    $title_english = alt_title_for_lang($alternative_titles, 'en');
     // POST'tan gelen secilen turler. Bu degisken adi DB'den cekilen tum turler
     // listesi ($genres) ile cakismamasi icin kasten "posted_genres" olarak
     // adlandirildi - aksi halde form render asamasinda dropdown icin gereken
@@ -284,7 +295,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $stmt->execute([
             $title,
             $title_english !== '' ? $title_english : null,
-            !empty($alternative_titles) ? implode('|', $alternative_titles) : '',
+            $alternative_titles,
             $status,
             $total_episodes,
             $aired_episodes,
@@ -542,12 +553,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </div>
         </div>
 
+        <?php // 1.1.20: her alternatif isim satiri kendi dil kutusunu tasir.
+              // alternative_titles[] ve alt_title_langs[] KONUMSAL IKIZ - ikisi
+              // de ayni .field-group icinde durdugu icin tarayici birini
+              // digeri olmadan gonderemez. "Ingilizce" secilen satir kaydetme
+              // aninda title_english'e turetilir; 1.1.19'daki ayri "Ingilizce
+              // Baslik" kutusu bu yuzden kaldirildi (bkz. title_lang_helpers.php). ?>
         <div class="form-group">
             <label><?php echo htmlspecialchars(t('add_anime.label.alternative_titles'), ENT_QUOTES, 'UTF-8'); ?></label>
             <div class="input-area">
                 <div id="alternative-titles" class="dynamic-fields">
                     <div class="field-group">
                         <input type="text" name="alternative_titles[]" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.alternative_title'), ENT_QUOTES, 'UTF-8'); ?>">
+                        <select name="alt_title_langs[]" class="alt-title-lang">
+                            <option value=""><?php echo htmlspecialchars(t('add_anime.opt.alt_title_lang_none'), ENT_QUOTES, 'UTF-8'); ?></option>
+                            <?php foreach (title_lang_options() as $l_code => $l_label): ?>
+                            <option value="<?php echo htmlspecialchars($l_code, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($l_label, ENT_QUOTES, 'UTF-8'); ?></option>
+                            <?php endforeach; ?>
+                        </select>
                         <button type="button" class="remove-button" onclick="removeField(this)">
                             <i class="fas fa-times"></i>
                         </button>
@@ -556,14 +579,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <button type="button" class="add-button" onclick="addAlternativeTitle()">
                     <i class="fas fa-plus"></i> <?php echo htmlspecialchars(t('add_anime.btn.add_alternative_title'), ENT_QUOTES, 'UTF-8'); ?>
                 </button>
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label for="title_english"><?php echo htmlspecialchars(t('add_anime.label.title_english'), ENT_QUOTES, 'UTF-8'); ?></label>
-            <div class="input-area">
-                <input type="text" id="title_english" name="title_english" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.title_english'), ENT_QUOTES, 'UTF-8'); ?>">
-                <small class="form-text text-muted"><?php echo htmlspecialchars(t('add_anime.hint.title_english'), ENT_QUOTES, 'UTF-8'); ?></small>
+                <small class="form-text text-muted"><?php echo htmlspecialchars(t('add_anime.hint.alternative_titles'), ENT_QUOTES, 'UTF-8'); ?></small>
             </div>
         </div>
 
@@ -893,6 +909,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         'create_new_tag_prefix'        => t('add_anime.js.create_new_tag_prefix'),
         'no_file'                      => t('add_anime.file.no_file'),
         'alternative_title_placeholder' => t('add_anime.ph.alternative_title'),
+        'alt_title_lang_none'          => t('add_anime.opt.alt_title_lang_none'),
         'enter_animeschedule_url'      => t('add_anime.js.enter_animeschedule_url'),
         'fetching'                     => t('add_anime.js.fetching'),
         'unknown_error'                => t('add_anime.js.unknown_error'),
@@ -903,10 +920,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     ], JSON_UNESCAPED_UNICODE); ?>;
 
     // Paylasilan form JS'i icin baslangic durumu (add: bos secimler).
+    // titleLangs: addAlternativeTitle() yeni satirin dil kutusunu bundan
+    // uretir (1.1.20). Bos "dil belirtilmedi" secenegi listede DEGIL -
+    // PHP tarafindaki gibi JS de onu kendisi basar.
     const ANIME_FORM = {
         allTags: <?php echo json_encode(array_map(function($t) { return $t['name']; }, $allTags), JSON_UNESCAPED_UNICODE); ?>,
         genres: [],
-        tags: []
+        tags: [],
+        titleLangs: <?php echo json_encode(title_lang_options(), JSON_UNESCAPED_UNICODE); ?>
     };
     </script>
     <script src="js/anime_form.js"></script>

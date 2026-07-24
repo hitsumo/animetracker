@@ -39,12 +39,34 @@ function updateFileName(input) {
 }
 
 // --- Alternatif basliklar ---
+// 1.1.20: her satir bir isim + bir dil kutusu tasir. Ikisi ayni
+// .field-group icinde durur, boylece removeField() ikisini birlikte siler ve
+// POST'ta alternative_titles[i] ile alt_title_langs[i] hep ayni satiri
+// gosterir (sunucu tarafi build_alt_titles() bu eslesmeye guveniyor).
+//
+// Dil listesi ANIME_FORM.titleLangs'ten gelir (PHP title_lang_options()).
+// "Dil belirtilmedi" secenegi listede degildir, PHP formundaki gibi burada
+// da elle basilir - yeni satir daima dilsiz baslar.
+function altTitleLangOptionsHtml() {
+    const langs = (typeof ANIME_FORM !== 'undefined' && ANIME_FORM.titleLangs)
+        ? ANIME_FORM.titleLangs : {};
+    let html = `<option value="">${escapeHtml(LANG.alt_title_lang_none)}</option>`;
+    for (const code in langs) {
+        if (!Object.prototype.hasOwnProperty.call(langs, code)) continue;
+        html += `<option value="${escapeHtml(code)}">${escapeHtml(langs[code])}</option>`;
+    }
+    return html;
+}
+
 function addAlternativeTitle() {
     const container = document.getElementById('alternative-titles');
     const newField = document.createElement('div');
     newField.className = 'field-group';
     newField.innerHTML = `
-        <input type="text" name="alternative_titles[]" placeholder="${LANG.alternative_title_placeholder}">
+        <input type="text" name="alternative_titles[]" placeholder="${escapeHtml(LANG.alternative_title_placeholder)}">
+        <select name="alt_title_langs[]" class="alt-title-lang">
+            ${altTitleLangOptionsHtml()}
+        </select>
         <button type="button" class="remove-button" onclick="removeField(this)">
             <i class="fas fa-times"></i>
         </button>

@@ -275,6 +275,38 @@ tr:hover {
     margin-right: 10px; /* Input ile silme butonu arası ek boşluk */
 }
 
+/* 1.1.20 - alternatif isim satırındaki dil kutusu.
+   components.css her <select>'e width:100% verir. Flex satırının içinde bu,
+   dil kutusunu tüm genişliğe yayıp isim kutusunu (flex:1, yani flex-basis 0)
+   sıfıra sıkıştırır - bu kural o yüzden var. Kural tarayıcıya ULAŞMAZSA
+   (eski list.css önbellekte kalırsa) satır tam olarak o bozuk hâle döner;
+   belirti buysa CSS'i sabit zannetmeden önce önbelleği temizleyin.
+   width SABİT DEĞİL, bilinçli olarak auto: kutu aktif dildeki EN UZUN
+   seçeneğe göre boyutlanır ("— Dil belirtilmedi" / "— No language set"
+   farklı uzunlukta). Sabit genişlik verilseydi bir dilde sığan etiket
+   diğerinde kırpılırdı. min-width yalnızca alt sınırdır.
+   Büyüme/küçülme kapalı: isim kutusu kalan yeri alır, dil kutusu ve silme
+   butonu sabit kalır. */
+.field-group select.alt-title-lang {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 170px;
+}
+
+/* Dar ekranda üç eleman (isim + dil + silme) yan yana sıkışıyor; satırı
+   sardırıp isim kutusunu tam genişliğe alıyoruz, dil kutusu ve silme
+   butonu alt satırda yan yana kalıyor. */
+@media (max-width: 768px) {
+    .field-group {
+        flex-wrap: wrap;
+    }
+
+    .field-group input[type="text"] {
+        flex: 1 0 100%;
+        margin-right: 0;
+    }
+}
+
 /* Alternatif isim ekleme butonu için stil */
 .add-button {
     margin-top: 10px; /* Üstteki alan ile mesafe */

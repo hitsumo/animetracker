@@ -90,6 +90,18 @@ return [
     'country.us'                    => 'United States',
     'country.fr'                    => 'France',
 
+    // 1.1.20: alternative-title languages. animes.alternative_titles gives
+    // each name an optional [xx] prefix ([en]My Neighbor Totoro); the user
+    // never types or sees the code - the dropdown on the add/edit form
+    // prints these names. To add a language: one line in title_lang_codes()
+    // in title_lang_helpers.php plus one line here.
+    'title_lang.en'                 => 'English',
+    'title_lang.ja'                 => 'Japanese',
+    'title_lang.tr'                 => 'Turkish',
+    'title_lang.zh'                 => 'Chinese',
+    'title_lang.ko'                 => 'Korean',
+    'title_lang.fr'                 => 'French',
+
     // Broadcast status labels. The DB stores the Turkish strings as
     // free-text values in animes.status (legacy), so the lookup is
     // done by exact string match in PHP before the label is shown.
@@ -258,9 +270,8 @@ return [
 
     // Input placeholders
     'add_anime.ph.alternative_title'         => 'Alternative title',
-    'add_anime.label.title_english'          => 'English Title:',
-    'add_anime.ph.title_english'             => 'English title (optional)',
-    'add_anime.hint.title_english'           => 'Optional. When filled, this is shown instead of the Romaji title if "show English titles" is enabled in List Settings.',
+    'add_anime.opt.alt_title_lang_none'      => '— No language set',
+    'add_anime.hint.alternative_titles'      => 'You can pick each alternative title\'s language in the box next to it. The one marked "English" is shown instead of the Romaji title while "show English titles" is enabled in List Settings.',
     'add_anime.ph.synopsis'                  => 'Write the anime synopsis',
     'add_anime.label.synopsis_en'            => 'Synopsis (EN):',
     'add_anime.ph.synopsis_en'               => 'English synopsis (AI-translated)',

@@ -141,7 +141,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     $title = $_POST['title'];
-    $title_english = trim($_POST['title_english'] ?? '');
     $status = $_POST['status'];
     $total_episodes = $_POST['total_episodes'] ?? null;
     $aired_episodes = $_POST['aired_episodes'] ?? null;
@@ -154,7 +153,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $watched_episodes = $_POST['watched_episodes'] ?? 0;
     if ($watched_episodes === '') { $watched_episodes = 0; }
     $notes = $_POST['notes'];
-    $alternative_titles = isset($_POST['alternative_titles']) ? array_filter($_POST['alternative_titles']) : [];
+    // 1.1.20 - alternatif isimler artik dil etiketi tasir. build_alt_titles()
+    // isim ve dil dizilerini tek bir kolon degerine cevirir ([en]Title|...);
+    // bos satirlari ve gecersiz dil kodlarini kendisi eler, bu yuzden burada
+    // ayrica array_filter'a gerek yok.
+    $alternative_titles = build_alt_titles(
+        $_POST['alternative_titles'] ?? [],
+        $_POST['alt_title_langs']    ?? []
+    );
+    // Ayri "Ingilizce Baslik" alani 1.1.20'de kaldirildi: title_english artik
+    // listedeki [en] etiketli isimden TURETILIR. Formu acan kullanici o ismi
+    // gormus olur (alt_titles_for_form() eski kayitlari da etiketleyerek
+    // gosterir), dolayisiyla kaydetmek onu sessizce silmez.
+    $title_english = alt_title_for_lang($alternative_titles, 'en');
     // POST'tan gelen secilen turler. Bu degisken adi DB'den cekilen tum turler
     // listesi ($genres) ile cakismamasi icin kasten "posted_genres" olarak
     // adlandirildi - aksi halde form render asamasinda dropdown icin gereken
@@ -449,7 +460,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $stmt->execute([
             $title,
             $title_english !== '' ? $title_english : null,
-            implode('|', $alternative_titles),
+            $alternative_titles,
             $status,
             $total_episodes,
             $aired_episodes,
@@ -652,8 +663,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     exit();
 }
 
-// Alternatif isimleri diziye cevir
-$alternative_titles = !empty($anime['alternative_titles']) ? explode('|', $anime['alternative_titles']) : [];
+// Alternatif isimleri forma uygun satirlara cevir (1.1.20). Her satir
+// ['lang' => 'en'|'', 'title' => '...'] seklinde gelir. alt_titles_for_form()
+// ayrica ESKI KAYITLARI da toparlar: dil etigi olmayan ama title_english
+// dolu bir satir (migration gormemis katalog kopyasi) Ingilizce isaretli
+// olarak listeye eklenir - aksi halde kullanici formu acip kaydettiginde
+// title_english artik listeden turetildigi icin sessizce silinirdi.
+$alternative_titles = alt_titles_for_form($anime);
 // Mevcut turleri JOIN tablosundan cek (form yuklenirken rozet ve hidden
 // input dolumu icin). Helper id+name doner; alttaki kullanim noktalari
 // (hidden input value, JS init) sadece name listesine ihtiyac duyuyor.
@@ -724,13 +740,25 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                 </div>
             </div>
 
+            <?php // 1.1.20: her alternatif isim satiri kendi dil kutusunu tasir.
+                  // alternative_titles[] ve alt_title_langs[] KONUMSAL IKIZ - ikisi
+                  // de ayni .field-group icinde durdugu icin tarayici birini
+                  // digeri olmadan gonderemez. "Ingilizce" secilen satir kaydetme
+                  // aninda title_english'e turetilir; 1.1.19'daki ayri "Ingilizce
+                  // Baslik" kutusu bu yuzden kaldirildi (bkz. title_lang_helpers.php). ?>
             <div class="form-group">
                 <label><?php echo htmlspecialchars(t('add_anime.label.alternative_titles'), ENT_QUOTES, 'UTF-8'); ?></label>
                 <div class="input-area">
                     <div id="alternative-titles" class="dynamic-fields">
-                        <?php foreach ($alternative_titles as $alt_title): ?>
+                        <?php foreach ($alternative_titles as $alt_row): ?>
                             <div class="field-group">
-                                <input type="text" name="alternative_titles[]" value="<?php echo htmlspecialchars($alt_title); ?>">
+                                <input type="text" name="alternative_titles[]" value="<?php echo htmlspecialchars($alt_row['title']); ?>">
+                                <select name="alt_title_langs[]" class="alt-title-lang">
+                                    <option value=""><?php echo htmlspecialchars(t('add_anime.opt.alt_title_lang_none'), ENT_QUOTES, 'UTF-8'); ?></option>
+                                    <?php foreach (title_lang_options() as $l_code => $l_label): ?>
+                                    <option value="<?php echo htmlspecialchars($l_code, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $alt_row['lang'] === $l_code ? ' selected' : ''; ?>><?php echo htmlspecialchars($l_label, ENT_QUOTES, 'UTF-8'); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
                                 <button type="button" class="remove-button" onclick="removeField(this)">
                                     <i class="fas fa-times"></i>
                                 </button>
@@ -740,14 +768,7 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                     <button type="button" class="add-button" onclick="addAlternativeTitle()">
                         <i class="fas fa-plus"></i> <?php echo htmlspecialchars(t('add_anime.btn.add_alternative_title'), ENT_QUOTES, 'UTF-8'); ?>
                     </button>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="title_english"><?php echo htmlspecialchars(t('add_anime.label.title_english'), ENT_QUOTES, 'UTF-8'); ?></label>
-                <div class="input-area">
-                    <input type="text" id="title_english" name="title_english" value="<?php echo htmlspecialchars($anime['title_english'] ?? ''); ?>" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.title_english'), ENT_QUOTES, 'UTF-8'); ?>">
-                    <small class="form-text text-muted"><?php echo htmlspecialchars(t('add_anime.hint.title_english'), ENT_QUOTES, 'UTF-8'); ?></small>
+                    <small class="form-text text-muted"><?php echo htmlspecialchars(t('add_anime.hint.alternative_titles'), ENT_QUOTES, 'UTF-8'); ?></small>
                 </div>
             </div>
 
@@ -1228,6 +1249,7 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
         const LANG = <?php echo json_encode([
             'no_file'                       => t('add_anime.file.no_file'),
             'alternative_title_placeholder' => t('add_anime.ph.alternative_title'),
+            'alt_title_lang_none'           => t('add_anime.opt.alt_title_lang_none'),
             'genre_add_failed'              => t('add_anime.js.genre_add_failed'),
             'create_new_tag_prefix'         => t('add_anime.js.create_new_tag_prefix'),
             'enter_animeschedule_url'       => t('add_anime.js.enter_animeschedule_url'),
@@ -1246,10 +1268,14 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
         ], JSON_UNESCAPED_UNICODE); ?>;
 
         // Paylasilan form JS'i icin baslangic durumu (edit: mevcut secimler).
+        // titleLangs: addAlternativeTitle() yeni satirin dil kutusunu bundan
+        // uretir (1.1.20). Bos "dil belirtilmedi" secenegi listede DEGIL -
+        // PHP tarafindaki gibi JS de onu kendisi basar.
         const ANIME_FORM = {
             allTags: <?php echo json_encode(array_map(function($t) { return $t['name']; }, $allTags), JSON_UNESCAPED_UNICODE); ?>,
             genres: <?php echo json_encode($selected_genres); ?>,
-            tags: <?php echo json_encode($selected_tag_names, JSON_UNESCAPED_UNICODE); ?>
+            tags: <?php echo json_encode($selected_tag_names, JSON_UNESCAPED_UNICODE); ?>,
+            titleLangs: <?php echo json_encode(title_lang_options(), JSON_UNESCAPED_UNICODE); ?>
         };
 
         // edit_anime'a OZGU: yayin tamamlandi anime icin yayin detaylarini sayfa

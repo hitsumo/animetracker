@@ -41,7 +41,16 @@ SET time_zone = "+00:00";
 -- Title fields:
 --   title             - Romaji title (Latin-script Japanese), used as the
 --                       default everywhere and language-independent.
---   alternative_titles - Pipe-separated alternates, language-unspecified.
+--   alternative_titles - Pipe-separated alternates. Since 1.1.20 an entry
+--                       MAY carry an optional two-letter language tag:
+--                         [en]My Neighbor Totoro|[ja]となりのトトロ|Totoro
+--                       Only codes listed in title_lang_codes()
+--                       (title_lang_helpers.php) count as a tag; anything
+--                       else is plain title text, so "Re:Zero ..." and
+--                       "[TV] Bleach" survive intact. Untagged pre-1.1.20
+--                       text parses unchanged. The column type did NOT
+--                       change, so tagged text rides the existing catalog
+--                       sync with no server-side ALTER.
 --   title_english     - Optional English/localized title (0.7.2). Shown
 --                       instead of the Romaji title ONLY when the user
 --                       enables the "show English titles" preference
@@ -50,6 +59,13 @@ SET time_zone = "+00:00";
 --                       is shown. Independent of the UI language - the
 --                       preference is a separate toggle. Part of the
 --                       catalog sync chain (lives on this row).
+--                       NOT USER-ENTERED SINCE 1.1.20: the separate
+--                       "English Title" form field was removed and this is
+--                       now DERIVED on save from the [en]-tagged entry in
+--                       alternative_titles. It survives as a display
+--                       shortcut so display_title() and every list page
+--                       stayed untouched in that release; 1.1.21 moves
+--                       display onto the tags and retires the column.
 --
 -- External links:
 --   anidb_link, mal_link, anime_schedule_link - Optional URLs to the
@@ -349,7 +365,12 @@ CREATE TABLE IF NOT EXISTS `chronology_markers` (
 --   name_en - English sentence (0.7.2). NULL until filled. Same fallback
 --             rule as genres.name_en: shown only when the UI language is
 --             English and non-empty, otherwise the TR sentence is used.
---             LOCAL-ONLY (not in the catalog wire format yet, Faz 2).
+--             SYNCED since 0.7.7: push/pull carry it as a separate
+--             translation map (tag_name_en / genre_name_en), keyed by the
+--             Turkish name. The catalog is authoritative when it sends a
+--             non-empty value; a missing/empty one never clears a local
+--             translation. (This note previously said LOCAL-ONLY / Faz 2 -
+--             that was true in 0.7.2 only.)
 --
 -- Tags are admin-managed (manage_tags.php) and propagated to clients
 -- via the catalog API just like chronology_markers.
