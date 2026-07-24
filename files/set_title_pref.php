@@ -1,30 +1,33 @@
 <?php
 /**
- * Anime Tracker - English-title Preference Endpoint (0.7.2)
+ * Anime Tracker - Title-language Preference Endpoint (0.7.2, reworked 1.1.21)
  * https://www.sicakcikolata.com
  * Copyright (C) 2025 Okan Sumer
  * Licensed under GNU General Public License v2
  *
- * POST endpoint that toggles the "show English titles" preference.
- * Called by the small checkbox/toggle in list_settings.php (a tiny
- * CSRF-protected form posting to this file).
+ * POST endpoint that sets the "Title Language" preference. Called by the
+ * <select> in list_settings.php (a tiny CSRF-protected form posting here).
  *
  * Required POST fields:
  *   csrf_token  - CSRF protection token
- *   enabled     - '1' to prefer English titles, anything else = off
+ *   lang        - a language code from title_lang_codes() ('en', 'ja', ...),
+ *                 or '' for Romaji (the default)
  *
- * The choice is written to the settings table under the key
- * 'display_title_english' (created on first use, same runtime-key
- * family as display_language / last_aired_sync). No migration needed.
+ * The choice is written to user_pref under the key 'display_title_lang'.
  *
- * This preference is INDEPENDENT of the UI language: it only decides
- * whether title_english (when present) is shown instead of the Romaji
- * title. See anime_helpers.php display_title() / show_english_titles().
+ * 1.1.21: this used to take a BOOLEAN 'enabled' field and write
+ * 'display_title_english' ('1'/'0'), because the only alternative to Romaji
+ * was the dedicated title_english column. That column is gone - titles now
+ * carry [xx] language tags inside alternative_titles, so ANY language can be
+ * the display language. The old pref rows are migrated in 1.1.21 ('1' -> 'en').
  *
- * Why a POST endpoint instead of GET: same reasoning as
- * set_language.php - per KARARLAR Bolum 1 state-changing operations
- * must be CSRF protected, and a GET handler would let any external
- * link flip the preference for the user.
+ * This preference is INDEPENDENT of the UI language: it only decides WHICH
+ * language's title is shown. See anime_helpers.php display_title() /
+ * display_title_lang().
+ *
+ * Why a POST endpoint instead of GET: same reasoning as set_language.php -
+ * per KARARLAR Bolum 1 state-changing operations must be CSRF protected, and
+ * a GET handler would let any external link flip the preference for the user.
  */
 
 require_once __DIR__ . '/db.php';
@@ -43,11 +46,16 @@ if (!csrf_verify($_POST['csrf_token'] ?? '')) {
     die('CSRF tokeni gecersiz. Sayfayi yenileyip tekrar deneyin.');
 }
 
-// Normalize to a strict '1' / '0'. Any value other than '1' turns the
-// preference off, so a missing or tampered field defaults to Romaji.
-$enabled = (($_POST['enabled'] ?? '') === '1') ? '1' : '0';
-// display_title_english is a per-user preference (user_pref, 1.0.1).
-set_user_pref($pdo, current_user_id(), 'display_title_english', $enabled);
+// Whitelist against title_lang_codes(). Anything unrecognised - a missing
+// field, a hand-crafted POST, or a language later removed from the map -
+// stores '' and therefore falls back to Romaji, so the preference can never
+// hold a code that display_title() would not be able to resolve.
+$lang = strtolower(trim((string)($_POST['lang'] ?? '')));
+if (!is_valid_title_lang($lang)) {
+    $lang = '';
+}
+// display_title_lang is a per-user preference (user_pref, 1.0.1).
+set_user_pref($pdo, current_user_id(), 'display_title_lang', $lang);
 
 // Redirect back to the page that triggered the toggle, with the same
 // same-host Referer hardening as set_language.php.

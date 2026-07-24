@@ -492,9 +492,14 @@ textarea:focus {
 }
 
 
-/* 0.7.2 - English-title toggle (list_settings) and inline EN-name
-   editor rows (manage_genres). Cosmetic only; the controls work
-   without these rules, these just keep the layout tidy. */
+/* 0.7.2 - checkbox row in list_settings, and inline EN-name editor rows
+   (manage_genres). Cosmetic only; the controls work without these rules,
+   these just keep the layout tidy.
+
+   NAME IS HISTORICAL: this started as the "show English titles" toggle. In
+   1.1.21 that control became a language <select> and no longer uses the
+   class - but the +18 content checkbox borrowed it, so the rules are still
+   live. Renaming would touch that unrelated section, so the old name stays. */
 .title-lang-toggle {
     display: inline-flex;
     align-items: center;

@@ -309,85 +309,100 @@ function checkIfAnimeCompleted($pdo, $anime) {
 }
 
 /**
- * English-title display preference (0.7.2).
+ * Title-language display preference (0.7.2, reworked in 1.1.21).
  *
- * The "show English titles" toggle is a per-user preference
- * stored in the user_pref table under the key display_title_english
- * ('1' = on, '0'/absent = off). It is INDEPENDENT of the UI language:
- * a user reading the Turkish interface can still choose to see English
- * titles, and vice versa. This mirrors the runtime-key family
- * (display_language, last_aired_sync, ...) so no migration is needed.
+ * The "Title Language" picker is a per-user preference stored in the
+ * user_pref table under the key display_title_lang. Its value is a
+ * language code from title_lang_codes() ('en', 'ja', 'tr', ...), or the
+ * EMPTY STRING meaning "Romaji" - the default everywhere. It is
+ * INDEPENDENT of the UI language: a user reading the Turkish interface
+ * can still choose to see Japanese titles, and vice versa.
  *
- * The three helpers below follow the same load/report/render shape as
- * the i18n and watch_status helper families:
- *   title_pref_init($pdo)  - read the setting once into a static cache.
- *   show_english_titles()  - report the cached preference (false until
- *                            init is called, so a page that forgets to
- *                            init simply shows Romaji - least surprise).
- *   display_title($anime)  - render the right title for a row.
+ * WHAT CHANGED IN 1.1.21: this used to be a BOOLEAN (display_title_english,
+ * '1'/'0') that chose between the Romaji title and the dedicated
+ * animes.title_english column. That column is gone - since 1.1.20 every
+ * alternative title carries its own [xx] language tag, so ANY language can
+ * be the display language and adding one is a one-line change to
+ * title_lang_codes(). The old boolean is migrated in 1.1.21 ('1' -> 'en').
+ *
+ * The three helpers below follow the same load/report/render shape as the
+ * i18n and watch_status helper families:
+ *   title_pref_init($pdo)   - read the preference once into a static cache.
+ *   display_title_lang()    - report the cached code ('' until init runs,
+ *                             so a page that forgets to init simply shows
+ *                             Romaji - least surprise).
+ *   display_title($anime)   - render the right title for a row.
  */
 
 /**
- * Internal cache for the English-title preference. Pulled into its own
+ * Internal cache for the title-language preference. Pulled into its own
  * accessor so init/report share one static without re-implementing it.
  *
- * @param bool|null $write  When non-null, replaces the cached value.
- * @return bool
+ * @param string|null $write  When non-null, replaces the cached value.
+ * @return string             Language code, or '' for Romaji.
  */
 function _title_pref_cache($write = null) {
-    static $enabled = false;
+    static $lang = '';
     if ($write !== null) {
-        $enabled = (bool)$write;
+        $lang = (string)$write;
     }
-    return $enabled;
+    return $lang;
 }
 
 /**
- * Read display_title_english from settings into the static cache.
+ * Read display_title_lang from the user's preferences into the cache.
  *
  * Call once at the top of any page that renders anime titles, right
- * after lang_init($pdo). Subsequent calls in the same request just
- * re-read the (cheap) setting; the value is cached either way.
+ * after lang_init($pdo). An unknown code (hand-edited pref row, or a
+ * language later removed from title_lang_codes()) degrades to Romaji
+ * rather than rendering nothing.
  *
  * @param PDO $pdo
  * @return void
  */
 function title_pref_init($pdo) {
-    // display_title_english is a per-user preference (user_pref, 1.0.1),
+    // display_title_lang is a per-user preference (user_pref, 1.0.1),
     // read for the current user (id 1 when MULTI_USER_MODE is off).
-    _title_pref_cache(get_user_pref($pdo, current_user_id(), 'display_title_english', '0') === '1');
+    $lang = (string)get_user_pref($pdo, current_user_id(), 'display_title_lang', '');
+    _title_pref_cache(is_valid_title_lang($lang) ? strtolower($lang) : '');
 }
 
 /**
- * Report whether English titles are currently preferred.
+ * Report the language code currently preferred for titles.
  *
- * Returns false if title_pref_init() has not run this request, which
- * keeps pages that have not opted in rendering Romaji titles.
+ * Returns '' (Romaji) if title_pref_init() has not run this request,
+ * which keeps pages that have not opted in rendering Romaji titles.
  *
- * @return bool
+ * @return string  Language code, or '' for Romaji.
  */
-function show_english_titles() {
+function display_title_lang() {
     return _title_pref_cache();
 }
 
 /**
  * Render the title to show for an anime row.
  *
- * Returns title_english when the preference is on AND the row has a
- * non-empty title_english; otherwise the Romaji title. The caller is
- * still responsible for htmlspecialchars() on output - this helper only
- * picks which string to show.
+ * Returns the alternative title tagged with the preferred language when
+ * the row HAS one; otherwise the Romaji title. So an anime with no
+ * Turkish title stays Romaji for a user who prefers Turkish - picking a
+ * language the catalog does not carry is harmless, never blank.
  *
- * @param array $anime  A row with 'title' and optionally 'title_english'.
+ * The caller is still responsible for htmlspecialchars() on output -
+ * this helper only picks which string to show.
+ *
+ * Fast path: with the default Romaji preference the tagged list is never
+ * parsed at all, which is what most rows on most requests hit.
+ *
+ * @param array $anime  A row with 'title' and optionally 'alternative_titles'.
  * @return string
  */
 function display_title($anime) {
-    if (
-        show_english_titles()
-        && isset($anime['title_english'])
-        && trim((string)$anime['title_english']) !== ''
-    ) {
-        return $anime['title_english'];
+    $lang = _title_pref_cache();
+    if ($lang !== '' && isset($anime['alternative_titles'])) {
+        $tagged = alt_title_for_lang($anime['alternative_titles'], $lang);
+        if ($tagged !== '') {
+            return $tagged;
+        }
     }
     return $anime['title'] ?? '';
 }
@@ -518,23 +533,28 @@ function adult_filter_where($alias = 'a') {
  *
  * When show_adult_content() is true, or the row is not adult-flagged, the row
  * is returned unchanged. Otherwise the title is replaced with a neutral label
- * and the English title (if present) is cleared so display_title() cannot
- * reveal it either. The row's id/link is left intact: it points at the detail
- * page, which is itself gated, so following it only shows the neutral notice.
+ * and the tagged alternative titles (if present) are cleared so display_title()
+ * cannot reveal the name in some other language either. The row's id/link is
+ * left intact: it points at the detail page, which is itself gated, so
+ * following it only shows the neutral notice.
+ *
+ * 1.1.21: $altKey used to name the title_english column. Clearing ONE English
+ * column is no longer enough - the name can now be tagged in any language
+ * inside alternative_titles, so the whole tagged list is what must be dropped.
  *
  * @param array  $row       The related row (returns a copy).
  * @param string $flagKey   Key holding the is_adult flag (0/1).
  * @param string $titleKey  Key holding the (Romaji) title to mask.
- * @param string $enKey     Key holding the English title to clear.
+ * @param string $altKey    Key holding the tagged alternative titles to clear.
  * @return array
  */
-function adult_mask_related(array $row, $flagKey, $titleKey, $enKey) {
+function adult_mask_related(array $row, $flagKey, $titleKey, $altKey) {
     if (show_adult_content() || empty($row[$flagKey])) {
         return $row;
     }
     $row[$titleKey] = t('adult.hidden_node_title');
-    if (array_key_exists($enKey, $row)) {
-        $row[$enKey] = null;
+    if (array_key_exists($altKey, $row)) {
+        $row[$altKey] = null;
     }
     return $row;
 }

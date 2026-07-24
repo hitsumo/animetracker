@@ -8,6 +8,11 @@ require_once __DIR__ . '/functions.php';
 
 // Sayfa dilini baslat
 lang_init($pdo);
+// Baslik dili tercihi - display_title() bunu okur. 1.1.18'de "Son Izlenenler"
+// hucresi display_title()'a gecirildi ama BU CAGRI UNUTULMUSTU: onbellek
+// varsayilani "Romaji" oldugu icin tablo, kullanicinin tercihi ne olursa olsun
+// daima Romaji basiyordu. 1.1.21'de fark edilip eklendi.
+title_pref_init($pdo);
 
 // Toplam anime sayisi
 $total = $pdo->query("SELECT COUNT(*) FROM animes")->fetchColumn();
@@ -75,7 +80,7 @@ $total_watched = (int)$total_watched_stmt->fetchColumn();
 // watch_status / watched_episodes / ua.updated_at hepsi user_anime'da (1.0.1),
 // current_user_id() ile kapsanir (self-host=1, online=oturum kullanicisi).
 $recent_watched_stmt = $pdo->prepare("
-    SELECT a.id, a.title, a.title_english, a.image_path, a.total_episodes, a.aired_episodes,
+    SELECT a.id, a.title, a.alternative_titles, a.image_path, a.total_episodes, a.aired_episodes,
            ua.watch_status, ua.watched_episodes, ua.updated_at
     FROM user_anime ua
     JOIN animes a ON a.id = ua.anime_id

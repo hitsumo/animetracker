@@ -30,7 +30,7 @@ if (!MULTI_USER_MODE) {
 }
 
 $rows = $pdo->query(
-    "SELECT id, title, title_english, status, media_type, image_path
+    "SELECT id, title, alternative_titles, status, media_type, image_path
      FROM animes WHERE source = 'local' ORDER BY id DESC"
 )->fetchAll(PDO::FETCH_ASSOC);
 

@@ -120,7 +120,7 @@ if (!empty($anime['next_in_series'])) {
     // watch_status is personal (user_anime, 1.0.1) - join the current
     // user's row so the "next in series" card shows their progress.
     $nextStmt = $pdo->prepare(
-        "SELECT a.id, a.title, a.title_english,
+        "SELECT a.id, a.title, a.alternative_titles,
                 ua.watch_status,
                 a.media_type, a.image_path, a.is_adult
          FROM animes a
@@ -136,7 +136,7 @@ if (!empty($anime['next_in_series'])) {
     // 1.1.2 - sirali seri iliskisi: sonraki anime +18 ise basligini notr yer
     // tutucuyla maskele (kart kalir, baslik sizmaz; link gated detaya gider).
     if ($nextAnime) {
-        $nextAnime = adult_mask_related($nextAnime, 'is_adult', 'title', 'title_english');
+        $nextAnime = adult_mask_related($nextAnime, 'is_adult', 'title', 'alternative_titles');
     }
 }
 
@@ -154,7 +154,7 @@ if (!$isInSeriesChain) {
 // Ayni serideki tum animeler (marker ekleme formu dropdown'u icin)
 $sameSeriesAnimes = [];
 if (!empty($anime['series_name'])) {
-    $ssStmt = $pdo->prepare("SELECT id, title, title_english, media_type FROM animes a WHERE a.series_name = ? AND a.id != ?" . adult_filter_where('a') . " ORDER BY a.title ASC");
+    $ssStmt = $pdo->prepare("SELECT id, title, alternative_titles, media_type FROM animes a WHERE a.series_name = ? AND a.id != ?" . adult_filter_where('a') . " ORDER BY a.title ASC");
     $ssStmt->execute([$anime['series_name'], (int)$anime['id']]);
     $sameSeriesAnimes = $ssStmt->fetchAll(PDO::FETCH_ASSOC);
 }

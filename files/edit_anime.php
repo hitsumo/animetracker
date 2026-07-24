@@ -161,11 +161,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $_POST['alternative_titles'] ?? [],
         $_POST['alt_title_langs']    ?? []
     );
-    // Ayri "Ingilizce Baslik" alani 1.1.20'de kaldirildi: title_english artik
-    // listedeki [en] etiketli isimden TURETILIR. Formu acan kullanici o ismi
-    // gormus olur (alt_titles_for_form() eski kayitlari da etiketleyerek
-    // gosterir), dolayisiyla kaydetmek onu sessizce silmez.
-    $title_english = alt_title_for_lang($alternative_titles, 'en');
     // POST'tan gelen secilen turler. Bu degisken adi DB'den cekilen tum turler
     // listesi ($genres) ile cakismamasi icin kasten "posted_genres" olarak
     // adlandirildi - aksi halde form render asamasinda dropdown icin gereken
@@ -416,7 +411,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // setAnimeGenresByNames(), mirroring the tags handler below.
     $sql = "UPDATE animes SET 
             title = ?,
-            title_english = ?,
             alternative_titles = ?,
             status = ?,
             total_episodes = ?,
@@ -459,7 +453,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     try {
         $stmt->execute([
             $title,
-            $title_english !== '' ? $title_english : null,
             $alternative_titles,
             $status,
             $total_episodes,
@@ -664,12 +657,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 }
 
 // Alternatif isimleri forma uygun satirlara cevir (1.1.20). Her satir
-// ['lang' => 'en'|'', 'title' => '...'] seklinde gelir. alt_titles_for_form()
-// ayrica ESKI KAYITLARI da toparlar: dil etigi olmayan ama title_english
-// dolu bir satir (migration gormemis katalog kopyasi) Ingilizce isaretli
-// olarak listeye eklenir - aksi halde kullanici formu acip kaydettiginde
-// title_english artik listeden turetildigi icin sessizce silinirdi.
-$alternative_titles = alt_titles_for_form($anime);
+// ['lang' => 'en'|'', 'title' => '...'] seklinde gelir.
+//
+// 1.1.21: burada eskiden alt_titles_for_form() vardi; title_english
+// kolonunda kalmis bir Ingilizce ismi kurtariyordu. Kolon emekli edildi ve
+// kurtarma migration'a tasindi, dolayisiyla geriye duz ayristirma kaldi.
+$alternative_titles = parse_alt_titles($anime['alternative_titles'] ?? '');
 // Mevcut turleri JOIN tablosundan cek (form yuklenirken rozet ve hidden
 // input dolumu icin). Helper id+name doner; alttaki kullanim noktalari
 // (hidden input value, JS init) sadece name listesine ihtiyac duyuyor.
@@ -743,9 +736,11 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
             <?php // 1.1.20: her alternatif isim satiri kendi dil kutusunu tasir.
                   // alternative_titles[] ve alt_title_langs[] KONUMSAL IKIZ - ikisi
                   // de ayni .field-group icinde durdugu icin tarayici birini
-                  // digeri olmadan gonderemez. "Ingilizce" secilen satir kaydetme
-                  // aninda title_english'e turetilir; 1.1.19'daki ayri "Ingilizce
-                  // Baslik" kutusu bu yuzden kaldirildi (bkz. title_lang_helpers.php). ?>
+                  // digeri olmadan gonderemez. 1.1.19'daki ayri "Ingilizce Baslik"
+                  // kutusu bu yuzden kaldirildi. 1.1.21'den beri buradaki dil
+                  // etiketi DOGRUDAN gosterimi besler: Liste Ayarlari'ndaki
+                  // "Baslik Dili" secimiyle eslesen etiket listede/detayda basilir
+                  // (bkz. title_lang_helpers.php + display_title()). ?>
             <div class="form-group">
                 <label><?php echo htmlspecialchars(t('add_anime.label.alternative_titles'), ENT_QUOTES, 'UTF-8'); ?></label>
                 <div class="input-area">

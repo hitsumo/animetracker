@@ -627,10 +627,10 @@ return [
     'help.stats.global.text'                 => 'Independent of your personal list, this shows the catalog\'s overall distribution (how many anime, which media types, etc.). It reflects the whole catalog, not your watch status.',
 
     // Section: Title language
-    'help.title_lang.h2'                     => 'Title Language (English / Romaji)',
-    'help.title_lang.intro'                  => 'Anime titles are shown in Romaji by default (e.g. "Shingeki no Kyojin"). Under List Settings → "Title Language" you can choose to show anime that have an English title using that English title instead (e.g. "Attack on Titan").',
+    'help.title_lang.h2'                     => 'Title Language',
+    'help.title_lang.intro'                  => 'Anime titles are shown in Romaji by default (e.g. "Shingeki no Kyojin"). Under List Settings → "Title Language" you can pick another language: English, Japanese, Turkish, Chinese, Korean or French. Choosing English, for example, gives you "Attack on Titan".',
     'help.title_lang.box_title'              => '<i class="fas fa-info-circle"></i> Independent of the interface language:',
-    'help.title_lang.box_body'               => 'This preference is yours alone and works independently of the site language (Turkish/English) — you can use a Turkish interface while preferring English titles. Anime without an English title stay in Romaji.',
+    'help.title_lang.box_body'               => 'This preference is yours alone and works independently of the site language (Turkish/English) — you can use a Turkish interface while preferring Japanese titles. Anime with no title in the language you picked stay in Romaji, so choosing an empty language is harmless. A title\'s language is marked in the add/edit form, in the box next to each alternative title.',
 
     // Section: Recommendation system
     'help.translation.h2'                    => 'Translation Status',
@@ -908,8 +908,8 @@ return [
     'list_settings.language.save'            => 'Save',
 
     'list_settings.section.title_lang'       => 'Title Language',
-    'list_settings.section.title_lang.desc'  => 'When an anime has an English title, show it instead of the Romaji title on the list and detail pages. This preference is independent of the interface language.',
-    'list_settings.title_lang.checkbox'      => 'Show English titles',
+    'list_settings.section.title_lang.desc'  => 'Choose which language you want anime titles shown in. Anime with no title in that language stay in Romaji. This preference is independent of the interface language.',
+    'list_settings.title_lang.option_romaji' => 'Romaji (default)',
     'list_settings.title_lang.save'          => 'Save',
 
     // 1.1.13 - default list tab preference (General / Personal)

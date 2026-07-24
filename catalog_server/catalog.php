@@ -100,7 +100,6 @@ try {
             id,
             title,
             alternative_titles,
-            title_english,
             status,
             total_episodes,
             aired_episodes,

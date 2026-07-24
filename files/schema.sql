@@ -51,21 +51,14 @@ SET time_zone = "+00:00";
 --                       text parses unchanged. The column type did NOT
 --                       change, so tagged text rides the existing catalog
 --                       sync with no server-side ALTER.
---   title_english     - Optional English/localized title (0.7.2). Shown
---                       instead of the Romaji title ONLY when the user
---                       enables the "show English titles" preference
---                       (settings key display_title_english) AND this
---                       column is non-empty; otherwise the Romaji title
---                       is shown. Independent of the UI language - the
---                       preference is a separate toggle. Part of the
---                       catalog sync chain (lives on this row).
---                       NOT USER-ENTERED SINCE 1.1.20: the separate
---                       "English Title" form field was removed and this is
---                       now DERIVED on save from the [en]-tagged entry in
---                       alternative_titles. It survives as a display
---                       shortcut so display_title() and every list page
---                       stayed untouched in that release; 1.1.21 moves
---                       display onto the tags and retires the column.
+--                       SINCE 1.1.21 THIS IS THE ONLY PLACE A TITLE'S
+--                       LANGUAGE LIVES. display_title() reads the tag
+--                       matching the user's Title Language preference
+--                       (user_pref display_title_lang; empty = Romaji) and
+--                       falls back to `title` when that language is absent.
+--                       The old title_english column was dropped in 1.1.21 -
+--                       it could only ever describe English, which blocked
+--                       showing any other language.
 --
 -- External links:
 --   anidb_link, mal_link, anime_schedule_link - Optional URLs to the
@@ -148,7 +141,6 @@ CREATE TABLE IF NOT EXISTS `animes` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `title` varchar(255) NOT NULL,
   `alternative_titles` text DEFAULT NULL,
-  `title_english` varchar(255) DEFAULT NULL,
   `status` enum('Yayın Tamamlandı','Yayın Devam Ediyor','Yayın Başlamadı','Seçim Yapılmadı','Yayın İptal Edildi') NOT NULL,
   `total_episodes` int(11) DEFAULT NULL,
   `aired_episodes` int(11) DEFAULT NULL,
@@ -519,7 +511,8 @@ CREATE TABLE IF NOT EXISTS `user_anime` (
 -- identical to today's global setting.
 --
 -- Keys that move here from settings (KISIYE OZEL): display_language,
--- display_title_english. Keys that STAY in settings (GLOBAL/instance):
+-- display_title_lang (called display_title_english before 1.1.21, when it
+-- was a boolean). Keys that STAY in settings (GLOBAL/instance):
 -- version, last_catalog_sync, last_aired_sync, synopsis_edit_override.
 -- (The move itself happens in the refactor migration, not here.)
 -- --------------------------------------------------------
@@ -659,7 +652,6 @@ CREATE TABLE IF NOT EXISTS `catalog_requests` (
   `mal_id`              int(11) DEFAULT NULL,
   `anidb_id`            int(11) DEFAULT NULL,
   `title`               varchar(255) NOT NULL,
-  `title_english`       varchar(255) DEFAULT NULL,
   `alternative_titles`  text DEFAULT NULL,
   `status`              enum('Yayın Tamamlandı','Yayın Devam Ediyor','Yayın Başlamadı','Seçim Yapılmadı','Yayın İptal Edildi') DEFAULT NULL,
   `is_adult`            tinyint(1) NOT NULL DEFAULT 0,

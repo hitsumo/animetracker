@@ -122,7 +122,7 @@ if (!function_exists('catalog_push_to_server')) {
             // Catalog-only fields. Personal data (watched_episodes,
             // watch_status, notes, next_episode_date) is never sent.
             $animeSelect = "
-                SELECT id, title, alternative_titles, title_english, status,
+                SELECT id, title, alternative_titles, status,
                        total_episodes, aired_episodes,
                        synopsis_tr, synopsis_en, translation_status, release_date, end_date,
                        anidb_link, mal_link, anime_schedule_link,

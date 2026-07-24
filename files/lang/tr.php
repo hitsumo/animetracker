@@ -659,10 +659,10 @@ return [
     'help.stats.global.text'                 => 'Kişisel listenizden bağımsız olarak, kataloğun genel dağılımını gösterir (kaç anime, hangi medya türleri vb.). Sizin izleme durumunuzu değil, kataloğun bütününü yansıtır.',
 
     // Section: Title language
-    'help.title_lang.h2'                     => 'Başlık Dili (İngilizce / Romaji)',
-    'help.title_lang.intro'                  => 'Anime başlıkları varsayılan olarak Romaji (örn. "Shingeki no Kyojin") gösterilir. Liste Ayarları → "Başlık Dili" bölümünden, İngilizce karşılığı olan animeleri İngilizce başlığıyla (örn. "Attack on Titan") gösterebilirsiniz.',
+    'help.title_lang.h2'                     => 'Başlık Dili',
+    'help.title_lang.intro'                  => 'Anime başlıkları varsayılan olarak Romaji (örn. "Shingeki no Kyojin") gösterilir. Liste Ayarları → "Başlık Dili" bölümünden başka bir dil seçebilirsiniz: İngilizce, Japonca, Türkçe, Çince, Korece veya Fransızca. Örneğin İngilizce seçtiğinizde "Attack on Titan" görürsünüz.',
     'help.title_lang.box_title'              => '<i class="fas fa-info-circle"></i> Arayüz dilinden bağımsız:',
-    'help.title_lang.box_body'               => 'Bu tercih size özeldir ve sitenin dilinden (Türkçe/İngilizce) bağımsız çalışır — arayüzü Türkçe kullanıp başlıkları İngilizce görmeyi tercih edebilirsiniz. İngilizce karşılığı olmayan animeler Romaji başlığıyla kalır.',
+    'help.title_lang.box_body'               => 'Bu tercih size özeldir ve sitenin dilinden (Türkçe/İngilizce) bağımsız çalışır — arayüzü Türkçe kullanıp başlıkları Japonca görmeyi tercih edebilirsiniz. Seçtiğiniz dilde başlığı olmayan animeler Romaji başlığıyla kalır, yani boş bir dil seçmek zararsızdır. Başlıkların dili, anime ekleme/düzenleme formunda alternatif isimlerin yanındaki dil kutusundan işaretlenir.',
 
     // Section: Recommendation system
     'help.translation.h2'                    => 'Çeviri Durumu',
@@ -940,8 +940,8 @@ return [
     'list_settings.language.save'            => 'Kaydet',
 
     'list_settings.section.title_lang'       => 'Başlık Dili',
-    'list_settings.section.title_lang.desc'  => 'Anime başlıklarının İngilizce karşılığı varsa, liste ve detay sayfalarında Romaji başlık yerine İngilizce başlığı göster. Bu tercih arayüz dilinden bağımsızdır.',
-    'list_settings.title_lang.checkbox'      => 'İngilizce başlıkları göster',
+    'list_settings.section.title_lang.desc'  => 'Anime başlıklarını hangi dilde görmek istediğinizi seçin. Seçtiğiniz dilde başlığı olmayan animeler Romaji başlığıyla kalır. Bu tercih arayüz dilinden bağımsızdır.',
+    'list_settings.title_lang.option_romaji' => 'Romaji (varsayılan)',
     'list_settings.title_lang.save'          => 'Kaydet',
 
     // 1.1.13 - varsayilan liste sekmesi tercihi (Genel / Kisisel)

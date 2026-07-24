@@ -70,7 +70,7 @@ function render_synopsis($pdo, $text) {
         $malIds = array_values(array_unique(array_map('intval', $ms[1])));
         $placeholders = implode(',', array_fill(0, count($malIds), '?'));
         $stmt = $pdo->prepare(
-            "SELECT id, mal_id, title, title_english FROM animes WHERE mal_id IN ($placeholders)"
+            "SELECT id, mal_id, title, alternative_titles FROM animes WHERE mal_id IN ($placeholders)"
         );
         $stmt->execute($malIds);
         $byMalId = [];

@@ -35,11 +35,13 @@
  * only honours a tag whose code is in title_lang_codes()) means an
  * untagged title can never be mistaken for a tagged one.
  *
- * RELATIONSHIP TO title_english IN 1.1.20: the column still exists and is
- * still what display_title() reads on every page. On save it is DERIVED
- * from the [en]-tagged entry - the user types the name once, in the list.
- * The column is a display shortcut kept so that this release touches no
- * render surface; 1.1.21 moves display onto the tags and retires it.
+ * title_english IS GONE (1.1.21). In 1.1.20 that column survived as a
+ * derived display shortcut, so the release could ship without touching a
+ * single render surface. 1.1.21 completed the move: display_title() now
+ * reads these tags directly, the "show English titles" checkbox became a
+ * Title Language picker, and the column was dropped from animes and
+ * catalog_requests (and from the catalog wire). This file is now the ONLY
+ * place a title's language is recorded.
  *
  * Loaded via the functions.php loader.
  */
@@ -244,8 +246,9 @@ function build_alt_titles($titles, $langs) {
  * Returns the FIRST match, so a row tagged twice resolves predictably to
  * whichever the curator put higher in the list.
  *
- * This is what derives animes.title_english on save:
- *     $title_english = alt_title_for_lang($alternative_titles, 'en');
+ * This is what display_title() calls once the user has picked a Title
+ * Language other than Romaji:
+ *     $shown = alt_title_for_lang($anime['alternative_titles'], 'ja');
  *
  * @param string|null $raw  The alternative_titles column value.
  * @param string      $code Language code to look for.
@@ -261,49 +264,15 @@ function alt_title_for_lang($raw, $code) {
     return '';
 }
 
-/**
- * Build the rows the add/edit form should show for an anime.
+/*
+ * NOTE (1.1.21): alt_titles_for_form() lived here in 1.1.20. It rebuilt the
+ * form rows from parse_alt_titles() and then rescued an English name that
+ * still lived ONLY in the title_english column, so that opening and saving
+ * the edit form could not silently wipe it.
  *
- * Wraps parse_alt_titles() with a fallback for rows whose English title
- * still lives ONLY in title_english. The 1.1.20 migration tags existing
- * local rows, but that is not the only way such a row can appear: a
- * catalog client pulling from a central catalog that has not been
- * re-pushed yet receives an untagged alternative_titles alongside a
- * populated title_english. Without this fallback the curator would open
- * the form, see no English name, save, and silently wipe it - because
- * title_english is derived from the list now.
- *
- * Three cases, in order:
- *   1. The list already has an [en] entry -> trust it, title_english is
- *      just its stale mirror.
- *   2. The list holds the same string untagged -> tag it in place rather
- *      than showing the name twice.
- *   3. Neither -> append it as a new [en] row.
- *
- * @param array $anime Row with 'alternative_titles' and 'title_english'.
- * @return array       List of ['lang' => ..., 'title' => ...] for the form.
+ * That column is gone in 1.1.21 and the rescue moved into
+ * migration/1.1.21/upgrade.sql, which tags every such row (in place when the
+ * same string is already listed untagged, appended otherwise) BEFORE dropping
+ * the column. With no column left to read, the helper reduced to a plain
+ * parse_alt_titles() call, so edit_anime.php now calls that directly.
  */
-function alt_titles_for_form($anime) {
-    $rows   = parse_alt_titles($anime['alternative_titles'] ?? '');
-    $legacy = trim((string)($anime['title_english'] ?? ''));
-
-    if ($legacy === '') {
-        return $rows;
-    }
-
-    foreach ($rows as $row) {
-        if ($row['lang'] === 'en') {
-            return $rows; // case 1
-        }
-    }
-
-    foreach ($rows as $i => $row) {
-        if ($row['lang'] === '' && $row['title'] === $legacy) {
-            $rows[$i]['lang'] = 'en'; // case 2
-            return $rows;
-        }
-    }
-
-    $rows[] = ['lang' => 'en', 'title' => $legacy]; // case 3
-    return $rows;
-}

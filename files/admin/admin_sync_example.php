@@ -105,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['do_push'])) {
             // below to keep wire-format compatibility with the server
             // (which still expects a comma-separated 'genres' string).
             $animeRows = $pdo->query("
-                SELECT id, title, alternative_titles, title_english, status,
+                SELECT id, title, alternative_titles, status,
                        total_episodes, aired_episodes,
                        synopsis_tr, synopsis_en, translation_status, release_date, end_date,
                        anidb_link, mal_link, anime_schedule_link,

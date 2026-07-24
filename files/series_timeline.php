@@ -57,7 +57,7 @@ function getSeriesChain($pdo, $start_id) {
         if (isset($visited[$current])) break; // circular guard
         $visited[$current] = true;
         $stmt = $pdo->prepare("
-            SELECT a.id, a.title, a.title_english, a.media_type, a.total_episodes, a.aired_episodes,
+            SELECT a.id, a.title, a.alternative_titles, a.media_type, a.total_episodes, a.aired_episodes,
                    COALESCE(ua.watched_episodes, 0) AS watched_episodes,
                    ua.watch_status,
                    a.status, a.image_path,

@@ -250,7 +250,6 @@ try {
         UPDATE animes SET
             title = :title,
             alternative_titles = :alternative_titles,
-            title_english = :title_english,
             status = :status,
             total_episodes = :total_episodes,
             aired_episodes = :aired_episodes,
@@ -290,7 +289,7 @@ try {
             episode_interval, broadcast_day, broadcast_time, broadcast_timezone,
             synopsis_tr, synopsis_en, translation_status, release_date, end_date,
             series_name, media_type, country,
-            mal_id, anidb_id, catalog_uuid, source, title_english, is_adult
+            mal_id, anidb_id, catalog_uuid, source, is_adult
         ) VALUES (
             :title, :alternative_titles, :status, :total_episodes, :aired_episodes,
             0, NULL, :image_path,
@@ -299,7 +298,7 @@ try {
             :episode_interval, :broadcast_day, :broadcast_time, :broadcast_timezone,
             :synopsis_tr, :synopsis_en, :translation_status, :release_date, :end_date,
             :series_name, :media_type, :country,
-            :mal_id, :anidb_id, :catalog_uuid, 'catalog', :title_english, :is_adult
+            :mal_id, :anidb_id, :catalog_uuid, 'catalog', :is_adult
         )
     ";
     $insertStmt = $pdo->prepare($insertSql);
@@ -328,7 +327,6 @@ try {
         $params = [
             ':title'               => $a['title']               ?? '',
             ':alternative_titles'  => $a['alternative_titles']  ?? null,
-            ':title_english'       => $a['title_english']        ?? null,
             ':status'              => $a['status']              ?? 'Seçim Yapılmadı',
             ':total_episodes'      => $a['total_episodes']      ?? null,
             ':aired_episodes'      => $a['aired_episodes']      ?? null,

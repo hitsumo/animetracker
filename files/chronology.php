@@ -109,13 +109,13 @@ function buildChronologyTimeline($markers, $totalEp, $useStory) {
         }
 
         $timeline[] = [
-            'type'          => 'anime',
-            'id'            => (int)$m['related_anime_id'],
-            'title'         => $m['related_title'],
-            'title_english' => $m['related_title_english'] ?? null,
-            'media_type'    => $m['related_media_type'],
-            'watch_status'  => $m['related_watch_status'],
-            'note'          => $m['note'] ?? null,
+            'type'               => 'anime',
+            'id'                 => (int)$m['related_anime_id'],
+            'title'              => $m['related_title'],
+            'alternative_titles' => $m['related_alternative_titles'] ?? null,
+            'media_type'         => $m['related_media_type'],
+            'watch_status'       => $m['related_watch_status'],
+            'note'               => $m['note'] ?? null,
         ];
 
         $prevEnd = $rangeEnd;

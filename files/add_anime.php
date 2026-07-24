@@ -77,11 +77,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $_POST['alternative_titles'] ?? [],
         $_POST['alt_title_langs']    ?? []
     );
-    // Ayri "Ingilizce Baslik" alani 1.1.20'de kaldirildi: title_english artik
-    // listedeki [en] etiketli isimden TURETILIR. Kolon duruyor cunku
-    // display_title() (dolayisiyla her liste sayfasi) ve katalog senkronu
-    // onu okuyor - kullanici ismi yine tek bir yere yaziyor.
-    $title_english = alt_title_for_lang($alternative_titles, 'en');
     // POST'tan gelen secilen turler. Bu degisken adi DB'den cekilen tum turler
     // listesi ($genres) ile cakismamasi icin kasten "posted_genres" olarak
     // adlandirildi - aksi halde form render asamasinda dropdown icin gereken
@@ -283,7 +278,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // approval), so the historical default is preserved.
     $source = (MULTI_USER_MODE && can($pdo, 'moderate')) ? 'catalog' : 'local';
 
-    $sql = "INSERT INTO animes (title, title_english, alternative_titles, status, total_episodes, aired_episodes, image_path, next_episode_date, anidb_link, mal_link, anime_schedule_link, episode_interval, broadcast_day, broadcast_time, broadcast_timezone, synopsis_tr, synopsis_en, translation_status, release_date, end_date, series_name, media_type, country, next_in_series, mal_id, anidb_id, filler_tracking, is_adult, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO animes (title, alternative_titles, status, total_episodes, aired_episodes, image_path, next_episode_date, anidb_link, mal_link, anime_schedule_link, episode_interval, broadcast_day, broadcast_time, broadcast_timezone, synopsis_tr, synopsis_en, translation_status, release_date, end_date, series_name, media_type, country, next_in_series, mal_id, anidb_id, filler_tracking, is_adult, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     $stmt = $pdo->prepare($sql);
 
@@ -294,7 +289,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     try {
         $stmt->execute([
             $title,
-            $title_english !== '' ? $title_english : null,
             $alternative_titles,
             $status,
             $total_episodes,
@@ -556,9 +550,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <?php // 1.1.20: her alternatif isim satiri kendi dil kutusunu tasir.
               // alternative_titles[] ve alt_title_langs[] KONUMSAL IKIZ - ikisi
               // de ayni .field-group icinde durdugu icin tarayici birini
-              // digeri olmadan gonderemez. "Ingilizce" secilen satir kaydetme
-              // aninda title_english'e turetilir; 1.1.19'daki ayri "Ingilizce
-              // Baslik" kutusu bu yuzden kaldirildi (bkz. title_lang_helpers.php). ?>
+              // digeri olmadan gonderemez. 1.1.19'daki ayri "Ingilizce Baslik"
+              // kutusu bu yuzden kaldirildi. 1.1.21'den beri buradaki dil
+              // etiketi DOGRUDAN gosterimi besler: Liste Ayarlari'ndaki
+              // "Baslik Dili" secimiyle eslesen etiket listede/detayda basilir
+              // (bkz. title_lang_helpers.php + display_title()). ?>
         <div class="form-group">
             <label><?php echo htmlspecialchars(t('add_anime.label.alternative_titles'), ENT_QUOTES, 'UTF-8'); ?></label>
             <div class="input-area">

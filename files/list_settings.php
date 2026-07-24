@@ -313,14 +313,14 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
             );
 
             $suggInsert = $pdo->prepare("INSERT INTO catalog_requests (
-                    mal_id, anidb_id, title, title_english, alternative_titles,
+                    mal_id, anidb_id, title, alternative_titles,
                     status, total_episodes, mal_link, anidb_link,
                     anime_schedule_link, episode_interval, broadcast_day,
                     broadcast_time, broadcast_timezone, synopsis_tr, synopsis_en,
                     release_date, end_date, series_name, media_type, country,
                     suggested_by, pending_markers
                 ) VALUES (
-                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
                 )");
 
             $validStatus = ['Watched', 'Watching', 'PlanToWatch', 'OnHold', 'Dropped'];
@@ -399,7 +399,6 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                 $suggInsert->execute([
                     $mal, $anidb,
                     $anime['title'],
-                    $anime['title_english']       ?? null,
                     $anime['alternative_titles']  ?? null,
                     $bstatus,
                     $anime['total_episodes']      ?? null,
@@ -446,7 +445,7 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
             $matchUuid  = $pdo->prepare("SELECT id FROM animes WHERE catalog_uuid = ? LIMIT 1");
 
             $stmt = $pdo->prepare("INSERT INTO animes (
-                    title, alternative_titles, title_english, status,
+                    title, alternative_titles, status,
                     total_episodes, aired_episodes,
                     image_path, next_episode_date,
                     anidb_link, mal_link, anime_schedule_link, episode_interval,
@@ -455,7 +454,7 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                     release_date, end_date, series_name, media_type, country,
                     mal_id, anidb_id, catalog_uuid, source, filler_tracking
                 ) VALUES (
-                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
                 )");
 
@@ -482,7 +481,6 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                     $stmt->execute([
                         $anime['title'],
                         $anime['alternative_titles']  ?? null,
-                        $anime['title_english']       ?? null,
                         $anime['status']              ?? 'Seçim Yapılmadı',
                         $anime['total_episodes']      ?? null,
                         $anime['aired_episodes']      ?? null,
@@ -1447,13 +1445,19 @@ if (isset($_POST['clear'])) {
             <div class="settings-section">
                 <h3><?php echo htmlspecialchars(t('list_settings.section.title_lang'), ENT_QUOTES, 'UTF-8'); ?></h3>
                 <p><?php echo htmlspecialchars(t('list_settings.section.title_lang.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
+                <?php // 1.1.21 - onay kutusu yerine dil secici. Arayuz dili
+                      // secicisiyle AYNI kalip: <select> + onchange auto-submit,
+                      // noscript icin acik Kaydet butonu. Bos deger = Romaji
+                      // (varsayilan); geri kalani title_lang_codes()'tan gelir,
+                      // yani yeni dil eklemek bu kutuyu kendiliginden buyutur. ?>
                 <form method="post" action="set_title_pref.php">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
-                    <input type="hidden" name="enabled" value="0">
-                    <label class="title-lang-toggle">
-                        <input type="checkbox" name="enabled" value="1"<?php echo show_english_titles() ? ' checked' : ''; ?> onchange="this.form.submit()">
-                        <?php echo htmlspecialchars(t('list_settings.title_lang.checkbox'), ENT_QUOTES, 'UTF-8'); ?>
-                    </label>
+                    <select name="lang" onchange="this.form.submit()" aria-label="<?php echo htmlspecialchars(t('list_settings.section.title_lang'), ENT_QUOTES, 'UTF-8'); ?>">
+                        <option value=""<?php echo display_title_lang() === '' ? ' selected' : ''; ?>><?php echo htmlspecialchars(t('list_settings.title_lang.option_romaji'), ENT_QUOTES, 'UTF-8'); ?></option>
+                        <?php foreach (title_lang_options() as $tl_code => $tl_label): ?>
+                        <option value="<?php echo htmlspecialchars($tl_code, ENT_QUOTES, 'UTF-8'); ?>"<?php echo display_title_lang() === $tl_code ? ' selected' : ''; ?>><?php echo htmlspecialchars($tl_label, ENT_QUOTES, 'UTF-8'); ?></option>
+                        <?php endforeach; ?>
+                    </select>
                     <noscript>
                         <button type="submit" class="settings-button"><?php echo htmlspecialchars(t('list_settings.title_lang.save'), ENT_QUOTES, 'UTF-8'); ?></button>
                     </noscript>
