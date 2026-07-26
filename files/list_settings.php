@@ -1026,8 +1026,12 @@ if (isset($_POST['anilist_commit'])) {
             // 1.1.17: country da tasinir - onayda admin_catalog_requests bunu
             // animes.country'ye gecirir, boylece ice aktarilan bir donghua
             // katalogda dogru ulkeyle dogar ve backfill'i beklemez.
+            // 1.1.22: alternative_titles da tasinir - AniList'in secilmeyen
+            // isimleri ETIKETLI ([en]/[ja]/...) gelir (anilist_alt_titles),
+            // onay bunlari animes'e gecirir ve ice aktarilan anime Baslik
+            // Dili tercihine dogdugu anda uyar.
             $suggInsert = $pdo->prepare(
-                "INSERT INTO catalog_requests (mal_id, title, status, is_adult, country, suggested_by) VALUES (?, ?, ?, ?, ?, ?)"
+                "INSERT INTO catalog_requests (mal_id, title, alternative_titles, status, is_adult, country, suggested_by) VALUES (?, ?, ?, ?, ?, ?, ?)"
             );
 
             foreach ($entries as $e) {
@@ -1069,7 +1073,9 @@ if (isset($_POST['anilist_commit'])) {
                     continue;
                 }
                 $suggInsert->execute([
-                    $e['mal_id'], $e['title'], $e['airing_status'] ?? null,
+                    $e['mal_id'], $e['title'],
+                    $e['alternative_titles'] ?? null,
+                    $e['airing_status'] ?? null,
                     $e['is_adult'] ?? 0, $e['country'] ?? null, $uid
                 ]);
                 if ($contentOnly) { $catNew++; } else { $requested++; }
@@ -1081,8 +1087,8 @@ if (isset($_POST['anilist_commit'])) {
             // real airing status (media.status), so a still-airing anime is not
             // forced to "Yayın Tamamlandı".
             $addAnime = $pdo->prepare(
-                "INSERT INTO animes (title, mal_id, status, is_adult, country, source)
-                 VALUES (?, ?, ?, ?, ?, 'local')"
+                "INSERT INTO animes (title, alternative_titles, mal_id, status, is_adult, country, source)
+                 VALUES (?, ?, ?, ?, ?, ?, 'local')"
             );
 
             foreach ($entries as $e) {
@@ -1118,11 +1124,12 @@ if (isset($_POST['anilist_commit'])) {
                 try {
                     // airing_status defaults defensively (older session stash / a
                     // rare entry AniList gave no status for) to the historical value.
-                    // country defaults to NULL for the same defensive reason as
-                    // airing_status: an older session stash (import previewed
-                    // before 1.1.17, applied after) has no country key.
+                    // country ve alternative_titles default to NULL for the same
+                    // defensive reason: an older session stash (import previewed
+                    // before 1.1.17 / 1.1.22, applied after) lacks those keys.
                     $addAnime->execute([
-                        $e['title'], $e['mal_id'], $e['airing_status'] ?? 'Seçim Yapılmadı',
+                        $e['title'], $e['alternative_titles'] ?? null,
+                        $e['mal_id'], $e['airing_status'] ?? 'Seçim Yapılmadı',
                         $e['is_adult'] ?? 0, $e['country'] ?? null
                     ]);
                     $newId = (int)$pdo->lastInsertId();
@@ -1188,6 +1195,123 @@ if (isset($_POST['clear'])) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <style>
+    .settings-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    /* 1.1.13 - Liste Ayarlari sekmeleri (progressive enhancement).
+       Sekme cubugu JS kapaliyken gizli; JS .js-tabs sinifini ekleyince
+       gorunur ve yalniz aktif panel gosterilir. */
+    .settings-tabs {
+        display: none;
+        gap: 6px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        border-bottom: 2px solid #e0ddd4;
+    }
+    .js-tabs .settings-tabs {
+        display: flex;
+    }
+    .settings-tab {
+        border: none;
+        background: none;
+        padding: 10px 20px;
+        font-size: 1em;
+        font-weight: 500;
+        color: #6b6a63;
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+        margin-bottom: -2px;
+        border-radius: 6px 6px 0 0;
+    }
+    .settings-tab:hover {
+        color: #333;
+        background: #f4f2ec;
+    }
+    .settings-tab.active {
+        color: #D85A30;
+        border-bottom-color: #D85A30;
+        font-weight: 600;
+    }
+    /* JS acikken pasif paneli gizle; kapaliyken tum paneller alt alta. */
+    .js-tabs .settings-tab-panel {
+        display: none;
+    }
+    .js-tabs .settings-tab-panel.active {
+        display: block;
+    }
+
+    .settings-section {
+        background-color: #fff;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .settings-section h3 {
+        color: #333;
+        margin-bottom: 10px;
+        font-size: 1.2em;
+    }
+
+    .settings-section p {
+        color: #666;
+        margin-bottom: 15px;
+    }
+
+    .settings-button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .settings-button:hover {
+        background-color: #0056b3;
+    }
+
+    .settings-button.danger {
+        background-color: #dc3545;
+    }
+
+    .settings-button.danger:hover {
+        background-color: #c82333;
+    }
+
+    .alert {
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+        text-align: center;
+    }
+
+    .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .alert-error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .file-upload {
+        margin-bottom: 15px;
+    }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -1854,123 +1978,6 @@ function runUpdate() {
 })();
     </script>
 
-    <style>
-    .settings-container {
-        max-width: 600px;
-        margin: 0 auto;
-        padding: 20px;
-    }
-
-    /* 1.1.13 - Liste Ayarlari sekmeleri (progressive enhancement).
-       Sekme cubugu JS kapaliyken gizli; JS .js-tabs sinifini ekleyince
-       gorunur ve yalniz aktif panel gosterilir. */
-    .settings-tabs {
-        display: none;
-        gap: 6px;
-        margin-bottom: 20px;
-        flex-wrap: wrap;
-        border-bottom: 2px solid #e0ddd4;
-    }
-    .js-tabs .settings-tabs {
-        display: flex;
-    }
-    .settings-tab {
-        border: none;
-        background: none;
-        padding: 10px 20px;
-        font-size: 1em;
-        font-weight: 500;
-        color: #6b6a63;
-        cursor: pointer;
-        border-bottom: 3px solid transparent;
-        margin-bottom: -2px;
-        border-radius: 6px 6px 0 0;
-    }
-    .settings-tab:hover {
-        color: #333;
-        background: #f4f2ec;
-    }
-    .settings-tab.active {
-        color: #D85A30;
-        border-bottom-color: #D85A30;
-        font-weight: 600;
-    }
-    /* JS acikken pasif paneli gizle; kapaliyken tum paneller alt alta. */
-    .js-tabs .settings-tab-panel {
-        display: none;
-    }
-    .js-tabs .settings-tab-panel.active {
-        display: block;
-    }
-
-    .settings-section {
-        background-color: #fff;
-        padding: 20px;
-        margin-bottom: 20px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .settings-section h3 {
-        color: #333;
-        margin-bottom: 10px;
-        font-size: 1.2em;
-    }
-
-    .settings-section p {
-        color: #666;
-        margin-bottom: 15px;
-    }
-
-    .settings-button {
-        background-color: #007bff;
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 14px;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        transition: all 0.3s ease;
-    }
-
-    .settings-button:hover {
-        background-color: #0056b3;
-    }
-
-    .settings-button.danger {
-        background-color: #dc3545;
-    }
-
-    .settings-button.danger:hover {
-        background-color: #c82333;
-    }
-
-    .alert {
-        padding: 15px;
-        margin-bottom: 20px;
-        border-radius: 4px;
-        text-align: center;
-    }
-
-    .alert-success {
-        background-color: #d4edda;
-        color: #155724;
-        border: 1px solid #c3e6cb;
-    }
-
-    .alert-error {
-        background-color: #f8d7da;
-        color: #721c24;
-        border: 1px solid #f5c6cb;
-    }
-
-    .file-upload {
-        margin-bottom: 15px;
-    }
-    </style>
     <script src="js/select_enhance.js" defer></script>
 </body>
 </html>

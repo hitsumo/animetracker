@@ -1,0 +1,41 @@
+-- =====================================================================
+-- 1.1.22 - AniList ice aktarma etiketli isim uretir
+-- =====================================================================
+-- Bu surumde AniList ice aktarma, simdiye dek COPE ATTIGI isimleri dil
+-- etiketiyle alternatif isim listesine yazar:
+--
+--     [en]Frieren: Beyond Journey's End|[ja]葬送のフリーレン
+--
+-- AniList her girdi icin title { romaji english native } verir. Ana baslik
+-- secimi degismedi (Romaji, yoksa Ingilizce); artik SECILMEYEN isimler de
+-- tasinir: Ingilizce isim [en] etiketiyle, native isim ise mense ulkeden
+-- kopruylenen dille (JP->ja, CN/TW->zh, KR->ko; kopruylenemeyen ulkede
+-- etiketsiz - yanlis tahmin edilmis bir etiket gosterimi zehirlerdi).
+--
+-- NEDEN: 1.1.21'den beri Baslik Dili tercihi [xx] etiketlerini dogrudan
+-- okuyor; ama ice aktarilan animeler tek isimle (Romaji) dogdugu icin bu
+-- tercihten hic yararlanamiyordu. Simdi online modda oneri
+-- (catalog_requests.alternative_titles) etiketli isimlerle dogar ve onay
+-- (admin_catalog_requests zaten kolonu animes'e gecirir) sonrasi katalog
+-- kaydi da etiketli olur; self-host yerel eklemede animes satiri dogrudan
+-- etiketli dogar.
+--
+-- MAL DEGISMEDI: MAL'in XML disa aktarimi TEK isim tasir (series_title);
+-- dosyadan uretilebilecek ikinci bir dil yoktur.
+--
+-- SEMA DEGISIKLIGI YOKTUR. catalog_requests.alternative_titles ve
+-- animes.alternative_titles zaten var (0.5.x'ten beri); degisiklik yalnizca
+-- ice aktarma yazicisinin bu kolonlari DOLDURMAYA baslamasidir. Bu migration
+-- klasorunun tek amaci settings.version'i 1.1.22'ye tasimaktir (runner
+-- yorumlari temizler ve bos ifade listesiyle surumu damgalar; bu dosyada
+-- calistirilacak SQL ifadesi yoktur).
+--
+-- MERKEZ KATALOG SUNUCUSUNDA ELLE ISLEM GEREKMEZ - etiketli metin mevcut
+-- alternative_titles kolonunun icinde, mevcut katalog teliyle akar
+-- (1.1.20'deki durumla ayni).
+--
+-- GERIYE DONUK: eski kayitlar kendiliginden etiket KAZANMAZ - bu surum
+-- yalnizca YENI ice aktarilan oneri/yerel ekleme satirlarini etiketler.
+-- Katalogda zaten olan (eslesen) animelere ice aktarma dokunmaz; katalog
+-- icerigi kurator alanidir.
+-- =====================================================================

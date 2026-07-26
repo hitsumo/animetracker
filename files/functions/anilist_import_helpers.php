@@ -288,6 +288,87 @@ function anilist_normalize_date($fuzzy)
 }
 
 /**
+ * Map an AniList countryOfOrigin to the LANGUAGE of media.title.native.
+ *
+ * AniList writes the native title in the origin country's language but
+ * labels it only with a COUNTRY code (JP/CN/TW/KR...), never a language.
+ * This is the country->language bridge for the [xx] title tags (1.1.20):
+ * a Japanese anime's native title is tagged [ja], a donghua's [zh], a
+ * Korean animation's [ko]. An unmapped or missing country returns '' and
+ * the caller stores the name UNTAGGED - an untagged name is honest, a
+ * guessed tag would feed display_title() the wrong language.
+ *
+ * @param mixed $country AniList media.countryOfOrigin.
+ * @return string Two-letter title-language code, or '' when unbridgeable.
+ */
+function anilist_native_lang($country)
+{
+    $map = ['JP' => 'ja', 'CN' => 'zh', 'TW' => 'zh', 'KR' => 'ko'];
+    return $map[strtoupper(trim((string)$country))] ?? '';
+}
+
+/**
+ * Build the alternative_titles column value for one AniList media node.
+ *
+ * 1.1.22: until now the import kept ONE name (romaji, falling back to
+ * english) and threw the rest of title{} away, so an imported anime never
+ * benefited from the Title Language preference (1.1.21) - it rendered as
+ * Romaji for everyone. The discarded names now become TAGGED alternative
+ * titles, in the exact storage format the edit form writes:
+ *
+ *     [en]Frieren: Beyond Journey's End|[ja]葬送のフリーレン
+ *
+ * - title.english -> [en], unless it is just a case-variant of the main
+ *   title (AniList often repeats "One Piece" in both fields).
+ * - title.native  -> tagged via anilist_native_lang(), untagged when the
+ *   origin country is not bridgeable.
+ *
+ * Built through build_alt_titles() (title_lang_helpers) so the import
+ * obeys the same hygiene as the form: pipes become spaces, a leading
+ * valid [xx] inside a name is stripped, an unknown code degrades to
+ * untagged. Returns NULL when nothing usable remains, the column's
+ * "no data" idiom.
+ *
+ * @param array  $media     Decoded media node (title / countryOfOrigin).
+ * @param string $mainTitle The name already chosen for the entry's title.
+ * @return string|null      alternative_titles value, or null.
+ */
+function anilist_alt_titles(array $media, $mainTitle)
+{
+    $titles = [];
+    $langs  = [];
+    // Case-insensitive dedup pot, seeded with the main title: a name that
+    // only repeats the main title adds noise, not information.
+    $seen = [mb_strtolower(trim((string)$mainTitle), 'UTF-8') => true];
+
+    $english = trim((string)($media['title']['english'] ?? ''));
+    if ($english !== '') {
+        $k = mb_strtolower($english, 'UTF-8');
+        if (!isset($seen[$k])) {
+            $seen[$k] = true;
+            $titles[] = $english;
+            $langs[]  = 'en';
+        }
+    }
+
+    $native = trim((string)($media['title']['native'] ?? ''));
+    if ($native !== '') {
+        $k = mb_strtolower($native, 'UTF-8');
+        if (!isset($seen[$k])) {
+            $seen[$k] = true;
+            $titles[] = $native;
+            $langs[]  = anilist_native_lang($media['countryOfOrigin'] ?? null);
+        }
+    }
+
+    if (empty($titles)) {
+        return null;
+    }
+    $out = build_alt_titles($titles, $langs);
+    return $out !== '' ? $out : null;
+}
+
+/**
  * Perform one AniList GraphQL POST. Thin cURL wrapper mirroring the shape used
  * in animeschedule_helpers (TLS verify on, IPv4 pin, short timeouts). Returns
  * the decoded response array on HTTP 200, or an ['error' => ...] shape:
@@ -384,6 +465,9 @@ function anilist_graphql_request($query, array $variables)
  *     'watch_status' => enum|null, 'watched_episodes' => int,
  *     'watch_start_date' => 'YYYY-MM-DD'|null,
  *     'watch_finish_date' => 'YYYY-MM-DD'|null, 'notes' => string|null ]
+ * plus the AniList-only extras MAL's XML cannot supply: 'airing_status'
+ * (1.1.6), 'is_adult' (1.1.7), 'country' (1.1.17) and 'alternative_titles'
+ * (1.1.22, tagged names - see anilist_alt_titles()).
  *
  * A row with neither a positive mal_id nor a title is dropped (nothing to
  * match on), mirroring the MAL parser. An empty/private list yields 'empty'.
@@ -410,7 +494,7 @@ function anilist_fetch_list($username, $maxPages = 100)
           notes
           startedAt { year month day }
           completedAt { year month day }
-          media { idMal status isAdult countryOfOrigin title { romaji english } }
+          media { idMal status isAdult countryOfOrigin title { romaji english native } }
         }
       }
     }';
@@ -501,6 +585,12 @@ function anilist_fetch_list($username, $maxPages = 100)
                                             && is_valid_country_code($media['countryOfOrigin']))
                                             ? strtoupper($media['countryOfOrigin'])
                                             : null,
+                    // 1.1.22: the names NOT chosen as the main title, kept as
+                    // TAGGED alternative titles ([en]/[ja]/[zh]/[ko]) so an
+                    // imported anime follows the Title Language preference
+                    // instead of always rendering Romaji. NULL when AniList
+                    // offers nothing beyond the main title.
+                    'alternative_titles' => anilist_alt_titles($media, $title),
                 ];
             }
         }
