@@ -151,6 +151,11 @@ if (!$isInSeriesChain) {
     $chainCheck->closeCursor();
 }
 
+// 1.1.23: Seri Kronolojisi'nin Yayin Tarihi sekmesi series_name'den
+// beslenir - zincire hic girmemis ama ayni seriden baska kayitlari olan
+// anime de sayfaya girebilsin. $relatedAnimes zaten yuklu; ek sorgu yok.
+$showSeriesTimeline = $isInSeriesChain || !empty($relatedAnimes);
+
 // Ayni serideki tum animeler (marker ekleme formu dropdown'u icin)
 $sameSeriesAnimes = [];
 if (!empty($anime['series_name'])) {
@@ -603,7 +608,7 @@ if ($country_name !== ''):
             </div>
             <?php endif; ?>
 
-            <?php if ($isInSeriesChain): ?>
+            <?php if ($showSeriesTimeline): ?>
             <div style="margin: 15px 0;">
                 <a href="series_timeline.php?id=<?php echo (int)$anime['id']; ?>" class="chronology-button" style="background: #8e44ad;">
                     <i class="fas fa-list-ol"></i> <?php echo htmlspecialchars(t('anime_details.btn.series_chronology'), ENT_QUOTES, 'UTF-8'); ?>

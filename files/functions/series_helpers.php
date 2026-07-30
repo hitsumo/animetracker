@@ -206,6 +206,63 @@ function getAllSeriesNames($pdo) {
     return $stmt->fetchAll(PDO::FETCH_COLUMN);
 }
 
+// =====================================================================
+// Series timeline view modes (1.1.23)
+// =====================================================================
+// series_timeline.php iki sekmeyle acilir:
+//   'chain'   - next_in_series baglantili listesinin yuruyusu (ilk gorunum).
+//   'airdate' - ayni series_name'i tasiyan HER kayit, ilk gosterim tarihine
+//               gore. Elle kurulan zincire hic bagimli degildir; katalogdan
+//               ice aktarilmis (baglanmamis) anime de listede yerini alir.
+// Secim 1.1.15'teki chrono-mode kalibini izler: oturumdaki gecici sekme
+// secimi > kayitli kisisel varsayilan (user_pref 'series_timeline_mode',
+// liste ayarlarindan) > geriye uyumlu 'chain'.
+
+/** Valid series-timeline view modes. */
+function series_timeline_modes() {
+    return ['chain', 'airdate'];
+}
+
+/**
+ * Resolve the active series-timeline mode for this request.
+ * session override (page tabs) > saved user pref > 'chain'.
+ */
+function series_timeline_current_mode($pdo) {
+    if (isset($_SESSION['series_timeline_mode'])
+        && in_array($_SESSION['series_timeline_mode'], series_timeline_modes(), true)) {
+        return $_SESSION['series_timeline_mode'];
+    }
+    $pref = get_user_pref($pdo, current_user_id(), 'series_timeline_mode', 'chain');
+    return in_array($pref, series_timeline_modes(), true) ? $pref : 'chain';
+}
+
+/**
+ * Return every anime sharing the given series_name, ordered by first
+ * air/release date. NULL tarihler sona duser - tarihi girilmemis bir
+ * kayit serinin baslangici gibi gorunmesin. Kolon kumesi zincir
+ * yuruyusununkiyle ayni sekildedir (arti end_date/is_adult), boylece
+ * series_timeline.php tek kart sablonuyla iki modu da cizer.
+ */
+function getSeriesAnimesByAirDate($pdo, $series_name) {
+    if (empty($series_name)) {
+        return [];
+    }
+    $stmt = $pdo->prepare("
+        SELECT a.id, a.title, a.alternative_titles, a.media_type, a.total_episodes, a.aired_episodes,
+               COALESCE(ua.watched_episodes, 0) AS watched_episodes,
+               ua.watch_status,
+               a.status, a.image_path,
+               a.release_date, a.end_date, a.series_name, a.is_adult
+        FROM animes a
+        LEFT JOIN user_anime ua
+               ON ua.anime_id = a.id AND ua.user_id = ?
+        WHERE a.series_name = ?
+        ORDER BY (a.release_date IS NULL) ASC, a.release_date ASC, a.id ASC
+    ");
+    $stmt->execute([current_user_id(), $series_name]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
 /**
  * Validate that setting next_in_series does not create a direct
  * circular reference (A -> B -> A). Does NOT check transitive

@@ -1635,6 +1635,30 @@ if (isset($_POST['clear'])) {
                 </form>
             </div>
 
+            <?php // 1.1.23 - seri kronolojisi gorunum varsayilani. series_timeline.php
+                  // hangi sekmeyle acilsin: zincir sirasi (next_in_series yuruyusu)
+                  // ya da yayin tarihi (ayni seri adi, ilk gosterim tarihine gore).
+                  // Kisi bazli tercih (user_pref 'series_timeline_mode'); sayfadaki
+                  // sekmeler bu varsayilani ezmeden gecici degistirir.
+                  // set_series_timeline_mode.php'ye persist=1 ile POST eder. ?>
+            <?php $stModeDefault = get_user_pref($pdo, current_user_id(), 'series_timeline_mode', 'chain');
+                  if (!in_array($stModeDefault, ['chain', 'airdate'], true)) { $stModeDefault = 'chain'; } ?>
+            <div class="settings-section">
+                <h3><?php echo htmlspecialchars(t('list_settings.section.st_mode'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                <p><?php echo htmlspecialchars(t('list_settings.section.st_mode.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
+                <form method="post" action="set_series_timeline_mode.php">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="persist" value="1">
+                    <select name="mode" onchange="this.form.submit()" aria-label="<?php echo htmlspecialchars(t('list_settings.section.st_mode'), ENT_QUOTES, 'UTF-8'); ?>">
+                        <option value="chain"<?php echo $stModeDefault === 'chain' ? ' selected' : ''; ?>><?php echo htmlspecialchars(t('series_timeline.tab.chain'), ENT_QUOTES, 'UTF-8'); ?></option>
+                        <option value="airdate"<?php echo $stModeDefault === 'airdate' ? ' selected' : ''; ?>><?php echo htmlspecialchars(t('series_timeline.tab.airdate'), ENT_QUOTES, 'UTF-8'); ?></option>
+                    </select>
+                    <noscript>
+                        <button type="submit" class="settings-button"><?php echo htmlspecialchars(t('list_settings.st_mode.save'), ENT_QUOTES, 'UTF-8'); ?></button>
+                    </noscript>
+                </form>
+            </div>
+
             <?php // 1.1.2 - yetiskin (+18) icerik gorunurlugu. Varsayilan kapali;
                   // acilinca +18 damgali animeler listelerde/aramada/kesifte gorunur.
                   // Kisi bazli tercih (user_pref show_adult_content); title_lang

@@ -813,6 +813,10 @@ return [
     'series_timeline.subtitle'               => 'Series Chronology',
     'series_timeline.count'                  => '%d anime',
     'series_timeline.back_to_details'        => 'Back to Details',
+    // 1.1.23 - tabs + air-date view
+    'series_timeline.tab.chain'              => 'Chain Order',
+    'series_timeline.tab.airdate'            => 'Air Date',
+    'series_timeline.no_date'                => 'no date',
 
     // -----------------------------------------------------------------
     // list_settings.php - import/export/clear/sync/update
@@ -923,6 +927,10 @@ return [
     'list_settings.section.chrono_mode'      => 'Chronology View',
     'list_settings.section.chrono_mode.desc' => 'Chooses the order the chronology notes on the detail page and the chronology page open in: release order, story (recommended-watch) order, or both. You can switch it temporarily with the button on the detail page. This preference affects only you.',
     'list_settings.chrono_mode.save'         => 'Save',
+    // 1.1.23 - series timeline default view
+    'list_settings.section.st_mode'          => 'Series Chronology View',
+    'list_settings.section.st_mode.desc'     => 'Chooses which tab the series chronology page opens in: chain order (follows the Next in Series links) or air date (lists every anime sharing the series name by first air/release date). You can switch temporarily with the tabs on the page. This preference affects only you.',
+    'list_settings.st_mode.save'             => 'Save',
 
     // 1.1.2 - adult (18+) content visibility toggle (list_settings)
     'list_settings.section.adult'            => 'Adult Content',

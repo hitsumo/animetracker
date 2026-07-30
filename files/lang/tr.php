@@ -845,6 +845,10 @@ return [
     'series_timeline.subtitle'               => 'Seri Kronolojisi',
     'series_timeline.count'                  => '%d anime',
     'series_timeline.back_to_details'        => 'Detaya Dön',
+    // 1.1.23 - sekmeler + yayın tarihi görünümü
+    'series_timeline.tab.chain'              => 'Zincir Sırası',
+    'series_timeline.tab.airdate'            => 'Yayın Tarihi',
+    'series_timeline.no_date'                => 'tarih yok',
 
     // -----------------------------------------------------------------
     // list_settings.php - import/export/clear/sync/update
@@ -955,6 +959,10 @@ return [
     'list_settings.section.chrono_mode'      => 'Kronoloji Görünümü',
     'list_settings.section.chrono_mode.desc' => 'Detay sayfasındaki kronoloji notları ve kronoloji sayfası hangi sırayla açılsın: yayın çıkış sırası, hikaye (önerilen izleme) sırası ya da ikisi birden. Detaydaki düğmeyle geçici olarak değiştirebilirsiniz. Bu tercih yalnızca sizi etkiler.',
     'list_settings.chrono_mode.save'         => 'Kaydet',
+    // 1.1.23 - seri kronolojisi görünüm varsayılanı
+    'list_settings.section.st_mode'          => 'Seri Kronolojisi Görünümü',
+    'list_settings.section.st_mode.desc'     => 'Seri kronolojisi sayfası hangi sekmeyle açılsın: zincir sırası (Sıradaki Anime bağlantılarını takip eder) ya da yayın tarihi (aynı seri adını taşıyan tüm animeleri ilk gösterim tarihine göre dizer). Sayfadaki sekmelerle geçici olarak değiştirebilirsiniz. Bu tercih yalnızca sizi etkiler.',
+    'list_settings.st_mode.save'             => 'Kaydet',
 
     // 1.1.2 - yetiskin (+18) icerik gorunurluk toggle (list_settings)
     'list_settings.section.adult'            => 'Yetişkin İçerik',

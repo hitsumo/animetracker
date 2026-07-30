@@ -13,6 +13,13 @@
  *
  * Example: Tensei shitara Slime Datta Ken
  *   S1 (TV) -> OVA -> S2 Part 1 (TV) -> Slime Diaries -> S2 Part 2 -> ...
+ *
+ * 1.1.23: iki sekme. "Zincir Sirasi" yukaridaki yuruyusun kendisi;
+ * "Yayin Tarihi" ise ayni series_name'i tasiyan HER kaydi ilk gosterim
+ * tarihine gore dizer - zincire hic bagimli degildir, bu yuzden eksik
+ * bir next_in_series halkasi ya da katalogdan baglanmadan gelen bir
+ * kayit bu gorunumu bolemez. Ic ice gecen yayin donemleri (ayni anda
+ * yayinda iki dizi) tarih araliklariyla oldugu gibi gorunur.
  */
 
 require_once __DIR__ . '/db.php';
@@ -24,10 +31,38 @@ lang_init($pdo);
 // applies to the chain titles below.
 title_pref_init($pdo);
 
+// +18 tercihi (1.1.2 politikasi): kart kalir, baslik sizmaz. Opt-in eden
+// kullanici gercek basligi gorur; init edilmezse guvenli taraf (maske) kalir.
+adult_pref_init($pdo);
+
 $id = (int)($_GET['id'] ?? 0);
 if ($id <= 0) {
     header('Location: index.php');
     exit;
+}
+
+// 1.1.23: istekteki animeyi en basta getir - sekme gosterimi ve yayin
+// tarihi gorunumu series_name'den beslenir, zincirden bagimsizdir.
+$reqStmt = $pdo->prepare("SELECT id, series_name FROM animes WHERE id = ?");
+$reqStmt->execute([$id]);
+$reqAnime = $reqStmt->fetch(PDO::FETCH_ASSOC);
+$reqStmt->closeCursor();
+if (!$reqAnime) {
+    header('Location: index.php');
+    exit;
+}
+$hasSeriesName = !empty($reqAnime['series_name']);
+
+// Mod cozumu (1.1.15 kalibi): sekme linki ?mode= ile gelir, gecerliyse
+// oturuma yazilir (gezinirken secim korunur, kayitli varsayilan ezilmez).
+// Sonra oturum > kayitli tercih > 'chain'. Seri adi olmayan animede
+// yayin-tarihi sekmesi yoktur; zincire duser.
+if (isset($_GET['mode']) && in_array($_GET['mode'], series_timeline_modes(), true)) {
+    $_SESSION['series_timeline_mode'] = $_GET['mode'];
+}
+$stMode = series_timeline_current_mode($pdo);
+if (!$hasSeriesName) {
+    $stMode = 'chain';
 }
 
 // Find chain start: walk backwards via next_in_series until no anime
@@ -61,7 +96,7 @@ function getSeriesChain($pdo, $start_id) {
                    COALESCE(ua.watched_episodes, 0) AS watched_episodes,
                    ua.watch_status,
                    a.status, a.image_path,
-                   a.release_date, a.next_in_series, a.series_name
+                   a.release_date, a.end_date, a.is_adult, a.next_in_series, a.series_name
             FROM animes a
             LEFT JOIN user_anime ua
                    ON ua.anime_id = a.id AND ua.user_id = ?
@@ -77,16 +112,29 @@ function getSeriesChain($pdo, $start_id) {
     return $chain;
 }
 
-$startId = findChainStart($pdo, $id);
-$chain = getSeriesChain($pdo, $startId);
+// 1.1.23: aktif sekmeye gore listeyi kur. Iki mod da ayni $chain
+// degiskenini doldurur; asagidaki kart dongusu tek sablondur.
+if ($stMode === 'airdate') {
+    $chain = getSeriesAnimesByAirDate($pdo, $reqAnime['series_name']);
+    $seriesName = $reqAnime['series_name'];
+} else {
+    $startId = findChainStart($pdo, $id);
+    $chain = getSeriesChain($pdo, $startId);
+    // Series name from first item in chain
+    $seriesName = !empty($chain) ? ($chain[0]['series_name'] ?? $chain[0]['title']) : '';
+}
 
 if (empty($chain)) {
     header('Location: anime_details.php?id=' . $id);
     exit;
 }
 
-// Series name from first item in chain
-$seriesName = $chain[0]['series_name'] ?? $chain[0]['title'];
+// 1.1.2 politikasi: +18 uye kartini korur ama basligi sizdirmaz (opt-in
+// eden kullanici adult_pref_init sonrasi gercek basligi gorur).
+foreach ($chain as &$stRow) {
+    $stRow = adult_mask_related($stRow, 'is_adult', 'title', 'alternative_titles');
+}
+unset($stRow);
 
 // Find which anime in chain is the one user came from (highlight it)
 $currentAnimeId = $id;
@@ -136,6 +184,31 @@ function seriesMediaIcon($type) {
             color: #999;
             font-size: 0.85em;
             margin-top: 4px;
+        }
+
+        /* Tabs (1.1.23) - zincir / yayin tarihi sekmeleri */
+        .st-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        .st-tabs a {
+            padding: 7px 18px;
+            border-radius: 18px;
+            background: #fff;
+            color: #666;
+            text-decoration: none;
+            font-size: 0.88em;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            transition: box-shadow 0.2s;
+        }
+        .st-tabs a.active {
+            background: #8e44ad;
+            color: #fff;
+        }
+        .st-tabs a:hover:not(.active) {
+            box-shadow: 0 3px 12px rgba(0,0,0,0.12);
         }
 
         /* Timeline */
@@ -319,6 +392,17 @@ function seriesMediaIcon($type) {
         <div class="count"><?php echo htmlspecialchars(sprintf(t('series_timeline.count'), count($chain)), ENT_QUOTES, 'UTF-8'); ?></div>
     </div>
 
+    <?php // 1.1.23: sekmeler yalniz seri adi dolu animede cikar - yayin
+          // tarihi gorunumu series_name'den beslenir. ?>
+    <?php if ($hasSeriesName): ?>
+    <div class="st-tabs">
+        <a href="series_timeline.php?id=<?php echo (int)$id; ?>&amp;mode=chain"
+           class="<?php echo $stMode === 'chain' ? 'active' : ''; ?>"><?php echo htmlspecialchars(t('series_timeline.tab.chain'), ENT_QUOTES, 'UTF-8'); ?></a>
+        <a href="series_timeline.php?id=<?php echo (int)$id; ?>&amp;mode=airdate"
+           class="<?php echo $stMode === 'airdate' ? 'active' : ''; ?>"><?php echo htmlspecialchars(t('series_timeline.tab.airdate'), ENT_QUOTES, 'UTF-8'); ?></a>
+    </div>
+    <?php endif; ?>
+
     <div class="st-timeline">
         <?php foreach ($chain as $i => $item): ?>
             <?php
@@ -342,6 +426,21 @@ function seriesMediaIcon($type) {
                 // Media type
                 $mediaType = $item['media_type'] ?? 'TV';
                 $mediaIcon = seriesMediaIcon($mediaType);
+
+                // 1.1.23: yayin tarihi gorunumunde tarih onemli veridir -
+                // gun.ay.yil (araligiyla) gosterilir; zincir gorunumu eski
+                // davranisiyla yalnizca yili gosterir.
+                $stDateText = '';
+                if ($stMode === 'airdate') {
+                    if (!empty($item['release_date'])) {
+                        $stDateText = date('d.m.Y', strtotime($item['release_date']));
+                        if (!empty($item['end_date']) && $item['end_date'] !== $item['release_date']) {
+                            $stDateText .= ' – ' . date('d.m.Y', strtotime($item['end_date']));
+                        }
+                    } else {
+                        $stDateText = t('series_timeline.no_date');
+                    }
+                }
             ?>
             <div class="st-item <?php echo $statusClass; ?> <?php echo $isCurrent ? 'is-current' : ''; ?>">
                 <a href="anime_details.php?id=<?php echo (int)$item['id']; ?>" class="st-card">
@@ -355,7 +454,9 @@ function seriesMediaIcon($type) {
                         <div class="meta">
                             <span><?php echo $mediaIcon; ?> <?php echo htmlspecialchars($mediaType); ?></span>
                             <span><i class="fas fa-play-circle"></i> <?php echo $epText; ?></span>
-                            <?php if (!empty($item['release_date'])): ?>
+                            <?php if ($stMode === 'airdate'): ?>
+                                <span><i class="far fa-calendar"></i> <?php echo htmlspecialchars($stDateText, ENT_QUOTES, 'UTF-8'); ?></span>
+                            <?php elseif (!empty($item['release_date'])): ?>
                                 <span><i class="far fa-calendar"></i> <?php echo date('Y', strtotime($item['release_date'])); ?></span>
                             <?php endif; ?>
                         </div>

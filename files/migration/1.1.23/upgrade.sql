@@ -1,0 +1,32 @@
+-- =====================================================================
+-- 1.1.23 - Seri kronolojisine "Yayin Tarihi" sekmesi
+-- =====================================================================
+-- series_timeline.php artik iki sekmeyle acilir:
+--
+--   Zincir Sirasi - eski gorunum; next_in_series baglantili listesinin
+--                   yuruyusu. Davranisi degismedi.
+--   Yayin Tarihi  - YENI; ayni series_name'i tasiyan HER kayit, ilk
+--                   gosterim tarihine (release_date, varsa end_date
+--                   araligiyla) gore dizilir.
+--
+-- NEDEN: zincir gorunumu elle kurulan next_in_series halkalarina bagimli -
+-- tek eksik halka listeyi ikiye boler; katalogdan ice aktarilan anime de
+-- hep NULL zincirle dogar. Ustelik dogrusal zincir ic ice gecen yayin
+-- donemlerini (bir dizinin yayini surerken cikan film/dizi) temsil edemez.
+-- Yayin Tarihi sekmesi zincire hic bakmadigi icin bu sorunlarin ikisinden
+-- de etkilenmez; tarih araliklari cakismalari oldugu gibi gosterir.
+--
+-- Sekme secimi oturumda tutulur (gezinirken korunur); kalici kisisel
+-- varsayilan Liste Ayarlari'ndan secilir ve user_pref tablosuna
+-- 'series_timeline_mode' adiyla yazilir (chain | airdate).
+--
+-- SEMA DEGISIKLIGI YOKTUR. user_pref anahtar-deger tablosu 1.0.x'ten beri
+-- var; yeni tercih mevcut tabloya satir olarak girer. animes.release_date,
+-- end_date, series_name, is_adult kolonlari da zaten mevcut. Bu migration
+-- klasorunun tek amaci settings.version'i 1.1.23'e tasimaktir (runner
+-- yorumlari temizler ve bos ifade listesiyle surumu damgalar; bu dosyada
+-- calistirilacak SQL ifadesi yoktur).
+--
+-- MERKEZ KATALOG SUNUCUSUNDA ELLE ISLEM GEREKMEZ - degisiklik tamamen
+-- gosterim katmanindadir, katalog teline dokunmaz.
+-- =====================================================================
