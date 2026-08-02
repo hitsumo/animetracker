@@ -678,7 +678,7 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
 <head>
     <meta charset="UTF-8">
     <title><?php echo htmlspecialchars(t('edit_anime.page_title'), ENT_QUOTES, 'UTF-8'); ?></title>
-    <link rel="stylesheet" href="style.css">
+    <?php echo asset_styles(); ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@700&display=swap" rel="stylesheet">
@@ -1348,7 +1348,7 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
             });
         }
     </script>
-    <script src="js/anime_form.js"></script>
-    <script src="js/select_enhance.js" defer></script>
+    <script src="<?php echo asset_url('js/anime_form.js'); ?>"></script>
+    <script src="<?php echo asset_url('js/select_enhance.js'); ?>" defer></script>
 </body>
 </html>

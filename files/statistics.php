@@ -143,7 +143,7 @@ $emotion_anime_count_global = (int)$pdo->query(
 <head>
     <meta charset="UTF-8">
     <title><?php echo htmlspecialchars(t('statistics.page_title'), ENT_QUOTES, 'UTF-8'); ?></title>
-    <link rel="stylesheet" href="style.css">
+    <?php echo asset_styles(); ?>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <style>
         .stats-container { max-width: 1100px; margin: 30px auto; padding: 20px; }

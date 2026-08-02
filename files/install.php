@@ -29,6 +29,11 @@
 
 require_once __DIR__ . '/db.php';
 
+// 1.1.24: functions.php burada yuklenmez (kurulum sayfasi mumkun oldugunca
+// bagimsiz kalir), CSS linklerinin surum damgasi icin yalnizca kendi kendine
+// yeten asset yardimcisi cagirilir.
+require_once __DIR__ . '/functions/asset_helpers.php';
+
 // If we got here, db.php successfully connected. $pdo is available.
 // Now load and execute the schema.
 
@@ -153,7 +158,7 @@ if (empty($errors) && MULTI_USER_MODE) {
 <head>
     <meta charset="UTF-8">
     <title>Anime Tracker - Kurulum Tamamlandi</title>
-    <link rel="stylesheet" href="style.css">
+    <?php echo asset_styles(); ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="favicon.ico">

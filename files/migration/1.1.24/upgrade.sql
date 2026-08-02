@@ -1,0 +1,38 @@
+-- =====================================================================
+-- 1.1.24 - CSS/JS linklerinde surum damgasi (tarayici onbellegi)
+-- =====================================================================
+-- Sayfalar stil ve betik dosyalarini bugune kadar damgasiz linkliyordu
+-- (<link href="style.css">, <script src="js/select_enhance.js">). URL hic
+-- degismedigi icin surum yukseltmesinden sonra tarayici ESKI dosyayi
+-- onbellekten servis etmeye devam ediyordu: yeni HTML eski CSS ile
+-- bulusuyordu. 1.1.20 dagitiminin hemen ardindan gorulen bozuk duzenin
+-- sebebi tam olarak buydu.
+--
+-- Artik her yerel varlik URL'si ?v={surum} tasiyor. Damga files/version.txt
+-- icinden okunur - settings.version satirindan DEGIL: damgalanan seyler
+-- DOSYA oldugu icin dosya surumuyle eslesmeleri gerekir (dosyalar yuklenmis
+-- ama migration henuz kosmamis bir dagitimda da taze CSS servis edilmeli),
+-- ayrica setup.php veritabani yokken de calisir.
+--
+-- STIL MODULLERI TEK TEK LINKLENIR: style.css yalnizca bir yukleyicidir,
+-- gercek kurallar css/*.css icindedir ve @import ile cekilir (0.6.7
+-- ayrismasi). Yalnizca yukleyiciyi damgalamak ISE YARAMAZ - tarayici
+-- style.css'i yeniden okur, ayni damgasiz @import URL'lerini gorur ve
+-- css/components.css'i onbellekten verir. Bu yuzden asset_styles()
+-- yukleyicinin @import sirasina uyarak her modul icin damgali bir <link>
+-- yazar; modul listesi style.css'ten CALISMA ANINDA okunur, ikinci bir
+-- liste tutulmaz.
+--
+-- SEMA DEGISIKLIGI YOKTUR. Degisiklik tamamen gosterim katmanindadir; ne
+-- yeni tablo/kolon ne yeni tercih vardir. Bu migration klasorunun tek
+-- amaci settings.version'i 1.1.24'e tasimaktir (runner yorumlari temizler
+-- ve bos ifade listesiyle surumu damgalar; bu dosyada calistirilacak SQL
+-- ifadesi yoktur).
+--
+-- MERKEZ KATALOG SUNUCUSUNDA ELLE ISLEM GEREKMEZ - katalog teline
+-- dokunulmadi.
+--
+-- DAGITIM NOTU: files/functions/asset_helpers.php YENI bir dosyadir ve
+-- functions.php yukleyicisinden cagrilir. Sunucuya yuklenmezse her sayfa
+-- ilk yardimci cagrisinda olur; delta yuklemesi kismi kalmamalidir.
+-- =====================================================================

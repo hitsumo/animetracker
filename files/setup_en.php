@@ -144,13 +144,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// 1.1.24: version stamp for the CSS links. This page runs BEFORE
+// config.php exists, so only the asset helper is required - it reads
+// version.txt and never touches the database, unlike functions.php.
+require_once __DIR__ . '/functions/asset_helpers.php';
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Anime Tracker - Setup</title>
-    <link rel="stylesheet" href="style.css">
+    <?php echo asset_styles(); ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="favicon.ico">

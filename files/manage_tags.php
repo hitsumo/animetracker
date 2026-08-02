@@ -141,7 +141,7 @@ $tags = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <head>
     <meta charset="UTF-8">
     <title><?php echo htmlspecialchars(t('manage_tags.title'), ENT_QUOTES, 'UTF-8'); ?></title>
-    <link rel="stylesheet" href="style.css">
+    <?php echo asset_styles(); ?>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>

@@ -20,13 +20,22 @@
 
 /* =====================================================================
    Stylesheet loader. style.css was split into css/*.css in 0.6.7
-   (pure reorganization, no visual change). Every page still links
-   <link rel="stylesheet" href="style.css"> unchanged - this loader
-   pulls in the modules IN ORIGINAL CASCADE ORDER. Import order is
-   significant: it must match the original top-to-bottom order so
-   specificity/override behavior stays identical. If any module is
-   missing from the deployment/ZIP, its rules silently vanish, so
-   packaging must include the whole css/ directory.
+   (pure reorganization, no visual change). This loader pulls in the
+   modules IN ORIGINAL CASCADE ORDER. Import order is significant: it
+   must match the original top-to-bottom order so specificity/override
+   behavior stays identical. If any module is missing from the
+   deployment/ZIP, its rules silently vanish, so packaging must include
+   the whole css/ directory.
+
+   1.1.24: the @import list below is now ALSO the module list the app
+   renders its <link> tags from. Pages no longer link this file; they
+   call asset_styles() (functions/asset_helpers.php), which reads these
+   @import lines and emits one version-stamped <link> per module. Reason:
+   a stamp on style.css alone cannot bust the cache of the modules, since
+   their @import URLs would stay unchanged. THIS LIST STAYS THE SINGLE
+   SOURCE OF TRUTH - adding or reordering a module here is still the only
+   step needed, and this file keeps working as a plain stylesheet for
+   anything that links it directly.
    ===================================================================== */
 
 @import url('css/base.css');

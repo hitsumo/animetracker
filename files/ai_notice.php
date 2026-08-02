@@ -18,13 +18,17 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  MA 02110-1301, USA.
 */
+
+// 1.1.24: bu sayfa functions.php'yi yuklemeyen duz bir metin sayfasi,
+// yardimciyi CSS linklerinin surum damgasi icin dogrudan cagiriyor.
+require_once __DIR__ . '/functions/asset_helpers.php';
 ?>
 <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
     <title>AI Kullanım Beyanı - Anime Tracker</title>
-    <link rel="stylesheet" href="style.css">
+    <?php echo asset_styles(); ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="favicon.ico">

@@ -142,13 +142,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// 1.1.24: CSS linklerinin surum damgasi. Bu sayfa config.php'den ONCE
+// calisir, o yuzden yalnizca version.txt okuyan, veritabanina hic
+// dokunmayan asset yardimcisi cagirilir - functions.php degil.
+require_once __DIR__ . '/functions/asset_helpers.php';
+
 ?>
 <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
     <title>Anime Tracker - Kurulum</title>
-    <link rel="stylesheet" href="style.css">
+    <?php echo asset_styles(); ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="favicon.ico">

@@ -40,7 +40,7 @@ $rows = $pdo->query(
 <head>
     <meta charset="UTF-8">
     <title><?php echo htmlspecialchars(t('pending.page_title'), ENT_QUOTES, 'UTF-8'); ?></title>
-    <link rel="stylesheet" href="style.css">
+    <?php echo asset_styles(); ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="favicon.ico">

@@ -31,6 +31,11 @@
 
 require_once __DIR__ . '/db.php';
 
+// 1.1.24: functions.php is deliberately not loaded here (the install page
+// stays as independent as possible); only the self-contained asset helper
+// is required, for the version-stamped CSS links.
+require_once __DIR__ . '/functions/asset_helpers.php';
+
 // If we got here, db.php successfully connected. $pdo is available.
 // Now load and execute the schema.
 
@@ -155,7 +160,7 @@ if (empty($errors) && MULTI_USER_MODE) {
 <head>
     <meta charset="UTF-8">
     <title>Anime Tracker - Installation Complete</title>
-    <link rel="stylesheet" href="style.css">
+    <?php echo asset_styles(); ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
