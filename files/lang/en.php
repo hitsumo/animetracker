@@ -816,6 +816,7 @@ return [
     // 1.1.23 - tabs + air-date view
     'series_timeline.tab.chain'              => 'Chain Order',
     'series_timeline.tab.airdate'            => 'Air Date',
+    'series_timeline.tab.other_chain'        => 'Other Chain %d',
     'series_timeline.no_date'                => 'no date',
 
     // -----------------------------------------------------------------

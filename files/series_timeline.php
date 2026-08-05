@@ -20,6 +20,15 @@
  * bir next_in_series halkasi ya da katalogdan baglanmadan gelen bir
  * kayit bu gorunumu bolemez. Ic ice gecen yayin donemleri (ayni anda
  * yayinda iki dizi) tarih araliklariyla oldugu gibi gorunur.
+ *
+ * 1.1.25: bir seri adi altinda birden cok zincir olabilir (filmler bir
+ * zincir, TV dizileri bambaska bir zincir). 1.1.24'e kadar yalnizca
+ * istenen animenin zinciri cizilirdi; digerlerine ancak o zincirdeki bir
+ * animeye giderek ulasilirdi ve KAC zincir oldugu hic gorunmezdi. Artik
+ * seri adi grubu taraniyor, kendi zincirimiz disindaki her zincir icin
+ * "Diger Zincir 1..N" sekmesi ciziliyor. Secim ?chain=<baslangic_id> ile
+ * tasinir ve oturuma YAZILMAZ: kalici sekme tercihi (chain/airdate)
+ * bozulmadan kalir, baska bir animeye gidildiginde secim sifirlanir.
  */
 
 require_once __DIR__ . '/db.php';
@@ -65,51 +74,38 @@ if (!$hasSeriesName) {
     $stMode = 'chain';
 }
 
-// Find chain start: walk backwards via next_in_series until no anime
-// points to the current one.
-function findChainStart($pdo, $anime_id) {
-    $current = $anime_id;
-    $visited = [];
-    while (true) {
-        if (isset($visited[$current])) break; // circular guard
-        $visited[$current] = true;
-        $stmt = $pdo->prepare("SELECT id FROM animes WHERE next_in_series = ?");
-        $stmt->execute([$current]);
-        $prev = $stmt->fetchColumn();
-        $stmt->closeCursor();
-        if (!$prev) break;
-        $current = (int)$prev;
+// 1.1.25: zincir yuruyusu (geri/ileri) series_helpers.php'ye tasindi -
+// sayfa ve zincir kesfi ayni kodu kullansin diye. Davranis degismedi.
+$ownStartId = seriesChainStartId($pdo, $id);
+
+// 1.1.25: seri adi grubundaki TUM zincirler. Kendi zincirimizi cikarinca
+// geriye "diger zincirler" kalir; sekme numaralari bu sirayi izler.
+$otherChains = [];
+if ($hasSeriesName) {
+    foreach (getSeriesChains($pdo, $reqAnime['series_name']) as $chainInfo) {
+        if ($chainInfo['start_id'] !== $ownStartId) {
+            $otherChains[] = $chainInfo;
+        }
     }
-    return $current;
 }
 
-// Walk the chain forward from start, collecting all anime records.
-function getSeriesChain($pdo, $start_id) {
-    $chain = [];
-    $current = $start_id;
-    $visited = [];
-    while ($current) {
-        if (isset($visited[$current])) break; // circular guard
-        $visited[$current] = true;
-        $stmt = $pdo->prepare("
-            SELECT a.id, a.title, a.alternative_titles, a.media_type, a.total_episodes, a.aired_episodes,
-                   COALESCE(ua.watched_episodes, 0) AS watched_episodes,
-                   ua.watch_status,
-                   a.status, a.image_path,
-                   a.release_date, a.end_date, a.is_adult, a.next_in_series, a.series_name
-            FROM animes a
-            LEFT JOIN user_anime ua
-                   ON ua.anime_id = a.id AND ua.user_id = ?
-            WHERE a.id = ?
-        ");
-        $stmt->execute([current_user_id(), $current]);
-        $anime = $stmt->fetch(PDO::FETCH_ASSOC);
-        $stmt->closeCursor();
-        if (!$anime) break;
-        $chain[] = $anime;
-        $current = $anime['next_in_series'] ? (int)$anime['next_in_series'] : null;
+// Hangi zincir cizilecek? ?chain= yalnizca YUKARIDA dogrulanmis bir diger
+// zincirin baslangic id'si olabilir; baska her deger yok sayilir (kendi
+// zincirimize duseriz). Diger zincir gorunumu daima zincir sirasidir -
+// "Yayin Tarihi" tum seriyi kapsar, tek bir zincire daralmaz.
+$activeChainStart = $ownStartId;
+$requestedChain = (int)($_GET['chain'] ?? 0);
+if ($requestedChain > 0) {
+    foreach ($otherChains as $chainInfo) {
+        if ($chainInfo['start_id'] === $requestedChain) {
+            $activeChainStart = $requestedChain;
+            break;
+        }
     }
-    return $chain;
+}
+$viewingOtherChain = ($activeChainStart !== $ownStartId);
+if ($viewingOtherChain) {
+    $stMode = 'chain';
 }
 
 // 1.1.23: aktif sekmeye gore listeyi kur. Iki mod da ayni $chain
@@ -118,8 +114,7 @@ if ($stMode === 'airdate') {
     $chain = getSeriesAnimesByAirDate($pdo, $reqAnime['series_name']);
     $seriesName = $reqAnime['series_name'];
 } else {
-    $startId = findChainStart($pdo, $id);
-    $chain = getSeriesChain($pdo, $startId);
+    $chain = getSeriesChainRows($pdo, $activeChainStart);
     // Series name from first item in chain
     $seriesName = !empty($chain) ? ($chain[0]['series_name'] ?? $chain[0]['title']) : '';
 }
@@ -186,9 +181,12 @@ function seriesMediaIcon($type) {
             margin-top: 4px;
         }
 
-        /* Tabs (1.1.23) - zincir / yayin tarihi sekmeleri */
+        /* Tabs (1.1.23) - zincir / yayin tarihi sekmeleri.
+           1.1.25: "Diger Zincir N" sekmeleri sayica belli olmadigi icin
+           satir sarmasi acik - dar ekranda tasmasin. */
         .st-tabs {
             display: flex;
+            flex-wrap: wrap;
             justify-content: center;
             gap: 8px;
             margin-bottom: 24px;
@@ -393,13 +391,25 @@ function seriesMediaIcon($type) {
     </div>
 
     <?php // 1.1.23: sekmeler yalniz seri adi dolu animede cikar - yayin
-          // tarihi gorunumu series_name'den beslenir. ?>
+          // tarihi gorunumu series_name'den beslenir.
+          // 1.1.25: varsa "Diger Zincir N" sekmeleri sona eklenir. Bu
+          // linkler mode tasimaz: kalici sekme tercihi bozulmasin diye. ?>
     <?php if ($hasSeriesName): ?>
     <div class="st-tabs">
         <a href="series_timeline.php?id=<?php echo (int)$id; ?>&amp;mode=chain"
-           class="<?php echo $stMode === 'chain' ? 'active' : ''; ?>"><?php echo htmlspecialchars(t('series_timeline.tab.chain'), ENT_QUOTES, 'UTF-8'); ?></a>
+           class="<?php echo ($stMode === 'chain' && !$viewingOtherChain) ? 'active' : ''; ?>"><?php echo htmlspecialchars(t('series_timeline.tab.chain'), ENT_QUOTES, 'UTF-8'); ?></a>
         <a href="series_timeline.php?id=<?php echo (int)$id; ?>&amp;mode=airdate"
-           class="<?php echo $stMode === 'airdate' ? 'active' : ''; ?>"><?php echo htmlspecialchars(t('series_timeline.tab.airdate'), ENT_QUOTES, 'UTF-8'); ?></a>
+           class="<?php echo ($stMode === 'airdate' && !$viewingOtherChain) ? 'active' : ''; ?>"><?php echo htmlspecialchars(t('series_timeline.tab.airdate'), ENT_QUOTES, 'UTF-8'); ?></a>
+        <?php foreach ($otherChains as $ocIndex => $otherChain): ?>
+            <?php // Etiket "Diger Zincir 1..N"; ipucu metni zincirin kac
+                  // anime tasidigini soyler. Baslik yazilmaz - +18 maskesi
+                  // sekmeden sizmasin. ?>
+            <a href="series_timeline.php?id=<?php echo (int)$id; ?>&amp;chain=<?php echo (int)$otherChain['start_id']; ?>"
+               title="<?php echo htmlspecialchars(sprintf(t('series_timeline.count'), (int)$otherChain['count']), ENT_QUOTES, 'UTF-8'); ?>"
+               class="<?php echo ($viewingOtherChain && $activeChainStart === $otherChain['start_id']) ? 'active' : ''; ?>"><?php
+                echo htmlspecialchars(sprintf(t('series_timeline.tab.other_chain'), $ocIndex + 1), ENT_QUOTES, 'UTF-8');
+            ?></a>
+        <?php endforeach; ?>
     </div>
     <?php endif; ?>
 

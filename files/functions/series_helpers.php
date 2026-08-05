@@ -263,6 +263,148 @@ function getSeriesAnimesByAirDate($pdo, $series_name) {
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+// =====================================================================
+// Series chain walking + multi-chain discovery (1.1.25)
+// =====================================================================
+// Bir seri adi altinda TEK bir zincir olmak zorunda degil: Koukaku
+// Kidoutai'de filmler bir zincir, SAC dizileri bambaska bir zincirdir.
+// series_timeline.php 1.1.24'e kadar yalnizca istenen animenin icinde
+// bulundugu zinciri cizerdi - digerlerinin VARLIGI bile gorunmezdi.
+// Asagidaki yardimcilar seri adi grubunu tarayip kac ayri zincir
+// oldugunu bulur; sayfa da bunlari "Diger Zincir 1..N" sekmesi yapar.
+//
+// Zincir yuruyusu (geri/ileri) 1.1.25'te series_timeline.php'den buraya
+// tasindi: hem sayfa hem de kesif ayni yuruyusu kullansin, iki ayri
+// kopya birbirinden ayrisamasin diye. Yuruyus next_in_series'i seri
+// adina bakmadan izler - 1.1.24 oncesi davranisla birebir aynidir.
+
+/**
+ * Walk backwards via next_in_series until nobody points at the current
+ * anime; that anime is the chain's start. Visited-set guards a cycle.
+ */
+function seriesChainStartId($pdo, $anime_id) {
+    $current = (int)$anime_id;
+    $visited = [];
+    while (true) {
+        if (isset($visited[$current])) break; // circular guard
+        $visited[$current] = true;
+        $stmt = $pdo->prepare("SELECT id FROM animes WHERE next_in_series = ?");
+        $stmt->execute([$current]);
+        $prev = $stmt->fetchColumn();
+        $stmt->closeCursor();
+        if (!$prev) break;
+        $current = (int)$prev;
+    }
+    return $current;
+}
+
+/**
+ * Walk the chain forward from its start, returning only the ids. Used by
+ * getSeriesChains() where the full display row would be wasted work.
+ */
+function seriesChainIds($pdo, $start_id) {
+    $ids = [];
+    $current = (int)$start_id;
+    $visited = [];
+    while ($current) {
+        if (isset($visited[$current])) break; // circular guard
+        $visited[$current] = true;
+        $stmt = $pdo->prepare("SELECT id, next_in_series FROM animes WHERE id = ?");
+        $stmt->execute([$current]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
+        if (!$row) break;
+        $ids[] = (int)$row['id'];
+        $current = $row['next_in_series'] ? (int)$row['next_in_series'] : null;
+    }
+    return $ids;
+}
+
+/**
+ * Walk the chain forward from its start, collecting the full display rows
+ * series_timeline.php draws. Column set matches getSeriesAnimesByAirDate()
+ * so the page renders both views with one card template.
+ */
+function getSeriesChainRows($pdo, $start_id) {
+    $chain = [];
+    $current = (int)$start_id;
+    $visited = [];
+    while ($current) {
+        if (isset($visited[$current])) break; // circular guard
+        $visited[$current] = true;
+        $stmt = $pdo->prepare("
+            SELECT a.id, a.title, a.alternative_titles, a.media_type, a.total_episodes, a.aired_episodes,
+                   COALESCE(ua.watched_episodes, 0) AS watched_episodes,
+                   ua.watch_status,
+                   a.status, a.image_path,
+                   a.release_date, a.end_date, a.is_adult, a.next_in_series, a.series_name
+            FROM animes a
+            LEFT JOIN user_anime ua
+                   ON ua.anime_id = a.id AND ua.user_id = ?
+            WHERE a.id = ?
+        ");
+        $stmt->execute([current_user_id(), $current]);
+        $anime = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
+        if (!$anime) break;
+        $chain[] = $anime;
+        $current = $anime['next_in_series'] ? (int)$anime['next_in_series'] : null;
+    }
+    return $chain;
+}
+
+/**
+ * Discover every distinct next_in_series chain inside a series_name group.
+ *
+ * Grup uyeleri ilk gosterim tarihine gore taranir, her uye icin zincirin
+ * basi bulunur ve zincir bir kez yuruyulur; ayni zincirin diger uyeleri
+ * atlanir. Sonuc bu yuzden hep ayni sirada gelir: "Diger Zincir 1" en
+ * eski tarihli zincirdir.
+ *
+ * $min_length varsayilan olarak 2'dir: hicbir yere baglanmamis TEK bir
+ * kayit zincir sayilmaz, yoksa seri adini paylasan her bagimsiz film ayri
+ * bir sekme uretirdi. O kayitlar zaten "Yayin Tarihi" sekmesinde durur.
+ *
+ * Donen her oge: ['start_id' => int, 'ids' => int[], 'count' => int].
+ */
+function getSeriesChains($pdo, $series_name, $min_length = 2) {
+    if (empty($series_name)) {
+        return [];
+    }
+    $stmt = $pdo->prepare("
+        SELECT id
+        FROM animes
+        WHERE series_name = ?
+        ORDER BY (release_date IS NULL) ASC, release_date ASC, id ASC
+    ");
+    $stmt->execute([$series_name]);
+    $memberIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    $stmt->closeCursor();
+
+    $seen = [];
+    $chains = [];
+    foreach ($memberIds as $memberId) {
+        $memberId = (int)$memberId;
+        if (isset($seen[$memberId])) {
+            continue;
+        }
+        $startId = seriesChainStartId($pdo, $memberId);
+        $ids = seriesChainIds($pdo, $startId);
+        foreach ($ids as $cid) {
+            $seen[$cid] = true;
+        }
+        if (count($ids) < $min_length) {
+            continue;
+        }
+        $chains[] = [
+            'start_id' => $startId,
+            'ids'      => $ids,
+            'count'    => count($ids),
+        ];
+    }
+    return $chains;
+}
+
 /**
  * Validate that setting next_in_series does not create a direct
  * circular reference (A -> B -> A). Does NOT check transitive

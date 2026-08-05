@@ -848,6 +848,7 @@ return [
     // 1.1.23 - sekmeler + yayın tarihi görünümü
     'series_timeline.tab.chain'              => 'Zincir Sırası',
     'series_timeline.tab.airdate'            => 'Yayın Tarihi',
+    'series_timeline.tab.other_chain'        => 'Diğer Zincir %d',
     'series_timeline.no_date'                => 'tarih yok',
 
     // -----------------------------------------------------------------

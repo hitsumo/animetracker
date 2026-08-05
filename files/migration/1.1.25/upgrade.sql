@@ -1,0 +1,43 @@
+-- =====================================================================
+-- 1.1.25 - Seri kronolojisinde "Diger Zincir" sekmeleri
+-- =====================================================================
+-- Bir seri adi (series_name) altinda birden cok next_in_series zinciri
+-- bulunabilir: Koukaku Kidoutai'de sinema filmleri bir zincir, SAC
+-- dizileri bambaska bir zincirdir. series_timeline.php 1.1.24'e kadar
+-- yalnizca ISTENEN animenin icinde bulundugu zinciri cizerdi. Diger
+-- zincirlere ancak o zincirdeki bir animeye giderek ulasilabiliyordu ve
+-- seriyi tanimayan kullanici kac zincir oldugunu HIC goremiyordu.
+--
+-- Artik sayfa acilirken seri adi grubu taraniyor: her uyeden zincirin
+-- basi bulunuyor, zincir bir kez yuruyulup uyeleri isaretleniyor. Kendi
+-- zincirimiz disinda kalan her zincir icin sekme cubuguna "Diger Zincir
+-- 1..N" ekleniyor. Numaralandirma zincirin en eski tarihli uyesine gore
+-- sabittir; yeni bir zincir kurulunca (ya da bir halka koparilinca)
+-- listeye kendiliginden girer - elle ayar yoktur.
+--
+-- Hicbir yere baglanmamis TEK kayit zincir sayilmaz (esik 2 anime).
+-- Yoksa seri adini paylasan her bagimsiz film ayri bir sekme uretirdi;
+-- o kayitlar zaten "Yayin Tarihi" sekmesinde gorunuyor.
+--
+-- Secim ?chain=<baslangic_id> ile tasinir ve OTURUMA YAZILMAZ: kalici
+-- sekme tercihi (user_pref 'series_timeline_mode', 1.1.23) bozulmadan
+-- kalir, baska bir animeye gecildiginde gorunum kendi zincirine doner.
+-- Gecersiz/yabanci bir chain degeri sessizce yok sayilir.
+--
+-- SEMA DEGISIKLIGI YOKTUR. Yeni tablo, kolon veya tercih eklenmedi;
+-- zincirler mevcut next_in_series + series_name verisinden turetilir.
+-- Bu migration klasorunun tek amaci settings.version'i 1.1.25'e
+-- tasimaktir (runner yorumlari temizler ve bos ifade listesiyle surumu
+-- damgalar; bu dosyada calistirilacak SQL ifadesi yoktur).
+--
+-- MERKEZ KATALOG SUNUCUSUNDA ELLE ISLEM GEREKMEZ - katalog teline
+-- dokunulmadi.
+--
+-- DAGITIM NOTU: yeni dosya yoktur. Degisen dosyalar:
+--   files/series_timeline.php            (sekmeler + chain parametresi)
+--   files/functions/series_helpers.php   (zincir yuruyusu + kesif)
+--   files/lang/tr.php, files/lang/en.php ('Diger Zincir %d' etiketi)
+-- series_timeline.php ile series_helpers.php BIRLIKTE yuklenmelidir:
+-- zincir yuruyusu sayfadan yardimciya tasindi, yalnizca biri guncellenirse
+-- sayfa tanimsiz fonksiyon hatasi verir.
+-- =====================================================================
