@@ -367,6 +367,14 @@ return [
     'add_anime.js.fields_filled_prefix'      => 'Fields filled:',
     'add_anime.js.request_failed_prefix'     => 'Request failed:',
 
+    // 1.1.26 - [[anime:...]] link picker for synopsis fields (js/synopsis_link.js).
+    'add_anime.js.synlink.btn'               => 'Add anime link',
+    'add_anime.js.synlink.hint'              => 'Pick an anime and the link code is inserted at the caret.',
+    'add_anime.js.synlink.search_ph'         => 'Type an anime title...',
+    'add_anime.js.synlink.searching'         => 'Searching...',
+    'add_anime.js.synlink.no_results'        => 'No matching anime',
+    'add_anime.js.synlink.failed'            => 'Search failed',
+
     // -----------------------------------------------------------------
     // edit_anime.php - mevcut anime duzenleme sayfasi
     // -----------------------------------------------------------------
@@ -791,6 +799,7 @@ return [
     'about.description'                      => 'Anime Tracker is an anime list and broadcast-tracking system built with the help of AI tools.',
     'about.ai_notice_link'                   => 'AI Use Notice',
     'about.back_to_list'                     => 'Back to Anime List',
+    'about.version_fmt'                      => 'Version %s',
 
     // -----------------------------------------------------------------
     // chronology.php - per-anime kronoloji isaretleri timeline

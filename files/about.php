@@ -75,6 +75,12 @@ lang_init($pdo);
             color: #357abd;
         }
 
+        .about-version {
+            font-size: 0.95em;
+            color: #888;
+            margin-top: -10px;
+        }
+
         .button-container {
             margin-top: 30px;
         }
@@ -95,7 +101,22 @@ lang_init($pdo);
 
                 <a href="https://www.sicakcikolata.com" class="about-link">sicakcikolata.com</a>
                 <h5><center class="about-description">Anime Tracker 2025 </center></h5>
-                
+                <?php
+                /* 1.1.26: kurulu surum. Kaynak asset_version() (files/version.txt),
+                   yani settings.version DEGIL - burada gosterilmek istenen sey
+                   sunucudaki KOD surumu. Ikisi ayrilabilir: dosyalar yuklenmis
+                   ama migration henuz kosmamis bir dagitimda dogru cevap yine
+                   dosya surumudur ve destek sorusu ("hangi surumdesin?") tam da
+                   onu sorar. version.txt okunamazsa satir hic basilmaz - bos bir
+                   "Surum" etiketi gostermenin degeri yok. */
+                $aboutVersion = asset_version();
+                if ($aboutVersion !== ''):
+                ?>
+                <p class="about-version"><?php
+                    echo htmlspecialchars(sprintf(t('about.version_fmt'), $aboutVersion), ENT_QUOTES, 'UTF-8');
+                ?></p>
+                <?php endif; ?>
+
             </p>
             <div class="button-container">
                 

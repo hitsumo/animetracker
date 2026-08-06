@@ -582,14 +582,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <div class="form-group">
             <label for="synopsis_tr"><?php echo htmlspecialchars(t('add_anime.label.synopsis'), ENT_QUOTES, 'UTF-8'); ?></label>
             <div class="input-area">
-                <textarea id="synopsis_tr" name="synopsis_tr" rows="6" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.synopsis'), ENT_QUOTES, 'UTF-8'); ?>"></textarea>
+                <?php /* data-synopsis-link (1.1.26): js/synopsis_link.js hangs the
+                         [[anime:...]] picker off every marked textarea. */ ?>
+                <textarea id="synopsis_tr" name="synopsis_tr" rows="6" data-synopsis-link placeholder="<?php echo htmlspecialchars(t('add_anime.ph.synopsis'), ENT_QUOTES, 'UTF-8'); ?>"></textarea>
             </div>
         </div>
 
         <div class="form-group">
             <label for="synopsis_en"><?php echo htmlspecialchars(t('add_anime.label.synopsis_en'), ENT_QUOTES, 'UTF-8'); ?></label>
             <div class="input-area">
-                <textarea id="synopsis_en" name="synopsis_en" rows="6" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.synopsis_en'), ENT_QUOTES, 'UTF-8'); ?>"></textarea>
+                <textarea id="synopsis_en" name="synopsis_en" rows="6" data-synopsis-link placeholder="<?php echo htmlspecialchars(t('add_anime.ph.synopsis_en'), ENT_QUOTES, 'UTF-8'); ?>"></textarea>
                 <small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.hint.synopsis_en'), ENT_QUOTES, 'UTF-8'); ?></small>
             </div>
         </div>
@@ -913,6 +915,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         'no_empty_fields'              => t('add_anime.js.no_empty_fields'),
         'fields_filled_prefix'         => t('add_anime.js.fields_filled_prefix'),
         'request_failed_prefix'        => t('add_anime.js.request_failed_prefix'),
+        'synlink_btn'                  => t('add_anime.js.synlink.btn'),
+        'synlink_hint'                 => t('add_anime.js.synlink.hint'),
+        'synlink_search_ph'            => t('add_anime.js.synlink.search_ph'),
+        'synlink_searching'            => t('add_anime.js.synlink.searching'),
+        'synlink_no_results'           => t('add_anime.js.synlink.no_results'),
+        'synlink_failed'               => t('add_anime.js.synlink.failed'),
     ], JSON_UNESCAPED_UNICODE); ?>;
 
     // Paylasilan form JS'i icin baslangic durumu (add: bos secimler).
@@ -928,5 +936,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </script>
     <script src="<?php echo asset_url('js/anime_form.js'); ?>"></script>
     <script src="<?php echo asset_url('js/select_enhance.js'); ?>" defer></script>
+    <?php /* 1.1.26: [[anime:...]] yazim yardimi. Salt ilerlemeci gelistirme -
+             yuklenmezse konu alanlari 1.1.25'teki gibi calismaya devam eder. */ ?>
+    <script src="<?php echo asset_url('js/synopsis_link.js'); ?>" defer></script>
 </body>
 </html>

@@ -787,7 +787,9 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                 <div class="form-group">
                     <label for="synopsis_tr"><?php echo htmlspecialchars(t('add_anime.label.synopsis'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <div class="input-area">
-                        <textarea id="synopsis_tr" name="synopsis_tr" rows="6" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.synopsis'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($anime['synopsis_tr'] ?? ''); ?></textarea>
+                        <?php /* data-synopsis-link (1.1.26): js/synopsis_link.js hangs the
+                                 [[anime:...]] picker off every marked textarea. */ ?>
+                        <textarea id="synopsis_tr" name="synopsis_tr" rows="6" data-synopsis-link placeholder="<?php echo htmlspecialchars(t('add_anime.ph.synopsis'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($anime['synopsis_tr'] ?? ''); ?></textarea>
                         <button type="button" class="btn-copy-synopsis"
                                 onclick="navigator.clipboard.writeText(document.getElementById('synopsis_tr').value);"
                                 style="margin-top:6px; padding:6px 12px; background:#5a4ed1; color:#fff; border:none; border-radius:4px; cursor:pointer;">
@@ -811,7 +813,7 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                 <div class="form-group">
                     <label for="user_synopsis"><?php echo htmlspecialchars(t('edit_anime.label.user_synopsis'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <div class="input-area">
-                        <textarea id="user_synopsis" name="user_synopsis" rows="4" placeholder="<?php echo htmlspecialchars(t('edit_anime.ph.user_synopsis'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($anime['user_synopsis'] ?? ''); ?></textarea>
+                        <textarea id="user_synopsis" name="user_synopsis" rows="4" data-synopsis-link placeholder="<?php echo htmlspecialchars(t('edit_anime.ph.user_synopsis'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($anime['user_synopsis'] ?? ''); ?></textarea>
                         <small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.hint.user_synopsis'), ENT_QUOTES, 'UTF-8'); ?></small>
                     </div>
                 </div>
@@ -822,7 +824,7 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                 <div class="form-group">
                     <label for="synopsis_en"><?php echo htmlspecialchars(t('add_anime.label.synopsis_en'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <div class="input-area">
-                        <textarea id="synopsis_en" name="synopsis_en" rows="6" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.synopsis_en'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($anime['synopsis_en'] ?? ''); ?></textarea>
+                        <textarea id="synopsis_en" name="synopsis_en" rows="6" data-synopsis-link placeholder="<?php echo htmlspecialchars(t('add_anime.ph.synopsis_en'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($anime['synopsis_en'] ?? ''); ?></textarea>
                         <small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.hint.synopsis_en'), ENT_QUOTES, 'UTF-8'); ?></small>
                         <label style="display:block; margin-top:8px; font-weight:normal;">
                             <input type="checkbox" name="mark_reviewed" value="1"<?php echo (($anime['translation_status'] ?? 'none') === 'reviewed') ? ' checked' : ''; ?>>
@@ -847,7 +849,7 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                 <div class="form-group">
                     <label for="user_synopsis_en"><?php echo htmlspecialchars(t('edit_anime.label.user_synopsis_en'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <div class="input-area">
-                        <textarea id="user_synopsis_en" name="user_synopsis_en" rows="4" placeholder="<?php echo htmlspecialchars(t('edit_anime.ph.user_synopsis_en'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($anime['user_synopsis_en'] ?? ''); ?></textarea>
+                        <textarea id="user_synopsis_en" name="user_synopsis_en" rows="4" data-synopsis-link placeholder="<?php echo htmlspecialchars(t('edit_anime.ph.user_synopsis_en'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($anime['user_synopsis_en'] ?? ''); ?></textarea>
                         <small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.hint.user_synopsis'), ENT_QUOTES, 'UTF-8'); ?></small>
                     </div>
                 </div>
@@ -1260,6 +1262,12 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
             'aired_sync_weeks_ago_fmt'      => t('edit_anime.js.aired_sync.weeks_ago_fmt'),
             'aired_sync_updated_prefix'     => t('edit_anime.js.aired_sync.updated_prefix'),
             'aired_sync_no_change_prefix'   => t('edit_anime.js.aired_sync.no_change_prefix'),
+            'synlink_btn'                   => t('add_anime.js.synlink.btn'),
+            'synlink_hint'                  => t('add_anime.js.synlink.hint'),
+            'synlink_search_ph'             => t('add_anime.js.synlink.search_ph'),
+            'synlink_searching'             => t('add_anime.js.synlink.searching'),
+            'synlink_no_results'            => t('add_anime.js.synlink.no_results'),
+            'synlink_failed'                => t('add_anime.js.synlink.failed'),
         ], JSON_UNESCAPED_UNICODE); ?>;
 
         // Paylasilan form JS'i icin baslangic durumu (edit: mevcut secimler).
@@ -1350,5 +1358,8 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
     </script>
     <script src="<?php echo asset_url('js/anime_form.js'); ?>"></script>
     <script src="<?php echo asset_url('js/select_enhance.js'); ?>" defer></script>
+    <?php /* 1.1.26: [[anime:...]] yazim yardimi. Salt ilerlemeci gelistirme -
+             yuklenmezse konu alanlari 1.1.25'teki gibi calismaya devam eder. */ ?>
+    <script src="<?php echo asset_url('js/synopsis_link.js'); ?>" defer></script>
 </body>
 </html>

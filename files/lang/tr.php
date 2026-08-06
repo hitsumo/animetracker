@@ -400,6 +400,14 @@ return [
     'add_anime.js.fields_filled_prefix'      => 'Alan dolduruldu:',
     'add_anime.js.request_failed_prefix'     => 'Istek basarisiz:',
 
+    // 1.1.26 - konu alanindaki [[anime:...]] baglanti secici (js/synopsis_link.js).
+    'add_anime.js.synlink.btn'               => 'Anime bağlantısı ekle',
+    'add_anime.js.synlink.hint'              => 'Bir anime seçin, metnin imleç konumuna bağlantı kodu eklensin.',
+    'add_anime.js.synlink.search_ph'         => 'Anime adı yazın...',
+    'add_anime.js.synlink.searching'         => 'Aranıyor...',
+    'add_anime.js.synlink.no_results'        => 'Eşleşen anime yok',
+    'add_anime.js.synlink.failed'            => 'Arama başarısız oldu',
+
     // -----------------------------------------------------------------
     // edit_anime.php - mevcut anime duzenleme sayfasi
     // -----------------------------------------------------------------
@@ -823,6 +831,7 @@ return [
     'about.description'                      => 'Anime Tracker, AI araclari kullanilarak gelistirilmis bir anime liste olusturma ve yayin takip sistemidir.',
     'about.ai_notice_link'                   => 'AI Kullanım Beyanı / Notice',
     'about.back_to_list'                     => 'Anime Listesine Dön',
+    'about.version_fmt'                      => 'Sürüm %s',
 
     // -----------------------------------------------------------------
     // chronology.php - per-anime kronoloji isaretleri timeline

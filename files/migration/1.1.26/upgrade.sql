@@ -1,0 +1,61 @@
+-- =====================================================================
+-- 1.1.26 - Hakkinda sayfasinda surum + konu alanina baglanti yazim yardimi
+-- =====================================================================
+-- IKI IS VAR, IKISI DE SEMASIZ.
+--
+-- 1) HAKKINDA SAYFASINDA SURUM NUMARASI. about.php simdiye kadar hangi
+--    surumun kurulu oldugunu hicbir yerde soylemiyordu; "hangi surumdesin?"
+--    sorusunun cevabi yalnizca dosya sistemine bakarak bulunabiliyordu.
+--    Basilan deger asset_version(), yani files/version.txt - settings.version
+--    DEGIL. Ikisi bir dagitimda ayrilabilir (dosyalar yuklendi, migration
+--    henuz kosmadi); o durumda dogru cevap KOD surumudur, cunku sorulan sey
+--    sunucudaki kodun kendisidir. version.txt okunamazsa satir hic basilmaz.
+--
+-- 2) KONU ALANINDA [[anime:...]] YAZIM YARDIMI. 1.1.19 konuya satir ici
+--    anime baglantisi getirmisti ama hicbir yazim yardimi yoktu: kurator
+--    kisa kodu ELLE yaziyor ve hedefin MAL numarasini EZBERE bilmek zorunda
+--    kaliyordu. O oturumda bilincli ertelenmis, "ilk aday is" olarak not
+--    edilmisti (proje_durumu_70, "Kalan / notlar"); 1.1.26 o isi kapatir.
+--
+--    Her konu kutusunun altina "Anime baglantisi ekle" dugmesi eklendi.
+--    Dugme kucuk bir arama paneli acar, yazdikca katalogda arar ve secilen
+--    animenin kodunu ([[anime:<mal_id>|Baslik]]) imlecin bulundugu yere
+--    yazar. Kapsam: add_anime.php (TR/EN katalog konusu) ve edit_anime.php
+--    (TR/EN katalog konusu + TR/EN kisisel konu). Salt okunur konu kutusuna
+--    (Mod 2) secici TAKILMAZ.
+--
+--    Arama ucu YENI bir dosyadir: files/anime_link_search.php. Yalnizca
+--    mal_id TASIYAN satirlari dondurur - kisa kod hedefini mal_id ile
+--    adresler, numarasi olmayan bir satir bu sorunun cevabi degildir
+--    (bilinen sinir, KARARLAR_4 §69). Uc giris kapisi require_login'dir:
+--    secici hem edit (moderator+) hem add (her uye) sayfasinda durur, uc
+--    ikisinin ZAYIF olanina gore kapililir. Bu bir acilis degildir - donen
+--    her satiri uye zaten katalog listesinden gorebiliyor - ve +18 tercihi
+--    (1.1.2) listeleme yuzeylerindeki gibi aynen uygulanir.
+--
+--    Yazim yardimi SALT ILERLEMECI GELISTIRMEDIR: js/synopsis_link.js
+--    yuklenmezse ya da uc hata verirse konu kutulari 1.1.25'teki gibi
+--    calismaya devam eder ve kod elle yazilabilir. Kaydetme yolunda hicbir
+--    degisiklik yoktur.
+--
+-- SEMA DEGISIKLIGI YOKTUR. Yeni tablo, kolon veya tercih eklenmedi. Bu
+-- migration klasorunun tek amaci settings.version'i 1.1.26'ya tasimaktir
+-- (runner yorumlari temizler ve bos ifade listesiyle surumu damgalar; bu
+-- dosyada calistirilacak SQL ifadesi yoktur).
+--
+-- MERKEZ KATALOG SUNUCUSUNDA ELLE ISLEM GEREKMEZ - katalog teline
+-- dokunulmadi. Kisa kod konu metninin icinde DUZ METIN olarak tasindigi
+-- icin (1.1.19 karari) yeni bir alan da gitmiyor.
+--
+-- DAGITIM NOTU: iki YENI dosya var.
+--   files/anime_link_search.php   (YENI - arama ucu)
+--   files/js/synopsis_link.js     (YENI - secici)
+--   files/about.php               (surum satiri)
+--   files/add_anime.php           (data-synopsis-link + LANG + script)
+--   files/edit_anime.php          (data-synopsis-link + LANG + script)
+--   files/css/components.css      (.synlink* stilleri)
+--   files/lang/tr.php, files/lang/en.php
+-- Yeni iki dosya ile sayfalar BIRLIKTE yuklenmelidir; biri eksik kalirsa
+-- dugme goruntusu ya da aramasi calismaz (1.1.22 kazasinin dersi). Eksiklik
+-- konu kutusunu bozmaz - secici kaybolur, elle yazim yine calisir.
+-- =====================================================================

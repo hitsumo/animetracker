@@ -522,3 +522,99 @@ textarea:focus {
     width: 160px;
     padding: 4px;
 }
+
+
+/* 1.1.26 - synopsis link picker (js/synopsis_link.js).
+
+   Writing aid for the [[anime:<mal_id>|etiket]] shortcode: a button under
+   each synopsis textarea opens a small search panel and inserts the
+   finished code at the caret.
+
+   PROGRESSIVE ENHANCEMENT: none of this markup exists in the PHP - the JS
+   builds it. If the script does not load, no rule below matches anything
+   and the form looks exactly as it did in 1.1.25. */
+.synlink {
+    margin-top: 6px;
+}
+
+.synlink-btn {
+    padding: 6px 12px;
+    background: #5a4ed1;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.synlink-btn:hover {
+    background: #4a3fb8;
+}
+
+.synlink-panel {
+    margin-top: 8px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fafafa;
+}
+
+.synlink-hint {
+    display: block;
+    color: #777;
+    margin-bottom: 6px;
+}
+
+.synlink-input {
+    width: 100%;
+    padding: 6px 8px;
+    box-sizing: border-box;
+}
+
+.synlink-status {
+    min-height: 18px;
+    font-size: 13px;
+    color: #777;
+    margin: 6px 0 0 0;
+}
+
+.synlink-results {
+    list-style: none;
+    margin: 6px 0 0 0;
+    padding: 0;
+    /* Capped so a full result set never pushes the rest of the form off
+       screen; the endpoint returns at most 12 rows, this shows ~5. */
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.synlink-result {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    width: 100%;
+    padding: 6px 8px;
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 3px;
+    cursor: pointer;
+    text-align: left;
+    margin-bottom: 4px;
+}
+
+.synlink-result:hover {
+    background: #eef0ff;
+    border-color: #ccd0f5;
+}
+
+.synlink-result-title {
+    font-weight: 500;
+    color: #333;
+}
+
+.synlink-result-meta {
+    color: #888;
+    font-size: 12px;
+    white-space: nowrap;
+}
