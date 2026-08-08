@@ -644,3 +644,110 @@ function anilist_ua_payload(array $e)
 
     return $payload;
 }
+
+/**
+ * Fetch an anime's broadcast START and END dates from AniList, by MAL ID.
+ *
+ * WHY ANILIST AND NOT ANIMESCHEDULE (1.1.27)
+ * The "Otomatik Doldur" button talks to AnimeSchedule, but the AnimeSchedule
+ * v3 anime object has NO end-date field at all. Its date fields are `premier`,
+ * `subPremier`, `dubPremier`, the `delayed*` pair and `jpnTime`/`subTime`/
+ * `dubTime` - a first-episode date and a broadcast clock, nothing that marks
+ * the finale. (Checked against their own API documentation and confirmed
+ * against a third-party SDK's full field list.)
+ *
+ * WHY THE START DATE ALSO COMES FROM HERE, not from AnimeSchedule's `premier`
+ * (which IS a first-episode timestamp and looks like the obvious source):
+ * `premier` is an instant in time, and turning an instant into a CALENDAR DATE
+ * needs a timezone. Japanese late-night anime is broadcast after midnight but
+ * announced under the PREVIOUS day ("Friday at 25:25" = Saturday 01:25). So the
+ * Tokyo calendar date of the premier instant can be one day later than the air
+ * date everyone - including our own catalog - calls the release date. AniList's
+ * startDate is already the curated calendar date, with that convention resolved,
+ * and we are making this request anyway: one query, two fields, no timezone
+ * guesswork.
+ *
+ * The alternative was to DERIVE it: premier + (episodes - 1) x 7 days. That
+ * was rejected. It is right only for a series that never skipped a week, and
+ * skipped weeks are common enough that AnimeSchedule itself models them
+ * (delayedFrom / delayedUntil). A derived date would land in the form looking
+ * exactly like fetched data and be silently wrong by a week or more - the same
+ * class of problem as the false "field filled" report fixed in the same
+ * version.
+ *
+ * AniList's Media.endDate is a real, curated field, so we ask the source that
+ * actually knows. AniList's public GraphQL endpoint needs NO API KEY, so this
+ * also works on a self-host install that never configured one (unlike the
+ * AnimeSchedule half of the same button).
+ *
+ * MATCHING takes an AniList id when one is known and falls back to a MAL id
+ * (animes.mal_id <-> AniList Media.idMal, the bridge the catalog already uses).
+ * The AniList id is preferred when available because it needs no bridge at all
+ * and still resolves titles that have no MyAnimeList entry. With neither id
+ * there is nothing to match on and the call yields nulls - the known limit that
+ * also governs the synopsis link shortcode.
+ *
+ * FUZZY DATES: AniList dates are {year, month, day} and any part may be null
+ * (a show known only to have ended "in 2019"). anilist_normalize_date() returns
+ * null unless all three are present and form a real date, so a partial date is
+ * never written into a date input as a guess. A still-airing show has no end
+ * date yet and falls out the same way.
+ *
+ * Errors are swallowed into nulls on purpose: this is a best-effort extra on top
+ * of the AnimeSchedule fetch, and a network hiccup here must not turn the whole
+ * autofill into a failure. anilist_graphql_request() logs the details.
+ *
+ * Note for callers: a SINGLE-EPISODE work (film, special, OVA) normally reports
+ * the SAME value for both dates - AniList gives start == end for e.g. Lupin III
+ * vs Meitantei Conan (2009-03-27). That is correct data, not a bug; deciding
+ * whether an end date is worth showing in that case belongs to the caller.
+ *
+ * @param int|null $malId      MyAnimeList id, or null/0 when unknown.
+ * @param int|null $anilistId  AniList id; wins over $malId when both are given.
+ * @return array{start_date: ?string, end_date: ?string} 'YYYY-MM-DD' or null each.
+ */
+function anilist_fetch_dates($malId, $anilistId = null)
+{
+    $empty = ['start_date' => null, 'end_date' => null];
+
+    $malId     = (int)$malId;
+    $anilistId = (int)$anilistId;
+
+    // Only ONE selector is sent. AniList would happily take both, but if the
+    // two disagreed (a stale cross-link on either side) the row it returned
+    // would be a coin flip. Preferring the direct id keeps that unambiguous.
+    if ($anilistId > 0) {
+        $query = 'query ($id: Int) {
+            Media(id: $id, type: ANIME) {
+                startDate { year month day }
+                endDate { year month day }
+            }
+        }';
+        $variables = ['id' => $anilistId];
+    } elseif ($malId > 0) {
+        $query = 'query ($idMal: Int) {
+            Media(idMal: $idMal, type: ANIME) {
+                startDate { year month day }
+                endDate { year month day }
+            }
+        }';
+        $variables = ['idMal' => $malId];
+    } else {
+        return $empty;
+    }
+
+    $data = anilist_graphql_request($query, $variables);
+    if (!is_array($data) || isset($data['error'])) {
+        return $empty;
+    }
+
+    $media = $data['data']['Media'] ?? null;
+    if (!is_array($media)) {
+        return $empty;
+    }
+
+    return [
+        'start_date' => anilist_normalize_date($media['startDate'] ?? null),
+        'end_date'   => anilist_normalize_date($media['endDate']   ?? null),
+    ];
+}

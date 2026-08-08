@@ -709,80 +709,11 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
             height: auto;
         }
 
-        /* 0.5.5 - liste ici hizli bolum guncelleme (+/-) */
-        .ep-quick {
-            display: inline-flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            white-space: nowrap;
-        }
-
-        .ep-quick .ep-text {
-            text-align: center;
-        }
-
-        .ep-badge {
-            font-size: 13px;
-            color: #888780;
-            line-height: 1;
-        }
-
-        .ep-controls {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .ep-sep {
-            color: #999;
-            font-size: 12px;
-        }
-
-        .ep-step {
-            width: 22px;
-            height: 22px;
-            line-height: 20px;
-            padding: 0;
-            border: 1px solid #D85A30;
-            background: #D85A30;
-            color: #fff;
-            border-radius: 4px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            user-select: none;
-        }
-
-        .ep-step:hover:not(:disabled) {
-            background: #993C1D;
-            border-color: #993C1D;
-            color: #fff;
-        }
-
-        .ep-step:disabled {
-            border-color: #D3D1C7;
-            background: #F1EFE8;
-            color: #B4B2A9;
-            opacity: 1;
-            cursor: not-allowed;
-        }
-
-        .ep-step:disabled:hover {
-            background: #F1EFE8;
-            color: #B4B2A9;
-        }
-
-        .ep-quick.busy .ep-step {
-            pointer-events: none;
-            opacity: 0.5;
-        }
-
-        .ep-quick.flash .ep-text {
-            transition: color 0.15s ease;
-            color: #2e7d32;
-            font-weight: 600;
-        }
+        /* 0.5.5 - liste ici hizli bolum guncelleme (+/-).
+           1.1.27: stiller css/components.css'e tasindi. Widget artik iki
+           sayfada birden duruyor (liste + anime detayi), iki kopya stil
+           kacinilmaz olarak birbirinden ayrilirdi. Burada tek bir kural
+           bile kalmadi - .ep-* araniyorsa components.css'e bakin. */
 
         .sort-buttons {
             display: inline-block;

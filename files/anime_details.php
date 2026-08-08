@@ -193,6 +193,26 @@ if ($fillerTracking) {
     $flStmt->closeCursor();
     $fillerSummary = filler_count_summary($fillerRows);
 }
+
+// 1.1.27 - "Izlenen Bolum" satirindaki hizli +/- kontrolu.
+// index.php'deki liste ici widget'in ayni ucu (update_watched.php) uzerine
+// oturan ikizi. Tavan (ceiling) kurali BIREBIR ayni olmak zorunda, yoksa
+// iki sayfa ayni anime icin farkli sinir gosterir:
+//   total_episodes varsa tavan odur; yoksa aired_episodes; ikisi de bos ise
+//   tavan BILINMIYOR demektir ve kontroller hic basilmaz (senkronizasyon
+//   veya elle bolum girisi once gelir). !empty() kullaniliyor - 0 ve NULL
+//   ikisi de "girilmemis" sayilir, index.php'deki gibi.
+// Buradaki hesap yalnizca UX icindir; son sozu her zaman sunucu soyler.
+$canPersonal = can($pdo, 'personal');
+$ep_watched  = (int)$anime['watched_episodes'];
+$ep_total    = !empty($anime['total_episodes'])  ? (int)$anime['total_episodes']  : null;
+$ep_aired    = !empty($anime['aired_episodes'])  ? (int)$anime['aired_episodes']  : null;
+$ep_ceiling  = ($ep_total !== null) ? $ep_total : (($ep_aired !== null) ? $ep_aired : null);
+// Anonim ziyaretcinin kisisel izleme durumu yoktur (uc de reddeder), tavani
+// bilinmeyen anime icin de gosterilecek bir sinir yoktur.
+$ep_controls = ($canPersonal && $ep_ceiling !== null);
+$ep_at_min   = ($ep_watched <= 0);
+$ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
 ?>
 
 <!DOCTYPE html>
@@ -316,9 +336,22 @@ if ($country_name !== ''):
 </div>
 <?php endif; ?>
 
+                <?php /* 1.1.27: izlenen bolum sayisi artik yerinde
+                   degistirilebilir - listedeki (+/-) widget'inin ayni ucu
+                   kullanan ikizi. Tavani bilinmeyen anime ya da anonim
+                   ziyaretci icin duz sayi basilir (onceki davranis). */ ?>
                 <div class="detail-row">
                     <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.watched_episodes'), ENT_QUOTES, 'UTF-8'); ?></span>
-                    <span class="detail-value episode"><?php echo htmlspecialchars($anime['watched_episodes']); ?></span>
+                    <span class="detail-value episode"><?php if ($ep_controls): ?><span class="ep-quick ep-quick-inline"
+                              data-anime-id="<?php echo (int)$anime['id']; ?>"
+                              data-ceiling="<?php echo (int)$ep_ceiling; ?>"
+                              data-csrf="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                            <span class="ep-text"><?php echo $ep_watched; ?></span>
+                            <span class="ep-controls">
+                                <button type="button" class="ep-step ep-minus" data-delta="-1"<?php echo $ep_at_min ? ' disabled' : ''; ?> title="<?php echo htmlspecialchars(t('anime_details.ep.minus_tooltip'), ENT_QUOTES, 'UTF-8'); ?>">&minus;</button>
+                                <button type="button" class="ep-step ep-plus" data-delta="1"<?php echo $ep_at_max ? ' disabled' : ''; ?> title="<?php echo htmlspecialchars(t('anime_details.ep.plus_tooltip'), ENT_QUOTES, 'UTF-8'); ?>">+</button>
+                            </span>
+                        </span><?php else: ?><?php echo htmlspecialchars($anime['watched_episodes']); ?><?php endif; ?></span>
                 </div>
 
                 <?php
@@ -397,7 +430,11 @@ if ($country_name !== ''):
                 <div class="detail-row">
                     <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.watch_status'), ENT_QUOTES, 'UTF-8'); ?></span>
                     <span class="detail-value">
-                        <span class="status-badge <?php echo watch_status_css_class($anime['watch_status']); ?>">
+                        <?php /* js-watch-status-badge (1.1.27): +/- otomatik durum
+                           gecisini tetiklerse (Planlandi -> Izleniyor gibi) rozet
+                           yerinde guncellenir. Sinif YALNIZ JS kancasidir, hicbir
+                           stil tasimaz - stil watch_status_css_class()'ten gelir. */ ?>
+                        <span class="status-badge js-watch-status-badge <?php echo watch_status_css_class($anime['watch_status']); ?>">
                             <?php echo htmlspecialchars(watch_status_label($anime['watch_status'])); ?>
                         </span>
                     </span>
@@ -850,6 +887,125 @@ if ($country_name !== ''):
             </div>
         </div>
     </div>
+
+    <!-- 1.1.27 - "Izlenen Bolum" satirindaki hizli +/- kontrolu.
+         Uc, listedekiyle ayni: update_watched.php. Sunucu otoriterdir -
+         yeni sayi, sinir bayraklari (at_min/at_max) ve otomatik durum
+         gecisi hep cevaptan okunur, burada hicbir sey tahmin edilmez.
+
+         Listeden TEK FARKI, tiklamadan sonraki sessiz yenileme. Liste
+         hucresinde izlenen sayidan turetilen baska bir sey yok; detay
+         sayfasinda ise UC ayri blok bu sayiya bagli:
+           - "Sonraki Bolum" satiri (kac bolum geride kaldiniz),
+           - kronoloji uyarisi (su bolumden sonra su animeyi izleyin),
+           - yayini bitmis seride izleme bitis tarihi damgasi.
+         Bunlar sunucuda uretilir; yerinde guncelleme onlari ESKI birakir
+         ve sayfa kendi kendisiyle celisir ("12/12" yazarken hemen altinda
+         "3 bolum izlenebilir" demek gibi). Bu yuzden basildiktan ~1,5
+         saniye sonra sayfa yenilenir; ustuste basilirsa sayac sifirlanir,
+         yani 8 kez arka arkaya "+" tek bir yenileme yapar. -->
+    <script>
+    (function () {
+        var box = document.querySelector('.ep-quick');
+        if (!box) return;   // tavan bilinmiyor ya da anonim ziyaretci
+
+        var csrf    = box.dataset.csrf;
+        var animeId = box.dataset.animeId;
+        var textEl  = box.querySelector('.ep-text');
+        var minusEl = box.querySelector('.ep-minus');
+        var plusEl  = box.querySelector('.ep-plus');
+        var reloadTimer = null;
+
+        // Yenileme, kullanicinin YAZDIGI bir seyi silecekse yapilmaz.
+        // Sayfada kaydedilmemis metin tasiyabilecek uc yer var: duzeltme
+        // onerisi kutusu, kronoloji isareti ekleme formu ve her isaretin
+        // yanindaki satir ici bolum kutusu (1.1.15).
+        //
+        // Olcut "alan dolu mu" DEGIL, "sunucunun bastigindan farkli mi":
+        // satir ici bolum kutusu isaretin mevcut numarasiyla DOLU gelir,
+        // "dolu = kullanici yazdi" deseydik kronoloji isareti olan her
+        // sayfada yenileme sessizce hic calismazdi - ustelik tam da
+        // kronoloji uyarisinin onemli oldugu sayfalarda. defaultValue,
+        // sunucunun bastigi ilk degeri tutar; value ondan farkliysa o
+        // metni yazan kullanicidir ve silinemez.
+        function hasUserInput() {
+            var fields = document.querySelectorAll(
+                'textarea, input[type="text"], input[type="number"], input[type="date"]'
+            );
+            for (var i = 0; i < fields.length; i++) {
+                if (fields[i].value !== fields[i].defaultValue) return true;
+            }
+            return false;
+        }
+
+        function scheduleRefresh() {
+            if (reloadTimer) clearTimeout(reloadTimer);
+            reloadTimer = setTimeout(function () {
+                if (hasUserInput()) return;
+                window.location.reload();
+            }, 1500);
+        }
+
+        box.addEventListener('click', function (ev) {
+            var btn = ev.target.closest('.ep-step');
+            if (!btn || btn.disabled || box.classList.contains('busy')) return;
+
+            var delta = parseInt(btn.dataset.delta, 10);
+            box.classList.add('busy');
+
+            var body = new URLSearchParams();
+            body.set('csrf_token', csrf);
+            body.set('anime_id', animeId);
+            body.set('delta', String(delta));
+
+            fetch('update_watched.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: body.toString(),
+                credentials: 'same-origin'
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                box.classList.remove('busy');
+
+                if (!data || !data.success) {
+                    alert((data && data.error) || <?php echo json_encode(t('anime_details.js.operation_failed'), JSON_UNESCAPED_UNICODE); ?>);
+                    return;
+                }
+
+                // Detayda tavan zaten "Toplam Bolum" / "Yayinlanan Bolum"
+                // satirlarinda yazili; burada yalnizca izlenen sayi durur.
+                textEl.textContent = data.watched_episodes;
+                if (minusEl) minusEl.disabled = !!data.at_min;
+                if (plusEl)  plusEl.disabled  = !!data.at_max;
+
+                // Otomatik durum gecisi (0.5.6/0.5.7 kurallari) fire
+                // ettiyse rozetin hem YAZISI hem RENGI degisir. Renk
+                // sinifi sunucudan gelir; gelmezse (eski onbellek) yazi
+                // guncellenir, renk oldugu gibi birakilir - yanlis renk
+                // basmaktansa eski renk.
+                if (data.watch_status_changed && data.watch_status_new) {
+                    var badge = document.querySelector('.js-watch-status-badge');
+                    if (badge) {
+                        badge.textContent = data.watch_status_label || data.watch_status_new;
+                        if (data.watch_status_css) {
+                            badge.className = 'status-badge js-watch-status-badge ' + data.watch_status_css;
+                        }
+                    }
+                }
+
+                box.classList.add('flash');
+                setTimeout(function () { box.classList.remove('flash'); }, 350);
+
+                scheduleRefresh();
+            })
+            .catch(function () {
+                box.classList.remove('busy');
+                alert(<?php echo json_encode(t('anime_details.js.connection_error'), JSON_UNESCAPED_UNICODE); ?>);
+            });
+        });
+    })();
+    </script>
 
     <!-- 0.6.1 - Duygu Etiketleri toggle scripti
          Her butona tiklama: POST update_emotion.php ile toggle. Sunucu

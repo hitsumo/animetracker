@@ -114,7 +114,8 @@
  *     "at_max":               false,        // watched == ceiling -> disables "+"
  *     "watch_status_changed": true,         // 0.5.6 - did the rules fire?
  *     "watch_status_new":     "Watched",    // 0.5.6 - new ASCII value, or null
- *     "watch_status_label":   "Izlendi"     // 0.6 - new TR UI label, or null
+ *     "watch_status_label":   "Izlendi",    // 0.6 - new TR UI label, or null
+ *     "watch_status_css":     "watched"     // 1.1.27 - new badge class, or null
  *   }
  *
  * Response (error):
@@ -141,6 +142,16 @@ header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
+
+// 1.1.27 - dil sozlugunu kur. Bu uc, cevabinda KULLANICIYA GOSTERILEN bir
+// dize tasir: watch_status_label(). O da dili lang_init'in kurdugu onbellekten
+// okur; onbellek bos ise sessizce Turkce'ye duser. lang_init cagrilmadigi icin
+// Ingilizce arayuz kullanan biri "+" bastiginda 0.6'dan beri rozete/hucreye
+// "Izlendi" yaziliyordu - sayfanin geri kalani Ingilizce iken. Cagri hem liste
+// (index.php) hem detay (anime_details.php) tarafini birden duzeltir; Turkce
+// kullanicinin gordugu hicbir sey degismez (zaten Turkce'ye dusuyordu).
+// Metin donduren diger uclarin kalibi budur (bkz. anime_link_search.php).
+lang_init($pdo);
 
 function uw_respond($data) {
     echo json_encode($data, JSON_UNESCAPED_UNICODE);
@@ -421,4 +432,12 @@ uw_respond([
     // the DOM so the user sees Turkish; the ASCII field stays for
     // programmatic consumers (debugging, integration tests).
     'watch_status_label'   => $watch_status_changed ? watch_status_label($target_watch_status) : null,
+    // 1.1.27 - CSS class for the same value, from watch_status_css_class().
+    // index.php does not need it (its list cell is plain text), but the
+    // detail page paints the status as a COLOURED BADGE, and a badge whose
+    // text says "Izlendi" while its colour still says "Izleniyor" is worse
+    // than no update at all. Sent from here rather than mapped in JS so the
+    // ASCII -> class table stays in one place; a client that ignores the
+    // field behaves exactly as before.
+    'watch_status_css'     => $watch_status_changed ? watch_status_css_class($target_watch_status) : null,
 ]);

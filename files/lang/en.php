@@ -162,6 +162,11 @@ return [
     'anime_details.label.unset'          => 'Not set',
     'anime_details.label.broadcast_attribution' => 'Broadcast time data from %s',
     'anime_details.label.watched_episodes' => 'Watched Episodes:',
+    // 1.1.27 - tooltips for the quick +/- buttons on the detail page.
+    // Detail-page counterparts of the list's index.row.ep_*_tooltip keys;
+    // the text matches but the keys stay namespaced per page.
+    'anime_details.ep.minus_tooltip'     => 'Back one episode',
+    'anime_details.ep.plus_tooltip'      => 'Forward one episode',
     'anime_details.label.watch_start_date' => 'Started:',
     'anime_details.label.watch_finish_date' => 'Finished:',
     'anime_details.label.synopsis'       => 'Synopsis:',
@@ -363,6 +368,9 @@ return [
     'add_anime.js.fetching'                  => 'Fetching data from AnimeSchedule...',
     'add_anime.js.unknown_error'             => 'Unknown error.',
     'add_anime.js.field_not_found_suffix'    => '(field not found)',
+    // 1.1.27 - two extra notes that keep the autofill report honest.
+    'add_anime.js.field_hidden_suffix'       => '(in a hidden section)',
+    'add_anime.js.field_value_rejected_suffix' => '(value rejected)',
     'add_anime.js.no_empty_fields'           => 'No empty fields to fill (all fields populated).',
     'add_anime.js.fields_filled_prefix'      => 'Fields filled:',
     'add_anime.js.request_failed_prefix'     => 'Request failed:',

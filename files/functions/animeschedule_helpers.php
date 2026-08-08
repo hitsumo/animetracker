@@ -153,6 +153,13 @@ function fetchAnimeScheduleData($slug) {
  *   broadcast_timezone   - always 'Asia/Tokyo' if either day or time is set
  *   status               - 'Yayın Devam Ediyor' / 'Yayın Tamamlandı', or null
  *   total_episodes       - int (only when API has 'episodes' AND status finished)
+ *
+ * 1.1.27: the three broadcast_* keys are DROPPED when the mapped status is
+ * 'Yayın Tamamlandı'. A weekly broadcast slot only means something while a
+ * show is still airing - the form hides that whole section for a finished
+ * anime and the detail page never prints it, so returning those keys only
+ * produced writes the user could not see. See the block near the status
+ * mapping for the full reasoning.
  *   aired_episodes       - intentionally NOT set (the basic /anime endpoint
  *                          does not give a reliable aired count for ongoing
  *                          shows, see /timetables endpoint for future work)
@@ -256,6 +263,26 @@ function mapAnimeScheduleToFormFields($apiData) {
         // Unknown values: leave status unset.
     }
 
+    // --- Yayini bitmis anime: yayin bilgisi TASINMAZ (1.1.27) ----------
+    // Haftalik yayin gunu/saati/dilimi YALNIZ devam eden bir yayin icin
+    // anlamlidir. Formun kendi kurali da budur: #broadcast-details bolumu
+    // yalnizca "Yayin Devam Ediyor" durumunda gorunur (toggleBroadcastDetails
+    // bitmis anime icin ACIKCA gizler), ve detay sayfasi yayin gunu/saatini
+    // bitmis anime icin hic basmaz.
+    //
+    // Bu alanlari yine de gondermek, kullanicinin GOREMEDIGI bir bolume
+    // yazip "3 alan dolduruldu" demek anlamina geliyordu: kullanici forma
+    // bakip hicbir degisiklik goremiyor ve otomatik doldurmanin calismadigi
+    // sonucuna variyordu (hakli olarak - degisen sey ne gorunur ne de bir
+    // yerde kullanilir). Bitmis anime icin dogru cevap "doldurulacak sey
+    // yok"tur; asagidaki blok bunu saglar.
+    //
+    // Devam eden ve baslamamis animeler etkilenmez - onlarda bu alanlar
+    // aynen tasinir.
+    if (($out['status'] ?? null) === 'Yayın Tamamlandı') {
+        unset($out['broadcast_day'], $out['broadcast_time'], $out['broadcast_timezone']);
+    }
+
     // --- Episode count ------------------------------------------------
     // The API only returns 'episodes' for shows where the final count
     // is known (typically status=Finished). For ongoing shows the field
@@ -270,6 +297,70 @@ function mapAnimeScheduleToFormFields($apiData) {
         ($out['status'] ?? null) === 'Yayın Tamamlandı'
     ) {
         $out['total_episodes'] = $apiData['episodes'];
+    }
+
+    return $out;
+}
+
+/**
+ * Pull the MyAnimeList / AniList ids out of an AnimeSchedule anime response.
+ *
+ * WHY (1.1.27): the date lookup runs against AniList and needs an id to match
+ * on. It used to take that id from the FORM's MAL link field - which fails the
+ * moment the curator pastes only an AniDB (or only an AnimeSchedule) link, or
+ * simply presses "Otomatik Doldur" before filling the MAL box. But the response
+ * we ALREADY fetched carries the cross-site links itself, in its `websites`
+ * object, so the bridge can come from the data instead of from what the user
+ * happened to type first.
+ *
+ * DEFENSIVE ON PURPOSE - the exact shape is not nailed down by the docs:
+ *   - Key casing differs between published clients ('mal'/'aniList' in one,
+ *     'MAL'/'AniList' in another), so keys are matched CASE-INSENSITIVELY.
+ *   - The values are documented only as strings; whether they are full URLs,
+ *     bare slugs or ids is not stated. Both a URL and a bare number are
+ *     accepted below.
+ * Anything that does not yield a positive integer is dropped. The worst case is
+ * "no id found", which just means the caller falls back to the form's MAL link
+ * and, failing that, skips the dates - no wrong value can be produced here.
+ *
+ * @param array $apiData Decoded /anime/{slug} response.
+ * @return array{mal: ?int, anilist: ?int}
+ */
+function animeScheduleExternalIds($apiData) {
+    $out = ['mal' => null, 'anilist' => null];
+
+    $sites = $apiData['websites'] ?? null;
+    if (!is_array($sites)) {
+        return $out;
+    }
+
+    // Case-insensitive lookup over whatever key spelling arrived.
+    $lower = [];
+    foreach ($sites as $key => $value) {
+        if (is_string($key) && is_string($value)) {
+            $lower[strtolower($key)] = trim($value);
+        }
+    }
+
+    // Accept "https://myanimelist.net/anime/12345/Slug", "anime/12345" or "12345".
+    $digitsFrom = function ($value, $pattern) {
+        if ($value === '' ) {
+            return null;
+        }
+        if (preg_match($pattern, $value, $m)) {
+            return (int)$m[1] > 0 ? (int)$m[1] : null;
+        }
+        if (preg_match('/^\d+$/', $value)) {
+            return (int)$value > 0 ? (int)$value : null;
+        }
+        return null;
+    };
+
+    if (isset($lower['mal'])) {
+        $out['mal'] = $digitsFrom($lower['mal'], '#myanimelist\.net/anime/(\d+)#i');
+    }
+    if (isset($lower['anilist'])) {
+        $out['anilist'] = $digitsFrom($lower['anilist'], '#anilist\.co/anime/(\d+)#i');
     }
 
     return $out;

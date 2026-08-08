@@ -1,0 +1,145 @@
+-- =====================================================================
+-- 1.1.27 - Anime detay sayfasinda hizli bolum guncelleme (+/-)
+-- =====================================================================
+-- SEMASIZ SURUM. Yeni tablo, kolon, tercih ya da ayar yoktur; bu klasorun
+-- tek amaci settings.version'i 1.1.27'ye tasimaktir (runner yorumlari
+-- temizler ve bos ifade listesiyle surumu damgalar; bu dosyada
+-- calistirilacak SQL ifadesi yoktur).
+--
+-- NE YAPILDI
+--
+-- 1) DETAYDA (+/-) KONTROLU. 0.5.5'ten beri liste sayfasinda duran hizli
+--    bolum guncelleme widget'i artik anime detay sayfasindaki "Izlenen
+--    Bolum" satirinda da var. Kullanicinin istegi: "detaylarda bolum
+--    sayisi degistirebilme, genel listedeki olan gibi."
+--
+--    Uc AYNI uctur: update_watched.php. Yeni bir yazma yolu ACILMADI -
+--    sinir kurallari (tavan/taban), otomatik izleme durumu gecisleri
+--    (Kural 1-5) ve yetki kapisi tek bir yerde durmaya devam eder.
+--    Detay sayfasi yalnizca AYNI ucun ikinci bir musterisidir.
+--
+--    Tavan kurali listedekiyle birebir aynidir: total_episodes varsa o,
+--    yoksa aired_episodes, ikisi de bos ise tavan bilinmiyordur ve
+--    kontroller hic basilmaz (duz sayi gosterilir, onceki davranis).
+--    Anonim ziyaretciye de basilmaz (can($pdo,'personal')).
+--
+--    Listeden TEK DAVRANIS FARKI: tiklamadan ~1,5 saniye sonra sayfa
+--    sessizce yenilenir. Detayda izlenen sayidan TURETILEN uc blok var
+--    (sonraki bolum satiri, kronoloji uyarisi, izleme bitis damgasi);
+--    bunlar sunucuda uretilir ve yerinde guncelleme onlari eski birakip
+--    sayfayi kendisiyle celisir hale getirirdi. Ustuste basilirsa sayac
+--    sifirlanir (8 kez "+" tek yenileme). Sayfada kaydedilmemis metin
+--    varsa (deger, sunucunun bastigi ilk degerden farkliysa) yenileme
+--    hic yapilmaz - yazilan metin, tazeligin onunde gelir.
+--
+-- 2) UCUN CEVABINA watch_status_css EKLENDI. Detayda izleme durumu
+--    RENKLI ROZET olarak durur; yazisi "Izlendi" derken rengi hala
+--    "Izleniyor" diyen bir rozet, hic guncellememekten kotudur. Sinif
+--    adi ASCII -> sinif tablosunun tek sahibi olan
+--    watch_status_css_class()'ten gelir, JS'te ikinci bir kopya yoktur.
+--    Alani yok sayan eski musteri (liste) aynen eskisi gibi calisir.
+--
+-- 3) HATA DUZELTMESI - UCTA DIL BASLATILMIYORDU. update_watched.php
+--    cevabinda watch_status_label() ile URETILMIS, KULLANICIYA GOSTERILEN
+--    bir dize tasir ama lang_init() cagirmiyordu; dil onbellegi bos
+--    kalinca etiket sessizce Turkce'ye dusuyordu. Sonuc: Ingilizce
+--    arayuzde "+" basan kullanici 0.6'dan beri hucreye/rozete "Izlendi"
+--    yazildigini goruyordu. Tek satir eklendi (lang_init($pdo)); hem
+--    liste hem detay tarafi duzeldi. Turkce kullanicinin gordugu hicbir
+--    sey degismez - zaten Turkce'ye dusuyordu.
+--
+-- 4) STILLER components.css'E TASINDI. .ep-* kurallari 0.5.5'ten beri
+--    index.php icinde gomulu bir <style> blogundaydi. Widget artik iki
+--    sayfada birden durdugu icin iki kopya kural er ya da gec
+--    birbirinden ayrilirdi. Kurallar aynen tasindi; listenin gorunumu
+--    degismez (dogrulandi: dikey yerlesim, 22px dugmeler, ayni renk).
+--    Detay varyanti tek ek kuraldir: .ep-quick-inline (yatay yerlesim).
+--
+-- 5) HATA DUZELTMESI - "OTOMATIK DOLDUR" BITMIS ANIMEDE YALAN SOYLUYORDU.
+--    Kullanici bildirimi: bitmis bir animede AnimeSchedule otomatik doldurma
+--    "Alan dolduruldu: 3: broadcast_day, broadcast_timezone, total_episodes"
+--    diyor ama formda gorunur hicbir sey degismiyordu. Uc alandan ikisi
+--    gercekten degismiyordu:
+--      - Yayin bilgileri bolumu (#broadcast-details) YALNIZ "Yayin Devam
+--        Ediyor" durumunda gorunur; bitmis animede gizlidir ve detay sayfasi
+--        da yayin gunu/saatini bitmis animede hic basmaz. Yani gizli bir
+--        bolume yazilip basari sayiliyordu.
+--      - broadcast_timezone icin "bos" = "hala varsayilan Asia/Tokyo'da";
+--        ucun dondugu deger de Asia/Tokyo. Ustune ayni deger yaziliyor,
+--        hicbir sey degismiyor, ama sayaca giriyordu.
+--    Duzeltme iki katmanda: (a) mapAnimeScheduleToFormFields() bitmis anime
+--    icin uc broadcast_* anahtarini dusurur - devam eden ve baslamamis
+--    animeler etkilenmez; (b) js/anime_form.js raporu yalnizca GERCEKLESEN
+--    degisimi sayar (degismeyen yazma sayilmaz; <select>'in kabul etmedigi
+--    deger geri alinip belirtilir; gorunmeyen alan "(gizli bolumde)" diye
+--    isaretlenir).
+--
+-- 6) YENI - YAYIN TARIHI VE BITIS TARIHI OTOMATIK DOLUYOR. "Otomatik Doldur"
+--    artik release_date alanini HER durumda (devam eden / baslamamis / bitmis)
+--    doldurur - bu alan simdiye kadar hic otomatik dolmuyordu - ve bitmis,
+--    TEK BOLUMLUK OLMAYAN animede ayrica end_date alanini doldurur.
+--    Tek bolumluk yapimda (film/ozel/OVA) bitis tarihi yayin tarihinin
+--    kendisidir (AniList de start == end doner) ve form bu alani zaten gizler;
+--    orada dolan sey yayin tarihidir.
+--    Tarih ANILIST'TEN gelir, AnimeSchedule'dan DEGIL: AnimeSchedule'in anime
+--    nesnesinde bitis tarihi alani YOKTUR (tarih alanlari premier, subPremier,
+--    dubPremier, delayed* ve jpnTime/subTime/dubTime'dir - hicbiri finali
+--    isaretlemez; servisin kendi belgeleri ve ucuncu taraf bir SDK'nin alan
+--    listesiyle dogrulandi).
+--    "premier + (bolum-1)x7" ile HESAPLAMA bilerek reddedildi: yalnizca hic
+--    hafta atlamamis seride dogrudur (olcum: Ahiru no Sora'da 21 gun, Cowboy
+--    Bebop'ta 211 gun sapma) ve turetilmis tarih forma "cekilmis veri" gibi
+--    girerdi.
+--    AniList'in halka acik GraphQL ucu API ANAHTARI ISTEMEZ, yani bu alan
+--    ANIMESCHEDULE ANAHTARI OLMAYAN kurulumda bile calisir. Eslesme mal_id
+--    koprusuyledir (animes.mal_id <-> AniList Media.idMal); MAL numarasi
+--    olmayan kayitta tarih atlanir. Yalnizca durum bitmis ISE ve tek bolumluk
+--    yapim DEGILSE sorulur; kapi kapaliyken ag istegi hic atilmaz. Adim EN IYI
+--    CABADIR: hata durumunda sessizce atlanir, geri kalan doldurma etkilenmez.
+--
+--    ESLESME KIMLIGI, AnimeSchedule cevabinin KENDI `websites` alanindan
+--    okunur (AniList id, sonra MAL id); formdaki MAL baglantisi yalnizca
+--    yedektir. Boylece yalnizca AniDB baglantisi girilmis ya da MAL kutusu
+--    henuz doldurulmamis bir animede de tarihler gelir. `websites` bicimi
+--    belgelenmedigi icin okuyucu savunmacidir (anahtar buyuk/kucuk harf
+--    duyarsiz; deger olarak tam URL de ciplak sayi da kabul edilir; gecersiz
+--    her sey atilir) - en kotu ihtimal "kimlik bulunamadi"dir.
+--
+--    Yayin tarihi de AniList'ten alinir, AnimeSchedule'in `premier` alanindan
+--    DEGIL: `premier` bir zaman anidir ve takvim gunune cevirmek Japon gece
+--    yarisi sonrasi yayin gelenegi yuzunden ("Cuma 25:25" = Cumartesi 01:25)
+--    bir gun kayabilir. AniList startDate zaten hesaplasmasi yapilmis takvim
+--    gunudur; iki tarih TEK sorguda alinir.
+--
+--    SEMA ETKISI YOK: animes.release_date ve animes.end_date kolonlari ZATEN
+--    vardi (elle giriliyordu); bu is yalnizca onlari dolduran bir yol ekler.
+--
+--    Ayrica: Anime Ekle formunda durum kutusunun on tanimli "Seçim Yapılmadı"
+--    degeri artik BOS sayilir. Eskiden dolu sayildigi icin otomatik doldurma o
+--    sayfada durumu hic ayarlayamiyor, durum ayarlanamayinca da ona bagli
+--    bolumler (yayin bilgileri, bitis tarihi) hic acilmiyordu.
+--
+-- MERKEZ KATALOG SUNUCUSUNDA ELLE ISLEM GEREKMEZ - katalog teline
+-- dokunulmadi. Izlenen bolum ve izleme durumu zaten KISISEL veridir
+-- (user_anime), katalogla paylasilmaz.
+--
+-- DAGITIM NOTU: YENI DOSYA YOKTUR, ama iki dosya BIRLIKTE yuklenmelidir:
+--   files/anime_details.php   (widget + betik)
+--   files/css/components.css  (.ep-* stilleri - index.php'den tasindi)
+-- components.css eksik yuklenirse SADECE detaydaki yeni widget degil,
+-- LISTEDEKI eski widget de stilsiz kalir (kurallar artik orada).
+-- 1.1.24'un surum damgasi (?v=1.1.27) tarayici onbellegini kendisi
+-- tazeler, elle bir sey yapilmasi gerekmez.
+-- Digerleri: files/update_watched.php, files/index.php (gomulu stil
+-- blogu bosaltildi), files/lang/tr.php, files/lang/en.php.
+-- 5. ve 6. maddenin dosyalari: files/functions/animeschedule_helpers.php,
+-- files/functions/anilist_import_helpers.php, files/fetch_animeschedule.php,
+-- files/js/anime_form.js, files/add_anime.php, files/edit_anime.php. Bu alti
+-- dosya birlikte yuklenmelidir:
+--   - iki form yeni dil anahtarlarini betige gecirir, betik de onlari kullanir
+--     (JS'te "|| '(?)'" yedegi var, yani yarim yuklemede "undefined" sizmaz
+--     ama not anlamsizlasir);
+--   - betik MAL baglantisini uca gonderir, uc de bitis tarihini ondan cikarir
+--     (betik eski kalirsa mal_link gitmez ve tarih hic gelmez, uc yeni olsa
+--     bile - sessiz ve teshisi zor bir eksiklik olur).
+-- =====================================================================

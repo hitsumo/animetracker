@@ -188,6 +188,11 @@ return [
     'anime_details.label.unset'          => 'Belirtilmemiş',
     'anime_details.label.broadcast_attribution' => 'Saat bilgisi %s\'den alınmıştır',
     'anime_details.label.watched_episodes' => 'İzlenen Bölüm:',
+    // 1.1.27 - detaydaki hizli +/- dugmelerinin ipuclari. Listedeki
+    // index.row.ep_*_tooltip anahtarlarinin detay sayfasi karsiligi;
+    // metin ayni ise de anahtarlar sayfa adiyla ayrilir.
+    'anime_details.ep.minus_tooltip'     => 'Bir bölüm geri',
+    'anime_details.ep.plus_tooltip'      => 'Bir bölüm ileri',
     'anime_details.label.watch_start_date' => 'İzlemeye Başlama:',
     'anime_details.label.watch_finish_date' => 'İzlemeyi Bitirme:',
     'anime_details.label.synopsis'       => 'Konu:',
@@ -396,6 +401,9 @@ return [
     'add_anime.js.fetching'                  => 'AnimeSchedule den veri cekiliyor...',
     'add_anime.js.unknown_error'             => 'Bilinmeyen hata.',
     'add_anime.js.field_not_found_suffix'    => '(alan bulunamadi)',
+    // 1.1.27 - otomatik doldurma raporunu durustlestiren iki ek not.
+    'add_anime.js.field_hidden_suffix'       => '(gizli bolumde)',
+    'add_anime.js.field_value_rejected_suffix' => '(deger kabul edilmedi)',
     'add_anime.js.no_empty_fields'           => 'Doldurulacak bos alan bulunamadi (tum alanlar dolu).',
     'add_anime.js.fields_filled_prefix'      => 'Alan dolduruldu:',
     'add_anime.js.request_failed_prefix'     => 'Istek basarisiz:',

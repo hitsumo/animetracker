@@ -912,6 +912,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         'fetching'                     => t('add_anime.js.fetching'),
         'unknown_error'                => t('add_anime.js.unknown_error'),
         'field_not_found_suffix'       => t('add_anime.js.field_not_found_suffix'),
+        'field_hidden_suffix'          => t('add_anime.js.field_hidden_suffix'),
+        'field_value_rejected_suffix'  => t('add_anime.js.field_value_rejected_suffix'),
         'no_empty_fields'              => t('add_anime.js.no_empty_fields'),
         'fields_filled_prefix'         => t('add_anime.js.fields_filled_prefix'),
         'request_failed_prefix'        => t('add_anime.js.request_failed_prefix'),

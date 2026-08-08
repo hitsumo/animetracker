@@ -13,6 +13,7 @@
  *   POST fetch_animeschedule.php
  *     csrf_token=<token>
  *     url=<full AnimeSchedule URL>
+ *     mal_link=<the form's MAL URL>   // optional, 1.1.27 - end date lookup
  *
  * Response (success):
  *   {
@@ -22,9 +23,19 @@
  *       "broadcast_time":     "23:30",
  *       "broadcast_timezone": "Asia/Tokyo",
  *       "status":             "Yayin Devam Ediyor",
- *       "total_episodes":     12      // only for finished anime
+ *       "total_episodes":     12,     // only for finished anime
+ *       "release_date":       "2019-04-08", // 1.1.27
+ *       "end_date":           "2019-06-24"  // 1.1.27, finished + multi-episode
  *     }
  *   }
+ *
+ * 1.1.27 - TWO SOURCES BEHIND ONE BUTTON. Everything above comes from
+ * AnimeSchedule except the two DATES, which come from AniList: the AnimeSchedule
+ * anime object carries no end-date field at all, and its `premier` is an instant
+ * rather than a calendar date (late-night broadcasts make those differ by a day).
+ * The AniList call is a best-effort extra - if it fails the AnimeSchedule fields
+ * are still returned. See the block below and anilist_fetch_dates() for the full
+ * reasoning.
  *
  * Response (error):
  *   {
@@ -151,6 +162,63 @@ if (isset($apiResult['error'])) {
 // --- Map and respond -----------------------------------------------------
 
 $fields = mapAnimeScheduleToFormFields($apiResult);
+
+// --- Yayin ve bitis tarihi: AniList (1.1.27) ------------------------------
+//
+// AnimeSchedule'in anime nesnesinde BITIS TARIHI ALANI YOKTUR - tarih
+// alanlari premier / subPremier / dubPremier, delayed* cifti ve
+// jpnTime/subTime/dubTime'dir; hicbiri finali isaretlemez. Yayin tarihi icin
+// `premier` var ama o bir ZAMAN ANIDIR; takvim gunune cevirmek gece yarisi
+// sonrasi yayinlarda bir gun kaymaya aciktir ("Cuma 25:25" = Cumartesi 01:25).
+// Iki tarih de bu yuzden AniList'ten, TEK sorguda alinir. Ayrintili gerekce
+// (ve "premier + (bolum-1)x7 ile hesaplama" secenegin neden reddedildigi)
+// anilist_fetch_dates()'in docblock'unda.
+//
+// ESLESME KIMLIGI NEREDEN GELIR (oncelik sirasi):
+//   1. AnimeSchedule cevabinin KENDI `websites` nesnesi (AniList id, sonra MAL
+//      id). Bu en saglam kaynaktir: kullanicinin forma hangi baglantiyi
+//      yapistirdigina bagli degildir. Kurator yalnizca AniDB baglantisi
+//      girdiyse ya da "Otomatik Doldur"a MAL kutusunu doldurmadan bastiysa
+//      tarihler eskiden hic gelmiyordu - kimlik artik zaten cektigimiz
+//      cevaptan okunuyor.
+//   2. Formdaki MAL baglantisi (eski yol, yedek olarak duruyor): `websites`
+//      bos gelirse ya da tanimadigimiz bir bicimdeyse devreye girer.
+// Ikisinden de kimlik cikmazsa istek hic atilmaz.
+//
+// Iki tarihin kendi kurallari var:
+//   - release_date HER durumda anlamlidir (devam eden, baslamamis, bitmis)
+//     ve formda her zaman gorunur; bilindigi her yerde tasinir.
+//   - end_date yalnizca durum "Yayın Tamamlandı" ISE ve TEK BOLUMLUK yapim
+//     DEGILSE tasinir. Tek bolumde (film/ozel/OVA) bitis tarihi yayin
+//     tarihinin kendisidir - AniList de start == end doner - ve form bu alani
+//     zaten gizler (isSingleEpisode / toggleEndDateBySingleEpisode). §79
+//     ilkesi: formun gostermedigi alani doldurmayi onerme.
+//
+// Bu EK bir istektir: basarisiz olursa (ag hatasi, eslesmeyen kayit, yarim
+// tarih) sessizce atlanir ve AnimeSchedule'dan gelenler yine dondurulur.
+// Not: AniList istemcisinin kendi zaman asimi vardir, yani en kotu durumda
+// dugme AnimeSchedule + AniList beklemesi kadar surer.
+$extIds     = animeScheduleExternalIds($apiResult);
+$aniListId  = $extIds['anilist'];
+$malId      = $extIds['mal'];
+if ($malId === null) {
+    // Yedek: formdaki MAL baglantisi.
+    $malId = parseMalId(trim($_POST['mal_link'] ?? ''));
+}
+
+if ($aniListId !== null || $malId !== null) {
+    $alDates = anilist_fetch_dates($malId, $aniListId);
+
+    if ($alDates['start_date'] !== null) {
+        $fields['release_date'] = $alDates['start_date'];
+    }
+
+    if ($alDates['end_date'] !== null
+        && ($fields['status'] ?? null) === 'Yayın Tamamlandı'
+        && (int)($fields['total_episodes'] ?? 0) !== 1) {
+        $fields['end_date'] = $alDates['end_date'];
+    }
+}
 
 if (empty($fields)) {
     // The API returned 200 but nothing we recognise. Could be a brand

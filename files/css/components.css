@@ -618,3 +618,101 @@ textarea:focus {
     font-size: 12px;
     white-space: nowrap;
 }
+
+/* =====================================================================
+   Hizli bolum guncelleme (+/-)  -  .ep-quick
+   =====================================================================
+   0.5.5'te index.php'nin icine gomulu <style> blogu olarak dogdu; liste
+   hucresinde "izlenen/tavan" sayisini form acmadan bir bolum ileri/geri
+   almaya yarar. 1.1.27'de ayni widget anime detay sayfasina da kondugu
+   icin stiller buraya tasindi - iki sayfada iki kopya kural, er ya da
+   gec birbirinden ayrilirdi.
+
+   Iki yerlesim var, ayni parcalardan:
+     - liste (index.php): DIKEY. Hucre dar, sayi ustte, dugmeler altta.
+     - detay (anime_details.php): YATAY (.ep-quick-inline). Satir genis,
+       sayi ile dugmeler yan yana durur.
+   ===================================================================== */
+
+.ep-quick {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.ep-quick .ep-text {
+    text-align: center;
+}
+
+/* 1.1.27 - detay sayfasi varyanti. Detayda "Toplam Bolum" ve "Yayinlanan
+   Bolum" zaten kendi satirlarinda durur, bu yuzden burada sayi tek basina
+   yazilir ve yaninda dugmeler olur; dikey yigmaya gerek yok. */
+.ep-quick-inline {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+}
+
+.ep-badge {
+    font-size: 13px;
+    color: #888780;
+    line-height: 1;
+}
+
+.ep-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ep-sep {
+    color: #999;
+    font-size: 12px;
+}
+
+.ep-step {
+    width: 22px;
+    height: 22px;
+    line-height: 20px;
+    padding: 0;
+    border: 1px solid #D85A30;
+    background: #D85A30;
+    color: #fff;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+}
+
+.ep-step:hover:not(:disabled) {
+    background: #993C1D;
+    border-color: #993C1D;
+    color: #fff;
+}
+
+.ep-step:disabled {
+    border-color: #D3D1C7;
+    background: #F1EFE8;
+    color: #B4B2A9;
+    opacity: 1;
+    cursor: not-allowed;
+}
+
+.ep-step:disabled:hover {
+    background: #F1EFE8;
+    color: #B4B2A9;
+}
+
+.ep-quick.busy .ep-step {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+.ep-quick.flash .ep-text {
+    transition: color 0.15s ease;
+    color: #2e7d32;
+    font-weight: 600;
+}

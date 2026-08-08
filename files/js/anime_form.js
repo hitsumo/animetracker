@@ -340,6 +340,14 @@ function fetchAnimeScheduleData() {
     formData.append('csrf_token', csrfToken);
     formData.append('url', url);
 
+    // 1.1.27 - MAL baglantisi da gonderilir. Bitis tarihi AnimeSchedule'da
+    // YOKTUR; uc onu AniList'ten sorar ve iki servisi birbirine baglayan
+    // kimlik MAL numarasidir (uc, numarayi gelen baglantidan kendisi cikarir).
+    // Alan bos ya da sayfada yoksa uc yalnizca bitis tarihini atlar, geri
+    // kalan doldurma etkilenmez.
+    const malInput = document.querySelector('[name="mal_link"]');
+    formData.append('mal_link', malInput ? (malInput.value || '').trim() : '');
+
     fetch('fetch_animeschedule.php', {
         method: 'POST',
         body: formData,
@@ -368,6 +376,17 @@ function fetchAnimeScheduleData() {
             let isEmpty;
             if (fieldName === 'broadcast_timezone') {
                 isEmpty = (el.value === '' || el.value === 'Asia/Tokyo');
+            } else if (fieldName === 'status') {
+                // 1.1.27 - "Seçim Yapılmadı" formun ON TANIMLI bos halidir
+                // (1.1.10'da tam da "taze form finished/ongoing tahminine
+                // zorlamasin" diye eklendi), gercek bir secim degil.
+                // broadcast_timezone'daki "hala varsayilanda" kuralinin esi.
+                //
+                // Bunu DOLU saymak, Anime Ekle formunda otomatik doldurmanin
+                // durumu HIC ayarlayamamasi demekti; durum ayarlanamayinca da
+                // ona bagli bolumler (yayin bilgileri, bitis tarihi) hic
+                // acilmiyor ve oraya dolan alanlar gorunmez kaliyordu.
+                isEmpty = (el.value === '' || el.value === 'Seçim Yapılmadı');
             } else {
                 isEmpty = (el.value === '' || el.value === null);
             }
@@ -377,8 +396,46 @@ function fetchAnimeScheduleData() {
                 continue;
             }
 
+            // 1.1.27 - "dolduruldu" demeden ONCE yazmanin gercekten olup
+            // olmadigina bak. Iki sessiz durum vardi ve ikisi de kullaniciya
+            // "doldurdum" diye rapor ediliyordu:
+            //
+            //  1) DEGISMEYEN yazma. broadcast_timezone'da "bos" demek "hala
+            //     varsayilan Asia/Tokyo'da" demek; ucun dondugu deger de
+            //     Asia/Tokyo. Yani ustune ayni deger yaziliyor, formda hicbir
+            //     sey degismiyor, ama sayaca +1 giriyordu. Kullanicinin
+            //     gordugu "3 alan dolduruldu" mesajinin bir maddesi her zaman
+            //     bu hayalet yazmaydi.
+            //  2) KABUL EDILMEYEN yazma. <select> icin eslesen bir <option>
+            //     yoksa atama sessizce yok sayilir, deger eski haliyle kalir.
+            //     Bugun gonderdigimiz degerler option'larla birebir eslesiyor,
+            //     ama bir gun eslesmezse hata yine sessiz olurdu.
+            const previous = el.value;
             el.value = value;
-            filled.push(fieldName);
+
+            if (String(el.value) !== String(value)) {
+                // Atama tutmadi (2): eski degeri geri koy ve dogruyu soyle.
+                // Yedekli okuma: form dosyasi eski surumde kalirsa (yarim
+                // yukleme) bu anahtar LANG'da olmaz ve mesaja "undefined"
+                // sizardi. 1.1.22 kazasinin dersi.
+                el.value = previous;
+                skipped.push(fieldName + ' ' + (LANG.field_value_rejected_suffix || '(?)'));
+                continue;
+            }
+            if (el.value === previous) {
+                // Yazildi ama hicbir sey degismedi (1): doldurulmus sayilmaz.
+                skipped.push(fieldName);
+                continue;
+            }
+
+            // Gorunurluk BURADA olculmez - dongunun sonunda olculur. Sebep:
+            // bir alanin gorunurlugu, AYNI dongude daha sonra islenen bir
+            // alan yuzunden degisebilir. 'status' dolunca
+            // toggleBroadcastDetails() yayin bilgileri bolumunu acar, yani
+            // ondan ONCE islenen broadcast_day/time o an gizliyken sonunda
+            // GORUNUR olur. Burada olcseydik "(gizli bolumde)" notu, kullanici
+            // alani ekranda apacik gorurken basilirdi.
+            filled.push({ name: fieldName, el: el });
 
             // status, broadcast/aired/end_date bolumlerinin gorunurlugunu
             // toggleBroadcastDetails() ile yonetir; yeni dolan broadcast_day/time
@@ -386,14 +443,35 @@ function fetchAnimeScheduleData() {
             if (fieldName === 'status' && typeof toggleBroadcastDetails === 'function') {
                 toggleBroadcastDetails();
             }
+
+            // 1.1.27 - total_episodes'un kendi kurali var: tek bolumluk yapimda
+            // bitis tarihi bolumu gizlenir (bitis tarihi yayin tarihinin
+            // kendisidir). Bu kural forma "oninput" ile bagli, ama JS'ten
+            // .value yazmak input olayini TETIKLEMEZ; el ile cagirmazsak
+            // otomatik doldurma 1 bolum yazdiktan sonra bolum acik kalirdi.
+            // status dalinin tam esi.
+            if (fieldName === 'total_episodes'
+                && typeof toggleEndDateBySingleEpisode === 'function') {
+                toggleEndDateBySingleEpisode();
+            }
         }
 
         if (filled.length === 0) {
             statusDiv.style.color = '#888';
             statusDiv.textContent = LANG.no_empty_fields;
         } else {
+            // Gorunurluk simdi, HERSEY yazildiktan sonra olculur (yukaridaki
+            // nota bakin). Ekranda olmayan alanin adina "(gizli bolumde)"
+            // eklenir ki kullanici formda olmayan bir alani aramasin.
+            // offsetParent === null => eleman ya kendisi ya da bir atasi
+            // display:none.
+            const names = filled.map(function (f) {
+                return f.el.offsetParent === null
+                    ? f.name + ' ' + (LANG.field_hidden_suffix || '(*)')
+                    : f.name;
+            });
             statusDiv.style.color = '#27ae60';
-            statusDiv.textContent = LANG.fields_filled_prefix + ' ' + filled.length + ': ' + filled.join(', ') + '.';
+            statusDiv.textContent = LANG.fields_filled_prefix + ' ' + names.length + ': ' + names.join(', ') + '.';
         }
     })
     .catch(err => {
