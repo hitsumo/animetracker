@@ -25,6 +25,7 @@
   <img src="https://img.shields.io/badge/self--hostable-yes-success.svg" alt="Self-hostable">
   <img src="https://img.shields.io/badge/Docker-ready-2496ED.svg" alt="Docker ready">
   <img src="https://img.shields.io/badge/i18n-TR%20%2F%20EN-orange.svg" alt="TR / EN">
+[![Sponsor hitsumo](https://img.shields.io/badge/Sponsor-hitsumo-ea4aaa?style=for-the-badge&logo=github)](https://github.com/sponsors/hitsumo)
 </p>
 
 <!-- Ekran goruntuleri / Screenshots: docs/screenshots/ altina koy -->
