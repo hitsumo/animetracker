@@ -4,6 +4,8 @@
 
 <h1 align="center">Anime Tracker</h1>
 
+[![Sponsor hitsumo](https://img.shields.io/badge/Sponsor-hitsumo-ea4aaa?style=for-the-badge&logo=github)](https://github.com/sponsors/hitsumo)
+
 <p align="center">
   Türkçe-öncelikli, açık kaynak anime takip uygulaması —
   self-host (tek kullanıcı) veya online (çok kullanıcı) çalışır.<br>
