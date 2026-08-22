@@ -35,20 +35,31 @@ title_pref_init($pdo);
 // below can decide whether to show this page or a neutral notice.
 adult_pref_init($pdo);
 
-$id = $_GET['id'];
+// 1.1.28: id yoksa ya da sayi degilse 0'a duser ve asagidaki "bulunamadi"
+// dalina gider. Eskiden dogrudan $_GET['id'] okunuyordu, yani adres cubuguna
+// id'siz girilen sayfa PHP uyarisi uretiyordu. Sorgu zaten hazirlanmis ifade
+// kullaniyor - bu bir guvenlik duzeltmesi degil, gurultu temizligi.
+$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $sql = "SELECT * FROM animes WHERE id = ?";
 $stmt = $pdo->prepare($sql);
 $stmt->execute([$id]);
 $anime = $stmt->fetch(PDO::FETCH_ASSOC);
 
-$anidb_safe = safe_url($anime['anidb_link'] ?? '');
-            $mal_safe   = safe_url($anime['mal_link']   ?? '');
-			$schedule_safe = safe_url($anime['anime_schedule_link'] ?? '');
-
 if (!$anime) {
     echo htmlspecialchars(t('anime_details.error.not_found'));
     exit();
 }
+
+// Dis site baglantilari. safe_url() tehlikeli semalarda ('javascript:',
+// 'data:' vb.) bos dize dondurur ve sonuc oznitelik baglami icin zaten
+// htmlspecialchars'lanmistir - asagida tekrar kacislanmazlar.
+//
+// 1.1.28: bu uc satir "bulunamadi" kontrolunun USTUNDEYDI, yani var olmayan
+// bir id ile girildiginde $anime false iken $anime['anidb_link'] okunuyor ve
+// PHP 8 "array offset on bool" uyarisi veriyordu. Kontrolun altina alindi.
+$anidb_safe    = safe_url($anime['anidb_link'] ?? '');
+$mal_safe      = safe_url($anime['mal_link'] ?? '');
+$schedule_safe = safe_url($anime['anime_schedule_link'] ?? '');
 
 // 1.1.2 - yetiskin (+18) icerik kapisi. Anime +18 damgaliysa VE izleyici
 // "yetiskin icerigi goster" tercihini acmamissa (varsayilan kapali), detayi
@@ -241,7 +252,7 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
                 </div>
             </div>
         </h1>
-        
+
         <div class="anime-header">
             <div class="anime-cover-container">
                 <img src="<?php echo htmlspecialchars(poster_src($anime['image_path'])); ?>"
@@ -257,84 +268,109 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
                     <span class="detail-value status"><?php echo htmlspecialchars(broadcast_status_label($anime['status'])); ?></span>
                 </div>
 
-               
-
                 <div class="detail-row">
-    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.total_episodes'), ENT_QUOTES, 'UTF-8'); ?></span>
-    <span class="detail-value episode"><?php
-        // v0.5+: total_episodes can be NULL for ongoing anime with
-        // unknown final episode count (One Piece, Detective Conan).
-        if (!empty($anime['total_episodes'])) {
-            echo htmlspecialchars($anime['total_episodes']);
-        } else {
-            echo '<em>' . htmlspecialchars(t('anime_details.label.unknown')) . '</em>';
-        }
-    ?></span>
-</div>
+                    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.total_episodes'), ENT_QUOTES, 'UTF-8'); ?></span>
+                    <span class="detail-value episode"><?php
+                        // v0.5+: total_episodes can be NULL for ongoing anime with
+                        // unknown final episode count (One Piece, Detective Conan).
+                        if (!empty($anime['total_episodes'])) {
+                            echo htmlspecialchars($anime['total_episodes']);
+                        } else {
+                            echo '<em>' . htmlspecialchars(t('anime_details.label.unknown')) . '</em>';
+                        }
+                    ?></span>
+                </div>
 
-<?php if (!empty($anime['aired_episodes'])): ?>
-<div class="detail-row">
-    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.aired_episodes'), ENT_QUOTES, 'UTF-8'); ?></span>
-    <span class="detail-value episode"><?php echo htmlspecialchars($anime['aired_episodes']); ?></span>
-</div>
-<?php endif; ?>
+                <?php if (!empty($anime['aired_episodes'])): ?>
+                <div class="detail-row">
+                    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.aired_episodes'), ENT_QUOTES, 'UTF-8'); ?></span>
+                    <span class="detail-value episode"><?php echo htmlspecialchars($anime['aired_episodes']); ?></span>
+                </div>
+                <?php endif; ?>
 
-<!-- Yayin tarihi -->
-<div class="detail-row">
-    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.release_date'), ENT_QUOTES, 'UTF-8'); ?></span>
-    <span class="detail-value">
-        <?php 
-        if (!empty($anime['release_date'])) {
-            echo date('d.m.Y', strtotime($anime['release_date']));
-        } else {
-            echo htmlspecialchars(t('anime_details.label.unset'));
-        }
-        ?>
-    </span>
-</div>
-<?php
-// Madde E - Tek bolumlu animede yayin bitis tarihi anlamsiz (baslangic = bitis).
-// Status finished AND end_date dolu AND total_episodes 1 degil ise goster.
-if ($anime['status'] == 'Yayın Tamamlandı'
-    && !empty($anime['end_date'])
-    && (int)($anime['total_episodes'] ?? 0) !== 1):
-?>
-<div class="detail-row">
-    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.end_date'), ENT_QUOTES, 'UTF-8'); ?></span>
-    <span class="detail-value">
-        <?php echo date('d.m.Y', strtotime($anime['end_date'])); ?>
-    </span>
-</div>
-<?php endif; ?>
-<?php
-// 1.1.17 - Yapim ulkesi. DB'de ISO kodu (JP) durur, ekranda cevrilmis ad
-// (Japonya / Japan) gorunur. Yukaridaki yayin tarihinin aksine BOSSA HIC
-// BASILMAZ ("Belirtilmemis" yazilmaz): ulke sonradan eklenen opsiyonel bir
-// alan, katalogdaki animelerin cogunda henuz bos ve her detay sayfasina
-// bos bir satir koymak bilgi degil gurultu olurdu.
-// country_label() taninmayan kodda '' dondugu icin tek kontrol yeterli.
-$country_name = country_label($anime['country'] ?? null);
-if ($country_name !== ''):
-?>
-<div class="detail-row">
-    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.country'), ENT_QUOTES, 'UTF-8'); ?></span>
-    <span class="detail-value"><?php echo htmlspecialchars($country_name, ENT_QUOTES, 'UTF-8'); ?></span>
-</div>
-<?php endif; ?>
-<?php if ($anime['status'] == 'Yayın Devam Ediyor'): ?>
-<div class="detail-row" style="margin-top: -8px;">
-    <span class="detail-label"></span>
-    <span class="detail-value" style="font-size: 11px; color: #6c757d; font-style: italic;">
-        <?php
-        // The label has a "%s" placeholder for the AnimeSchedule link.
-        // We build the HTML link first, then substitute it - the result
-        // contains the user's chosen translation around safe HTML.
-        $schedule_link_html = '<a href="' . ($schedule_safe ?: 'https://animeschedule.net') . '" target="_blank" rel="noopener noreferrer" style="color: #6c757d; text-decoration: underline;">AnimeSchedule</a>';
-        echo sprintf(t('anime_details.label.broadcast_attribution'), $schedule_link_html);
-        ?>
-    </span>
-</div>
-<?php endif; ?>
+                <?php // Yayin tarihi - bossa "Belirtilmemis" yazilir (ulkenin
+                      // aksine, asagiya bakin). ?>
+                <div class="detail-row">
+                    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.release_date'), ENT_QUOTES, 'UTF-8'); ?></span>
+                    <span class="detail-value">
+                        <?php
+                        if (!empty($anime['release_date'])) {
+                            echo date('d.m.Y', strtotime($anime['release_date']));
+                        } else {
+                            echo htmlspecialchars(t('anime_details.label.unset'));
+                        }
+                        ?>
+                    </span>
+                </div>
+
+                <?php
+                // Madde E - Tek bolumlu animede yayin bitis tarihi anlamsiz
+                // (baslangic = bitis). Status finished AND end_date dolu AND
+                // total_episodes 1 degil ise goster.
+                if ($anime['status'] == 'Yayın Tamamlandı'
+                    && !empty($anime['end_date'])
+                    && (int)($anime['total_episodes'] ?? 0) !== 1):
+                ?>
+                <div class="detail-row">
+                    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.end_date'), ENT_QUOTES, 'UTF-8'); ?></span>
+                    <span class="detail-value">
+                        <?php echo date('d.m.Y', strtotime($anime['end_date'])); ?>
+                    </span>
+                </div>
+                <?php endif; ?>
+
+                <?php
+                // 1.1.17 - Yapim ulkesi. DB'de ISO kodu (JP) durur, ekranda
+                // cevrilmis ad (Japonya / Japan) gorunur. Yukaridaki yayin
+                // tarihinin aksine BOSSA HIC BASILMAZ ("Belirtilmemis"
+                // yazilmaz): ulke sonradan eklenen opsiyonel bir alan,
+                // katalogdaki animelerin cogunda henuz bos ve her detay
+                // sayfasina bos bir satir koymak bilgi degil gurultu olurdu.
+                // country_label() taninmayan kodda '' dondugu icin tek kontrol
+                // yeterli.
+                $country_name = country_label($anime['country'] ?? null);
+                if ($country_name !== ''):
+                ?>
+                <div class="detail-row">
+                    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.country'), ENT_QUOTES, 'UTF-8'); ?></span>
+                    <span class="detail-value"><?php echo htmlspecialchars($country_name, ENT_QUOTES, 'UTF-8'); ?></span>
+                </div>
+                <?php endif; ?>
+
+                <?php
+                // 1.1.28 - Yayin bilgileri (gun/saat) DEVAM EDEN ve BASLAMAMIS
+                // anime icin basilir. Haftalik yayin yuvasi bir dizi baslamadan
+                // ONCE bellidir (sezon oncesi duyurulur), form da 1.1.28'den beri
+                // o alanlari baslamamis animede gosterip kaydediyor; girilen
+                // bilginin hicbir yerde GORUNMEMESI tutarsizdi. Bayrak burada,
+                // ilk kullanildigi yerde hesaplanir ve asagida yayin bilgileri
+                // blogunda TEKRAR kullanilir - iki ayri liste tutulmaz.
+                $showBroadcastInfo = in_array($anime['status'],
+                                        ['Yayın Devam Ediyor', 'Yayın Başlamadı'], true);
+                ?>
+                <?php // Kaynak notu ("Saat bilgisi ...'den alinmistir") saat
+                      // GOSTERILEN her durumda basilir - yoksa baslamamis animede
+                      // kaynaksiz saat gorunurdu. ?>
+                <?php if ($showBroadcastInfo): ?>
+                <div class="detail-row" style="margin-top: -8px;">
+                    <span class="detail-label"></span>
+                    <span class="detail-value" style="font-size: 11px; color: #6c757d; font-style: italic;">
+                        <?php
+                        // Etiketin icinde AnimeSchedule baglantisi icin bir "%s"
+                        // yer tutucusu var: once baglanti HTML'i kurulur, sonra
+                        // yerine konur - sonuc, kullanicinin sectigi cevirinin
+                        // guvenli HTML'i sarmasidir.
+                        //
+                        // Adres yoksa servisin ANA SAYFASINA duser ve bu dogrudur:
+                        // burasi bir KAYNAK BELIRTMEDIR (saat nereden geldi), dis
+                        // baglantilar bolumundeki "bu animenin sayfasi" dugmesi
+                        // degil. Oradaki genel adrese dusme 1.1.28'de kaldirildi.
+                        $schedule_link_html = '<a href="' . ($schedule_safe ?: 'https://animeschedule.net') . '" target="_blank" rel="noopener noreferrer" style="color: #6c757d; text-decoration: underline;">AnimeSchedule</a>';
+                        echo sprintf(t('anime_details.label.broadcast_attribution'), $schedule_link_html);
+                        ?>
+                    </span>
+                </div>
+                <?php endif; ?>
 
                 <?php /* 1.1.27: izlenen bolum sayisi artik yerinde
                    degistirilebilir - listedeki (+/-) widget'inin ayni ucu
@@ -506,7 +542,15 @@ if ($country_name !== ''):
                 </div>
                 <?php endif; ?>
 
-                <?php if ($anime['status'] == 'Yayın Devam Ediyor'): ?>
+                <?php // 1.1.28 - $showBroadcastInfo yukarida (kaynak notunun
+                      // yaninda) hesaplandi: devam eden + baslamamis anime.
+                      //
+                      // Blok icindeki "Sonraki Bolum" satiri bu genislemenin
+                      // DISINDA kalir: next_episode_date yalnizca devam eden
+                      // anime icin hesaplanir, baslamamis animenin "sonraki
+                      // bolum"u ilk bolumudur ve onu yukaridaki Yayin Tarihi
+                      // satiri tasir. ?>
+                <?php if ($showBroadcastInfo): ?>
                 <div class="broadcast-info">
                     <div class="detail-row">
                         <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.broadcast_day'), ENT_QUOTES, 'UTF-8'); ?></span>
@@ -518,38 +562,34 @@ if ($country_name !== ''):
                         <span class="detail-value broadcast-time"><?php echo htmlspecialchars(!empty($anime['broadcast_time']) ? substr($anime['broadcast_time'], 0, 5) : t('anime_details.label.unset')); ?></span>
                     </div>
 
-     <div class="detail-row">
-    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.next_episode'), ENT_QUOTES, 'UTF-8'); ?></span>
-    <span class="detail-value next-episode">
-        <?php echo getTimeUntilNextEpisode($anime['next_episode_date'], $anime['watched_episodes'], $anime['total_episodes'] ?? 0, $anime['aired_episodes'] ?? 0); ?>
-    </span>
-</div>
+                    <?php if ($anime['status'] == 'Yayın Devam Ediyor'): ?>
+                    <div class="detail-row">
+                        <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.next_episode'), ENT_QUOTES, 'UTF-8'); ?></span>
+                        <span class="detail-value next-episode">
+                            <?php echo getTimeUntilNextEpisode($anime['next_episode_date'], $anime['watched_episodes'], $anime['total_episodes'] ?? 0, $anime['aired_episodes'] ?? 0); ?>
+                        </span>
+                    </div>
 
-<?php if (!empty($chronologyMarkers)): ?>
-<div class="detail-row">
-    <span class="detail-label"></span>
-    <span class="detail-value">
-        <a href="chronology.php?id=<?php echo (int)$anime['id']; ?>" class="chronology-button">
-            <i class="fas fa-stream"></i> <?php echo htmlspecialchars(t('anime_details.btn.chronology'), ENT_QUOTES, 'UTF-8'); ?>
-        </a>
-    </span>
-</div>
-<?php endif; ?>
-
-                    <?php if (!empty($anime['notes'])): ?>
-                <div class="detail-row">
-                    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.notes'), ENT_QUOTES, 'UTF-8'); ?></span>
-                    <span class="detail-value"><?php echo nl2br(htmlspecialchars($anime['notes'])); ?></span>
+                    <?php // Kronoloji dugmesi devam eden animede blok ICINDE durur
+                          // (etiket sutunuyla hizali varyant); diger tum durumlarda
+                          // asagidaki tek dal basar. Iki yer, ama kosullar birbirini
+                          // DISLAR - dugme her zaman tam bir kez cikar. ?>
+                    <?php if (!empty($chronologyMarkers)): ?>
+                    <div class="detail-row">
+                        <span class="detail-label"></span>
+                        <span class="detail-value">
+                            <a href="chronology.php?id=<?php echo (int)$anime['id']; ?>" class="chronology-button">
+                                <i class="fas fa-stream"></i> <?php echo htmlspecialchars(t('anime_details.btn.chronology'), ENT_QUOTES, 'UTF-8'); ?>
+                            </a>
+                        </span>
+                    </div>
+                    <?php endif; ?>
+                    <?php endif; ?>
                 </div>
                 <?php endif; ?>
 
-
-                </div>
-                <?php endif; ?>
-
-                <?php // Yayin Tamamlandi durumunda broadcast-info yok, kronoloji
-                      // butonunu burada goster (devam eden animede zaten broadcast-info
-                      // icinde gosteriliyor)
+                <?php // Devam ETMEYEN animede kronoloji dugmesi burada basar
+                      // (devam edende zaten broadcast-info icinde gosterildi).
                 ?>
                 <?php if ($anime['status'] != 'Yayın Devam Ediyor' && !empty($chronologyMarkers)): ?>
                 <div class="detail-row" style="margin-top: 10px;">
@@ -559,38 +599,74 @@ if ($country_name !== ''):
                 </div>
                 <?php endif; ?>
 
+                <?php // 1.1.28 HATA DUZELTMESI - kisisel notlar.
+                      // Bu satir .broadcast-info blogunun ICINDE duruyordu, yani
+                      // "yalniz Yayin Devam Ediyor" kosuluna takiliydi: tamamlanmis,
+                      // baslamamis ya da iptal edilmis bir animeye yazilan not
+                      // detay sayfasinda HIC gorunmuyordu (yazilip kaydediliyor,
+                      // duzenleme formunda duruyor, ama detayda yok). Not kisisel
+                      // veridir ve yayin durumuyla hicbir ilgisi yoktur - blok
+                      // disina, HER durumda basilacak sekilde tasindi.
+                      // Devam eden animede yeri degismedi (blok zaten burada
+                      // bitiyordu ve not onun son satiriydi). ?>
+                <?php if (!empty($anime['notes'])): ?>
+                <div class="detail-row">
+                    <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.notes'), ENT_QUOTES, 'UTF-8'); ?></span>
+                    <span class="detail-value"><?php echo nl2br(htmlspecialchars($anime['notes'])); ?></span>
+                </div>
+                <?php endif; ?>
+
             </div>
 
-            <?php
-            // Pre-compute safe URLs once. safe_url() returns empty string
-            // for dangerous schemes (javascript:, data:, etc.) and the result
-            // is already htmlspecialchars-encoded for attribute context.
-            
+            <?php // ============================================================
+                  // SECTION: Dis Site Baglantilari
+                  // Adresler yukarida ($anidb_safe / $mal_safe / $schedule_safe)
+                  // bir kez hesaplandi ve zaten kacislanmis durumda.
+                  //
+                  // 1.1.28'de UC KUSUR duzeltildi:
+                  //   1) Bolumun kosulu "$anidb_safe || $mal_safe || true" idi,
+                  //      yani HER ZAMAN dogru: hicbir baglantisi olmayan animede
+                  //      bos bir "Dis Siteler" basligi basiliyordu.
+                  //   2) AnimeSchedule baglantisi MAL dalinin ICINDE duruyordu.
+                  //      Yani AnimeSchedule adresi girilmis ama MAL kutusu bos
+                  //      olan animede dugme HIC cikmiyordu - ki 1.1.27'den beri
+                  //      "yalnizca AnimeSchedule baglantisi girmek" desteklenen
+                  //      bir kullanim. Artik kendi kosulu var.
+                  //   3) Adres bossa dugme animeschedule.net ANA SAYFASINA
+                  //      gidiyordu (ve bunu yalnizca MAL varsa yapiyordu). Bu
+                  //      bolum BU animeye ait baglantilari listeler; hicbir yere
+                  //      goturmeyen bir dugme bilgi degil gurultudur. Adres yoksa
+                  //      dugme artik hic basilmaz.
             ?>
-            <?php if ($anidb_safe || $mal_safe || true): ?>
+            <?php if ($anidb_safe || $mal_safe || $schedule_safe): ?>
             <div class="external-links">
                 <h3><?php echo htmlspecialchars(t('anime_details.section.external_sites'), ENT_QUOTES, 'UTF-8'); ?></h3>
+
                 <?php if ($anidb_safe): ?>
-                <a href="<?php echo $anidb_safe; ?>" 
-                   target="_blank" 
+                <a href="<?php echo $anidb_safe; ?>"
+                   target="_blank"
                    rel="noopener noreferrer"
                    class="site-link anidb-link">
                     <i class="fas fa-database"></i> AniDB
                 </a>
                 <?php endif; ?>
-                
+
                 <?php if ($mal_safe): ?>
-                <a href="<?php echo $mal_safe; ?>" 
-                   target="_blank" 
+                <a href="<?php echo $mal_safe; ?>"
+                   target="_blank"
                    rel="noopener noreferrer"
                    class="site-link mal-link">
                     <i class="fas fa-list"></i> MyAnimeList
                 </a>
-				<a href="<?php echo $schedule_safe ?: 'https://animeschedule.net'; ?>"
-   target="_blank" rel="noopener noreferrer"
-   class="site-link schedule-link">
-    <i class="fas fa-calendar-alt"></i> AnimeSchedule
-</a>
+                <?php endif; ?>
+
+                <?php if ($schedule_safe): ?>
+                <a href="<?php echo $schedule_safe; ?>"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="site-link schedule-link">
+                    <i class="fas fa-calendar-alt"></i> AnimeSchedule
+                </a>
                 <?php endif; ?>
             </div>
             <?php endif; ?>
@@ -878,7 +954,7 @@ if ($country_name !== ''):
             <?php endif; ?>
 
             <div class="button-group">
-                <a href="edit_anime.php?id=<?php echo $anime['id']; ?>" class="edit-button">
+                <a href="edit_anime.php?id=<?php echo (int)$anime['id']; ?>" class="edit-button">
                     <i class="fas fa-edit"></i> <?php echo htmlspecialchars(t('anime_details.btn.edit'), ENT_QUOTES, 'UTF-8'); ?>
                 </a>
                 <a href="index.php" class="back-button">

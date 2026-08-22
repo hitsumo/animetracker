@@ -87,21 +87,24 @@ function toggleBroadcastDetails() {
     const airedSection = document.getElementById('aired-episodes-section');
     const endDateSection = document.getElementById('end-date-section');
 
-    // Yayin detaylari (interval, gun, saat) yalniz devam eden anime icin anlamli.
-    if (status === 'Yayın Devam Ediyor') {
-        broadcastDetails.style.display = 'block';
-        airedSection.style.display = 'block';
-        endDateSection.style.display = 'none';
-    } else if (status === 'Yayın Tamamlandı') {
-        broadcastDetails.style.display = 'none';
-        airedSection.style.display = 'none';
-        // Madde E - Tek bolumde end_date gizli kalir, status finished olsa bile.
-        endDateSection.style.display = isSingleEpisode() ? 'none' : 'block';
-    } else {
-        broadcastDetails.style.display = 'none';
-        airedSection.style.display = 'none';
-        endDateSection.style.display = 'none';
-    }
+    // Yayin detaylari (interval, gun, saat, saat dilimi) DEVAM EDEN ve
+    // BASLAMAMIS anime icin anlamlidir (1.1.28). Haftalik yayin gunu/saati
+    // yayin baslamadan ONCE bellidir - AnimeSchedule bunlari "Upcoming"
+    // kayitlarda da dondurur ve 1.1.27 yalnizca BITMIS anime icin dusurur.
+    // Bolum baslamamis animede de gizli kaldigi surece otomatik doldurma
+    // kullanicinin goremedigi bir yere yaziyordu; kural burada duzeltilir.
+    const showBroadcast = (status === 'Yayın Devam Ediyor'
+                           || status === 'Yayın Başlamadı');
+    broadcastDetails.style.display = showBroadcast ? 'block' : 'none';
+
+    // Yayinlanan bolum sayisi YALNIZ devam eden anime icin anlamlidir
+    // (baslamamista sayi tanim geregi 0; sunucu diger durumlarda alani zaten
+    // temizler). Bu kural 1.1.28'de degismedi.
+    airedSection.style.display = (status === 'Yayın Devam Ediyor') ? 'block' : 'none';
+
+    // Madde E - Tek bolumde end_date gizli kalir, status finished olsa bile.
+    endDateSection.style.display =
+        (status === 'Yayın Tamamlandı' && !isSingleEpisode()) ? 'block' : 'none';
 }
 
 // Madde E - Toplam bolum 1 ise yayin bitis tarihi alani anlamsiz.

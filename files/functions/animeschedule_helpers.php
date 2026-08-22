@@ -264,11 +264,13 @@ function mapAnimeScheduleToFormFields($apiData) {
     }
 
     // --- Yayini bitmis anime: yayin bilgisi TASINMAZ (1.1.27) ----------
-    // Haftalik yayin gunu/saati/dilimi YALNIZ devam eden bir yayin icin
-    // anlamlidir. Formun kendi kurali da budur: #broadcast-details bolumu
-    // yalnizca "Yayin Devam Ediyor" durumunda gorunur (toggleBroadcastDetails
-    // bitmis anime icin ACIKCA gizler), ve detay sayfasi yayin gunu/saatini
-    // bitmis anime icin hic basmaz.
+    // Haftalik yayin gunu/saati/dilimi BITMIS bir yayin icin anlamsizdir.
+    // Formun kendi kurali da budur: #broadcast-details bolumu "Yayin Devam
+    // Ediyor" ve "Yayin Baslamadi" durumlarinda gorunur, bitmis animede
+    // toggleBroadcastDetails() onu ACIKCA gizler; detay sayfasi da yayin
+    // gunu/saatini bitmis anime icin hic basmaz.
+    // (1.1.28 notu: "Yayin Baslamadi" bolumu ONCE gizliydi, artik acik -
+    // asagidaki dusurme kurali yalnizca BITMIS durumu kapsar, degismedi.)
     //
     // Bu alanlari yine de gondermek, kullanicinin GOREMEDIGI bir bolume
     // yazip "3 alan dolduruldu" demek anlamina geliyordu: kullanici forma

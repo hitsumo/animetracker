@@ -961,7 +961,17 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
     </div>
 </div>
 
-            <div id="broadcast-details" style="display: <?php echo $anime['status'] == 'Yayın Devam Ediyor' ? 'block' : 'none'; ?>">
+            <?php
+                // 1.1.28 - Yayin bilgileri bolumu devam eden animenin yaninda
+                // BASLAMAMIS anime icin de acilir; haftalik yayin gunu/saati
+                // yayin baslamadan once bellidir. Kural js/anime_form.js
+                // icindeki toggleBroadcastDetails() ile birebir aynidir - bu
+                // satir yalnizca sayfanin ILK halini ayarlar.
+                $broadcastInitialDisplay = in_array($anime['status'],
+                                              ['Yayın Devam Ediyor', 'Yayın Başlamadı'], true)
+                                           ? 'block' : 'none';
+            ?>
+            <div id="broadcast-details" style="display: <?php echo $broadcastInitialDisplay; ?>">
                 <div class="form-group">
                     <label for="episode_interval"><?php echo htmlspecialchars(t('add_anime.label.episode_interval'), ENT_QUOTES, 'UTF-8'); ?></label>
                     <div class="input-area">

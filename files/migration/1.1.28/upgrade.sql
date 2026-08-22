@@ -1,0 +1,123 @@
+-- =====================================================================
+-- 1.1.28 - "Yayin Baslamadi"da yayin bilgileri gorunur + notlar hatasi
+-- =====================================================================
+-- SEMASIZ SURUM. Yeni tablo, kolon, tercih ya da ayar yoktur; bu klasorun
+-- tek amaci settings.version'i 1.1.28'e tasimaktir (runner yorumlari
+-- temizler ve bos ifade listesiyle surumu damgalar; bu dosyada
+-- calistirilacak SQL ifadesi yoktur).
+--
+-- NE YAPILDI
+--
+-- 1) FORMDAKI YAYIN BILGILERI BOLUMU ARTIK "YAYIN BASLAMADI" DURUMUNDA DA
+--    ACIK. Anime ekleme ve duzenleme formundaki #broadcast-details bolumu
+--    (bolum araligi, yayin gunu, yayin saati, yayin saat dilimi) 1.1.10'dan
+--    beri YALNIZCA "Yayin Devam Ediyor" durumunda goruntuleniyordu. Oysa
+--    haftalik yayin gunu ve saati bir dizi BASLAMADAN ONCE bellidir:
+--    AnimeSchedule bu alanlari "Upcoming" kayitlar icin de dondurur ve
+--    1.1.27'de eklenen dusurme kurali yalnizca BITMIS animeyi kapsar
+--    (mapAnimeScheduleToFormFields(); o kural DEGISMEDI).
+--
+--    Sonuc, 1.1.27'de belgelenmis bir tutarsizlikti: baslamamis bir animede
+--    "Otomatik Doldur" yayin gunu/saatini gercekten yaziyor, form da bunu
+--    dururstce "broadcast_day (gizli bolumde)" diye rapor ediyordu - ama
+--    kullanici alani ne gorebiliyor ne de elle duzeltebiliyordu. Bolum artik
+--    aciliyor; not, kalan gercek gizli durumlar icin yerinde duruyor.
+--
+-- 2) DETAY SAYFASI DA GOSTERIR. anime_details.php icindeki .broadcast-info
+--    blogu (yayin gunu + yayin saati) artik baslamamis animede de basilir,
+--    "Saat bilgisi AnimeSchedule'den alinmistir" kaynak notuyla birlikte.
+--    Aksi halde kurator baslamamis bir animenin yayin saatini formda girip
+--    o bilgiyi hicbir yerde goremezdi. Blok icindeki "Sonraki Bolum" satiri
+--    genislemenin DISINDA kaldi: next_episode_date yalnizca devam eden anime
+--    icin hesaplanir, baslamamis animenin "sonraki bolum"u ilk bolumudur ve
+--    onu Yayin Tarihi satiri zaten tasir.
+--
+-- 3) HATA DUZELTMESI - KISISEL NOTLAR SAYFANIN YARISINDA GORUNMUYORDU.
+--    "Notlar" satiri detay sayfasinda TEK bir yerde basiliyor ve o yer
+--    .broadcast-info blogunun ICINDEYDI, yani "yalniz Yayin Devam Ediyor"
+--    kosuluna takiliydi. Sonuc: TAMAMLANMIS, BASLAMAMIS ya da IPTAL EDILMIS
+--    bir animeye yazilan not detay sayfasinda HIC gorunmuyordu - not
+--    kaydediliyor, duzenleme formunda duruyor, ama detayda yok. Katalogun
+--    buyuk cogunlugu tamamlanmis anime oldugu icin bu, notlarin cogunun
+--    gorunmemesi demekti. Not KISISEL veridir ve yayin durumuyla hicbir
+--    ilgisi yoktur; satir blok disina, HER durumda basilacak sekilde tasindi.
+--    Devam eden animede notun yeri DEGISMEDI (blok zaten orada bitiyordu ve
+--    not onun son satiriydi).
+--
+--    Kronoloji dugmesi bu tasima sirasinda iki dalli kaldi (devam edende blok
+--    icinde, digerlerinde blok altinda) - kosullar birbirini DISLAR, yani
+--    dugme her durumda TAM BIR KEZ cikar. Testle sayildi.
+--
+-- 4) DIS SITE BAGLANTILARI - UC KUSUR. anime_details.php'yi temizlerken
+--    "Dis Siteler" bolumunde uc ayri hata bulundu:
+--      a) Bolumun kosulu "$anidb_safe || $mal_safe || true" idi, yani HER
+--         ZAMAN dogru. Hicbir baglantisi olmayan animede bos bir baslik
+--         basiliyordu.
+--      b) AnimeSchedule dugmesi MAL dalinin ICINDE duruyordu. AnimeSchedule
+--         adresi girilmis ama MAL kutusu bos olan animede dugme HIC
+--         cikmiyordu - oysa 1.1.27'den beri "yalnizca AnimeSchedule
+--         baglantisi girmek" desteklenen bir kullanim (websites koprusu).
+--      c) Adres bossa dugme animeschedule.net ANA SAYFASINA gidiyordu (ve
+--         bunu yalnizca MAL varsa yapiyordu). Bu bolum BU animeye ait
+--         baglantilari listeler; hicbir yere goturmeyen dugme gurultudur.
+--    Uc dugmenin de artik kendi kosulu var; adres yoksa dugme basilmaz.
+--    NOT: yayin saatinin altindaki KAYNAK NOTU hala ana sayfaya dusebilir -
+--    orasi bir kaynak belirtmedir, "bu animenin sayfasi" dugmesi degil.
+--
+-- 5) KUCUK SAGLAMLASTIRMALAR (ayni dosya):
+--    - `$_GET['id']` artik isset + (int). Adres cubuguna id'siz girilen
+--      sayfa PHP uyarisi uretmiyor, "bulunamadi" dalina duzgun dusuyor.
+--      Sorgu zaten hazirlanmis ifadeydi; bu guvenlik degil gurultu isi.
+--    - Uc `safe_url()` cagrisi "anime bulunamadi" kontrolunun USTUNDEYDI;
+--      var olmayan bir id'de $anime false iken $anime['anidb_link'] okunup
+--      PHP 8 "array offset on bool" uyarisi cikiyordu. Kontrolun altina
+--      alindi.
+--    - "Duzenle" dugmesindeki id (int)'e cevrildi (dosyanin geri kalaniyla
+--      ayni desen).
+--    - Girinti: detay satirlarinin bir bolumu 0 sutundan basliyordu,
+--      kardeslerinin hizasina cekildi. Uretilen HTML'in anlami degismez
+--      (bosluk yok sayilarak alinan fark bunu dogruluyor).
+--
+-- 6) DEGISMEYEN KURALLAR (bilerek):
+--    - "Yayinlanan Bolum Sayisi" (#aired-episodes-section) hala YALNIZCA
+--      "Yayin Devam Ediyor" durumunda gorunur. Baslamamis animede yayinlanan
+--      bolum sayisi tanim geregi sifirdir; sunucu bu alani devam eden
+--      olmayan her durumda zaten temizler (add_anime.php / edit_anime.php).
+--    - "Yayin Bitis Tarihi" (#end-date-section) hala yalnizca "Yayin
+--      Tamamlandi" + tek bolumluk olmayan yapim kuralina bagli (Madde E).
+--    - Sonraki bolum tarihi (next_episode_date) hala YALNIZCA devam eden
+--      animede hesaplanir.
+--    - Bitmis animede yayin gunu/saati hala HIC gosterilmez ve otomatik
+--      doldurmada hic tasinmaz (1.1.27 kurali; degismedi).
+--
+-- 7) VERI ETKISI YOK. broadcast_day / broadcast_time / broadcast_timezone /
+--    episode_interval kolonlari HER durumda kaydediliyordu (gizli bir bolum
+--    de POST'a deger gonderir) - bu surum yalnizca alanlarin GORUNURLUGUNU
+--    degistirir. Notlar da oteden beri kaydediliyordu; degisen, GOSTERILMESI.
+--    Onceden kaydedilmis hicbir deger tasinmaz, silinmez, donusturulmez.
+--
+-- MERKEZ KATALOG SUNUCUSUNDA ELLE ISLEM GEREKMEZ - katalog teline
+-- dokunulmadi, sema degismedi.
+--
+-- DAGITIM NOTU: YENI DOSYA YOKTUR. Degisen dosyalar:
+--   files/js/anime_form.js              (toggleBroadcastDetails kurali)
+--   files/edit_anime.php                (bolumun ILK display degeri)
+--   files/anime_details.php             (yayin bilgileri blogu baslamamis
+--                                        animede de basar; notlar blok disina
+--                                        tasindi; dis baglanti bolumu
+--                                        duzeltildi; girinti/temizlik)
+--   files/functions/animeschedule_helpers.php  (YALNIZCA yorum guncellemesi -
+--                                        eski yorum artik yanlis olan form
+--                                        kuralini anlatiyordu; davranis ayni)
+--   files/version.txt
+-- js/anime_form.js ile edit_anime.php BIRLIKTE yuklenmelidir: biri eski
+-- kalirsa duzenleme formu baslamamis animede acilip (ya da acilmayip) betikle
+-- celisir - yarim yukleme goze carpmayan bir tutarsizlik uretir.
+-- anime_details.php bagimsizdir (kendi basina yuklenebilir), ama formla ayni
+-- surumde olmasi anlamlidir: form saati girmeyi acar, detay onu gosterir.
+-- files/add_anime.php DEGISMEDI: o formun bolumu daima "display: none" ile
+-- baslar (varsayilan durum "Secim Yapilmadi") ve gorunurlugu tamamen betik
+-- yonetir.
+-- 1.1.24'un surum damgasi (?v=1.1.28) tarayici onbellegini kendisi tazeler,
+-- elle bir sey yapilmasi gerekmez.
+-- =====================================================================
