@@ -1,0 +1,83 @@
+# Anime Tracker - main application .htaccess (document root = files/)
+#
+# This is the MAIN APP docroot (index.php, login.php, list_settings.php, ...).
+# Unlike the central catalog API's .htaccess (which default-DENIES every PHP
+# file and whitelists only catalog.php / admin_push.php / version.txt), the app
+# must serve its many public PHP endpoints, so PHP is NOT default-denied here.
+# We only force HTTPS, send HSTS, disable listings, and deny sensitive files.
+#
+# Server note: the host runs LiteSpeed (Apache-compatible .htaccess). If the
+# php_flag lines below cause an HTTP 500, PHP is not running as a module on
+# this host - remove those two lines (display_errors is best set in php.ini).
+
+# --- HTTPS enforcement ---
+# Redirect plain-http requests to https so the session cookie (Secure flag,
+# set in db.php when the request is HTTPS) is always sent. Localhost / LAN IPs
+# are excluded so XAMPP local testing works without an SSL cert.
+RewriteEngine On
+RewriteCond %{HTTPS} off
+RewriteCond %{HTTP_HOST} !^localhost [NC]
+RewriteCond %{HTTP_HOST} !^127\.0\.0\.1 [NC]
+RewriteCond %{HTTP_HOST} !^192\.168\. [NC]
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# --- HSTS ---
+# Tell browsers never to try http again for a year. Only emitted over real
+# HTTPS connections, so localhost is unaffected.
+<IfModule mod_headers.c>
+    Header always set Strict-Transport-Security "max-age=31536000" "expr=%{HTTPS} == 'on'"
+</IfModule>
+
+# --- robots.txt / sitemap.xml (1.1.30) ---
+# Both documents are GENERATED, because their content depends on the mode:
+# a self-host install (MULTI_USER_MODE = false) has no login, so it must
+# publish "Disallow: /" and no sitemap at all, while an online install
+# publishes both. See files/robots.php and files/sitemap.php.
+#
+# The rewrite is also what keeps robots.txt reachable. The deny list further
+# down rejects EVERY .txt file, so a real robots.txt sitting next to
+# index.php would answer 403 to a crawler. Rewriting the request to a .php
+# target means the deny list is evaluated against robots.php and never sees
+# a .txt file, so that rule can stay exactly as strict as it is.
+#
+# These are internal rewrites (no [R]): the address bar keeps showing
+# /robots.txt and /sitemap.xml.
+RewriteRule ^robots\.txt$ robots.php [L]
+RewriteRule ^sitemap\.xml$ sitemap.php [L]
+
+# --- Directory listing + PHP error display ---
+Options -Indexes
+php_flag display_errors Off
+php_flag display_startup_errors Off
+
+# --- Deny sensitive files by extension ---
+# The app serves .php, and static css/js/img/ico; nothing below is ever meant
+# to be fetched directly (config, schema/migration SQL, docs, logs, backups).
+<FilesMatch "\.(sql|log|bak|swp|swo|inc|env|ini|conf|md|txt|json|sh|nsi|yml|yaml|dist|lock|sample|example)$">
+    Require all denied
+</FilesMatch>
+
+# --- Deny the DB credentials file explicitly (it ends in .php, which is
+#     otherwise served) and its example twin. ---
+<Files "config.php">
+    Require all denied
+</Files>
+<Files "config_example.php">
+    Require all denied
+</Files>
+
+# --- Block dotfiles (.htaccess, .env, .git*, ...) ---
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+RedirectMatch 404 /\.git
+
+# --- Deny direct web access to include-only / tooling directories ---
+# functions/ (helper includes), migration/ (SQL applied by MigrationManager),
+# tek_kullanimlik/ (one-off CLI tools). None are entry points; they are only
+# reached from PHP via the filesystem.
+RewriteRule ^(functions|migration|tek_kullanimlik)/ - [F]
+
+# --- Never execute PHP inside the uploads directory ---
+# Uploaded posters must be served as data, never run as code.
+RewriteRule ^uploads/.*\.php$ - [F]

@@ -38,6 +38,16 @@ lang_init($pdo);
 <head>
     <meta charset="UTF-8">
     <title><?php echo htmlspecialchars(t('help.group.basics.page_title'), ENT_QUOTES, 'UTF-8'); ?></title>
+    <?php
+    // 1.1.30 - SEO meta. base '../' because this page sits one directory
+    // below the files/ root; the canonical path is written from that root.
+    echo seo_head([
+        'title'       => t('help.group.basics.page_title'),
+        'description' => sprintf(t('seo.help.group.description_fmt'), t('help.group.basics.heading')),
+        'canonical'   => 'help/help_basics.php',
+        'base'        => '../',
+    ]);
+    ?>
     <?php echo asset_styles('../'); ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">

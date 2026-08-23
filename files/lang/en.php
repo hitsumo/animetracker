@@ -1166,4 +1166,24 @@ Update now?',
     'invite_request.mail.line_email'    => 'Email:',
     'invite_request.mail.line_reason'   => 'Reason:',
 
+    // -----------------------------------------------------------------
+    // SEO / sharing texts (1.1.30)
+    // Descriptions shown in search results and link previews. The detail
+    // page prefers the CATALOG synopsis; the template below is only used
+    // when that is empty. The personal synopsis (user_synopsis) never
+    // appears here - it is the user's own private note.
+    // -----------------------------------------------------------------
+
+    'seo.site_name'                     => 'Anime Tracker',
+    'seo.index.description'             => 'Track your anime episode by episode: watch order (chronology), filler episode lists and emotion markers. Open-source anime tracking application.',
+    'seo.anime.description_fmt'         => '%s - episode tracking, watch order, filler episodes and broadcast info.',
+    'seo.chronology.description_fmt'    => '%s watch order: which movie, OVA or special comes after which episode - in order.',
+    'seo.series.description_fmt'        => '%s series chronology: seasons, movies and specials in broadcast and story order.',
+    'seo.about.description'             => 'What Anime Tracker is, what it does and the licence it is distributed under.',
+    'seo.help.description'              => 'Anime Tracker help pages: fields, watch statuses, catalog sync, series and time zones.',
+    'seo.help.group.description_fmt'    => 'Anime Tracker help - %s.',
+    'seo.recent.description'            => 'Recently updated anime entries in the catalog.',
+    'seo.statistics.description'        => 'Statistics for your list: episodes watched, genres, years and distributions.',
+    'seo.recommendations.description'   => 'What should I watch? Recommendations from your list by genre, tag and emotion.',
+
 ];

@@ -54,3 +54,18 @@ define('DB_PASS', '');
 // If this constant is missing (older config.php files), db.php defaults
 // it to false, so existing single-user installs keep working unchanged.
 define('MULTI_USER_MODE', false);
+
+// Public address of this installation (optional, 1.1.30).
+// Only used for the absolute URLs that search engines require: the
+// canonical link, the Open Graph tags and the sitemap entries. Everything
+// else in the application links relatively and never needs this.
+//
+// LEAVE IT COMMENTED OUT unless you need it. Without it the address is
+// rebuilt from the request itself (scheme + Host header + the directory
+// the application lives in), which is correct for a normal install.
+//
+// Set it when the request does NOT reveal the public address - typically
+// behind a reverse proxy or a CDN that forwards a different Host header.
+// Write the root of the application, with the scheme and WITHOUT a
+// trailing slash:
+// define('SITE_URL', 'https://example.com');

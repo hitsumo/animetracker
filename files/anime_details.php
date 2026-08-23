@@ -46,6 +46,11 @@ $stmt->execute([$id]);
 $anime = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$anime) {
+    // 1.1.30: the message was already right, the STATUS CODE was not -
+    // this answered 200 OK, which tells a crawler "this page exists" and
+    // gets a one-line error indexed as content (a "soft 404"). The page
+    // is unchanged; only the header is new.
+    http_response_code(404);
     echo htmlspecialchars(t('anime_details.error.not_found'));
     exit();
 }
@@ -67,6 +72,12 @@ $schedule_safe = safe_url($anime['anime_schedule_link'] ?? '');
 // gizlenmez), icerik sizmaz; kullaniciya nasil acacagi soylenir. Moderator/
 // admin de gormek icin kendi tercihini acar (tercih kisi bazlidir).
 if (!empty($anime['is_adult']) && !show_adult_content()) {
+    // 1.1.30: what a crawler receives here is a one-line notice, not the
+    // page - thin content that must never be indexed. The sitemap leaves
+    // adult rows out for the same reason; this header covers the case
+    // where the URL was found some other way. Status stays 200: the row
+    // exists, it is just not shown.
+    header('X-Robots-Tag: noindex');
     echo htmlspecialchars(t('anime_details.adult.hidden'), ENT_QUOTES, 'UTF-8');
     exit();
 }
@@ -232,6 +243,28 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?php echo htmlspecialchars(display_title($anime)); ?> - <?php echo htmlspecialchars(t('anime_details.title_suffix'), ENT_QUOTES, 'UTF-8'); ?></title>
+    <?php
+    // 1.1.30 - SEO meta. The description prefers the CATALOG synopsis of
+    // the active language (EN falls back to TR, exactly as the visible
+    // synopsis block does further down) and drops to a generic template
+    // when there is none. The PERSONAL synopsis is deliberately not a
+    // candidate: it is the user's own note, and a meta description is
+    // published to the whole world.
+    $metaSyn = (current_lang() === 'en')
+        ? (!empty($anime['synopsis_en']) ? $anime['synopsis_en'] : ($anime['synopsis_tr'] ?? ''))
+        : ($anime['synopsis_tr'] ?? '');
+    $metaDesc = seo_excerpt($metaSyn);
+    if ($metaDesc === '') {
+        $metaDesc = sprintf(t('seo.anime.description_fmt'), display_title($anime));
+    }
+    echo seo_head([
+        'title'       => display_title($anime),
+        'description' => $metaDesc,
+        'canonical'   => 'anime_details.php?id=' . (int)$anime['id'],
+        'image'       => $anime['image_path'] ?? '',
+        'type'        => 'article',
+    ]);
+    ?>
     <?php echo asset_styles(); ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">

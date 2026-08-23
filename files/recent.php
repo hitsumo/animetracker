@@ -49,6 +49,18 @@ $recent = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <head>
     <meta charset="UTF-8">
     <title><?php echo htmlspecialchars(t('recent.page_title'), ENT_QUOTES, 'UTF-8'); ?></title>
+    <?php
+    // 1.1.30 - noindex, follow. The list here is different on every
+    // visit and answers no search query; what it IS good at is leading a
+    // crawler to freshly changed detail pages, which "follow" preserves.
+    // Crawl budget belongs to those pages, not to this one.
+    echo seo_head([
+        'title'       => t('recent.page_title'),
+        'description' => t('seo.recent.description'),
+        'canonical'   => 'recent.php',
+        'noindex'     => true,
+    ]);
+    ?>
     <?php echo asset_styles(); ?>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">

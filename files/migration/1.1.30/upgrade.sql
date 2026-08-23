@@ -1,0 +1,296 @@
+-- Anime Tracker - Migration 1.1.30
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- =====================================================================
+-- 1.1.30 - arama motoru gorunurlugu: sitemap, robots.txt, meta etiketler
+-- =====================================================================
+-- SEMASIZ SURUM. Yeni tablo, kolon, tercih ya da ayar yoktur; bu klasorun
+-- tek amaci settings.version'i 1.1.30'a tasimaktir (runner yorumlari
+-- temizler ve bos ifade listesiyle surumu damgalar; bu dosyada
+-- calistirilacak SQL ifadesi yoktur).
+--
+-- Kayitli hicbir veri okunmaz ya da yazilmaz. Yeni SQL SORGULARI vardir
+-- (sitemap uretimi animes + chronology_markers tablolarini OKUR), ama
+-- bunlar calisma zamani sorgularidir, migration degil.
+--
+-- =====================================================================
+-- NEDEN
+-- =====================================================================
+--
+-- IKI AYRI EKSIK, TEK SURUMDE. Biri gorunurluk, digeri GIZLILIK - ve
+-- ikisi ayni anahtardan (MULTI_USER_MODE) beslendigi icin birlikte
+-- yapildi.
+--
+-- (1) GORUNURLUK. Sayfa basliklarinin <head> bolumunde YALNIZCA <title>
+--     vardi: aciklama yok, canonical yok, og: yok. robots.txt yok,
+--     sitemap.xml yok. Liste sayfasi varsayilan 10 kayit/sayfa gosterir;
+--     katalog buyudukce derin sayfalar pratikte hic taranmaz, yani yeni
+--     eklenen bir anime hicbir motora ulasmaz. Sitemap'in asil gerekcesi
+--     budur, "SEO" sozcugu degil.
+--
+-- (2) GIZLILIK - asil sebep. Self-host modda (MULTI_USER_MODE = false)
+--     TASARIM GEREGI giris yoktur: sayfayi acan herkes 1 numarali
+--     kullanicidir. Uygulamayi bir VPS'e kurup kendi listesini tutan biri
+--     bugune kadar hem herkese acik hem INDEKSLENEBILIR durumdaydi -
+--     ortada bir noindex ya da robots.txt yoktu. Bu bir SEO eksigi degil,
+--     gizlilik kusurudur.
+--
+-- =====================================================================
+-- MOD-DUYARLI INDEKSLEME (surumun cekirdek karari)
+-- =====================================================================
+--
+--   MULTI_USER_MODE = false (self-host)
+--       her sayfada  <meta name="robots" content="noindex, nofollow">
+--       robots.txt   "Disallow: /"
+--       sitemap.php  404
+--
+--   MULTI_USER_MODE = true (online)
+--       indekslenebilir; sitemap yayimlanir; robots.txt yalnizca ozel
+--       uc noktalari kapatir
+--
+-- YENI BIR AYAR EKLENMEDI. Karar var olan mod anahtarina baglandi:
+-- kisisel bir kurulum, sahibi bir kutucuk kesfetmek zorunda kalmadan
+-- kapali olmalidir; online kurulum ise zaten aciktir. Kuran kisi fikrini
+-- degistirirse config.php'de MULTI_USER_MODE'u true yapar.
+--
+-- =====================================================================
+-- YENI DOSYALAR (4)
+-- =====================================================================
+--
+--   files/functions/seo_helpers.php   mod kontrolu, mutlak URL uretimi,
+--                                     meta blogu, sitemap sorgulari
+--   files/sitemap.php                 sitemap ureteci (buyuk katalogda
+--                                     indeksli sitemap)
+--   files/robots.php                  robots.txt ureteci
+--   files/migration/1.1.30/upgrade.sql (bu dosya)
+--
+-- NEDEN STATIK .txt / .xml DEGIL DE PHP:
+--
+--   a) ICERIK MODA GORE DEGISIR. Statik bir dosya hangi modda oldugunu
+--      bilemez. Tek basina bu bile PHP'yi zorunlu kilar.
+--   b) files/.htaccess .txt UZANTISINI TOPLUCA REDDEDIYOR
+--      (<FilesMatch "\.(sql|log|...|txt|json|...)$"> Require all denied).
+--      index.php'nin yanina gercek bir robots.txt konulsaydi Google 403
+--      alirdi. Deny listesini bir dosya adi icin gevsetmek yerine istek
+--      .php hedefine yonlendirildi; boylece o kural HIC dokunulmadan
+--      oldugu gibi kaldi.
+--   c) Katalog her anime eklendiginde degisir; uretilen sitemap her zaman
+--      guncelken, dosya birinin hatirlamasi gereken bir adim olurdu.
+--
+-- =====================================================================
+-- DEGISEN DOSYALAR (21) - yeni dort dosya yukarida
+-- =====================================================================
+--
+--   files/.htaccess          iki IC yonlendirme (adres cubugu degismez):
+--                            ^robots\.txt$  -> robots.php
+--                            ^sitemap\.xml$ -> sitemap.php
+--   files/functions.php      yukleyiciye seo_helpers.php satiri
+--   files/config_example.php opsiyonel SITE_URL (asagida)
+--   files/lang/tr.php, en.php  11'er yeni seo.* anahtari (849 = 849)
+--   files/version.txt        1.1.30
+--
+--   Meta bloku eklenen 15 sayfa:
+--     index.php, anime_details.php, chronology.php, series_timeline.php,
+--     about.php, help.php, help/help_basics.php, help/help_fields.php,
+--     help/help_sync.php, help/help_discovery.php, help/help_series.php,
+--     help/help_timezone.php  (indekslenebilir)
+--     recent.php, statistics.php, recommendations.php  (noindex, follow)
+--
+-- =====================================================================
+-- KARARLAR
+-- =====================================================================
+--
+-- SITE_URL OPSIYONELDIR. Uygulamada BASE_URL kavrami hic yoktu; her yer
+-- goreli baglanti kuruyor. Canonical, og:url ve sitemap ise MUTLAK adres
+-- ister. seo_base_url() adresi istegin kendisinden kurar (sema + Host +
+-- CALISAN BETIGIN dizini), yani alt dizine kurulmus bir uygulama da
+-- yapilandirma olmadan dogru adresi uretir. SITE_URL yalnizca istegin
+-- gercek adresi ele vermedigi durum icindir (ters vekil / CDN farkli bir
+-- Host basligi iletir). Tanimli degilse hicbir sey degismez - eski
+-- config.php dosyalari dokunulmadan calisir.
+--
+-- SCRIPT_NAME KULLANILDI, REQUEST_URI DEGIL. SCRIPT_NAME yonlendirmeden
+-- SONRAKI gercek dosyayi gosterir (/robots.txt istegi icin robots.php) ve
+-- sorgu dizesi tasimaz. REQUEST_URI ikisinde de yaniltirdi.
+--
+-- HOST BASLIGI DOGRULANIR. Istemci gonderir ve dogrudan canonical'a
+-- girer; bicimi tutmuyorsa SERVER_NAME'e, o da tutmuyorsa 'localhost'a
+-- duser.
+--
+-- LISTE SAYFASININ CANONICAL'I CIPLAKTIR (index.php). Siralama, filtre,
+-- arama ve sayfalama parametreleri ayni katalogu farkli adreslerde
+-- gosterir; hepsi index.php'yi isaret eder. Yandex'e ayni sey robots.txt
+-- icinde Clean-param olarak soylenir (Google'daki karsiligi canonical'dir).
+--
+-- SERI KRONOLOJISINDE TEK CANONICAL. series_timeline.php ayni seriyi HER
+-- uyesi icin ayni sekilde cizer - ?id=12 ile ?id=13 tek sayfanin iki
+-- adresidir. Canonical seri basina TEK id'ye baglandi: ayni series_name'i
+-- tasiyan en kucuk id. Sitemap de yalnizca o id'yi listeler, yani secim
+-- keyfi degil, iki yerde ayni kural. Seri adi yoksa sayfa kendi
+-- canonical'idir. ?mode= ve ?chain= parametreleri canonical'a girmez.
+--
+-- UC SAYFA noindex, follow: recent.php (her ziyarette baska bir liste),
+-- statistics.php (TEK KISININ listesinin sayilari - kisisel, hicbir
+-- aramanin karsiligi degil), recommendations.php ("surpriz" modu her
+-- istekte baska anime dondurur). "nofollow" DEGIL: bu sayfalar tarayiciyi
+-- detay sayfalarina goturur, tarama butcesi oraya gitsin diye.
+--
+-- +18 KAYITLAR SITEMAP'TE YOK. Detay sayfasi onlari opt-in tercihinin
+-- arkasinda gizler (1.1.2), yani anonim bir tarayici yalnizca notr
+-- uyariyi gorur. Yer tutucu donen bir adresi listelemek, hic listememekten
+-- kotudur. Ayni sayfada uyariyi basan dala X-Robots-Tag: noindex eklendi -
+-- adres baska bir yoldan bulunursa diye.
+--
+-- BULUNAMAYAN ANIME ARTIK 404. anime_details.php gecersiz bir id icin
+-- "bulunamadi" metnini 200 OK ile basiyordu; bu, tarayiciya "bu sayfa
+-- var" der ve tek satirlik hata metnini icerik olarak indeksletir (soft
+-- 404). Sayfa degismedi, yalnizca durum kodu eklendi.
+--
+-- ROBOTS.TXT'DE YANDEX GRUBU TUM DISALLOW SATIRLARINI TEKRARLAR. Bir
+-- tarayici TEK bir gruba uyar (kendini adiyla anan en ozel grup) ve
+-- digerlerini tumuyle yok sayar. Tekrar olmasaydi, Yandex'i adiyla anmak
+-- yildiz grubunun yasakladigi her seyi Yandex icin SERBEST birakirdi.
+--
+-- noindex SAYFALARI robots.txt'DE YASAKLANMADI. Tarayicinin noindex
+-- etiketini gorebilmesi icin sayfayi CEKMESI gerekir; Disallow, tam da o
+-- etiketi gizlerdi. Ikisi ayni sayfada birlestirilmez.
+--
+-- KISISEL KONU META'YA GIRMEZ. Detay sayfasinin aciklamasi KATALOG
+-- konusundan uretilir (aktif dil, EN yoksa TR'ye duser - gorunur konu
+-- blogunun kuralinin ayni). user_synopsis aday bile degildir: o
+-- kullanicinin kendi notudur, meta aciklama ise tum dunyaya yayimlanir.
+--
+-- hreflang YOK. Dil oturumla degisir, ayri adresleri yoktur; hreflang
+-- ancak iki dilin iki adresi olsaydi anlamli olurdu.
+--
+-- IndexNow (Bing + Yandex ortak ping protokolu) BILEREK BU SURUMDE YOK.
+-- Sitemap olmadan anlami yoktu; sirasi geldi ama once sitemap'in canlida
+-- calistigi gorulmeli. Geldiginde dokunacagi yerler: ping kodu,
+-- add_anime.php / edit_anime.php / catalog_import.php cagrilari ve kokte
+-- bir <anahtar>.txt dosyasi - o dosya da yukarida anlatilan .txt deny
+-- kuralina takilir, yani .htaccess'e o zaman bir istisna gerekecek.
+--
+-- =====================================================================
+-- DOGRULAMA (calisan kod ile, tahmin degil)
+-- =====================================================================
+--
+--   - php -l: degisen/eklenen 22 PHP dosyasi, 22/22 gecti.
+--   - seo_base_url/seo_base_path/seo_url: 13 kurulum bicimi, HER BIRI
+--     AYRI SURECTE kosuldu (fonksiyon sonucu onbellege alir - bir istek
+--     icinde sunucu degiskenleri degismedigi icin dogru olan budur):
+--     kok dizin + https, alt dizin + http, alt dizindeki yardim sayfasi
+--     (base '../'), kokteki yardim sayfasi, yonlendirilmis /robots.txt,
+--     portlu host, ters vekil (X-Forwarded-Proto), DUSMANCA Host basligi
+--     (SERVER_NAME'e dustu), host hic yok (localhost), SITE_URL (sondaki
+--     slash kirpildi), SITE_URL + yardim sayfasi, GECERSIZ SITE_URL
+--     (istege dondu), alt dizinli SITE_URL. 13/13 dogru.
+--   - seo_excerpt: 12 vaka - bos, null, kisa, satirbasli, shortcode'lu,
+--     etiketsiz shortcode, HTML'li, tirnakli, tam 160, 160 ustu, tek uzun
+--     kelime, Turkce cok baytli metin. Kesme kelime sinirinda, cok baytli
+--     harfler bolunmedi.
+--   - seo_head: MULTI_USER_MODE true / false / HIC TANIMSIZ olmak uzere
+--     uc ayri surecte kosuldu. false ve tanimsizda her sayfa "noindex,
+--     nofollow" aldi (tanimsiz = db.php'siz sayfa; guvenli taraf).
+--     Kacislama tirnakli/<>'li baslikla dogrulandi.
+--   - anime_details.php'nin meta bloku SAYFADAN KESILIP CIKARILAN GERCEK
+--     13 SATIRLA, 7 uydurma kayit uzerinde kosuldu: TR konu, EN konu, EN
+--     yoksa TR'ye dusme, konu hic yok (sablona dusme), konusuz + EN,
+--     EKSIK KOLONLAR, shortcode'lu konu. 7/7 dogru, E_ALL ile tek uyari
+--     yok.
+--   - sitemap.php ve robots.php GERCEK DOSYALARI, saplama db.php +
+--     functions.php ile SQLite uzerinde uctan uca kosuldu (dosyalar
+--     birebir kopya; test edilen kod yayimlanan kodun kendisi):
+--       * 6 kayitlik katalog -> 18 URL. +18 kayit HIC yok; kronoloji
+--         yalnizca marker'i olan iki animede; series_timeline yalnizca
+--         iki seri basinda; updated_at bos olan kayitta lastmod yok.
+--       * cikti simplexml ile ayristirildi: gecerli XML, kok urlset.
+--       * 2506 kayitla parcalama: sitemapindex + iki parca; p=1'de 2013
+--         URL (9 sabit sayfa dahil), p=2'de 505; SINIRDA bosluk ya da
+--         tekrar yok (p=1 son id 2094, p=2 ilk id 2095).
+--       * p=3 / p=-5 / p=abc -> hepsi indeks belgesine dondu, hata yok.
+--       * self-host modda sitemap 404 metni, robots "Disallow: /".
+--       * online modda robots: 42 Disallow satiri IKI grupta (yildiz +
+--         Yandex) = 84, Allow, Clean-param ve Sitemap satirlari yerinde.
+--       * alt dizine kurulu bir uygulamada butun yollar
+--         /animetracker/files onekiyle uretildi.
+--   - seo_series_head_id: 7 vaka (seri uyesi, seri basinin kendisi, tek
+--     uyeli seri, seri adi bos/null/yalniz-bosluk, eslesmeyen seri).
+--     7/7 dogru; +18 kayit seri basi secilemiyor (sitemap ile ayni kural).
+--   - Dil dosyalari: tr 849 / en 849 anahtar, array_diff_key ikiyonlu BOS.
+--   - Tum kod tabaninda "description" / "canonical" / "robots" meta
+--     etiketi arandi: seo_helpers.php disinda tek bir tane yok, yani
+--     hicbir sayfada cift etiket olusmuyor.
+--
+-- KOSULMADI (durust sinir):
+--   - Gercek Apache/LiteSpeed ile .htaccess yonlendirmesi denenmedi;
+--     /robots.txt ve /sitemap.xml adreslerinin gercekten acildigi CANLIDA
+--     goz ile dogrulanmali (ilk yuklemede yapilacak ilk is budur).
+--   - Sorgular MySQL/MariaDB'de degil SQLite'ta kosuldu (yerelde MySQL
+--     kapaliydi). Kullanilan sozdizimi standarttir ve MySQL'de de
+--     gecerlidir (select listesinde EXISTS, iliskili MIN alt sorgusu,
+--     LIMIT ... OFFSET), ama canlida sitemap.php bir kez ACILIP
+--     bakilmalidir.
+--   - Tarayicida gercek sayfa acilmadi; meta bloklarinin kaynak
+--     goruntusundeki girintisi goz ile denenmedi.
+--
+-- =====================================================================
+-- MERKEZ KATALOG VERITABANI
+-- =====================================================================
+--
+-- ELLE ISLEM GEREKMEZ. Katalog teline dokunulmadi, sema degismedi.
+-- catalog_server/ altindaki hicbir dosya bu surumde degismedi.
+--
+-- =====================================================================
+-- DAGITIM NOTU - UYGULAMA SUNUCUSU (animetracker.uzakdiyarlar.com)
+-- =====================================================================
+--
+-- YUKLENECEK DOSYALAR (21 degisen + 3 yeni + bu migration = 25):
+--   files/version.txt                    (1.1.30)
+--   files/migration/1.1.30/upgrade.sql   (bu dosya, yeni klasor)
+--   files/.htaccess                      (iki yonlendirme)
+--   files/functions/seo_helpers.php      (YENI)
+--   files/sitemap.php                    (YENI)
+--   files/robots.php                     (YENI)
+--   files/functions.php                  (yukleyici satiri)
+--   files/config_example.php
+--   files/lang/tr.php, files/lang/en.php
+--   + meta bloku eklenen 13 sayfa
+--
+-- YARIM YUKLEME UYARISI:
+--   functions.php ve functions/seo_helpers.php BIRLIKTE gitmelidir.
+--   Yalnizca sayfalar guncellenirse var olmayan seo_head() cagrilir ve
+--   SAYFA ACILMAZ. Dil dosyalari eski kalirsa aciklama yerine
+--   "seo.index.description" gibi bir anahtar gorunur (zararsiz ama
+--   cirkin). .htaccess eski kalirsa /robots.txt 403 verir; sitemap.php ve
+--   robots.php kendi adlariyla yine calisir.
+--
+-- MOD KONTROLU - YUKLEDIKTEN SONRA BAKILACAK TEK SEY:
+--   Canli sunucuda config.php'de MULTI_USER_MODE true OLMALIDIR, yoksa
+--   site kendini indeklenemez ilan eder. (Zaten true; ama bu surumun
+--   sonucu ona bagli oldugu icin bir kez teyit edilmeli.)
+--
+-- SURUM SONRASI, KOD DISI IS (kullanicinin kendi yapacagi):
+--   Uc panele kayit ve ayni sitemap adresinin bildirimi: Google Search
+--   Console, Bing Webmaster (DuckDuckGo/Ecosia/Yahoo'yu da kapsar),
+--   Yandex Webmaster. Dogrulama DNS TXT kaydiyla yapilirsa siteye hic
+--   dosya girmez - en temizi budur. Motor basina ayri sitemap gerekmez.
+--
+-- =====================================================================
+-- DAGITIM NOTU - IKINCI SUNUCU (animetracker.sicakcikolata.com)
+-- =====================================================================
+--
+-- Her surumde ELLE yapilan iki ISLEVSEL adim:
+--   version.txt                              -> 1.1.30
+--   updates/1.1.30/anime-tracker-1.1.30.zip  -> yeni paket
+-- Birincisi yapilmazsa her kurulumdaki "Guncelleme Denetle" hala 1.1.29'u
+-- son surum sanar (files/check_update.php bu adresi okur). Ikincisi
+-- yapilmazsa "Guncelle" dugmesi indirme adresinde 404 alir
+-- (files/update.php, updates/{VERSION}/anime-tracker-{VERSION}.zip).
+--
+-- Bu surumde o sunucudaki katalog kodunda degisiklik YOKTUR.
+--
+-- Tarayici onbellegi: CSS/JS damgasi (?v=1.1.30) kendini tazeler; bu
+-- surumde CSS/JS icerigi degismedi.
+-- =====================================================================

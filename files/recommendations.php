@@ -319,6 +319,18 @@ $useCombinedTemplates  = ($totalEmotionsSelected > 0);
 <head>
     <meta charset="UTF-8">
     <title><?php echo htmlspecialchars(t('recommendations.page_title'), ENT_QUOTES, 'UTF-8'); ?></title>
+    <?php
+    // 1.1.30 - noindex, follow. The "surprise" mode returns a different
+    // anime on every request and the criteria arrive as query parameters,
+    // so there is no stable page here to index - only links onward to the
+    // detail pages, which "follow" keeps usable.
+    echo seo_head([
+        'title'       => t('recommendations.page_title'),
+        'description' => t('seo.recommendations.description'),
+        'canonical'   => 'recommendations.php',
+        'noindex'     => true,
+    ]);
+    ?>
     <?php echo asset_styles(); ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="icon" type="image/x-icon" href="favicon.ico">

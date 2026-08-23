@@ -1200,4 +1200,24 @@ Hemen guncellemek ister misiniz?',
     'invite_request.mail.line_email'    => 'E-posta:',
     'invite_request.mail.line_reason'   => 'Neden:',
 
+    // -----------------------------------------------------------------
+    // SEO / paylasim metinleri (1.1.30)
+    // Arama motoru sonucunda ve baglanti onizlemesinde gorunen aciklama
+    // metinleri. Detay sayfasi once KATALOG konusunu kullanir; asagidaki
+    // sablon yalnizca konu bos oldugunda devreye girer. Kisisel konu
+    // (user_synopsis) buraya HIC girmez - o kullanicinin kendi notudur.
+    // -----------------------------------------------------------------
+
+    'seo.site_name'                     => 'Anime Tracker',
+    'seo.index.description'             => 'Anime izleme listeni bölüm bölüm takip et: izleme sırası (kronoloji), dolgu bölüm listesi ve duygu işaretleri. Türkçe, açık kaynak anime takip uygulaması.',
+    'seo.anime.description_fmt'         => '%s - bölüm takibi, izleme sırası, dolgu bölümleri ve yayın bilgileri.',
+    'seo.chronology.description_fmt'    => '%s izleme sırası: hangi bölümden sonra hangi film, OVA ya da özel bölüm izlenir - sırayla.',
+    'seo.series.description_fmt'        => '%s serisinin kronolojisi: sezonlar, filmler ve özel bölümler yayın ve hikâye sırasıyla.',
+    'seo.about.description'             => 'Anime Tracker nedir, ne işe yarar ve hangi lisansla dağıtılır.',
+    'seo.help.description'              => 'Anime Tracker yardım sayfaları: alanlar, izleme durumları, katalog senkronu, seriler ve saat dilimi.',
+    'seo.help.group.description_fmt'    => 'Anime Tracker yardımı - %s.',
+    'seo.recent.description'            => 'Katalogda son güncellenen anime kayıtları.',
+    'seo.statistics.description'        => 'Listenin istatistikleri: izlenen bölüm sayısı, türler, yıllar ve dağılımlar.',
+    'seo.recommendations.description'   => 'Ne izlesem? Listendeki animeler arasından türe, etikete ve duyguya göre öneri.',
+
 ];

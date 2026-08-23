@@ -153,6 +153,22 @@ function seriesMediaIcon($type) {
 <head>
     <meta charset="UTF-8">
     <title><?php echo htmlspecialchars($seriesName); ?> - <?php echo htmlspecialchars(t('series_timeline.title_suffix'), ENT_QUOTES, 'UTF-8'); ?></title>
+    <?php
+    // 1.1.30 - SEO meta. This page draws the SAME timeline for every
+    // member of a series: ?id=12 and ?id=13 of one series are one page at
+    // two addresses. The canonical therefore points at a single id per
+    // series - the smallest one - and that is exactly the id the sitemap
+    // lists. Without a series name there is no group, so the page is its
+    // own canonical. ?mode= and ?chain= are dropped: they re-sort and
+    // re-tab the same content.
+    $seoCanonicalId = seo_series_head_id($pdo, $reqAnime['series_name'] ?? '', $id);
+    echo seo_head([
+        'title'       => $seriesName . ' - ' . t('series_timeline.title_suffix'),
+        'description' => sprintf(t('seo.series.description_fmt'), $seriesName),
+        'canonical'   => 'series_timeline.php?id=' . (int)$seoCanonicalId,
+        'type'        => 'article',
+    ]);
+    ?>
     <?php echo asset_styles(); ?>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">

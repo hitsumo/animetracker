@@ -1,0 +1,151 @@
+<?php
+
+/**
+ * Anime Tracker - robots.txt generator
+ * https://www.sicakcikolata.com
+ * Copyright (C) 2025-2026 Okan Sumer
+ * Licensed under GNU General Public License v2
+ *
+ * Introduced in 1.1.30.
+ *
+ * Served as /robots.txt through the rewrite in files/.htaccess.
+ *
+ * WHY NOT A PLAIN robots.txt FILE
+ *
+ * Two independent reasons:
+ *   1. files/.htaccess denies EVERY .txt file ("<FilesMatch
+ *      \.(sql|log|...|txt|json|...)$> Require all denied"), so a real
+ *      robots.txt dropped next to index.php would answer 403 to Google.
+ *      Loosening that rule for one file name would poke a hole in a deny
+ *      list that exists for good reasons; rewriting to a .php file does
+ *      not touch it at all.
+ *   2. The content must differ by mode: a self-host install has to say
+ *      "Disallow: /" (no login means the whole list is public), an online
+ *      install only fences off its private endpoints. A static file
+ *      cannot know which one it is serving.
+ *
+ * The rewrite target keeps the .php extension, so the deny list above is
+ * evaluated against robots.php and lets it through - the .txt rule never
+ * applies to the rewritten request.
+ */
+
+require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/functions.php';
+
+header('Content-Type: text/plain; charset=UTF-8');
+header('X-Robots-Tag: noindex');
+
+// Path prefix of this installation: '' at a document root (the only
+// layout where /robots.txt is really ours), '/animetracker/files' when
+// the file is fetched directly from a subdirectory install. Written into
+// every rule so a copied-out file stays correct.
+$p = seo_base_path();
+
+// ---------------------------------------------------------------------
+// Self-host mode: nothing may be crawled.
+// ---------------------------------------------------------------------
+if (!seo_indexing_allowed()) {
+    echo "# Anime Tracker - self-host mode (MULTI_USER_MODE = false).\n";
+    echo "# This installation has no login, so its list is not published\n";
+    echo "# to search engines. Set MULTI_USER_MODE = true in config.php\n";
+    echo "# on a public, multi-user server to allow indexing.\n";
+    echo "User-agent: *\n";
+    echo "Disallow: /\n";
+    exit;
+}
+
+// ---------------------------------------------------------------------
+// Online mode: index the public pages, fence off the rest.
+// ---------------------------------------------------------------------
+
+// Endpoints that are either private, personal, or pure actions. They
+// carry no search value and several of them WRITE when opened, so a
+// crawler has no business there. The meta-noindex pages (recent,
+// statistics, recommendations) are NOT listed: a crawler has to fetch a
+// page to see its noindex, so disallowing them would hide the very tag
+// that keeps them out of the index.
+$disallow = [
+    '/admin/',
+    '/functions/',
+    '/migration/',
+    '/tek_kullanimlik/',
+    '/login.php',
+    '/logout.php',
+    '/register.php',
+    '/account.php',
+    '/pending.php',
+    '/request_invite.php',
+    '/suggest.php',
+    '/list_settings.php',
+    '/add_anime.php',
+    '/edit_anime.php',
+    '/filler_edit.php',
+    '/manage_genres.php',
+    '/manage_tags.php',
+    '/add_genre.php',
+    '/catalog_import.php',
+    '/setup.php',
+    '/setup_en.php',
+    '/install.php',
+    '/install_en.php',
+    '/update.php',
+    '/check_update.php',
+    '/update_watched.php',
+    '/update_emotion.php',
+    '/update_filler.php',
+    '/sync_aired.php',
+    '/fetch_aired_episodes.php',
+    '/fetch_animeschedule.php',
+    '/fetch_filler.php',
+    '/anime_link_search.php',
+    '/add_chronology_marker.php',
+    '/update_chronology_marker.php',
+    '/delete_chronology_marker.php',
+    '/set_language.php',
+    '/set_title_pref.php',
+    '/set_chrono_mode.php',
+    '/set_list_view_pref.php',
+    '/set_series_timeline_mode.php',
+    '/uploads/',
+];
+
+// The list page renders the same catalog under a lot of filter and sort
+// parameters. Google is told about the duplication with <link rel=
+// "canonical"> on the page itself; Yandex understands the same thing
+// declared here as Clean-param, which is cheaper for it than fetching
+// every combination first.
+$cleanParams = [
+    'sort', 'order', 'genre_filter', 'watch_status_filter',
+    'broadcast_status_filter', 'letter_filter', 'q', 'country_filter',
+    'year_filter', 'emotion_filter', 'per_page', 'page', 'view',
+    'catalog_push',
+];
+
+/**
+ * Print one robots.txt group.
+ *
+ * A crawler obeys exactly ONE group - the most specific one that names
+ * it - and ignores the others entirely. That is why the Yandex group
+ * below repeats every Disallow line instead of adding to the "*" group:
+ * without the repetition, naming Yandex would UNBLOCK everything the
+ * star group forbids.
+ */
+function robots_group($agent, array $disallow, $prefix) {
+    echo "User-agent: " . $agent . "\n";
+    foreach ($disallow as $path) {
+        echo "Disallow: " . $prefix . $path . "\n";
+    }
+}
+
+echo "# Anime Tracker - online mode. Generated by robots.php.\n";
+echo "\n";
+
+robots_group('*', $disallow, $p);
+echo "Allow: " . ($p !== '' ? $p . '/' : '/') . "\n";
+echo "\n";
+
+robots_group('Yandex', $disallow, $p);
+echo "Clean-param: " . implode('&', $cleanParams) . " " . $p . "/index.php\n";
+echo "\n";
+
+echo "Sitemap: " . seo_url('sitemap.php') . "\n";
