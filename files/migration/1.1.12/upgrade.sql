@@ -1,3 +1,8 @@
+-- Anime Tracker - Migration 1.1.12
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
 -- =====================================================================
 -- 1.1.12 - Invite request limit + registration announcement
 -- =====================================================================

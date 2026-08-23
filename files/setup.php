@@ -3,7 +3,7 @@
 /**
  * Anime Tracker - Setup Wizard
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * WordPress-style first-time setup. The user lands here automatically

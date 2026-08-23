@@ -2,6 +2,9 @@
 
 /**
  * Anime Tracker - Admin Push Config (SERVER SIDE)
+ * https://www.sicakcikolata.com
+ * Copyright (C) 2025-2026 Okan Sumer
+ * Licensed under GNU General Public License v2
  *
  * This file lives OUTSIDE public_html so it's never web-accessible.
  * Place at: /domains/animetracker.sicakcikolata.com/private/admin_push_config.php

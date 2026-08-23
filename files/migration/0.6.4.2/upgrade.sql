@@ -1,3 +1,8 @@
+-- Anime Tracker - Migration 0.6.4.2
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
 -- Anime Tracker 0.6.4.2 migration
 -- No schema changes in this release.
 -- This file exists only to bump settings.version to 0.5.1.

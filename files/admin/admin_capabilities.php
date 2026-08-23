@@ -3,7 +3,7 @@
 /**
  * Anime Tracker - Admin Capabilities (override toggles)
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * Admin-only page for curator override switches. Linked from admin.php

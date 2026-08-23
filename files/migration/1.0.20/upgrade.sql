@@ -1,3 +1,8 @@
+-- Anime Tracker - Migration 1.0.20
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
 -- Anime Tracker 1.0.20 migration.
 --
 -- 1.0.20 adds a public invite-request flow: a visitor without an invite can ask

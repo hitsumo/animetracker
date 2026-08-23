@@ -1,3 +1,8 @@
+-- Anime Tracker - Migration 1.0.3
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
 -- Anime Tracker 1.0.3 migration (Faz 2, Milestone 1 - part 3, the drop)
 -- Removes the now-vestigial PERSONAL columns from the shared animes row.
 -- They were copied into user_anime in 1.0.2, and as of the 1.0.2 code every

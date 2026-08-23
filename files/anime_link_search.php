@@ -3,7 +3,7 @@
 /**
  * Anime Tracker - Anime Link Search Endpoint (synopsis shortcode picker)
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * Introduced in 1.1.26. Backs the "anime baglantisi ekle" picker next to

@@ -3,7 +3,7 @@
 /**
  * Anime Tracker - Self Update Endpoint
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * WordPress-style in-place update endpoint. Downloads a ZIP from the

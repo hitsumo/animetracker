@@ -3,7 +3,7 @@
 /**
  * Anime Tracker - Broadcast-status Helpers (animes.status enum -> UI label / options)
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * Introduced in 1.1.10 together with the three new broadcast-status

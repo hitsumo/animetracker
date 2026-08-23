@@ -1,6 +1,6 @@
 -- Anime Tracker - Migration 1.1.17
 -- https://www.sicakcikolata.com
--- Copyright (C) 2025 Okan Sumer
+-- Copyright (C) 2025-2026 Okan Sumer
 -- Licensed under GNU General Public License v2
 --
 -- 1.1.17 animelere bir YAPIM ULKESI alani ekler ve index.php'ye ulkeye

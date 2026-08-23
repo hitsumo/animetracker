@@ -1,3 +1,8 @@
+-- Anime Tracker - Migration 0.6
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
 -- Surum 0.6 - Madde B: watch_status Turkce -> ASCII + 4. deger (OnHold)
 --
 -- Bu surum DB sema degisikligi iceriyor. 0.5.1 sonrasi ilk gercek

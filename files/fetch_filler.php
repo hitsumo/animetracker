@@ -3,7 +3,7 @@
 /**
  * Anime Tracker - AnimeFillerList Import Endpoint (0.7)
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * AJAX endpoint called by filler_edit.php when the user pastes an

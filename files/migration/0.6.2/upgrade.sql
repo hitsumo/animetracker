@@ -1,6 +1,6 @@
 -- Anime Tracker 0.6.2 migration
 -- https://www.sicakcikolata.com
--- Copyright (C) 2025 Okan Sumer
+-- Copyright (C) 2025-2026 Okan Sumer
 -- Licensed under GNU General Public License v2
 --
 -- ---------------------------------------------------------------------

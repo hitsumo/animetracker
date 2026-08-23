@@ -1,6 +1,9 @@
 <?php
 /**
  * Anime Tracker API - Database Configuration (EXAMPLE)
+ * https://www.sicakcikolata.com
+ * Copyright (C) 2025-2026 Okan Sumer
+ * Licensed under GNU General Public License v2
  *
  * This file provides read-only DB credentials for catalog.php.
  * It MUST stay outside public_html (e.g. ../private/) so it is

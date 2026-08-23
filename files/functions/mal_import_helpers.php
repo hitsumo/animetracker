@@ -3,7 +3,7 @@
 /**
  * Anime Tracker - MAL Import Helpers (1.1.1)
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * Parse a MyAnimeList XML export into a normalized entry list, plus the

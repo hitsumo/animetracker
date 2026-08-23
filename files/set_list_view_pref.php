@@ -2,7 +2,7 @@
 /**
  * Anime Tracker - Default List Preference Endpoint (1.1.13)
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * POST endpoint that sets which list (General / Personal) is selected by

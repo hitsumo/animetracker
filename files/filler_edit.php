@@ -2,7 +2,7 @@
 /**
  * Anime Tracker - Filler Episode Editor (0.7)
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * Grid editor for per-episode filler classification (KARARLAR Bolum 8).

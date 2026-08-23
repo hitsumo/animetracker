@@ -1,3 +1,8 @@
+-- Anime Tracker - Migration 0.7.2
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
 -- Anime Tracker 0.7.2 migration
 -- Content i18n columns: English taxonomy + English title.
 --

@@ -1,3 +1,8 @@
+-- Anime Tracker - Migration 0.7.1
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
 -- Anime Tracker 0.7.1 migration
 -- Synopsis (Konu) multi-language support.
 --

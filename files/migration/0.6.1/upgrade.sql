@@ -1,3 +1,8 @@
+-- Anime Tracker - Migration 0.6.1
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
 -- Surum 0.6.1 - Duygu Etiketleri v1 (single-user)
 --
 -- 0.6 sonrasi ilk patch. Yeni tablo eklemesi; mevcut sema veya

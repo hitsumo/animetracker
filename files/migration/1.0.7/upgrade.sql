@@ -1,3 +1,8 @@
+-- Anime Tracker - Migration 1.0.7
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
 -- =====================================================================
 -- Anime Tracker - 1.0.7 migration (bos halka / no-op)
 -- =====================================================================

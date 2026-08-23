@@ -25,14 +25,7 @@
   <img src="https://img.shields.io/badge/self--hostable-yes-success.svg" alt="Self-hostable">
   <img src="https://img.shields.io/badge/Docker-ready-2496ED.svg" alt="Docker ready">
   <img src="https://img.shields.io/badge/i18n-TR%20%2F%20EN-orange.svg" alt="TR / EN">
-  
-  <p align="center">
-  <a href="https://github.com/sponsors/KULLANICI_ADI">
-    <img src="https://img.shields.io/badge/SPONSOR-HITSUMO-ff69b4?logo=github" alt="Sponsor Hitsumo" />
-  </a>
 </p>
-</p>
-
 
 <!-- Ekran goruntuleri / Screenshots: docs/screenshots/ altina koy -->
 <p align="center">
@@ -134,6 +127,7 @@ paylaşılmaz — yalnızca liste dışa/içe aktarmayla taşınır.
 ### Teknoloji ve lisans
 
 PHP · MariaDB / MySQL · vanilla JavaScript · XAMPP veya Docker.
+Copyright (C) 2025-2026 Okan Sümer.
 Lisans: [GPL-2.0](LICENSE.txt). Yapay zekâ kullanımı için bkz.
 [AI_NOTICE.md](AI_NOTICE.md).
 
@@ -226,5 +220,6 @@ catalog — it only moves via list export/import.
 ### Tech and license
 
 PHP · MariaDB / MySQL · vanilla JavaScript · XAMPP or Docker.
+Copyright (C) 2025-2026 Okan Sümer.
 License: [GPL-2.0](LICENSE.txt). For the use of AI in building this project, see
 [AI_NOTICE_EN.md](AI_NOTICE_EN.md).

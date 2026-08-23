@@ -1,3 +1,8 @@
+-- Anime Tracker - Migration 0.5.8
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
 -- Surum 0.5.8 - help.php guncellemesi + index.php basligi kucultme
 -- Bu surumde sema degismedi. Sadece settings.version'i 0.5.8'e
 -- ilerletmek icin bos migration. 0.5.1 / 0.5.5 / 0.5.6 / 0.5.7

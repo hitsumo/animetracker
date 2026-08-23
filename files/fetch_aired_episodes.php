@@ -3,7 +3,7 @@
 /**
  * Anime Tracker - Aired Episodes Sync Endpoint
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * AJAX endpoint called by edit_anime.php when the user clicks the

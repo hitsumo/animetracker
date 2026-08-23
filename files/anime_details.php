@@ -1,23 +1,23 @@
 <?php
 
 /**
-  [Anime Tracker/Anime izleme takip listesi.
-    https://www.sicakcikolata.com]
-  Copyright (C) 2025 [Okan Sümer]
- 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License version 2 as
- published by the Free Software Foundation.
- 
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- GNU General Public License for more details.
- 
- You should have received a copy of the GNU General Public License
- along with this program; if not, write to the Free Software
- Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
- MA 02110-1301, USA.
+ * Anime Tracker - Anime izleme takip listesi
+ * https://www.sicakcikolata.com
+ * Copyright (C) 2025-2026 Okan Sumer
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ * MA 02110-1301, USA.
  */
 
 
@@ -545,11 +545,19 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
                 <?php // 1.1.28 - $showBroadcastInfo yukarida (kaynak notunun
                       // yaninda) hesaplandi: devam eden + baslamamis anime.
                       //
-                      // Blok icindeki "Sonraki Bolum" satiri bu genislemenin
-                      // DISINDA kalir: next_episode_date yalnizca devam eden
-                      // anime icin hesaplanir, baslamamis animenin "sonraki
-                      // bolum"u ilk bolumudur ve onu yukaridaki Yayin Tarihi
-                      // satiri tasir. ?>
+                      // 1.1.29 - baslamamis animeye de geri sayim geldi.
+                      // 1.1.28'de "Sonraki Bolum" satiri bu blogun disinda
+                      // birakilmisti; gerekce "baslamamis animenin sonraki
+                      // bolumu ilk bolumudur ve onu Yayin Tarihi satiri zaten
+                      // tasir" idi. O gerekce eksikti: Yayin Tarihi satiri
+                      // TARIHI verir, KALAN SUREYI degil - kullanici devam
+                      // eden animede tek bakista gordugu seyi baslamamista
+                      // takvimden elle sayiyordu. calculatePremiereDate()
+                      // premiere anini release_date + broadcast_time +
+                      // broadcast_timezone'dan kurar ve UTC dondurur, yani
+                      // ayni geri sayim fonksiyonu degismeden calisir.
+                      // Upcoming olmayan animede null doner. ?>
+                <?php $premiereUtc = calculatePremiereDate($anime); ?>
                 <?php if ($showBroadcastInfo): ?>
                 <div class="broadcast-info">
                     <div class="detail-row">
@@ -569,7 +577,23 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
                             <?php echo getTimeUntilNextEpisode($anime['next_episode_date'], $anime['watched_episodes'], $anime['total_episodes'] ?? 0, $anime['aired_episodes'] ?? 0); ?>
                         </span>
                     </div>
+                    <?php elseif ($premiereUtc !== null): ?>
+                    <?php // 1.1.29 - baslamamis anime. Izleme sayaclari bilerek
+                          // 0 gecilir: yayinlanmis bolum yoktur, yani "yetis"
+                          // ve "izleme tamamlandi" dallari anlamsizdir ve
+                          // etiket her zaman "1. bolume kalan sure" olur.
+                          // Alti parametre premiere modu: gecmis bir tarih
+                          // "yeni bolum yayinlandi" degil "yayin tarihi gecti"
+                          // der - henuz hicbir sey yayinlanmadi. ?>
+                    <div class="detail-row">
+                        <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.premiere'), ENT_QUOTES, 'UTF-8'); ?></span>
+                        <span class="detail-value next-episode">
+                            <?php echo getTimeUntilNextEpisode($premiereUtc, 0, 0, 0, null, true); ?>
+                        </span>
+                    </div>
+                    <?php endif; ?>
 
+                    <?php if ($anime['status'] == 'Yayın Devam Ediyor'): ?>
                     <?php // Kronoloji dugmesi devam eden animede blok ICINDE durur
                           // (etiket sutunuyla hizali varyant); diger tum durumlarda
                           // asagidaki tek dal basar. Iki yer, ama kosullar birbirini

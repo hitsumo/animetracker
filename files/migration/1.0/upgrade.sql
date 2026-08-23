@@ -1,3 +1,8 @@
+-- Anime Tracker - Migration 1.0
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
 -- Anime Tracker 1.0 migration (Faz 2, Milestone 1 - part 1)
 -- Adds the users table and seeds the self-host owner (id=1).
 --

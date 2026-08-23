@@ -1,3 +1,8 @@
+-- Anime Tracker - Migration 0.7.3
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
 -- Anime Tracker 0.7.3 migration
 -- Adds user_synopsis_en: the English counterpart of the personal synopsis
 -- (user_synopsis). From 0.7.3 the personal synopsis is language-specific

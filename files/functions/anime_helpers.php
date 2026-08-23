@@ -3,7 +3,7 @@
 /**
  * Anime Tracker - Anime Data Helpers (MAL/AniDB parse, next-episode date, completion)
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * Split out of functions.php in 0.6.7 (code reorganization,
@@ -127,6 +127,67 @@ function calculateNextEpisodeDate($anime) {
     return $nextDate->format('Y-m-d H:i:s');
 }
 
+/**
+ * Premiere moment of an anime that has not started airing yet, in UTC.
+ *
+ * 1.1.29. The weekly countdown (getTimeUntilNextEpisode) runs off
+ * next_episode_date, and calculateNextEpisodeDate() above returns null for
+ * anything that is not "Yayın Devam Ediyor" - deliberately, because a weekly
+ * slot only rolls forward once the show is on air. So an upcoming anime had
+ * no countdown at all: the detail page printed its release date and the user
+ * counted the days by hand.
+ *
+ * The premiere does not need the weekly roll-forward. It is a single fixed
+ * moment and every piece of it is already stored: release_date (the date),
+ * broadcast_time (the slot) and broadcast_timezone (where that slot is local).
+ * This returns that moment as a UTC string in exactly the shape
+ * next_episode_date has, so the existing countdown can consume it unchanged.
+ *
+ * NOT persisted. next_episode_date stays empty for upcoming anime - writing a
+ * derived value there would make updateNextEpisodeDate() start rolling it
+ * weekly the moment the premiere passes, while the show is still flagged as
+ * not started. This is computed per render instead; it is date arithmetic, no
+ * query.
+ *
+ * Returns null when the anime is not upcoming, has no release date, or the
+ * stored date is malformed - the caller treats null as "no countdown".
+ */
+function calculatePremiereDate($anime) {
+    if (($anime['status'] ?? '') !== 'Yayın Başlamadı' || empty($anime['release_date'])) {
+        return null;
+    }
+
+    $date = substr((string)$anime['release_date'], 0, 10);
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+        return null;
+    }
+
+    // Same timezone rule as calculateNextEpisodeDate(): the stored slot is
+    // local to the broadcaster, and legacy rows without one are Asia/Tokyo.
+    $tzName = !empty($anime['broadcast_timezone']) ? $anime['broadcast_timezone'] : 'Asia/Tokyo';
+    try {
+        $tz = new DateTimeZone($tzName);
+    } catch (Exception $e) {
+        $tz = new DateTimeZone('Asia/Tokyo');
+    }
+
+    // No broadcast_time recorded -> fall back to midnight in the broadcast
+    // timezone. The day is then right and only the intra-day hours are a
+    // guess; a "45 gun" figure stays correct either way.
+    $hh = 0;
+    $mm = 0;
+    if (!empty($anime['broadcast_time'])
+        && preg_match('/^(\d{1,2}):(\d{2})/', (string)$anime['broadcast_time'], $m)) {
+        $hh = (int)$m[1];
+        $mm = (int)$m[2];
+    }
+
+    $dt = new DateTime($date, $tz);
+    $dt->setTime($hh, $mm, 0);
+    $dt->setTimezone(new DateTimeZone('UTC'));
+    return $dt->format('Y-m-d H:i:s');
+}
+
 function updateNextEpisodeDate($pdo, &$anime) {
     // Safety brake: if the show's full run has already aired, do not keep
     // rolling the countdown forward week after week. Display is handled by
@@ -171,7 +232,16 @@ function updateNextEpisodeDate($pdo, &$anime) {
     $anime['next_episode_date'] = $newNextEpisodeDate;
 }
 
-function getTimeUntilNextEpisode($next_episode_date, $watched_episodes = 0, $total_episodes = 0, $aired_episodes = 0, $lang = null) {
+/**
+ * @param bool $premiere_mode 1.1.29. Set when $next_episode_date is a PREMIERE
+ *        moment from calculatePremiereDate() rather than a weekly next-episode
+ *        date. Only one string changes: a past date means "the premiere date
+ *        has gone by", not "a new episode aired" - nothing has aired yet, and
+ *        the honest reading is that the record's status is stale. The countdown
+ *        itself, its wording and its layout are identical to the ongoing case
+ *        on purpose; this row should not look like a different feature.
+ */
+function getTimeUntilNextEpisode($next_episode_date, $watched_episodes = 0, $total_episodes = 0, $aired_episodes = 0, $lang = null, $premiere_mode = false) {
     // The $lang parameter mirrors the watch_status_label / emotion_label
     // pattern: explicit override wins, otherwise the active UI language
     // (set by lang_init) is used. Hard-coded strings live in a static
@@ -185,6 +255,7 @@ function getTimeUntilNextEpisode($next_episode_date, $watched_episodes = 0, $tot
             'catch_up'     => '%d bölüm izlenebilir (%d. bölümden devam)',
             'unset'        => 'Belirtilmemiş',
             'new_episode'  => 'Yeni bölüm yayınlandı',
+            'premiere_past' => 'Yayın tarihi geçti',
             'time_until'   => '%d. bölüme kalan süre:',
             'unit_day'     => '%d gün',
             'unit_hour'    => '%d saat',
@@ -195,6 +266,7 @@ function getTimeUntilNextEpisode($next_episode_date, $watched_episodes = 0, $tot
             'catch_up'     => '%d episodes available (continue from ep. %d)',
             'unset'        => 'Not set',
             'new_episode'  => 'New episode aired',
+            'premiere_past' => 'Premiere date has passed',
             'time_until'   => 'Time until ep. %d:',
             'unit_day'     => '%d d',
             'unit_hour'    => '%d h',
@@ -234,9 +306,11 @@ function getTimeUntilNextEpisode($next_episode_date, $watched_episodes = 0, $tot
     $next_episode_timestamp = $next_dt->getTimestamp();
     $current_timestamp = time();
 
-    // Zaman gecmisse (yeni bolum yayinlandi)
+    // Zaman gecmisse (yeni bolum yayinlandi). 1.1.29: premiere modunda
+    // hicbir sey yayinlanmadi - gecmis bir tarih "kayit guncellenmemis"
+    // demektir, "yeni bolum cikti" degil.
     if ($next_episode_timestamp < $current_timestamp) {
-        return $L['new_episode'];
+        return $premiere_mode ? $L['premiere_past'] : $L['new_episode'];
     }
 
     // Kalan sureyi hesapla - bu sadece kullanici yayinlanan bolumlere

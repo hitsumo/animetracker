@@ -1,3 +1,8 @@
+-- Anime Tracker - Migration 1.0.10
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
 -- =====================================================================
 -- Surum 1.0.10 - watch_status NULL destegi ("secim yapilmamis")
 -- =====================================================================

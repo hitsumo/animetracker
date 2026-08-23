@@ -3,7 +3,7 @@
 /**
  * Anime Tracker - Title Language Helpers (alternative_titles <-> language tags)
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * Introduced in 1.1.20, when the separate "English Title" form field was

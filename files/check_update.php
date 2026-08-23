@@ -2,7 +2,7 @@
 /**
  * Anime Tracker - Update Checker
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * AJAX endpoint that reports whether the installed version is behind

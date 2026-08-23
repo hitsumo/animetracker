@@ -3,7 +3,7 @@
 /**
  * Anime Tracker - Migration Manager
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * Database schema migration system. Handles upgrades from one

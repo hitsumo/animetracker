@@ -1,6 +1,6 @@
 -- Anime Tracker - Database Schema
 -- https://www.sicakcikolata.com
--- Copyright (C) 2025 Okan Sumer
+-- Copyright (C) 2025-2026 Okan Sumer
 -- Licensed under GNU General Public License v2
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";

@@ -1,3 +1,8 @@
+-- Anime Tracker - Migration 0.6.3
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
 -- Surum 0.6.3 - Sema senkronizasyon migration'i
 --
 -- 0.6.2 ve onceki manuel ALTER'larin migration kayit altina alinmasi.

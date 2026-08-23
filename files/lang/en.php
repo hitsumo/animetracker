@@ -3,7 +3,7 @@
 /**
  * Anime Tracker - English UI Translations
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * ---
@@ -179,6 +179,9 @@ return [
     'anime_details.label.broadcast_day'  => 'Broadcast Day:',
     'anime_details.label.broadcast_time' => 'Broadcast Time:',
     'anime_details.label.next_episode'   => 'Next Episode:',
+    // 1.1.29: label for the countdown on an anime that has not started.
+    // "Next Episode" would be misleading - there is no previous one yet.
+    'anime_details.label.premiere'       => 'Premiere:',
     'anime_details.label.notes'          => 'Notes:',
 
     'anime_details.btn.chronology'       => 'Chronology',

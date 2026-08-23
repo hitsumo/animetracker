@@ -1,3 +1,8 @@
+-- Anime Tracker - Migration 1.0.17
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
 -- Anime Tracker 1.0.17 migration (no-op ring / version bumper).
 --
 -- 1.0.17 is a behavior-only change on the online (multi-user) install: a new

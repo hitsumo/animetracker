@@ -1,6 +1,9 @@
 <?php
 /**
  * Anime Tracker - Oneri (suggestion) moderasyonu
+ * https://www.sicakcikolata.com
+ * Copyright (C) 2025-2026 Okan Sumer
+ * Licensed under GNU General Public License v2
  *
  * Online uyelerin "Listeyi Ice Aktar" sirasinda katalogda OLMAYAN
  * animeler icin actigi "pending" onerileri listeler. Moderator/admin

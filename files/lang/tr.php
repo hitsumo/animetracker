@@ -3,7 +3,7 @@
 /**
  * Anime Tracker - Turkish UI Translations
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * ---
@@ -205,6 +205,9 @@ return [
     'anime_details.label.broadcast_day'  => 'Yayın Günü:',
     'anime_details.label.broadcast_time' => 'Yayın Saati:',
     'anime_details.label.next_episode'   => 'Sonraki Bölüm:',
+    // 1.1.29: baslamamis animede geri sayimin etiketi. "Sonraki Bolum"
+    // burada yaniltici olurdu - henuz bir onceki bolum yok.
+    'anime_details.label.premiere'       => 'İlk Bölüm:',
     'anime_details.label.notes'          => 'Notlar:',
 
     // Buttons / navigation

@@ -3,7 +3,7 @@
 /**
  * Anime Tracker - Suggestion submit endpoint
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * Faz 2 / Milestone 2 (auth) - Dilim 5. Receives a free-text correction

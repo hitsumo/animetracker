@@ -3,7 +3,7 @@
 /**
  * Anime Tracker - Per-user state helpers (user_anime + user_pref)
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * 1.0.1 / Faz 2, Milestone 1 - part 2b.

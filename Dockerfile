@@ -1,3 +1,8 @@
+# Anime Tracker - Docker image (PHP 8.2 + Apache)
+# https://www.sicakcikolata.com
+# Copyright (C) 2025-2026 Okan Sumer
+# Licensed under GNU General Public License v2
+
 FROM php:8.2-apache
 
 # zip extension icin sistem kutuphanesi gerekli (PHP 8.2-apache

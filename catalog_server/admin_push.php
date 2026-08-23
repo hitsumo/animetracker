@@ -3,7 +3,7 @@
 /**
  * Anime Tracker - Admin Push Endpoint (Server Side)
  * https://animetracker.sicakcikolata.com/admin_push.php
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * Receives catalog updates from the admin's local installation and

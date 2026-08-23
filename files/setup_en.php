@@ -3,7 +3,7 @@
 /**
  * Anime Tracker - Setup Wizard (English)
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * English twin of setup.php. Setup and install run before the database

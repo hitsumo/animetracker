@@ -1,23 +1,23 @@
 <?php
 
 /**
-  [Anime Tracker/Anime izleme takip listesi.
-    https://www.sicakcikolata.com]
-  Copyright (C) 2025 [Okan Sümer]
- 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License version 2 as
- published by the Free Software Foundation.
- 
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- GNU General Public License for more details.
- 
- You should have received a copy of the GNU General Public License
- along with this program; if not, write to the Free Software
- Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
- MA 02110-1301, USA.
+ * Anime Tracker - Anime izleme takip listesi
+ * https://www.sicakcikolata.com
+ * Copyright (C) 2025-2026 Okan Sumer
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ * MA 02110-1301, USA.
  */
 
    
@@ -1245,6 +1245,13 @@ if ($anime['status'] == 'Yayın Tamamlandı') {
     echo htmlspecialchars(t('index.broadcast.finished'));
 } else if (!empty($anime['next_episode_date'])) {
     echo '<pre class="next-episode-info">' . getTimeUntilNextEpisode($anime['next_episode_date'], $anime['watched_episodes'], $anime['total_episodes'] ?? 0, $anime['aired_episodes'] ?? 0) . '</pre>';
+} else if (($premiereUtc = calculatePremiereDate($anime)) !== null) {
+    // 1.1.29 - baslamamis anime. Bu hucre daha once "-" basiyordu, cunku
+    // next_episode_date yalnizca devam eden anime icin hesaplanir. Premiere
+    // ani release_date + broadcast_time + broadcast_timezone'dan turetilir
+    // ve ayni fonksiyona verilir, yani hucrenin gorunumu degismez - yalnizca
+    // artik bir sey yaziyor. Izleme sayaclari 0: yayinlanmis bolum yok.
+    echo '<pre class="next-episode-info">' . getTimeUntilNextEpisode($premiereUtc, 0, 0, 0, null, true) . '</pre>';
 } else {
     echo "-";
 }

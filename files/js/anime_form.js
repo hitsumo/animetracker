@@ -1,5 +1,8 @@
 // =====================================================================
 // Anime Tracker - paylasilan form JS (add_anime.php + edit_anime.php).
+// https://www.sicakcikolata.com
+// Copyright (C) 2025-2026 Okan Sumer
+// Licensed under GNU General Public License v2
 //
 // Bu dosya iki sayfanin ORTAK form etkilesim fonksiyonlarini icerir
 // (resim adi, alternatif basliklar, yayin/izleme gorunurluk toggle'lari,

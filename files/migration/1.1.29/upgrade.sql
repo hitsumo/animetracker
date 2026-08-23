@@ -1,0 +1,255 @@
+-- Anime Tracker - Migration 1.1.29
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- =====================================================================
+-- 1.1.29 - baslamamis animede geri sayim + GPL bildirim taramasi
+-- =====================================================================
+-- SEMASIZ SURUM. Yeni tablo, kolon, tercih ya da ayar yoktur; bu klasorun
+-- tek amaci settings.version'i 1.1.29'a tasimaktir (runner yorumlari
+-- temizler ve bos ifade listesiyle surumu damgalar; bu dosyada
+-- calistirilacak SQL ifadesi yoktur).
+--
+-- IKI IS VAR:
+--   A) Baslamamis animede "ilk bolume kalan sure" geri sayimi (YENI OZELLIK,
+--      bes dosyaya dokunur)
+--   B) GPL lisans bildirimi taramasi (195 dosya, TAMAMI YORUM)
+--
+-- =====================================================================
+-- A) BASLAMAMIS ANIMEDE GERI SAYIM
+-- =====================================================================
+--
+-- SORUN. Yayini devam eden animede detay sayfasi geri sayiyordu ("Sonraki
+-- Bolum: 3 gun 4 saat"); baslamamis animede yalnizca "Yayin Tarihi:
+-- 07.10.2026" yaziyordu. Kullanici kalan gunu takvimden elle sayiyordu.
+-- Liste sayfasindaki sutun ise tire (-) basiyordu.
+--
+-- 1.1.28'DE BILEREK YAPILMAMISTI ve gerekce dosyaya yazilmisti: "baslamamis
+-- animenin sonraki bolumu ilk bolumudur ve onu Yayin Tarihi satiri zaten
+-- tasir". O gerekce EKSIKTI - Yayin Tarihi satiri TARIHI verir, KALAN
+-- SUREYI degil. Kullanici 23 Agustos 2026'da bunu hata sandi ("1.1.28'de
+-- eklendi ama gostermiyor"); hata degildi ama istek hakliydi.
+--
+-- COZUM. calculatePremiereDate() (functions/anime_helpers.php) premiere
+-- anini release_date + broadcast_time + broadcast_timezone'dan kurar ve
+-- next_episode_date ile AYNI bicimde (UTC Y-m-d H:i:s) dondurur. Boylece
+-- mevcut getTimeUntilNextEpisode() degismeden tuketebilir - yeni bir geri
+-- sayim yazilmadi, var olan yeniden kullanildi.
+--
+-- KAYDEDILMEZ. Deger next_episode_date kolonuna YAZILMAZ. Yazilsaydi,
+-- premiere gectigi anda updateNextEpisodeDate() onu haftalik olarak ileri
+-- yuvarlamaya baslardi - anime hala "Yayin Baslamadi" isaretliyken. Her
+-- goruntulemede hesaplanir; tarih aritmetigidir, sorgu degil.
+--
+-- ETIKET. Detay sayfasinda yeni bir satir: "Ilk Bolum" (yeni ceviri anahtari
+-- anime_details.label.premiere, tr + en). "Sonraki Bolum" denmedi: henuz
+-- yayinlanmis bir bolum yokken "sonraki" yaniltici olurdu. Satirin ICERIGI
+-- devam eden animedekiyle birebir ayni bicimde (1. bolume kalan sure: ...).
+--
+-- SAAT YOKSA. broadcast_time bossa premiere, yayin saat diliminde gece
+-- yarisi kabul edilir. Gun sayisi dogru kalir, yalnizca gun ici saat
+-- tahminidir.
+--
+-- TARIH GECMISSE. getTimeUntilNextEpisode fonksiyonunun altinci parametresi
+-- (premiere_mode) tek bir metni degistirir: gecmis bir tarihte "Yeni bolum
+-- yayinlandi" yerine "Yayin tarihi gecti" der. Henuz hicbir sey yayinlanmadi;
+-- dogru okuma "kaydin durumu guncellenmemis"tir.
+--
+-- IZLEME SAYACLARI SIFIR GECILIR. Premiere cagrisinda watched/total/aired
+-- 0 verilir: yayinlanmis bolum yoktur, yani "yetis" ve "izleme tamamlandi"
+-- dallari anlamsizdir ve bolum numarasi her zaman 1 olur.
+--
+-- DEGISEN BES DOSYA (birlikte yuklenmeli):
+--   files/functions/anime_helpers.php  (calculatePremiereDate + premiere modu)
+--   files/anime_details.php            (Ilk Bolum satiri)
+--   files/index.php                    (liste sutunu; eskiden "-" basiyordu)
+--   files/lang/tr.php, files/lang/en.php  (anime_details.label.premiere)
+--
+-- KRONOLOJI DUGMESI KURALI KORUNDU. "Sonraki Bolum" satiri kendi if blokuna
+-- alinirken kronoloji dugmesinin iki dalli yapisina DOKUNULMADI (devam
+-- edende blok icinde, digerlerinde blok altinda). Bes yayin durumu x
+-- marker var/yok = 10 vakada sayildi: dugme her zaman tam bir kez.
+--
+-- =====================================================================
+-- B) GPL LISANS BILDIRIMI TARAMASI (tamami yorum)
+-- =====================================================================
+--
+-- NEDEN
+--
+-- Proje GPL-2.0 lisansli (LICENSE.txt + files/license.txt, ikisi de tam
+-- GPLv2 metni). Kaynak dosyalarin cogunda dosya basi bildirim vardi ama
+-- 195 kod dosyasinin 80'inde HICBIR bildirim yoktu ve bildirimi olanlar da
+-- uc ayri bicimde yazilmisti. Bu bir LISANS IHLALI DEGILDI - GPL-2 dosya
+-- basi bildirimi zorunlu kilmaz, lisans metninin dagitimla gitmesini ister
+-- ve o zaten saglaniyordu. Ama ayni klasorde bildirimli ve bildirimsiz
+-- dosyalarin yan yana durmasi, disaridan bakan birine "hangisi kapsam
+-- disi?" dedirtir. FSF'nin tavsiyesi de her kaynak dosyaya bildirim
+-- koymaktir.
+--
+-- NE YAPILDI
+--
+-- 1) BILDIRIMI OLMAYAN 80 DOSYAYA KISA BILDIRIM EKLENDI. Kullanilan bicim,
+--    kod tabanindaki mevcut cogunluk bicimidir (o sirada 93 dosya):
+--
+--      Anime Tracker - <dosyanin basligi>
+--      https://www.sicakcikolata.com
+--      Copyright (C) 2025-2026 Okan Sumer
+--      Licensed under GNU General Public License v2
+--
+--    Dosyanin kendi yorum sozdizimiyle yazildi: PHP/JS/CSS icin dosya basi
+--    docblock'una, SQL icin "--", Dockerfile/compose/entrypoint icin "#",
+--    NSIS icin ";". Dagilim:
+--      - 60 migration upgrade.sql (0.5.1'den 1.1.28'e; 77 migration'in
+--        60'inda bildirim yoktu, son yedi surumun hicbirinde yoktu)
+--      - 5 uygulama sayfasi: recent.php, series_timeline.php,
+--        statistics.php, sync_aired.php, admin/admin_catalog_requests.php
+--      - files/js/anime_form.js (uc JS dosyasindan bildirimi olmayan tek
+--        dosya)
+--      - 4 ornek/sablon dosya: admin/admin_secret_example.php,
+--        admin/admin_sync_example.php, catalog_server/private/ altindaki
+--        iki *_config_example.php
+--      - 4 paketleme dosyasi: Dockerfile, docker-compose.yml,
+--        docker-entrypoint.sh, installer.nsi
+--      - 3 tek kullanimlik CLI betigi (files/tek_kullanimlik/) ve depo
+--        disindaki uc kopyasi (scriptler/)
+--
+--    NSIS dosyasinda blok, "Unicode true" satirinin ALTINA konuldu.
+--    Yorumlar derlenen veri degildir, yani basa da konabilirdi; ama o
+--    direktifin ilk satirda kalmasi soruyu bastan bitiriyor.
+--
+-- 2) 21 DOSYADAKI TAM GPL BASLIGI TEK BICIME GETIRILDI. Bu basliklarda
+--    FSF sablonunun KOSELI PARANTEZ YER TUTUCULARI temizlenmemisti:
+--
+--      [Anime Tracker/Anime izleme takip listesi.
+--        https://www.sicakcikolata.com]
+--      Copyright (C) 2025 [Okan Sumer]
+--
+--    Parantezler kaldirildi, satirlar docblock'un " * " onekine cekildi.
+--    Ayni 21 dosya alti ayri bosluk/girinti varyantina dagilmisti (kimi
+--    satir bir, kimi iki bosluk; kapanis kimi " */" kimi "*/"); hepsi tek
+--    metne indi. list_settings.php'de bir de IC ICE "/**" vardi (docblock
+--    ikinci kez aciliyordu) - o da bu sirada gitti. Duzeltmeden sonra 21
+--    basligin ikili imzasi (md5) AYNI cikti; onceden alti ayri imza vardi.
+--
+-- 3) files/db.php'NIN YARIM KALAN BILDIRIMI TAMAMLANDI. Garanti reddine
+--    kadar yaziliydi ama son paragraf ("You should have received a copy of
+--    the GNU General Public License along with this program; if not, write
+--    to the Free Software Foundation, Inc., 51 Franklin Street...") eksikti.
+--    Kod tabanindaki tek EKSIK (yanlis degil, yarim) bildirim buydu.
+--
+-- 4) TELIF YILI "2025" -> "2025-2026". Proje 2025'te yayimlandi ve 2026'da
+--    gelistirilmeye devam ediyor; bildirim artik ikisini de tasiyor.
+--    README.md'nin hem Turkce hem Ingilizce "lisans" bolumune de bir telif
+--    satiri eklendi (oncesinde yalnizca LICENSE.txt'ye bag vardi).
+--
+-- 5) YAZAR ADI TEK YAZIMA INDI: "Okan Sumer". Kod tabaninda iki yazim
+--    vardi - 95 dosyada ASCII "Sumer", iki dosyada diyakritikli yazim. Kod
+--    yorumlari bu projede ASCII Turkce yazildigi icin cogunluk bicimi
+--    secildi. README bir belge oldugu icin orada gercek yazim kullanildi.
+--
+-- NE YAPILMADI (bilerek)
+--
+--    - LICENSE.txt ve files/license.txt'ye dokunulmadi. Ikisi de tam
+--      GPLv2 metni ve birbirinin ayni (tek fark: files/license.txt dosya
+--      sonu satirbasi tasimiyor - anlamsiz, birakildi). Docker imaji
+--      (COPY files/) ve NSIS kurulumu (File /r "files\*.*") lisansi zaten
+--      tasiyor.
+--    - Kurulum sihirbazina lisans sayfasi (MUI_PAGE_LICENSE) eklenmedi.
+--      GPL tiklama onayi istemez; kurulan dizinde license.txt duruyor.
+--    - Hakkinda sayfasina goze gorunur lisans/garanti metni eklenmedi.
+--      GPL-2 madde 2(c) etkilesimli programlarin duyuru basmasini ister ve
+--      bu bir web uygulamasi; yine de ileride yapilabilecek bir isi burada
+--      sessizce yapmak istemedim.
+--    - .htaccess / .env.example / .gitignore gibi ayar dosyalarina
+--      bildirim konmadi.
+--
+-- DOGRULAMA
+--
+-- (A) GERI SAYIM:
+--    - calculatePremiereDate 13 vakada sinandi: gercek kayit (07.10.2026
+--      23:45 JST -> 07.10.2026 14:45 UTC), saatsiz kayit, saat dilimsiz
+--      kayit, gecersiz saat dilimi, Europe/Istanbul, saat parcali tarih,
+--      bozuk tarih, eksik alanlar ve dort farkli yayin durumu. 13/13 gecti.
+--    - Detay sayfasinin yayin blogu DOSYADAN CIKARILAN GERCEK SATIRLARLA,
+--      5 yayin durumu x marker var/yok = 10 vakada render edildi. Ayni test
+--      1.1.28 yedegine de kosuldu: YALNIZCA "Yayin Baslamadi" satirlari
+--      degisti (once bos, simdi geri sayim), diger 8 vaka birebir ayni.
+--    - Liste hucresi icin de ayni yontem: 7 vakadan YALNIZCA biri degisti
+--      (baslamamis anime "-" yerine geri sayim), 6 vaka ayni.
+--    - Devam eden animenin geri sayimi 7 girdilik matrisle 1.1.28 ve 1.1.29
+--      dosyalarinda ayri ayri kosuldu, SABIT bir zaman tabaniyla: ciktilar
+--      birebir ayni. Altinci parametrenin eklenmesi eski cagrilari bozmadi.
+--
+-- (B) LISANS TARAMASI:
+--    - php_strip_whitespace() (yorumlari VE bosluklari atar) ile 331 PHP
+--      dosyasinin ciktisi tarama oncesi ve sonrasi ALINIP KARSILASTIRILDI:
+--      331/331 BIREBIR AYNI. Yani degisikligin yalnizca yorum oldugu
+--      tahmin degil, olculmus bir sonuctur.
+--    - Ozellik eklendikten sonra ayni olcu tekrarlandi: 331 dosyadan TAM
+--      BESI farkli (yukarida sayilan bes dosya), 326 dosya ayni. Yani
+--      ozellik de kendi disina tasmadi.
+--    - Ayni 331 dosya "php -l" ile ayristirildi: 331/331 gecti.
+--    - Tarama yeniden kosuldu: 195/195 kod dosyasi artik telif + lisans
+--      satiri tasiyor (once 115/195 idi), bildirimsiz dosya sifir.
+--    - CRLF satir sonlu dosyalarda (ornegin docker-compose.yml) eklenen
+--      satirlar da CRLF ile yazildi; dosyanin satir sonu bicimi bozulmadi.
+--
+-- MERKEZ KATALOG VERITABANINDA ELLE ISLEM GEREKMEZ - katalog teline
+-- dokunulmadi, sema degismedi. (Dosya ve surum YAYIMLAMA adimlari bundan
+-- ayridir; asagida "IKINCI SUNUCU" basligina bakin.)
+--
+-- DAGITIM NOTU - UYGULAMA SUNUCUSU
+--
+-- Bu surumde 195 kod dosyasi + README.md degisti, ama 190'inda degisen tek
+-- sey telif/lisans yorumudur. Gerekli olanlar:
+--   files/version.txt                    (1.1.29)
+--   files/migration/1.1.29/upgrade.sql   (bu dosya, yeni klasor)
+--   + yukarida (A) bolumunde sayilan BES dosya, BIRLIKTE
+-- Geri kalan 190 dosya kozmetiktir; rahat bir zamanda yuklenebilir.
+--
+-- YARIM YUKLEME UYARISI - yalnizca o bes dosya icin gecerli:
+--   anime_helpers.php eski kalirsa anime_details.php ve index.php var
+--   olmayan calculatePremiereDate fonksiyonunu cagirir ve sayfa acilmaz.
+--   Dil dosyalari eski kalirsa etiket yerine anime_details.label.premiere
+--   anahtari gorunur (zararsiz ama cirkin). Bes dosya tek parca dusunulmeli.
+-- Diger 190 dosya arasinda boyle bir bagimlilik YOKTUR - onlarda yarim
+-- yukleme bir tutarsizlik uretmez, yorum satirlari birbirine bagli degildir.
+--
+-- Eski migration klasorlerinin (0.5.1 ... 1.1.28) upgrade.sql dosyalari da
+-- degisti. Bunlarin canliya gitmesi GEREKMEZ: MigrationManager yalnizca
+-- "version > current" klasorleri kosar, yani canli 1.1.28'deyken o dosyalar
+-- bir daha hic okunmaz. Yuklenirlerse de zarari yoktur - icerikleri yalniz
+-- yorumdur.
+--
+-- Tarayici onbellegi: CSS/JS damgasi (?v=1.1.29) kendini tazeler. Bu surumde
+-- degisen tek JS/CSS icerigi yorum oldugu icin tazelemenin gorunur bir etkisi
+-- olmayacak; damga yine de dogru surumu gosterir.
+--
+-- DAGITIM NOTU - IKINCI SUNUCU (dagitim + katalog)
+--
+-- Proje UC ayri yerle calisir ve "sunucu" demek bu yuzden yetmez:
+--   1) animetracker.uzakdiyarlar.com  - canli uygulama, files/ agaci,
+--      MigrationManager YALNIZ burada kosar (yukaridaki notlar burasi icin)
+--   2) animetracker.sicakcikolata.com - catalog_server/ + yayimlanan
+--      version.txt + updates/<surum>/*.zip + uploads/. Migration klasoru
+--      YOKTUR, MigrationManager burada hic calismaz.
+--   3) www.sicakcikolata.com          - kisisel hub site, ilgisiz. Bu
+--      dosyalarin telif satirindaki adres BURAYI degil projeyi gosterir.
+--
+-- 2 numarada her surumde ELLE yapilan iki ISLEVSEL adim var:
+--   version.txt                              -> 1.1.29
+--   updates/1.1.29/anime-tracker-1.1.29.zip  -> yeni paket
+-- Birincisi yapilmazsa her kurulumdaki "Guncelleme Denetle" hala 1.1.28'i
+-- son surum sanar (files/check_update.php bu adresi okur). Ikincisi
+-- yapilmazsa "Guncelle" dugmesi indirme adresinde 404 alir
+-- (files/update.php, updates/{VERSION}/anime-tracker-{VERSION}.zip).
+--
+-- 2 numaradaki KOZMETIK degisiklikler (yalnizca telif satiri):
+--   catalog_server/catalog.php
+--   catalog_server/admin_push.php
+--   catalog_server/private/admin_push_config_example.php
+--   catalog_server/private/anime_api_config_example.php
+-- Ornek yapilandirma dosyalari sunucuda zaten kullanilmaz (gercek configler
+-- var), yani bu dortlu tamamen istege baglidir.
+-- =====================================================================

@@ -1,3 +1,8 @@
+-- Anime Tracker - Migration 1.0.4
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
 -- Anime Tracker 1.0.4 migration (Faz 2, Milestone 2 - Dilim 4: registration)
 -- Adds the invite table and the registration_mode instance setting that the
 -- new account-registration flow (register.php) needs. No existing table or

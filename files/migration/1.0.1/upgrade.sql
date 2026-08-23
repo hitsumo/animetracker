@@ -1,3 +1,8 @@
+-- Anime Tracker - Migration 1.0.1
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
 -- Anime Tracker 1.0.1 migration (Faz 2, Milestone 1 - part 2a)
 -- Creates the user_anime and user_pref tables. TABLES ONLY: no data is
 -- copied and no application code reads these yet, so applying this

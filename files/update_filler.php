@@ -3,7 +3,7 @@
 /**
  * Anime Tracker - Filler Episodes Save Endpoint (0.6.8)
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * Batch endpoint called from filler_edit.php when the curator clicks

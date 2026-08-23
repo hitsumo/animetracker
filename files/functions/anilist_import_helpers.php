@@ -3,7 +3,7 @@
 /**
  * Anime Tracker - AniList Import Helpers (1.1.6)
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * Pull a user's public AniList anime list over the AniList GraphQL API and

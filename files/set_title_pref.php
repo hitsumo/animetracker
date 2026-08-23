@@ -2,7 +2,7 @@
 /**
  * Anime Tracker - Title-language Preference Endpoint (0.7.2, reworked 1.1.21)
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * POST endpoint that sets the "Title Language" preference. Called by the

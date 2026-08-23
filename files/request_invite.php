@@ -3,7 +3,7 @@
 /**
  * Anime Tracker - Request an Invite (public invite-request form)
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * 1.0.20. A public page where a visitor who has no invite can ask the operator

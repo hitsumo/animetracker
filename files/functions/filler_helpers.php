@@ -3,7 +3,7 @@
 /**
  * Anime Tracker - Filler Helpers (filler type -> label / options / CSS class)
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * Added in 0.7 (per-episode filler tracking). Mirrors the emotion and

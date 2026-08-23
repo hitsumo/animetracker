@@ -1,3 +1,8 @@
+-- Anime Tracker - Migration 0.7.4
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
 -- Anime Tracker 0.7.4 migration
 -- No schema change. 0.7.4 is a code-only release (list_settings JSON
 -- export/import + Clear fixes, statistics total-episode count, i18n keys).

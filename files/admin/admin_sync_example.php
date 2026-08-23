@@ -2,6 +2,9 @@
 
 /**
  * Anime Tracker - Admin Sync (Client Side) — EXAMPLE FILE
+ * https://www.sicakcikolata.com
+ * Copyright (C) 2025-2026 Okan Sumer
+ * Licensed under GNU General Public License v2
  *
  * This is a template. To set up admin sync on your local machine:
  *   1. Copy this file:  cp admin/admin_sync_example.php admin/admin_sync.php

@@ -4,7 +4,7 @@
  * Anime Tracker - Auth Helpers (password hashing, session login/logout,
  * role checks, capability gating)
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * ---

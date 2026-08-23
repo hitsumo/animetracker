@@ -3,7 +3,7 @@
 /**
  * Anime Tracker - Synopsis Helpers (inline anime links in plot summaries)
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * Introduced in 1.1.19. Lets a synopsis reference another anime with an

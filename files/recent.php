@@ -2,6 +2,9 @@
 
 /**
  * Anime Tracker - Son Duzenlenen Animeler
+ * https://www.sicakcikolata.com
+ * Copyright (C) 2025-2026 Okan Sumer
+ * Licensed under GNU General Public License v2
  *
  * Shows the 5 most recently ADDED or EDITED anime entries - that is,
  * catalog-level activity only. add_anime inserts an animes row and

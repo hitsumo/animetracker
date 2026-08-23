@@ -1,3 +1,8 @@
+-- Anime Tracker - Migration 0.5.6
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
 -- Surum 0.5.6 - watch_status one-way automation
 --
 -- Bu surumde sema DEGISMEDI. animes.watch_status enum'u zaten 0.5.x

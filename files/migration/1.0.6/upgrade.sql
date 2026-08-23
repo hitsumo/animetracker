@@ -1,3 +1,8 @@
+-- Anime Tracker - Migration 1.0.6
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
 -- =====================================================================
 -- catalog_requests  (Faz 2 - online uye oneri/pending kuyrugu)
 -- =====================================================================

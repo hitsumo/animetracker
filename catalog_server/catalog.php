@@ -3,7 +3,7 @@
 /**
  * Anime Tracker - Public Catalog API
  * https://animetracker.sicakcikolata.com/catalog.php
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * Read-only JSON endpoint that exposes the curated anime catalog.

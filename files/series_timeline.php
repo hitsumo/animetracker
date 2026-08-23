@@ -2,6 +2,9 @@
 
 /**
  * Anime Tracker - Series Timeline
+ * https://www.sicakcikolata.com
+ * Copyright (C) 2025-2026 Okan Sumer
+ * Licensed under GNU General Public License v2
  *
  * Displays the full series watch order by following the next_in_series
  * chain. Given any anime ID in the series, it finds the chain start

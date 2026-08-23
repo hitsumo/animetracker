@@ -1,7 +1,7 @@
 /**
  * Anime Tracker - Synopsis link picker (1.1.26)
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * Writing aid for the synopsis shortcode introduced in 1.1.19:

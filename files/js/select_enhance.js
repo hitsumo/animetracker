@@ -1,7 +1,7 @@
 /**
  * Anime Tracker - Select enhancer (1.1.11)
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * A native <select> popup cannot be capped to N visible rows via CSS. This

@@ -3,6 +3,8 @@
 /**
  * Anime Tracker - CLI Aired-Episode Sync (1.0.19)
  * https://www.sicakcikolata.com
+ * Copyright (C) 2025-2026 Okan Sumer
+ * Licensed under GNU General Public License v2
  *
  * Command-line entry point for the once-a-day aired-episode sync. It calls
  * the SAME syncAllOngoingAiredEpisodes() the web page uses (single source);

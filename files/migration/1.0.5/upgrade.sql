@@ -1,3 +1,8 @@
+-- Anime Tracker - Migration 1.0.5
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
 -- Anime Tracker 1.0.5 migration (Faz 2, Milestone 2 - Dilim 5: suggestions)
 -- Adds the suggestions table: free-text correction notes about a catalog
 -- anime, submitted via suggest.php by anyone (anonymous or signed-in) and

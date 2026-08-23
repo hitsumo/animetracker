@@ -3,7 +3,7 @@
 /**
  * Anime Tracker - Country Helpers (animes.country ISO code -> UI label / options)
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * Introduced in 1.1.17 with the animes.country column and the

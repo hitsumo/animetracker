@@ -1,5 +1,10 @@
 Unicode true
 
+; Anime Tracker - NSIS Windows installer
+; https://www.sicakcikolata.com
+; Copyright (C) 2025-2026 Okan Sumer
+; Licensed under GNU General Public License v2
+
 !include "MUI2.nsh"
 !include "FileFunc.nsh"
 !include "WinMessages.nsh"

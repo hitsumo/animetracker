@@ -3,7 +3,7 @@
 /**
  * Anime Tracker - Emotion Mark Toggle Endpoint (0.6.1)
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * AJAX endpoint called from anime_details.php (and potentially the list

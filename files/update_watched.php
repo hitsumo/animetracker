@@ -3,7 +3,7 @@
 /**
  * Anime Tracker - Quick Watched-Episode Update Endpoint (0.5.5 / 0.5.6 / 0.5.7)
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * AJAX endpoint called by index.php when the user clicks the "+" or

@@ -1,6 +1,10 @@
 <?php
 /**
  * Anime Tracker - Istatistik Sayfasi
+ * https://www.sicakcikolata.com
+ * Copyright (C) 2025-2026 Okan Sumer
+ * Licensed under GNU General Public License v2
+ *
  * Toplam anime sayisi, medya turu dagilimi, yayin/izleme durumu istatistikleri
  */
 require_once __DIR__ . '/db.php';

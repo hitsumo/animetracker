@@ -1,3 +1,8 @@
+-- Anime Tracker - Migration 0.5.7
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
 -- Surum 0.5.7 - watch_status reverse automation (Kural 3)
 -- Bu surumde sema degismedi. update_watched.php icine delta=-1 dali
 -- (Kural 3: Izlendi + tavandan dusus -> Izleniyor) eklendi; DB yapisina

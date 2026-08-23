@@ -1,3 +1,8 @@
+-- Anime Tracker - Migration 1.1.19
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
 -- =====================================================================
 -- 1.1.19 - Konu icinde tiklanabilir anime linki ([[anime:..]] shortcode)
 -- =====================================================================

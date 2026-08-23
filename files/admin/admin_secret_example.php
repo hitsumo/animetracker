@@ -1,6 +1,9 @@
 <?php
 /**
  * Anime Tracker - Admin HMAC Secret — EXAMPLE FILE
+ * https://www.sicakcikolata.com
+ * Copyright (C) 2025-2026 Okan Sumer
+ * Licensed under GNU General Public License v2
  *
  * This file holds the shared secret used to sign admin push requests.
  * The same secret MUST be set in the server's admin_push_config.php

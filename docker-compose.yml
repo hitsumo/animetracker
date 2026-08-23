@@ -1,4 +1,7 @@
 # Anime Tracker - Docker Compose
+# https://www.sicakcikolata.com
+# Copyright (C) 2025-2026 Okan Sumer
+# Licensed under GNU General Public License v2
 #
 # ILK KURULUM:
 #   1. ".env.example" dosyasini ".env" olarak kopyalayin

@@ -2,7 +2,7 @@
 /**
  * Anime Tracker - Delete Chronology Marker
  * https://www.sicakcikolata.com
- * Copyright (C) 2025 Okan Sumer
+ * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
  * POST endpoint that deletes a chronology marker from the
