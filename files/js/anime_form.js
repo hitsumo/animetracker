@@ -137,6 +137,54 @@ function toggleEndDateBySingleEpisode() {
     }
 }
 
+// --- 1.1.31 - kismi tarih: hassasiyet kutusu hangi girdinin gorunecegini secer ---
+// Blok PHP tarafinda render_partial_date_field() ile basilir ve dogru girdi
+// ZATEN acik gelir; bu fonksiyon yalnizca kullanici kutuyu degistirdiginde
+// (onchange) calisir. JS kapaliysa form yine dogru kaydeder - kullanici o
+// oturumda hassasiyeti degistiremez, o kadar.
+//
+// Girdiler gizlendiginde de POST edilir; sunucu tarafi
+// partial_date_from_post() yalnizca SECILI hassasiyetin parcalarini okur.
+function toggleDatePrecision(select) {
+    if (!select) return;
+    const group = select.closest('.date-precision-group');
+    if (!group) return;
+
+    const dateEl  = group.querySelector('[data-date-part="full"]');
+    const monthEl = group.querySelector('[data-date-part="month"]');
+    const yearEl  = group.querySelector('[data-date-part="year"]');
+    const p = select.value;
+
+    // Tam tarihten ayrilirken parcalari ondan tureterek doldur: kullanici
+    // 2005-04-08 yazip "Yalniz yil"a gecince yil kutusu bos kalmasin (bos
+    // kalsaydi sunucu bunu "girilmedi" sayar ve tarih tamamen silinirdi).
+    // Dolu bir kutunun ustune YAZILMAZ - elle girilen deger onde gelir.
+    if (p !== 'full' && dateEl && /^\d{4}-\d{2}-\d{2}$/.test(dateEl.value)) {
+        if (yearEl && yearEl.value === '')  { yearEl.value  = dateEl.value.slice(0, 4); }
+        if (monthEl && monthEl.value === '') { monthEl.value = dateEl.value.slice(5, 7); }
+    }
+
+    setDatePartVisible(dateEl,  p === 'full');
+    setDatePartVisible(monthEl, p === 'month');
+    setDatePartVisible(yearEl,  p === 'month' || p === 'year');
+}
+
+// Bir tarih parcasini goster/gizle. Dogrudan el.style.display'e YAZILMAZ:
+// js/select_enhance.js uzun bir <select>'i (>8 secenek) bir .csel
+// sarmalayicisina alir ve ekranda gorunen sey artik select degil, o
+// sarmalayicinin dugmesidir; select sr-only'lanir. Gizlemeyi select'e
+// yazmak bu durumda hicbir sey degistirmez - zaten gorunmeyen bir elemani
+// gizler, dugme ekranda kalir. Ay kutusu 13 secenekli oldugu icin
+// masaustunde HER ZAMAN donusturulur, tarih ve yil ise <input> oldugu icin
+// hic dokunulmaz; hata bu yuzden yalniz ay kutusunda goruluyordu.
+function setDatePartVisible(el, visible) {
+    if (!el) return;
+    const box = (el.parentElement && el.parentElement.classList.contains('csel'))
+                ? el.parentElement
+                : el;
+    box.style.display = visible ? '' : 'none';
+}
+
 function toggleWatchedEpisodes() {
     const watchStatus = document.querySelector('select[name="watch_status"]').value;
     const watchedEpisodesDiv = document.getElementById('watched-episodes-section');
@@ -393,6 +441,23 @@ function fetchAnimeScheduleData() {
                 // ona bagli bolumler (yayin bilgileri, bitis tarihi) hic
                 // acilmiyor ve oraya dolan alanlar gorunmez kaliyordu.
                 isEmpty = (el.value === '' || el.value === 'Seçim Yapılmadı');
+            } else if (fieldName.endsWith('_date_precision')) {
+                // 1.1.31 - hassasiyet kutusu bos gelmez, 'full' ile baslar.
+                // broadcast_timezone'daki "hala varsayilanda" kuralinin esi:
+                // 'full' = kullanici bir sey soylemedi. Kullanici bilerek
+                // "Yalniz yil" sectiyse ustune yazilmaz.
+                //
+                // AMA kutunun kendisi tek basina yeterli olcut degil: tarihi
+                // ELLE tam girmis bir kullanicida kutu yine 'full'dur ve
+                // AniList "yalniz yil" derse elle girilen gun sessizce "??"ye
+                // donerdi. Bu yuzden tarih alaninin kendisi de bos olmali -
+                // otomatik doldurma hicbir zaman mevcut girisi ezmez.
+                const baseName = fieldName.slice(0, -('_precision'.length));
+                const baseEl   = document.querySelector('[name="' + baseName + '"]');
+                const yearEl   = document.querySelector('[name="' + baseName + '_year"]');
+                const baseFilled = (baseEl && baseEl.value !== '')
+                                   || (yearEl && yearEl.value !== '');
+                isEmpty = !baseFilled && (el.value === '' || el.value === 'full');
             } else {
                 isEmpty = (el.value === '' || el.value === null);
             }
@@ -459,6 +524,15 @@ function fetchAnimeScheduleData() {
             if (fieldName === 'total_episodes'
                 && typeof toggleEndDateBySingleEpisode === 'function') {
                 toggleEndDateBySingleEpisode();
+            }
+
+            // 1.1.31 - hassasiyet kutusuna yazildiysa dogru girdiyi ac.
+            // status ve total_episodes dallarinin esi: .value atamasi change
+            // olayini TETIKLEMEZ, el ile cagirmazsak AniList'ten gelen
+            // "yalniz yil" bilgisi dolu ama gorunmez bir kutuda kalirdi.
+            if (fieldName.endsWith('_date_precision')
+                && typeof toggleDatePrecision === 'function') {
+                toggleDatePrecision(el);
             }
         }
 

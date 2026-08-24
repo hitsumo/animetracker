@@ -45,6 +45,18 @@
         wrap.appendChild(sel);
         sel.tabIndex = -1; // custom button is the tab stop; select stays focusable for validation
 
+        // 1.1.31 - a select the page hid with inline display:none must STAY
+        // hidden after enhancement. From here on the thing on screen is the
+        // wrapper and its button, not the select: leaving the rule on the
+        // select hides only an already sr-only'd element while the button
+        // keeps showing. Moving it to the wrapper hides the whole widget.
+        // (Hit by the partial-date month box, which has 13 options and is
+        // therefore always enhanced; its precision select has 4 and is not.)
+        if (sel.style.display === 'none') {
+            wrap.style.display = 'none';
+            sel.style.display = '';
+        }
+
         var btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'csel-btn';

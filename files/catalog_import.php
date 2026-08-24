@@ -262,6 +262,9 @@ $updateSql = "
         synopsis_en = :synopsis_en,
         translation_status = :translation_status,
         release_date = :release_date,
+        release_date_precision = :release_date_precision,
+        end_date = :end_date,
+        end_date_precision = :end_date_precision,
         anidb_link = :anidb_link,
         mal_link = :mal_link,
         anime_schedule_link = :anime_schedule_link,
@@ -317,7 +320,8 @@ $insertSql = "
         next_episode_date,
         anidb_link, mal_link, anime_schedule_link,
         episode_interval, broadcast_day, broadcast_time, broadcast_timezone,
-        synopsis_tr, synopsis_en, translation_status, release_date,
+        synopsis_tr, synopsis_en, translation_status,
+        release_date, release_date_precision, end_date, end_date_precision,
         series_name, media_type, country, next_in_series,
         mal_id, anidb_id, catalog_uuid, source, is_adult
     ) VALUES (
@@ -326,7 +330,8 @@ $insertSql = "
         NULL,
         :anidb_link, :mal_link, :anime_schedule_link,
         :episode_interval, :broadcast_day, :broadcast_time, :broadcast_timezone,
-        :synopsis_tr, :synopsis_en, :translation_status, :release_date,
+        :synopsis_tr, :synopsis_en, :translation_status,
+        :release_date, :release_date_precision, :end_date, :end_date_precision,
         :series_name, :media_type, :country, NULL,
         :mal_id, :anidb_id, :catalog_uuid, 'catalog', :is_adult
     )
@@ -387,6 +392,20 @@ try {
             ':synopsis_en'         => $ca['synopsis_en']         ?? null,
             ':translation_status'  => $ca['translation_status']  ?? 'none',
             ':release_date'        => $ca['release_date']        ?? null,
+            // 1.1.31 - tarih hassasiyeti ('full'|'month'|'year'|'none').
+            // Alani tasimayan eski katalog JSON'i 'full' okunur
+            // (date_precision_normalize taninmayan her degeri oraya dusurur),
+            // yani eski sunucudan gelen senkron davranisi degistirmez.
+            ':release_date_precision' => date_precision_normalize($ca['release_date_precision'] ?? 'full'),
+            // end_date 1.1.14'ten beri katalog telinde GONDERILIYORDU ama bu
+            // iki ifadeye hic girmemisti - alan istemcide sessizce dusuyordu.
+            // 1.1.31'de bosluk kapandi: bitis tarihi de release_date ile ayni
+            // yoldan gelir. Bu, source='catalog' satirlarda kullanicinin elle
+            // girdigi bitis tarihinin senkronda degisebilecegi anlamina gelir -
+            // ayni satirin basligi, durumu ve yayin tarihi icin 0.6'dan beri
+            // gecerli olan kuralin aynisi.
+            ':end_date'            => $ca['end_date']            ?? null,
+            ':end_date_precision'  => date_precision_normalize($ca['end_date_precision'] ?? 'full'),
             ':anidb_link'          => $ca['anidb_link']          ?? null,
             ':mal_link'            => $ca['mal_link']            ?? null,
             ':anime_schedule_link' => $ca['anime_schedule_link'] ?? null,

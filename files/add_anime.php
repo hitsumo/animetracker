@@ -144,8 +144,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $synopsis_tr = $_POST['synopsis_tr'] ?? '';
     $synopsis_en = $_POST['synopsis_en'] ?? '';
     $translation_status = (trim($synopsis_en) === '') ? 'none' : 'ai';
-    $release_date = $_POST['release_date'] ?? null;
-    $end_date = $_POST['end_date'] ?? null;
+    // 1.1.31 - tarihler artik ucer girdiden gelir (hassasiyet kutusu + tam
+    // tarih / ay / yil). partial_date_from_post() secili hassasiyete gore
+    // dogru parcayi okur ve DATE kolonuna yazilacak degeri uretir; bilinmeyen
+    // parcalar 01 olarak saklanir, ekranda "??" basilir.
+    $release_parts        = partial_date_from_post($_POST, 'release_date');
+    $release_date         = $release_parts['date'];
+    $release_date_prec    = $release_parts['precision'];
+    $end_parts            = partial_date_from_post($_POST, 'end_date');
+    $end_date             = $end_parts['date'];
+    $end_date_prec        = $end_parts['precision'];
 
     // Series relationship fields (v0.5 mid-cycle)
     $series_name = $_POST['series_name'] ?? null;
@@ -163,18 +171,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // sadece NULL veya gecerli bir tarih/saat. Form bos gonderirse '' gelir,
     // bunu NULL'a cevirerek INSERT hatasini engelliyoruz.
     if ($broadcast_time === '') { $broadcast_time = null; }
-    if ($release_date === '')   { $release_date = null; }
-    if ($end_date === '')       { $end_date = null; }
     if ($next_episode_date === '') { $next_episode_date = null; }
 
     // Tarih format kontrolu: HTML date input YYYY-MM-DD gondermeli.
     // Tarayici hatalari (orn. 5 haneli yil 20026) veya manuel giris
-    // yuzunden gecersiz tarih DB'ye ulasmadan yakalanir.
-    if ($release_date !== null && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $release_date)) {
-        $validation_errors[] = 'Yayin tarihi gecersiz format. Dogru format: YYYY-MM-DD (orn: 2026-04-08)';
+    // yuzunden gecersiz tarih DB'ye ulasmadan yakalanir. 1.1.31: bos deger
+    // artik burada degil, partial_date_from_post() icinde NULL'a ceviriliyor
+    // (bos = "girilmedi"); bu blok yalnizca BICIM hatasini raporlar.
+    if ($release_parts['error'] === 'date') {
+        $validation_errors[] = t('add_anime.error.release_date_invalid');
+    } elseif ($release_parts['error'] === 'year') {
+        $validation_errors[] = t('add_anime.error.release_date_year_invalid');
     }
-    if ($end_date !== null && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $end_date)) {
+    if ($end_parts['error'] === 'date') {
         $validation_errors[] = t('add_anime.error.end_date_invalid');
+    } elseif ($end_parts['error'] === 'year') {
+        $validation_errors[] = t('add_anime.error.end_date_year_invalid');
     }
     if ($next_episode_date !== null && !preg_match('/^\d{4}-\d{2}-\d{2}/', $next_episode_date)) {
         $validation_errors[] = t('add_anime.error.next_episode_date_invalid');
@@ -229,9 +241,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // end-date alanini gizliyor, server-side de ayni kurali uyguluyoruz
     // (JS kapaliysa veya direkt POST yapilirsa savunma).
     // Kullanici 2->1 degisikligi yaparsa eski end_date degeri NULL'a cevrilir
-    // (Karar 2 - Secenek A).
+    // (Karar 2 - Secenek A). 1.1.31: hassasiyet de sifirlanir, yoksa
+    // gizlenen alandan geriye "??.??.????" damgasi kalirdi.
     if ((int)$total_episodes === 1) {
         $end_date = null;
+        $end_date_prec = 'full';
     }
 
     // Resim yukleme - functions.php icindeki guvenli helper kullaniliyor
@@ -278,7 +292,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // approval), so the historical default is preserved.
     $source = (MULTI_USER_MODE && can($pdo, 'moderate')) ? 'catalog' : 'local';
 
-    $sql = "INSERT INTO animes (title, alternative_titles, status, total_episodes, aired_episodes, image_path, next_episode_date, anidb_link, mal_link, anime_schedule_link, episode_interval, broadcast_day, broadcast_time, broadcast_timezone, synopsis_tr, synopsis_en, translation_status, release_date, end_date, series_name, media_type, country, next_in_series, mal_id, anidb_id, filler_tracking, is_adult, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO animes (title, alternative_titles, status, total_episodes, aired_episodes, image_path, next_episode_date, anidb_link, mal_link, anime_schedule_link, episode_interval, broadcast_day, broadcast_time, broadcast_timezone, synopsis_tr, synopsis_en, translation_status, release_date, release_date_precision, end_date, end_date_precision, series_name, media_type, country, next_in_series, mal_id, anidb_id, filler_tracking, is_adult, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     $stmt = $pdo->prepare($sql);
 
@@ -306,7 +320,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $synopsis_en,
             $translation_status,
             $release_date,
+            $release_date_prec,
             $end_date,
+            $end_date_prec,
             $series_name,
             $media_type,
             $country,
@@ -640,20 +656,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </div>
         </div>
 
-        <div class="form-group">
-            <label for="release_date"><?php echo htmlspecialchars(t('add_anime.label.release_date'), ENT_QUOTES, 'UTF-8'); ?></label>
-            <div class="input-area">
-                <input type="date" name="release_date" id="release_date">
-            </div>
-        </div>
+        <?php // 1.1.31 - tarihin bilinen parcasi kadari girilebilir. Blok
+              // render_partial_date_field() ile basilir; iki formun (ekle /
+              // duzenle) ayni girdi adlarini ve ayni JS sozlesmesini
+              // paylasmasi tek bir yerde garanti edilir. ?>
+        <?php render_partial_date_field('release_date', t('add_anime.label.release_date')); ?>
 
         <div id="end-date-section" style="display: none;">
-            <div class="form-group">
-                <label for="end_date"><?php echo htmlspecialchars(t('add_anime.label.end_date'), ENT_QUOTES, 'UTF-8'); ?></label>
-                <div class="input-area">
-                    <input type="date" name="end_date" id="end_date">
-                </div>
-            </div>
+            <?php render_partial_date_field('end_date', t('add_anime.label.end_date')); ?>
         </div>
 
         <div class="form-group">

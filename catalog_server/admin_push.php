@@ -257,7 +257,9 @@ try {
             synopsis_en = :synopsis_en,
             translation_status = :translation_status,
             release_date = :release_date,
+            release_date_precision = :release_date_precision,
             end_date = :end_date,
+            end_date_precision = :end_date_precision,
             anidb_link = :anidb_link,
             mal_link = :mal_link,
             anime_schedule_link = :anime_schedule_link,
@@ -287,7 +289,8 @@ try {
             watch_status, next_episode_date,
             anidb_link, mal_link, anime_schedule_link,
             episode_interval, broadcast_day, broadcast_time, broadcast_timezone,
-            synopsis_tr, synopsis_en, translation_status, release_date, end_date,
+            synopsis_tr, synopsis_en, translation_status,
+            release_date, release_date_precision, end_date, end_date_precision,
             series_name, media_type, country,
             mal_id, anidb_id, catalog_uuid, source, is_adult
         ) VALUES (
@@ -296,7 +299,8 @@ try {
             'PlanToWatch', NULL,
             :anidb_link, :mal_link, :anime_schedule_link,
             :episode_interval, :broadcast_day, :broadcast_time, :broadcast_timezone,
-            :synopsis_tr, :synopsis_en, :translation_status, :release_date, :end_date,
+            :synopsis_tr, :synopsis_en, :translation_status,
+            :release_date, :release_date_precision, :end_date, :end_date_precision,
             :series_name, :media_type, :country,
             :mal_id, :anidb_id, :catalog_uuid, 'catalog', :is_adult
         )
@@ -335,6 +339,17 @@ try {
             ':translation_status'  => $a['translation_status']  ?? 'none',
             ':release_date'        => $a['release_date']        ?? null,
             ':end_date'            => $a['end_date']            ?? null,
+            // 1.1.31: tarih hassasiyeti ('full'|'month'|'year'|'none').
+            // Sunucu tarafinda animes tablosuna bu IKI kolon ELLE eklenmis
+            // olmali - catalog_server migration calistirmaz. Kolonlar yoksa
+            // bu push HATA verir (country/is_adult ile ayni kalip).
+            // Deger burada suzulur: catalog_server uygulamanin
+            // date_precision_helpers.php'sini yuklemez, yani enum disi bir
+            // deger dogrudan MySQL'e gider ve strict modda push'u dusururdu.
+            ':release_date_precision' => in_array($a['release_date_precision'] ?? 'full', ['full','month','year','none'], true)
+                                          ? $a['release_date_precision'] : 'full',
+            ':end_date_precision'     => in_array($a['end_date_precision'] ?? 'full', ['full','month','year','none'], true)
+                                          ? $a['end_date_precision'] : 'full',
             ':anidb_link'          => $a['anidb_link']          ?? null,
             ':mal_link'            => $a['mal_link']            ?? null,
             ':anime_schedule_link' => $a['anime_schedule_link'] ?? null,

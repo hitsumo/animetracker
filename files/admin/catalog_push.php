@@ -124,7 +124,9 @@ if (!function_exists('catalog_push_to_server')) {
             $animeSelect = "
                 SELECT id, title, alternative_titles, status,
                        total_episodes, aired_episodes,
-                       synopsis_tr, synopsis_en, translation_status, release_date, end_date,
+                       synopsis_tr, synopsis_en, translation_status,
+                       release_date, release_date_precision,
+                       end_date, end_date_precision,
                        anidb_link, mal_link, anime_schedule_link,
                        episode_interval, broadcast_day, broadcast_time, broadcast_timezone,
                        series_name, media_type, country, is_adult,

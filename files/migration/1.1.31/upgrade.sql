@@ -1,0 +1,141 @@
+-- Anime Tracker - Migration 1.1.31
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- =====================================================================
+-- 1.1.31 - parcasi bilinmeyen tarihler (??.??.????)
+-- =====================================================================
+--
+-- SORUN
+--
+-- animes.release_date ve animes.end_date DATE kolonlaridir ve form yalnizca
+-- TAM tarih kabul ediyordu. Oysa eski yapimlarda kaynaklar cogu zaman
+-- yalnizca yili, iyi ihtimalle yil + ayi verir. Kuratorun iki secenegi
+-- vardi: alani bos birakmak (bilgi kayboluyordu) ya da gunu uydurmak -
+-- uydurulan gun ekranda "01.01.1979" diye YANLIS bir kesinlikle okunuyordu.
+--
+-- COZUM
+--
+-- Tarih DATE kolonunda kalir; yanina bir HASSASIYET kolonu gelir. Bilinmeyen
+-- parcalar depoda 01 yazilir, EKRANDA "??" basilir:
+--
+--   full   2005-04-08  ->  08.04.2005    (on tanimli; eski davranis)
+--   month  2005-04-01  ->  ??.04.2005
+--   year   2005-01-01  ->  ??.??.2005
+--   none   NULL        ->  ??.??.????
+--
+-- NEDEN AYRI KOLON, NEDEN '2005-00-00' DEGIL. MySQL 5.7+ ve MySQL 8'in on
+-- tanimli sql_mode'u NO_ZERO_IN_DATE tasir: sifir parcali tarih yazma
+-- denemesi hata verir. MariaDB'de gecse bile kurulumlar arasi tasinmaz bir
+-- sema olurdu. Kolonu VARCHAR yapmak ise uc seyi ayni anda bozardi:
+-- index.php'nin YEAR(release_date) yil suzgeci, seri kronolojisinin
+-- ORDER BY release_date siralamasi ve geri sayimin tarih aritmetigi. Ayri
+-- kolon bu uclusunu oldugu gibi birakir - yalnizca yili bilinen anime kendi
+-- yilinin ocak ayinda siralanir ve dogru yil suzgecinde gorunur.
+--
+-- "none" ILE BOS TARIH AYNI SEY DEGILDIR:
+--   tarih NULL + hassasiyet 'full' = HENUZ GIRILMEDI  -> "Belirtilmemis"
+--   tarih NULL + hassasiyet 'none' = BILINMIYOR       -> "??.??.????"
+-- Boylece doldurulmayi bekleyen kayit ile kaynagi olmayan kayit ayrisir.
+--
+-- GERIYE UYUMLULUK. Kolon NOT NULL DEFAULT 'full'. Var olan her satir
+-- oldugu gibi kalir (backfill YOK): 1.1.31 oncesi girilmis her tarih zaten
+-- tam tarihtir. Hassasiyet tasimayan eski katalog JSON'i, eski istemci
+-- POST'u ve eski yedek dosyasi da 'full' okunur (date_precision_normalize()
+-- taninmayan her degeri 'full'e dusurur) - 1.1.17 country ve 1.1.2 is_adult
+-- alanlarinda kullanilan ayni kalip.
+--
+-- catalog_requests AYNI IKI SUTUNU ALIR cunku o tablo animes'in alan-alan
+-- ikizidir (uye oneri akisi). Sutun orada olmazsa bir uyenin onerdigi
+-- kismi tarih onay sirasinda sessizce tam tarihe donerdi.
+--
+-- ------------------------------------------------------------------
+-- MERKEZ KATALOG SUNUCUSUNDA ELLE ALTER GEREKIR
+-- ------------------------------------------------------------------
+-- catalog_server/ bu migration'i CALISTIRMAZ - MigrationManager'i yoktur
+-- (catalog.php ve admin_push.php db.php'yi dahil etmez). Sunucu host'unda
+-- asagidaki iki ALTER phpMyAdmin'den ELLE uygulanmalidir, YOKSA hassasiyet
+-- tasiyan push REDDEDILIR (ayni kalip: 1.1.3 is_adult, 1.1.10 status enum,
+-- 1.1.15 story_after_episode, 1.1.17 country):
+--
+--   ALTER TABLE `animes`
+--     ADD COLUMN `release_date_precision` enum('full','month','year','none')
+--     NOT NULL DEFAULT 'full' AFTER `release_date`;
+--
+--   ALTER TABLE `animes`
+--     ADD COLUMN `end_date_precision` enum('full','month','year','none')
+--     NOT NULL DEFAULT 'full' AFTER `end_date`;
+--
+-- Sira onemlidir: once merkez sunucuda ALTER, sonra uygulama dagitimi,
+-- sonra push.
+--
+-- ------------------------------------------------------------------
+-- KATALOG TELINDE IKINCI DEGISIKLIK: end_date ARTIK ISTEMCIYE ISLENIYOR
+-- ------------------------------------------------------------------
+-- catalog.php end_date'i 1.1.14'ten beri GONDERIYORDU ama catalog_import.php
+-- onu ne INSERT ne UPDATE ifadesine aliyordu; alan istemcide sessizce
+-- dusuyordu. Hassasiyet eklenirken bu bosluk kapandi: end_date ve
+-- end_date_precision artik release_date ile ayni yoldan ice aktariliyor.
+-- DAVRANIS DEGISIKLIGIDIR: source='catalog' bir satirda kullanicinin ELLE
+-- girdigi bitis tarihi, bundan sonraki senkronda katalogun degeriyle
+-- degisebilir. Bu, o satirdaki baslik / durum / konu / yayin tarihi icin
+-- 0.6'dan beri gecerli olan kuralin aynisidir; korunan tek alan olmasi
+-- kural degil, gozden kacmaydi.
+--
+-- ------------------------------------------------------------------
+-- DEGISEN DOSYALAR
+-- ------------------------------------------------------------------
+-- YENI:
+--   files/functions/date_precision_helpers.php  (bicimleme + form ayristirma)
+--   files/migration/1.1.31/upgrade.sql          (bu dosya)
+-- GUNCELLENEN:
+--   files/functions.php            (yeni modulu yukleyici listesine ekler)
+--   files/functions/anime_helpers.php   (geri sayim yalniz tam tarihte)
+--   files/functions/anilist_import_helpers.php  (fuzzy tarih -> hassasiyet)
+--   files/fetch_animeschedule.php  ("Otomatik Doldur" kismi tarih tasir)
+--   files/add_anime.php, files/edit_anime.php   (form + kayit)
+--   files/js/anime_form.js         (hassasiyet kutusu -> alan degistirme)
+--   files/anime_details.php, files/series_timeline.php  (gosterim)
+--   files/catalog_import.php, files/admin/catalog_push.php  (katalog teli)
+--   files/list_settings.php, files/admin/admin_catalog_requests.php
+--   files/lang/tr.php, files/lang/en.php  (9 yeni anahtar, iki tarafta da)
+--   files/schema.sql, files/version.txt
+--   catalog_server/catalog.php, catalog_server/admin_push.php
+--
+-- BIRLIKTE YUKLENMESI GEREKENLER: date_precision_helpers.php + functions.php
+-- tek parcadir - yukleyici satiri olmadan dosya hic okunmaz ve
+-- format_partial_date() cagiran her sayfa fatal verir. Formlar
+-- (add/edit) + anime_form.js de birlikte gitmelidir: eski betik yeni
+-- formdaki hassasiyet kutusunu tanimaz ve alan degistirme calismaz
+-- (sunucu tarafi yine dogru kaydeder, yalniz uc girdi ayni anda gorunur).
+-- Dil dosyalari eski kalirsa secenek etiketleri yerine anahtar adi gorunur.
+--
+-- DOGRULAMA
+--   - format_partial_date() 4 hassasiyet x (gecerli / bos / bozuk / saatli)
+--     tarih = 16 vakada sinandi; 'full' ciktilari eski
+--     date('d.m.Y', strtotime(...)) cagrisiyla birebir ayni.
+--   - partial_date_from_post() 17 POST bicimiyle sinandi (hassasiyet alani
+--     hic yok, bos yil, 2 haneli yil, ay secilmemis "ay ve yil", 13. ay,
+--     bozuk tarih, 'none' + dolu tarih ...).
+--   - Migration bu semanin bir KOPYASINDA kosuldu, sonra IKINCI KEZ kosuldu:
+--     ikinci kosuda dort ifade de 1060 verip yok sayildi, sema ayni kaldi.
+--
+-- Runner asagidaki yorum satirlarini temizler ve dort ALTER'i tek tek
+-- calistirir; kolon zaten varsa gelen 1060 hatasi yok sayilir ve
+-- settings.version 1.1.31'e tasinir. Her kolon AYRI ifadedir - iki kolon
+-- tek ALTER'de olsaydi, yarim uygulanmis bir migration'in tekrarinda
+-- birinci kolon yuzunden gelen 1060, ikinci kolonu da sessizce atlardi.
+-- =====================================================================
+
+ALTER TABLE `animes`
+  ADD COLUMN `release_date_precision` enum('full','month','year','none') NOT NULL DEFAULT 'full' AFTER `release_date`;
+
+ALTER TABLE `animes`
+  ADD COLUMN `end_date_precision` enum('full','month','year','none') NOT NULL DEFAULT 'full' AFTER `end_date`;
+
+ALTER TABLE `catalog_requests`
+  ADD COLUMN `release_date_precision` enum('full','month','year','none') NOT NULL DEFAULT 'full' AFTER `release_date`;
+
+ALTER TABLE `catalog_requests`
+  ADD COLUMN `end_date_precision` enum('full','month','year','none') NOT NULL DEFAULT 'full' AFTER `end_date`;

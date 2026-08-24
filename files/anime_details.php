@@ -322,32 +322,41 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
                 <?php endif; ?>
 
                 <?php // Yayin tarihi - bossa "Belirtilmemis" yazilir (ulkenin
-                      // aksine, asagiya bakin). ?>
+                      // aksine, asagiya bakin).
+                      //
+                      // 1.1.31: tarihin yalnizca bilinen parcasi basilir.
+                      // "??.??.2005" = yili biliniyor, "??.??.????" = kurator
+                      // bilerek "bilinmiyor" demis. Hic girilmemis tarih ise
+                      // eskisi gibi "Belirtilmemis"tir - ikisi ayni sey degil,
+                      // bkz. functions/date_precision_helpers.php. ?>
                 <div class="detail-row">
                     <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.release_date'), ENT_QUOTES, 'UTF-8'); ?></span>
                     <span class="detail-value">
-                        <?php
-                        if (!empty($anime['release_date'])) {
-                            echo date('d.m.Y', strtotime($anime['release_date']));
-                        } else {
-                            echo htmlspecialchars(t('anime_details.label.unset'));
-                        }
-                        ?>
+                        <?php echo htmlspecialchars(format_partial_date(
+                            $anime['release_date'] ?? null,
+                            $anime['release_date_precision'] ?? 'full',
+                            t('anime_details.label.unset')
+                        ), ENT_QUOTES, 'UTF-8'); ?>
                     </span>
                 </div>
 
                 <?php
                 // Madde E - Tek bolumlu animede yayin bitis tarihi anlamsiz
                 // (baslangic = bitis). Status finished AND end_date dolu AND
-                // total_episodes 1 degil ise goster.
+                // total_episodes 1 degil ise goster. 1.1.31: "dolu" olcusu
+                // has_partial_date() - "bilinmiyor" da bir degerdir ve tarih
+                // kolonu NULL oldugu icin !empty() onu yanlislikla elerdi.
                 if ($anime['status'] == 'Yayın Tamamlandı'
-                    && !empty($anime['end_date'])
+                    && has_partial_date($anime['end_date'] ?? null, $anime['end_date_precision'] ?? 'full')
                     && (int)($anime['total_episodes'] ?? 0) !== 1):
                 ?>
                 <div class="detail-row">
                     <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.end_date'), ENT_QUOTES, 'UTF-8'); ?></span>
                     <span class="detail-value">
-                        <?php echo date('d.m.Y', strtotime($anime['end_date'])); ?>
+                        <?php echo htmlspecialchars(format_partial_date(
+                            $anime['end_date'] ?? null,
+                            $anime['end_date_precision'] ?? 'full'
+                        ), ENT_QUOTES, 'UTF-8'); ?>
                     </span>
                 </div>
                 <?php endif; ?>

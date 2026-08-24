@@ -255,6 +255,17 @@ return [
     'add_anime.label.aired_episodes'         => 'Aired Episodes:',
     'add_anime.label.release_date'           => 'Release Date:',
     'add_anime.label.end_date'               => 'End Date:',
+
+    // 1.1.31 - partially known dates. The dropdown next to a date field says
+    // how much of it is known; unknown parts print as "??"
+    // (??.04.2005 / ??.??.2005 / ??.??.????).
+    'add_anime.date_precision.full'          => 'Full date',
+    'add_anime.date_precision.month'         => 'Month and year',
+    'add_anime.date_precision.year'          => 'Year only',
+    'add_anime.date_precision.none'          => 'Unknown',
+    'add_anime.option.month'                 => 'Month',
+    'add_anime.ph.date_year'                 => 'YYYY',
+    'add_anime.hint.date_precision'          => 'Unknown parts are shown as ??.??.????. A date left empty counts as "Not specified" instead.',
     'add_anime.label.status'                 => 'Broadcast Status:',
     'add_anime.label.episode_interval'       => 'Episode Interval (Days):',
     'add_anime.label.broadcast_day'          => 'Broadcast Day:',
@@ -344,6 +355,8 @@ return [
     'add_anime.error.anidb_link_invalid'     => 'AniDB link is invalid. Must be an anidb.net address. Example: https://anidb.net/anime/12345 or https://anidb.net/episode/212772',
     'add_anime.error.release_date_invalid'   => 'Release date has invalid format. Correct format: YYYY-MM-DD (e.g. 2026-04-08)',
     'add_anime.error.end_date_invalid'       => 'End date has invalid format. Correct format: YYYY-MM-DD (e.g. 2026-09-15)',
+    'add_anime.error.release_date_year_invalid' => 'Release date year is invalid. Enter a four-digit year (e.g. 2005).',
+    'add_anime.error.end_date_year_invalid'  => 'End date year is invalid. Enter a four-digit year (e.g. 2005).',
     'add_anime.error.next_episode_date_invalid' => 'Next episode date has invalid format.',
 
     // Error pages (validation / image upload / duplicate)
@@ -507,6 +520,7 @@ return [
         <li><strong>Genres</strong> — Action, Comedy, etc.</li>
         <li><strong>Sentences (Tags)</strong> — For the "What Should I Watch?" system</li>
         <li><strong>Broadcast status, episode count, broadcast day/time</strong></li>
+        <li><strong>Release Date / End Date</strong> — you can enter only the part you know; an unknown day or month shows as <code>??</code> (<code>??.04.1979</code>, <code>??.??.1979</code>, <code>??.??.????</code>)</li>
         <li><strong>MAL / AniDB / AnimeSchedule links</strong></li>
         <li><strong>Series info</strong> (series name, media type, next in series)</li>',
     'help.fields.catalog.note'               => 'If you edit these fields manually, the next sync will <strong>overwrite</strong> them (the server has the last word).',

@@ -29,6 +29,16 @@
  *     }
  *   }
  *
+ * 1.1.31 - A DATE MAY COME BACK PARTIAL. When AniList knows only the year (or
+ * only year + month) the payload carries the PRECISION plus the pieces instead
+ * of a full date, using the same field names the form posts:
+ *   "release_date_precision": "year",  "release_date_year": "1979"
+ *   "release_date_precision": "month", "release_date_year": "1979",
+ *                                      "release_date_month": "11"
+ * Both shapes never appear together for the same field. A client that does not
+ * know these keys simply reports them as "field not found" and fills nothing -
+ * the old keys keep their old meaning.
+ *
  * 1.1.27 - TWO SOURCES BEHIND ONE BUTTON. Everything above comes from
  * AnimeSchedule except the two DATES, which come from AniList: the AnimeSchedule
  * anime object carries no end-date field at all, and its `premier` is an instant
@@ -206,17 +216,38 @@ if ($malId === null) {
     $malId = parseMalId(trim($_POST['mal_link'] ?? ''));
 }
 
+// 1.1.31 - KISMI tarih de tasinir. AniList eski yapimlarin cogunda yalnizca
+// yili (bazen yil + ayi) tutar; onceden bu kayitlar tamamen dusuyordu ve alan
+// bos kaliyordu. Artik bilinen parca forma girer:
+//   'full'  -> release_date alanina tam tarih
+//   'month' -> hassasiyet "Ay ve yil" + ay ve yil kutulari
+//   'year'  -> hassasiyet "Yalniz yil" + yil kutusu
+// Hassasiyet anahtari deger anahtarlarindan ONCE yazilir: betik alanlari
+// geldikleri sirada isler ve hassasiyet kutusuna yazar yazmaz dogru girdiyi
+// gorunur kilar (toggleDatePrecision).
+$asPartialDateFields = function (array &$fields, $base, $date, $precision) {
+    if ($date === null) {
+        return;
+    }
+    if ($precision === 'full') {
+        $fields[$base] = $date;
+        return;
+    }
+    $fields[$base . '_precision'] = $precision;
+    $fields[$base . '_year']      = substr($date, 0, 4);
+    if ($precision === 'month') {
+        $fields[$base . '_month'] = substr($date, 5, 2);
+    }
+};
+
 if ($aniListId !== null || $malId !== null) {
     $alDates = anilist_fetch_dates($malId, $aniListId);
 
-    if ($alDates['start_date'] !== null) {
-        $fields['release_date'] = $alDates['start_date'];
-    }
+    $asPartialDateFields($fields, 'release_date', $alDates['start_date'], $alDates['start_precision']);
 
-    if ($alDates['end_date'] !== null
-        && ($fields['status'] ?? null) === 'Yayın Tamamlandı'
+    if (($fields['status'] ?? null) === 'Yayın Tamamlandı'
         && (int)($fields['total_episodes'] ?? 0) !== 1) {
-        $fields['end_date'] = $alDates['end_date'];
+        $asPartialDateFields($fields, 'end_date', $alDates['end_date'], $alDates['end_precision']);
     }
 }
 

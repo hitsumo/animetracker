@@ -459,12 +459,22 @@ function seriesMediaIcon($type) {
                 // 1.1.23: yayin tarihi gorunumunde tarih onemli veridir -
                 // gun.ay.yil (araligiyla) gosterilir; zincir gorunumu eski
                 // davranisiyla yalnizca yili gosterir.
+                // 1.1.31: tarih parcali olabilir (??.04.2005 / ??.??.2005 /
+                // ??.??.????). format_partial_date() 'full' hassasiyette eski
+                // date('d.m.Y', strtotime(...)) ciktisinin aynisini uretir.
                 $stDateText = '';
                 if ($stMode === 'airdate') {
-                    if (!empty($item['release_date'])) {
-                        $stDateText = date('d.m.Y', strtotime($item['release_date']));
-                        if (!empty($item['end_date']) && $item['end_date'] !== $item['release_date']) {
-                            $stDateText .= ' – ' . date('d.m.Y', strtotime($item['end_date']));
+                    $stRelPrec = $item['release_date_precision'] ?? 'full';
+                    $stEndPrec = $item['end_date_precision'] ?? 'full';
+                    if (has_partial_date($item['release_date'] ?? null, $stRelPrec)) {
+                        $stDateText = format_partial_date($item['release_date'] ?? null, $stRelPrec);
+                        // Bitis tarihi yalniz baslangictan FARKLIYSA yazilir.
+                        // Karsilastirma artik hassasiyeti de kapsar: ayni gune
+                        // isaret eden iki kayittan biri "??.??.2005" digeri
+                        // "08.04.2005" ise bunlar ayni sey degildir.
+                        $stEndText = format_partial_date($item['end_date'] ?? null, $stEndPrec);
+                        if ($stEndText !== '' && $stEndText !== $stDateText) {
+                            $stDateText .= ' – ' . $stEndText;
                         }
                     } else {
                         $stDateText = t('series_timeline.no_date');

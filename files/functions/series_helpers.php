@@ -252,7 +252,9 @@ function getSeriesAnimesByAirDate($pdo, $series_name) {
                COALESCE(ua.watched_episodes, 0) AS watched_episodes,
                ua.watch_status,
                a.status, a.image_path,
-               a.release_date, a.end_date, a.series_name, a.is_adult
+               a.release_date, a.release_date_precision,
+               a.end_date, a.end_date_precision,
+               a.series_name, a.is_adult
         FROM animes a
         LEFT JOIN user_anime ua
                ON ua.anime_id = a.id AND ua.user_id = ?
@@ -337,7 +339,9 @@ function getSeriesChainRows($pdo, $start_id) {
                    COALESCE(ua.watched_episodes, 0) AS watched_episodes,
                    ua.watch_status,
                    a.status, a.image_path,
-                   a.release_date, a.end_date, a.is_adult, a.next_in_series, a.series_name
+                   a.release_date, a.release_date_precision,
+                   a.end_date, a.end_date_precision,
+                   a.is_adult, a.next_in_series, a.series_name
             FROM animes a
             LEFT JOIN user_anime ua
                    ON ua.anime_id = a.id AND ua.user_id = ?

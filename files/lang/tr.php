@@ -288,6 +288,17 @@ return [
     'add_anime.label.aired_episodes'         => 'Yayınlanan Bölüm Sayısı:',
     'add_anime.label.release_date'           => 'Yayın Tarihi:',
     'add_anime.label.end_date'               => 'Yayın Bitiş Tarihi:',
+
+    // 1.1.31 - parçası bilinmeyen tarih. Tarih alanının yanındaki açılır kutu
+    // hangi parçanın bilindiğini söyler; bilinmeyen parçalar ekranda "??"
+    // basılır (??.04.2005 / ??.??.2005 / ??.??.????).
+    'add_anime.date_precision.full'          => 'Tam tarih',
+    'add_anime.date_precision.month'         => 'Ay ve yıl',
+    'add_anime.date_precision.year'          => 'Yalnız yıl',
+    'add_anime.date_precision.none'          => 'Bilinmiyor',
+    'add_anime.option.month'                 => 'Ay',
+    'add_anime.ph.date_year'                 => 'YYYY',
+    'add_anime.hint.date_precision'          => 'Bilinmeyen parçalar ??.??.???? biçiminde gösterilir. Boş bırakılan tarih ise "Belirtilmemiş" sayılır.',
     'add_anime.label.status'                 => 'Yayın Durumu:',
     'add_anime.label.episode_interval'       => 'Bölümler Arası Süre (Gün):',
     'add_anime.label.broadcast_day'          => 'Yayın Günü:',
@@ -377,6 +388,8 @@ return [
     'add_anime.error.anidb_link_invalid'     => 'AniDB linki gecersiz. anidb.net adresi olmali. Ornek: https://anidb.net/anime/12345 veya https://anidb.net/episode/212772',
     'add_anime.error.release_date_invalid'   => 'Yayin tarihi gecersiz format. Dogru format: YYYY-MM-DD (orn: 2026-04-08)',
     'add_anime.error.end_date_invalid'       => 'Bitis tarihi gecersiz format. Dogru format: YYYY-MM-DD (orn: 2026-09-15)',
+    'add_anime.error.release_date_year_invalid' => 'Yayin tarihi yili gecersiz. Dort haneli bir yil girin (orn: 2005).',
+    'add_anime.error.end_date_year_invalid'  => 'Bitis tarihi yili gecersiz. Dort haneli bir yil girin (orn: 2005).',
     'add_anime.error.next_episode_date_invalid' => 'Sonraki bolum tarihi gecersiz format.',
 
     // Error pages (validation / image upload / duplicate)
@@ -539,6 +552,7 @@ return [
         <li><strong>Türler</strong> — Aksiyon, Komedi, vb.</li>
         <li><strong>Cümleler (Etiketler)</strong> — "Ne İzlesem?" sistemi için</li>
         <li><strong>Yayın durumu, bölüm sayısı, yayın gün/saati</strong></li>
+        <li><strong>Yayın Tarihi / Yayın Bitiş Tarihi</strong> — tarihin yalnızca bilinen kısmı girilebilir; bilinmeyen gün ya da ay <code>??</code> olarak görünür (<code>??.04.1979</code>, <code>??.??.1979</code>, <code>??.??.????</code>)</li>
         <li><strong>MAL / AniDB / AnimeSchedule linkleri</strong></li>
         <li><strong>Seri bilgileri</strong> (seri adı, medya türü, sonraki seri)</li>',
     'help.fields.catalog.note'               => 'Bu alanları elle değiştirirseniz, bir sonraki sync\'te <strong>üzerine yazılır</strong> (sunucunun dediği geçer).',

@@ -72,11 +72,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     total_episodes, mal_link, anidb_link, anime_schedule_link,
                     episode_interval, broadcast_day, broadcast_time,
                     broadcast_timezone, synopsis_tr, synopsis_en,
-                    translation_status, release_date, end_date, series_name,
+                    translation_status,
+                    release_date, release_date_precision,
+                    end_date, end_date_precision, series_name,
                     media_type, country, mal_id, anidb_id, source
                 ) VALUES (
                     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'none',
-                    ?, ?, ?, ?, ?, ?, ?, 'local'
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, 'local'
                 )");
             $mark = $pdo->prepare(
                 "UPDATE catalog_requests
@@ -123,7 +125,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $s['broadcast_day'], $s['broadcast_time'],
                         $s['broadcast_timezone'] ?: 'Asia/Tokyo',
                         $s['synopsis_tr'], $s['synopsis_en'],
-                        $s['release_date'], $s['end_date'], $s['series_name'],
+                        // 1.1.31: tarih hassasiyeti de tasinir - yoksa uyenin
+                        // onerdigi "??.??.2005" onay sirasinda sessizce
+                        // 01.01.2005'e, yani uydurulmus bir tam tarihe donerdi.
+                        $s['release_date'],
+                        date_precision_normalize($s['release_date_precision'] ?? 'full'),
+                        $s['end_date'],
+                        date_precision_normalize($s['end_date_precision'] ?? 'full'),
+                        $s['series_name'],
                         // 1.1.17: oneri satirindaki ulkeyi onayda tasi. Bugun
                         // oneriler ice aktarmadan gelir ve ulke tasimaz (deger
                         // NULL olur); alan yine de bagli tutuluyor ki oneri

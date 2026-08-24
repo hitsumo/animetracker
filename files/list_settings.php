@@ -315,10 +315,12 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                     status, total_episodes, mal_link, anidb_link,
                     anime_schedule_link, episode_interval, broadcast_day,
                     broadcast_time, broadcast_timezone, synopsis_tr, synopsis_en,
-                    release_date, end_date, series_name, media_type, country,
+                    release_date, release_date_precision,
+                    end_date, end_date_precision,
+                    series_name, media_type, country,
                     suggested_by, pending_markers
                 ) VALUES (
-                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
                 )");
 
             $validStatus = ['Watched', 'Watching', 'PlanToWatch', 'OnHold', 'Dropped'];
@@ -410,7 +412,11 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                     $anime['synopsis_tr']         ?? ($anime['synopsis'] ?? null),
                     $anime['synopsis_en']         ?? null,
                     $anime['release_date']        ?? null,
+                    // 1.1.31: tarih hassasiyeti. 1.1.31 oncesi yedekte alan
+                    // yoktur -> 'full'.
+                    date_precision_normalize($anime['release_date_precision'] ?? 'full'),
                     $anime['end_date']            ?? null,
+                    date_precision_normalize($anime['end_date_precision'] ?? 'full'),
                     $anime['series_name']         ?? null,
                     $mtype,
                     $ccode,
@@ -449,11 +455,13 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                     anidb_link, mal_link, anime_schedule_link, episode_interval,
                     broadcast_day, broadcast_time, broadcast_timezone,
                     synopsis, synopsis_tr, synopsis_en, translation_status,
-                    release_date, end_date, series_name, media_type, country,
+                    release_date, release_date_precision,
+                    end_date, end_date_precision,
+                    series_name, media_type, country,
                     mal_id, anidb_id, catalog_uuid, source, filler_tracking
                 ) VALUES (
                     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
                 )");
 
             foreach ($animes as $anime) {
@@ -496,7 +504,12 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                         $anime['synopsis_en']         ?? null,
                         $anime['translation_status']  ?? 'none',
                         $anime['release_date']        ?? null,
+                        // 1.1.31: tarih hassasiyeti. 1.1.31 oncesi alinmis bir
+                        // yedekte alan yoktur -> 'full' (o yedeklerdeki her
+                        // tarih zaten tam tarihtir).
+                        date_precision_normalize($anime['release_date_precision'] ?? 'full'),
                         $anime['end_date']            ?? null,
+                        date_precision_normalize($anime['end_date_precision'] ?? 'full'),
                         $anime['series_name']         ?? null,
                         $anime['media_type']          ?? null,
                         // 1.1.17: yedek disa aktarimi "SELECT * FROM animes"

@@ -95,6 +95,11 @@ try {
     // exists in animes. Built separately from anime_genres + genres
     // join below and attached as CSV per anime (wire format unchanged).
     // 'end_date' column added.
+    //
+    // 1.1.31: 'release_date_precision' / 'end_date_precision' eklendi -
+    // tarihin ne kadarinin BILINDIGI ('full'|'month'|'year'|'none').
+    // Istemci bu iki alani tasimayan eski bir katalog JSON'unu 'full'
+    // okur (date_precision_normalize), yani tel geriye uyumludur.
     $sql = "
         SELECT
             id,
@@ -107,7 +112,9 @@ try {
             synopsis_en,
             translation_status,
             release_date,
+            release_date_precision,
             end_date,
+            end_date_precision,
             anidb_link,
             mal_link,
             anime_schedule_link,

@@ -288,6 +288,49 @@ function anilist_normalize_date($fuzzy)
 }
 
 /**
+ * 1.1.31 - AniList FuzzyDate'i KISMI tarih olarak oku (parcayi atma).
+ *
+ * anilist_normalize_date() (yukarida) eksik parcali her tarihi null yapar ve
+ * bu, kisisel izleme tarihleri (watch_start_date / watch_finish_date) icin
+ * DOGRU davranistir: o kolonlarin hassasiyet esi yoktur. Ama animenin YAYIN
+ * tarihi icin ayni kural bilgi kaybiydi - AniList eski yapimlarin cogunda
+ * yalnizca yili tutar ve "Otomatik Doldur" alani bos birakiyordu.
+ *
+ * Bu fonksiyon bilinen parcayi korur ve yanina hassasiyeti verir; bilinmeyen
+ * parcalar 01 yazilir (animes.release_date_precision sozlesmesi).
+ *
+ * HICBIR SEY BILINMIYORSA precision 'none' DEGIL 'full' doner ve tarih
+ * null'dur: AniList'in kaydi bos olmasi "bu tarih gercekten bilinmiyor"
+ * demek degildir, "AniList bilmiyor" demektir. "Bilinmiyor" damgasini
+ * yalnizca kurator elle basar.
+ *
+ * @param mixed $fuzzy {year, month, day} - her parcasi null olabilir
+ * @return array{date:?string,precision:string}
+ */
+function anilist_normalize_fuzzy_date($fuzzy)
+{
+    $empty = ['date' => null, 'precision' => 'full'];
+    if (!is_array($fuzzy)) {
+        return $empty;
+    }
+    $y = isset($fuzzy['year'])  ? (int)$fuzzy['year']  : 0;
+    $m = isset($fuzzy['month']) ? (int)$fuzzy['month'] : 0;
+    $d = isset($fuzzy['day'])   ? (int)$fuzzy['day']   : 0;
+
+    if ($y <= 0) {
+        return $empty; // yil yoksa ay/gunun tek basina anlami yok
+    }
+    if ($m < 1 || $m > 12) {
+        return ['date' => sprintf('%04d-01-01', $y), 'precision' => 'year'];
+    }
+    if ($d <= 0 || !checkdate($m, $d, $y)) {
+        // Gun yok ya da gecersiz (orn. 31 Nisan): ay + yila DUS, uydurma.
+        return ['date' => sprintf('%04d-%02d-01', $y, $m), 'precision' => 'month'];
+    }
+    return ['date' => sprintf('%04d-%02d-%02d', $y, $m, $d), 'precision' => 'full'];
+}
+
+/**
  * Map an AniList countryOfOrigin to the LANGUAGE of media.title.native.
  *
  * AniList writes the native title in the origin country's language but
@@ -702,13 +745,23 @@ function anilist_ua_payload(array $e)
  * vs Meitantei Conan (2009-03-27). That is correct data, not a bug; deciding
  * whether an end date is worth showing in that case belongs to the caller.
  *
+ * 1.1.31: donen dizi artik her tarihin yaninda HASSASIYETINI de tasir.
+ * AniList eski yapimlarin cogunda yalnizca yili (bazen yil + ayi) tutar;
+ * once bu kayitlar tamamen dusuruluyordu, simdi bilinen parca korunuyor ve
+ * forma "??.??.1979" olarak giriyor. Bkz. anilist_normalize_fuzzy_date().
+ *
  * @param int|null $malId      MyAnimeList id, or null/0 when unknown.
  * @param int|null $anilistId  AniList id; wins over $malId when both are given.
- * @return array{start_date: ?string, end_date: ?string} 'YYYY-MM-DD' or null each.
+ * @return array{start_date: ?string, start_precision: string, end_date: ?string, end_precision: string}
  */
 function anilist_fetch_dates($malId, $anilistId = null)
 {
-    $empty = ['start_date' => null, 'end_date' => null];
+    $empty = [
+        'start_date'      => null,
+        'start_precision' => 'full',
+        'end_date'        => null,
+        'end_precision'   => 'full',
+    ];
 
     $malId     = (int)$malId;
     $anilistId = (int)$anilistId;
@@ -746,8 +799,13 @@ function anilist_fetch_dates($malId, $anilistId = null)
         return $empty;
     }
 
+    $start = anilist_normalize_fuzzy_date($media['startDate'] ?? null);
+    $end   = anilist_normalize_fuzzy_date($media['endDate']   ?? null);
+
     return [
-        'start_date' => anilist_normalize_date($media['startDate'] ?? null),
-        'end_date'   => anilist_normalize_date($media['endDate']   ?? null),
+        'start_date'      => $start['date'],
+        'start_precision' => $start['precision'],
+        'end_date'        => $end['date'],
+        'end_precision'   => $end['precision'],
     ];
 }

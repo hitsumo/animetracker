@@ -69,6 +69,24 @@ SET time_zone = "+00:00";
 --   release_date    - First episode air date.
 --   end_date        - Last episode air date. Only meaningful when
 --                     status = 'Yayin Tamamlandi'. NULL for ongoing anime.
+--   *_date_precision - (1.1.31) How much of the date above is actually
+--                     KNOWN. Old sources often give only a year, sometimes
+--                     a year and a month; before 1.1.31 the curator either
+--                     invented a day (read as a false "08.04.1979") or left
+--                     the field empty. Unknown parts are STORED as 01 and
+--                     PRINTED as "??":
+--                       full  2005-04-08 -> 08.04.2005  (default, legacy)
+--                       month 2005-04-01 -> ??.04.2005
+--                       year  2005-01-01 -> ??.??.2005
+--                       none  NULL       -> ??.??.????
+--                     NULL date + 'full' still means "not entered yet"
+--                     ("Belirtilmemis"); 'none' means "genuinely unknown".
+--                     A zero-part DATE ('2005-00-00') was rejected: MySQL
+--                     5.7+/8 default sql_mode carries NO_ZERO_IN_DATE. A
+--                     VARCHAR column was rejected too - it would break the
+--                     YEAR() year filter, ORDER BY release_date and the
+--                     premiere countdown at once. See
+--                     functions/date_precision_helpers.php.
 --
 -- Synopsis fields:
 --   synopsis        - DEPRECATED (0.7.1). Legacy single-language plot
@@ -163,7 +181,9 @@ CREATE TABLE IF NOT EXISTS `animes` (
   `user_synopsis` text DEFAULT NULL,
   `user_synopsis_en` text DEFAULT NULL,
   `release_date` date DEFAULT NULL,
+  `release_date_precision` enum('full','month','year','none') NOT NULL DEFAULT 'full',
   `end_date` date DEFAULT NULL,
+  `end_date_precision` enum('full','month','year','none') NOT NULL DEFAULT 'full',
   `series_name` varchar(255) DEFAULT NULL,
   `media_type` enum('TV','Film','OVA','Special','ONA') DEFAULT NULL,
   `country` char(2) DEFAULT NULL,
@@ -666,7 +686,9 @@ CREATE TABLE IF NOT EXISTS `catalog_requests` (
   `synopsis_tr`         text DEFAULT NULL,
   `synopsis_en`         text DEFAULT NULL,
   `release_date`        date DEFAULT NULL,
+  `release_date_precision` enum('full','month','year','none') NOT NULL DEFAULT 'full',
   `end_date`            date DEFAULT NULL,
+  `end_date_precision` enum('full','month','year','none') NOT NULL DEFAULT 'full',
   `series_name`         varchar(255) DEFAULT NULL,
   `media_type`          enum('TV','Film','OVA','Special','ONA') DEFAULT NULL,
   `country`             char(2) DEFAULT NULL,

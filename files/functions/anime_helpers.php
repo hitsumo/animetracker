@@ -157,6 +157,14 @@ function calculatePremiereDate($anime) {
         return null;
     }
 
+    // 1.1.31 - kismi tarihte geri sayim YAPILMAZ. "Yalniz yil" bilinen bir
+    // kayit depoda o yilin 1 Ocak'i olarak durur; oradan "42 gun kaldi" gibi
+    // bir sayi uretmek, ekranda "??.??.2027" yazarken kesin bir gun soylemek
+    // olurdu. Bilinmeyen bir gune geri sayilmaz - satir hic basilmaz.
+    if (date_precision_normalize($anime['release_date_precision'] ?? 'full') !== 'full') {
+        return null;
+    }
+
     $date = substr((string)$anime['release_date'], 0, 10);
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
         return null;
