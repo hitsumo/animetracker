@@ -54,7 +54,17 @@ try {
     die('Kronoloji notu silinirken bir hata olustu.');
 }
 
+// 1.1.32: silinen marker SONUNCUSU olabilir. O durumda chronology.php?id=N
+// artik detaya yonlenen bir adrestir ve sitemap onu listelemez - ama bir
+// saniye oncesine kadar indekslenebilir bir sayfaydi. forceChronology = true
+// adresi kural artik uretmese de kuyruga koyar; motor tekrar ugrar,
+// yonlendirmeyi gorur ve dizinini duzeltir.
+$redirectId = $anime_id > 0 ? $anime_id : 0;
+if ($redirectId > 0) {
+    indexnow_queue_anime($pdo, $redirectId, true);
+}
+
 // Redirect back to the anime detail page
-$redirectId = $anime_id > 0 ? $anime_id : '';
+$redirectId = $redirectId > 0 ? $redirectId : '';
 header('Location: anime_details.php?id=' . $redirectId);
 exit;

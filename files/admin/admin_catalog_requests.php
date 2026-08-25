@@ -112,6 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // after every approved anime exists, so a marker pointing at another
             // anime approved in the same batch still links.
             $pendingMarkers = [];
+            $indexnowIds    = [];
             foreach ($rows as $s) {
                 $hostId = 0;
                 try {
@@ -152,6 +153,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $mark->execute([$uidR, (int)$s['id']]);
                 $approved++;
+
+                // 1.1.32: onaylanan oneri yeni bir katalog satiridir, yani
+                // yeni bir genel adres. Ids burada TOPLANIR, kuyruga ikinci
+                // pass'ten sonra yazilir - bir animenin chronology.php
+                // adresinin olusup olusmadigi, oneriyle gelen markerlarin
+                // baglanmasina bagli.
+                if ($hostId > 0) {
+                    $indexnowIds[$hostId] = true;
+                }
 
                 // Stash this anime's carried markers for the second pass.
                 if ($hostId > 0 && !empty($s['pending_markers'])) {
@@ -199,6 +209,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $markersLinked++;
                     }
                 }
+            }
+
+            // 1.1.32: markerlar baglandiktan SONRA duyur (bkz. yukaridaki
+            // toplama notu). Ag istegi yok, yalnizca INSERT; gonderimi
+            // cron'daki indexnow_ping.php yapar.
+            foreach (array_keys($indexnowIds) as $approvedId) {
+                indexnow_queue_anime($pdo, (int)$approvedId);
             }
 
             $message = sprintf(t('admin_catalog_requests.success.approved'), $approved);

@@ -45,6 +45,32 @@ RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 RewriteRule ^robots\.txt$ robots.php [L]
 RewriteRule ^sitemap\.xml$ sitemap.php [L]
 
+# --- IndexNow key file (1.1.32) ---
+# IndexNow proves host ownership by fetching a text file named after the
+# key. That file is GENERATED too, for the same two reasons as above: the
+# deny list below rejects every .txt (so a real key file would answer 403
+# to the one crawler that must read it), and the key itself lives in
+# config.php, where it cannot fall out of sync with a generated answer.
+#
+# The pattern is deliberately loose - .htaccess cannot read config.php, so
+# it cannot know the configured key. It matches any name the PROTOCOL would
+# accept as a key (8-128 characters of [A-Za-z0-9-], not starting with a
+# hyphen) and lets files/indexnow_key.php do the comparing: the configured
+# key answers 200, every other name answers 404.
+#
+# The two lengths must agree. A narrower pattern here would silently 403
+# the key file of a shorter - but perfectly valid - key, and the rejection
+# would surface as unexplained submission errors at the search engine, not
+# as anything in this site's own logs.
+#
+# The site's own .txt files are shorter than 8 characters (version.txt,
+# license.txt), so they stay out of the pattern and still hit the deny list.
+# A longer name that is NOT the key (say security.txt) does get rewritten,
+# and answers 404 instead of the 403 the deny list would have given it -
+# the document is unavailable either way, only the wording of the refusal
+# changes.
+RewriteRule ^([A-Za-z0-9][A-Za-z0-9-]{7,127})\.txt$ indexnow_key.php [L]
+
 # --- Directory listing + PHP error display ---
 Options -Indexes
 php_flag display_errors Off

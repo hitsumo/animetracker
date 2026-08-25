@@ -103,6 +103,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
     $img_stmt->execute([$delete_id]);
     $image_path = $img_stmt->fetchColumn();
 
+    // 1.1.32: silinen adresleri IndexNow kuyruguna yaz. SILMEDEN ONCE
+    // olmak ZORUNDA - hangi adreslerin var oldugunu (seri adi, marker,
+    // yetiskin bayragi) satirin kendisi soyluyor; DELETE'ten sonra
+    // sorulacak bir kayit kalmaz.
+    //
+    // Silinen bir adresi duyurmak protokolun kullanildigi yerlerden
+    // biridir: motor tekrar ugrar, 404 gorur ve dizinden dusurur. Aksi
+    // halde silinmis sayfa haftalarca arama sonucunda kalir.
+    //
+    // forceChronology = true: markerlar birazdan bu satirla birlikte
+    // gidecek, ama chronology.php?id=N bir saniye oncesine kadar
+    // indekslenebilir bir adresti.
+    indexnow_queue_anime($pdo, $delete_id, true);
+
     // DB'den sil
     $stmt = $pdo->prepare("DELETE FROM animes WHERE id = ?");
     $stmt->execute([$delete_id]);

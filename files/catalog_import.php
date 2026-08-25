@@ -363,6 +363,16 @@ $seenLocalIds = [];
 // but locally we have different IDs - we need to translate).
 $catalogIdToLocalId = [];
 
+// 1.1.32: local ids whose public addresses changed in this sync and are
+// to be announced via IndexNow. Collected as a SET here and queued in one
+// pass further down, after the chronology markers have been written -
+// because whether an anime gets a chronology.php address depends on
+// having markers, and during the merge loop above the marker table is
+// still holding the PREVIOUS sync's rows. Queueing inline would give a
+// freshly imported anime a detail address and silently miss its
+// chronology one.
+$indexnowIds = [];
+
 $pdo->beginTransaction();
 
 try {
@@ -468,6 +478,22 @@ try {
             $params[':id'] = $matchId;
             $updateStmt->execute($params);
             $stats['updated']++;
+
+            // 1.1.32: yalnizca GERCEKTEN degisen satiri IndexNow kuyruguna
+            // yaz. UPDATE her satir icin kosulsuz calisir, yani
+            // $stats['updated'] "dokunuldu" demektir, "degisti" demek
+            // degil - ona bakilsaydi her senkron butun katalogu yeniden
+            // duyururdu (protokolun tam da istemedigi sey).
+            //
+            // rowCount() bunu ucretsiz soyluyor: PDO/MySQL varsayilaninda
+            // (CLIENT_FOUND_ROWS kapali, db.php'de acilmiyor) UPDATE'in
+            // dondurdugu sayi ESLESEN degil DEGISEN satir sayisidir - yani
+            // sunucunun animes.updated_at'i tazelemek icin kullandigi
+            // olcutun aynisi. Sitemap'in lastmod'u ile ayni gercegi
+            // soylemis oluyoruz.
+            if ($updateStmt->rowCount() > 0) {
+                $indexnowIds[$matchId] = true;
+            }
             $seenLocalIds[$matchId] = true;
             $catalogIdToLocalId[(int)$ca['id']] = $matchId;
 
@@ -521,6 +547,9 @@ try {
             $insertStmt->execute($params);
             $newId = (int)$pdo->lastInsertId();
             $stats['inserted']++;
+
+            // 1.1.32: yeni satir = yeni adres, kosulsuz duyurulur.
+            $indexnowIds[$newId] = true;
             $seenLocalIds[$newId] = true;
             $catalogIdToLocalId[(int)$ca['id']] = $newId;
         }
@@ -585,6 +614,19 @@ try {
             ]);
             $stats['markers']++;
         }
+    }
+
+    // 1.1.32: IndexNow kuyrugu. Markerlar yazildiktan SONRA, cunku bir
+    // animenin chronology.php adresi olup olmadigi marker varligina
+    // bagli. Kuyruk yazmasi bilerek TRANSACTION ICINDE: import geri
+    // alinirsa duyuru satirlari da geri alinir, olmayan bir degisiklik
+    // duyurulmus olmaz.
+    //
+    // Ag istegi burada da yok - yalnizca INSERT. Iki bin satirlik bir
+    // senkron iki bin istek degil, cron'un bir sonraki kosusunda birkac
+    // toplu gonderim demektir.
+    foreach (array_keys($indexnowIds) as $touchedId) {
+        indexnow_queue_anime($pdo, (int)$touchedId);
     }
 
     // Genres (canonical taxonomy).

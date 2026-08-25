@@ -1,0 +1,158 @@
+-- Anime Tracker - Migration 1.1.32
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- =====================================================================
+-- 1.1.32 - IndexNow: degisen adres arama motoruna kendisi haber verir
+-- =====================================================================
+--
+-- SORUN
+--
+-- 1.1.30 siteye sitemap verdi. Sitemap "burada NELER VAR" sorusunu
+-- cevaplar ve tarayicinin kendi takvimiyle okunur - gunler, bazen
+-- haftalar. Yeni eklenen bir animenin adresi o okumaya kadar bilinmez;
+-- silinen bir adres de tarayici tekrar ugrayana kadar dizinde kalir.
+--
+-- IndexNow oteki soruyu cevaplar: "SIMDI NE DEGISTI". Microsoft cikisli,
+-- Bing ile Yandex'in ortak kullandigi bir bildirim protokoludur (tek uca
+-- gonderirsin, katilan motorlar paylasir). Google KATILMAZ - bu yuzden
+-- sitemap'in yerine gecmez, yanina eklenir.
+--
+-- COZUM: YAZAN TARAF KUYRUGA YAZAR, GONDEREN TARAF CRON'DUR
+--
+-- Akla ilk gelen cozum - kaydetme aninda ucu cagirmak - uc ayri yerden
+-- yanlistir:
+--
+--   1. Kuratorun kaydetme islemine ucuncu taraf bir ag istegi girer.
+--      Uc yavaslarsa form yavaslamis gibi hissedilir.
+--   2. Basarisiz istek kaybolur. Tekrar denemesi yoktur, adres hic
+--      duyurulmamis olur.
+--   3. 500 satirlik bir katalog ice aktarmasi 500 istek atar; ayni
+--      animeyi bir dakikada bes kez duzenlemek bes istek atar - ki
+--      protokolun gonderenlerden YAPMAMASINI istedigi sey tam budur.
+--
+-- Bu yuzden yazan taraf yalnizca `indexnow_queue` tablosuna bir satir
+-- INSERT eder. Tekillestirme UNIQUE anahtarin isidir: on kez degisen bir
+-- sayfa yine tek satirdir. Kuyrugu bosaltan taraf indexnow_ping.php'dir -
+-- sync_aired.php ile ayni kalipta bir CLI betigi, cron'dan saatte bir.
+--
+-- HANGI ADRESLER
+--
+-- Sitemap'in listeleyecegi adresler, baskasi degil. Kural TEK YERDE
+-- durur: seo_helpers.php icindeki seo_anime_locs() - yani sitemap
+-- sorgusunun yaninda. Iki kopya kural, biri degistigi gun ayrisirdi.
+-- Yetiskin satirlar disarida; chronology.php yalniz marker varsa;
+-- series_timeline.php yalniz seriyi TEMSIL EDEN id icin.
+--
+-- Ana sayfa (index.php) bilerek kuyruga girmez. Hemen her yazmada
+-- degisir, tarayicilar zaten sik ugrar ve yeni anime kendi detay
+-- adresinden kesfedilir - her seferinde duyurmak, en az ihtiyaci olan
+-- sayfaya butce harcamak olurdu.
+--
+-- SEMA: TEK YENI TABLO, KOLON DEGISIKLIGI YOK
+--
+--   indexnow_queue(id, loc, attempts, queued_at)
+--
+-- `loc` UYGULAMAYA GORE GORELIDIR ('anime_details.php?id=5'), tam adres
+-- degil - sitemap ne yaziyorsa o. Boylece adresi degisen bir kurulum
+-- elinde eski alan adiyla dolu bir kuyrukla kalmaz; mutlak adres
+-- GONDERIM aninda SITE_URL'den kurulur.
+--
+-- `loc` varchar(191), 255 DEGIL. Eski MySQL surumlerinde utf8mb4 bir
+-- index anahtarini 767 bayta sinirlar (191 x 4). Bu yollar kisa ASCII
+-- oldugu icin sinir hic hissedilmez, ama sutun 255 olsaydi tablo bazi
+-- sunucularda "key too long" ile kurulamazdi.
+--
+-- `attempts` neden var: basarisizlik URL BASINA degil PARTI BASINA olur
+-- (uc butun liste icin tek cevap dondurur). Kalici olarak reddedilen bir
+-- parti - yanlis anahtar, tutmayan host - sonsuza kadar tekrar denenir ve
+-- arkasindaki her yeni adresi bloklar. Sayaci INDEXNOW_MAX_ATTEMPTS'e
+-- ulasan satirlar SILINMEZ, atlanir (goze gorunur kalsinlar);
+-- "indexnow_ping.php --retry" sayaci sifirlar.
+--
+-- ------------------------------------------------------------------
+-- MERKEZ KATALOG SUNUCUSUNDA ELLE ALTER GEREKMEZ
+-- ------------------------------------------------------------------
+-- 1.1.31'in aksine bu surumde catalog_server'a dokunulmaz. Tablo
+-- yalnizca uygulamanin kendi veritabanindadir; katalog telinde yeni alan
+-- yoktur, push bicimi degismez. Merkez sunucuda yapilacak bir sey yok.
+--
+-- ------------------------------------------------------------------
+-- KURULUM (surum sonrasi, koddan bagimsiz)
+-- ------------------------------------------------------------------
+-- 1. php indexnow_ping.php --genkey        (anahtar uretir)
+-- 2. config.php'ye:  define('INDEXNOW_KEY', '<anahtar>');
+--    ve ayni dosyada: define('SITE_URL', 'https://...');
+--    SITE_URL burada ZORUNLUDUR: komut satirinda Host basligi yoktur,
+--    onsuz her adres "http://localhost/..." cikar ve reddedilir.
+-- 3. https://<site>/<anahtar>.txt anahtari duz metin dondurmeli.
+--    (.htaccess bu adresi indexnow_key.php'ye yonlendirir - 1.1.30'daki
+--    robots.txt hilesinin aynisi. 1.1.30 notlarinda "o zaman .htaccess'e
+--    bir .txt istisnasi gerekecek" yaziyordu; yonlendirme sayesinde
+--    GEREKMEDI, deny listesi oldugu kadar siki kaldi.)
+-- 4. Cron: saatte bir  php /yol/indexnow_ping.php
+--
+-- Anahtar ya da SITE_URL yoksa ozellik ATIL kalir: kuyruga hicbir sey
+-- yazilmaz, hicbir istek gitmez, uygulamanin geri kalani etkilenmez.
+-- Self-host modda (MULTI_USER_MODE = false) da ayni sekilde atildir -
+-- "Disallow: /" yayimlayan bir kurulumun adres duyurmasi kendi kendiyle
+-- celisirdi.
+--
+-- ------------------------------------------------------------------
+-- DOGRULAMA
+-- ------------------------------------------------------------------
+-- Hepsi CALISAN KODLA, gercek MariaDB 10.4 uzerinde kuruldu (SQLite
+-- degil - INSERT ... ON DUPLICATE KEY MySQL'e ozgudur, taklidi bu
+-- surumu dogrulamazdi).
+--
+-- - Migration bu semanin bir KOPYASINDA gercek MigrationManager ile
+--   kosuldu, sonra IKINCI KEZ kosuldu: birinci kosuda 1 migration,
+--   ikincisinde 0; kolon/index dokumu birebir ayni kaldi; ikinci
+--   kosudan once eklenen satir yerinde durdu (tablo yeniden
+--   olusturulmamis).
+-- - 35 vaka: seo_anime_locs() tek tek (seri basi olan/olmayan,
+--   markerli/markersiz, yetiskin, olmayan id, forceChronology) ve
+--   kuyruk yazici (tekillestirme, 191 karakter siniri, bas tarafta '/',
+--   bos loc, FIFO parti, kabul/silme, sayac artirma, --retry).
+--   Sitemap PARITESI ayni veri uzerinde olculdu: kuralin urettigi 8
+--   adres ile seo_sitemap_anime_entries()'in urettigi 8 adres AYNI.
+-- - 34 vaka: indexnow_flush() uctan uca, TASIMA KATMANI TAKLIT
+--   EDILEREK (gercek dosya yuklendi, yalnizca indexnow_submit'in adi
+--   degistirildi). Kabul, 202, gecici hata (429), kalici hata (403),
+--   ilk hatada durma, parti tavani, --dry-run, bes hatadan sonra
+--   parkedilme ve --retry ile geri donme dogrulandi.
+-- - 13 yapilandirma kapisi HER BIRI AYRI SURECTE (sabitler yeniden
+--   tanimlanamaz): anahtarsiz, bos, 7/8/128/129 karakter, alt cizgili,
+--   bolu isaretli, SITE_URL'siz, gecersiz SITE_URL, alt dizinli
+--   SITE_URL ve SELF-HOST. Kapali her durumda kuyruga SIFIR satir
+--   yazildi (tablo sayilarak dogrulandi).
+-- - 9 vaka: GERCEK indexnow_key.php, saplama db.php ile (1.1.30'da
+--   sitemap/robots icin kullanilan kalip): dogru ad 200 + anahtar;
+--   sorgu dizeli ad, alt dizin; farkli .txt adi, dogrudan .php cagrisi,
+--   anahtarsiz kurulum, self-host, harf buyuklugu farki ve ".." denemesi
+--   404. Ayrica php-cgi (yani CLI OLMAYAN SAPI) ile de kosuldu.
+-- - 13 vaka: .htaccess yonlendirme deseni DOSYADAN OKUNUP sinandi -
+--   version.txt / license.txt / robots.txt yakalanmiyor, 8 ve uzeri
+--   gercek anahtar adlari yakalaniyor.
+-- - catalog_import.php'nin dayandigi varsayim olculdu: ayni degerle
+--   yapilan UPDATE rowCount=0 verir ve updated_at'i OYNATMAZ; degisen
+--   degerde rowCount=1 ve updated_at oynar.
+-- - indexnow_ping.php'nin dort kipi (--genkey, --status, --dry-run, bos
+--   kuyrukla duz kosu) gercekten calistirildi; CLI disi SAPI'de betik
+--   "command line only" deyip durdu.
+-- - php -l 106/106.
+--
+-- Runner asagidaki yorum satirlarini temizler ve tek ifadeyi calistirir;
+-- tablo zaten varsa IF NOT EXISTS (ve gelirse 1050 hatasi) yok sayilir,
+-- settings.version 1.1.32'ye tasinir.
+-- =====================================================================
+
+CREATE TABLE IF NOT EXISTS `indexnow_queue` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `loc` varchar(191) NOT NULL,
+  `attempts` tinyint(3) unsigned NOT NULL DEFAULT 0,
+  `queued_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_indexnow_loc` (`loc`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

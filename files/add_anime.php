@@ -502,6 +502,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
+    // 1.1.32: yeni animenin adreslerini IndexNow kuyruguna yaz. Burada
+    // hicbir ag istegi YOK - yalnizca INSERT; gonderimi cron'dan calisan
+    // indexnow_ping.php yapar. Kapali/self-host kurulumda cagri sessizce
+    // hicbir sey yapmaz (indexnow_enabled), bu yuzden kosula gerek yok.
+    // Push blogundan SONRA durur ki basarisiz bir push duyuruyu engellemesin:
+    // sayfa yerelde zaten yayimda, merkez katalog ayri bir mesele.
+    indexnow_queue_anime($pdo, $new_anime_id);
+
     // 1.1.5: ekleme sonrasi index yerine YENI animenin duzenleme sayfasina
     // git (eklediginle duzenlemeye/gozden gecirmeye devam - edit ile ayni
     // "ayni sayfada kal" davranisi). PRG korunur. ?updated=1 basari bandi,

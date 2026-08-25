@@ -664,6 +664,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
+    // 1.1.32: degisen animenin adreslerini IndexNow kuyruguna yaz (ag
+    // istegi YOK, yalnizca INSERT; gonderim cron'daki indexnow_ping.php).
+    //
+    // Burada UPDATE'in gercekten satir degistirip degistirmedigine
+    // BAKILMAZ - catalog_import.php'nin aksine. Iki gerekce: (a) formu
+    // acip kaydetmek bilincli bir insan eylemidir ve gunde onlarca kez
+    // olur, binlerce degil; (b) tur ve cumle baglari ayri tablolarda
+    // durur, yani animes satiri hic degismeden de detay sayfasinin
+    // icerigi degismis olabilir. rowCount'a bakmak o duzenlemeleri
+    // sessizce duyurusuz birakirdi.
+    indexnow_queue_anime($pdo, $id);
+
     // 1.1.5: guncelleme sonrasi index yerine AYNI duzenleme sayfasina don
     // (PRG korunur - hala redirect, F5 POST'u tekrarlamaz). Kullanici
     // duzenledigi animede kalir; ?updated=1 basari bandini tetikler, taze

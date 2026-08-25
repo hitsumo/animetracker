@@ -505,3 +505,68 @@ function seo_series_head_id($pdo, $seriesName, $fallbackId) {
 
     return $head !== false && $head !== null ? (int)$head : (int)$fallbackId;
 }
+
+/**
+ * Every public URL ONE anime contributes, as application-relative paths.
+ *
+ * The single-row twin of seo_sitemap_anime_entries(), and it lives here
+ * next to it on purpose: this is the definition of "a public catalog URL",
+ * and IndexNow (1.1.32) announces exactly what the sitemap lists. Two
+ * copies of the rule would drift the first time one of them changed.
+ *
+ * Same three rules as the sitemap:
+ *   - adult rows produce NOTHING (their detail page shows an opt-in notice
+ *     to an anonymous visitor, so the address has nothing to offer)
+ *   - chronology.php only when the anime has markers (without them the
+ *     page redirects back to the detail page)
+ *   - series_timeline.php only for the id that HEADS the series, since
+ *     every member renders the same timeline
+ *
+ * @param PDO  $pdo
+ * @param int  $animeId
+ * @param bool $forceChronology Include chronology.php even when no marker
+ *                              is left - the caller has just deleted the
+ *                              last one and wants the address re-crawled.
+ * @return array Empty when the row is missing, adult, or unreadable.
+ */
+function seo_anime_locs($pdo, $animeId, $forceChronology = false) {
+    $animeId = (int)$animeId;
+    if ($animeId <= 0) {
+        return [];
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            SELECT a.id,
+                   a.is_adult,
+                   a.series_name,
+                   EXISTS(SELECT 1 FROM chronology_markers m
+                           WHERE m.anime_id = a.id) AS has_markers
+              FROM animes a
+             WHERE a.id = ?
+        ");
+        $stmt->execute([$animeId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
+    } catch (PDOException $e) {
+        error_log('[anime_tracker] seo_anime_locs: ' . $e->getMessage());
+        return [];
+    }
+
+    if (!$row || (int)$row['is_adult'] === 1) {
+        return [];
+    }
+
+    $locs = ['anime_details.php?id=' . $animeId];
+
+    if ($forceChronology || !empty($row['has_markers'])) {
+        $locs[] = 'chronology.php?id=' . $animeId;
+    }
+
+    if (!empty($row['series_name'])
+        && seo_series_head_id($pdo, $row['series_name'], $animeId) === $animeId) {
+        $locs[] = 'series_timeline.php?id=' . $animeId;
+    }
+
+    return $locs;
+}

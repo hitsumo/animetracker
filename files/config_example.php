@@ -69,3 +69,23 @@ define('MULTI_USER_MODE', false);
 // Write the root of the application, with the scheme and WITHOUT a
 // trailing slash:
 // define('SITE_URL', 'https://example.com');
+
+// IndexNow key (optional, 1.1.32).
+// IndexNow is the ping protocol Bing and Yandex share: when a page is
+// added, changed or deleted, the site tells them so instead of waiting to
+// be re-crawled. (Google does not take part; the sitemap covers it.)
+//
+// It only does anything in online mode (MULTI_USER_MODE = true) - a
+// self-host install publishes no sitemap and announces nothing.
+//
+// Setup:
+//   1. php indexnow_ping.php --genkey        (prints a fresh key)
+//   2. uncomment the line below and paste it in
+//   3. define SITE_URL above - the command-line ping cannot work out the
+//      public address on its own, and refuses to run without it
+//   4. open https://<your site>/<the key>.txt - it must return the key
+//   5. schedule indexnow_ping.php (hourly is plenty)
+//
+// Without this constant nothing is queued and nothing is sent; the rest of
+// the application is unaffected.
+// define('INDEXNOW_KEY', '');

@@ -173,6 +173,12 @@ if (MULTI_USER_MODE) {
     }
 }
 
+// 1.1.32: yeni marker, bu animeye chronology.php adresini KAZANDIRMIS
+// olabilir - markersiz bir animede o sayfa detaya yonlendirir, sitemap de
+// listelemez. seo_anime_locs() marker durumunu yeniden okur, yani adres
+// artik uygun olmussa kuyruga girer.
+indexnow_queue_anime($pdo, $anime_id);
+
 // On push failure, send the user to index.php with the shared warning band
 // (same contract as edit_anime / add_anime). Otherwise return to the detail
 // page so the moderator sees the new marker.

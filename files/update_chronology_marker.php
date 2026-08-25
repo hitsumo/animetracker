@@ -145,6 +145,11 @@ if (MULTI_USER_MODE) {
 }
 
 $redirectId = $anime_id > 0 ? $anime_id : (int)$row['anime_id'];
+
+// 1.1.32: degisen marker kronoloji sayfasinin ICERIGIDIR - adres duruyor,
+// gosterdigi sira degisti. Detay sayfasi da marker listesini basar, bu
+// yuzden ikisi de seo_anime_locs() uzerinden kuyruga girer.
+indexnow_queue_anime($pdo, $redirectId);
 if ($pushFailed) {
     header('Location: index.php?catalog_push=failed');
 } else {

@@ -270,6 +270,10 @@ CREATE TABLE IF NOT EXISTS `anime_genres` (
 --   last_aired_sync    - UTC timestamp of last successful aired_episodes
 --                        sync (Madde C, written by list_settings.php
 --                        silent daily run or "Simdi Senkronize Et")
+--   last_indexnow_ping - UTC timestamp of the last accepted IndexNow
+--                        submission (1.1.32, written by
+--                        indexnow_ping.php)
+--   last_indexnow_count- how many URLs that submission carried
 --   display_timezone   - IANA TZ for displaying broadcast times to the
 --                        user (e.g. 'Europe/Istanbul'). Optional; if
 --                        absent, broadcast times are shown in their
@@ -293,6 +297,42 @@ CREATE TABLE IF NOT EXISTS `settings` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+-- Table: indexnow_queue (1.1.32)
+-- Public URLs that changed and have not been announced yet. Adding,
+-- editing or deleting catalog content only INSERTs here; the CLI script
+-- indexnow_ping.php sends what has accumulated to the IndexNow endpoint
+-- (Bing + Yandex) and deletes the rows it got accepted.
+--
+-- The queue exists so that a save never waits on a third-party request,
+-- a failed announcement is retried instead of lost, and one page edited
+-- ten times is announced once - which is what the protocol asks for.
+--
+-- loc  application-relative, exactly as the sitemap writes it
+--      ('anime_details.php?id=5'). Relative and not absolute so a moved
+--      or renamed site does not carry a queue full of stale hostnames;
+--      the absolute address is built at send time from SITE_URL.
+--      UNIQUE - that is the whole deduplication mechanism.
+--      varchar(191), not 255: an older MySQL caps a utf8mb4 index key at
+--      767 bytes (191 x 4). These paths are short ASCII, so the limit is
+--      never felt, and the table indexes cleanly on every server.
+-- attempts  failed sends this row survived. Rows at or above
+--      INDEXNOW_MAX_ATTEMPTS are skipped rather than deleted, so a
+--      misconfiguration stays visible; indexnow_ping.php --retry clears
+--      the counter.
+--
+-- Rows are transient by nature: an empty table is the normal state.
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `indexnow_queue` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `loc` varchar(191) NOT NULL,
+  `attempts` tinyint(3) unsigned NOT NULL DEFAULT 0,
+  `queued_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_indexnow_loc` (`loc`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
