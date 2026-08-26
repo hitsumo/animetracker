@@ -249,6 +249,13 @@ return [
     'chrono.mode.showing'     => 'Gösterim: %s',
     'chrono.mode.toggle_hint' => 'Görünümü değiştir (yayın → hikaye → ikisi)',
 
+    // Konu spoiler kapısı (1.1.33). %s = zincirde izlenmemiş en yakın
+    // halkanın adı, %d = ondan önce izlenmemiş kalan kayıt sayısı.
+    'spoiler.notice_fmt'      => '%s henüz izlenmedi — bu konu önceki sezonu ele verebilir.',
+    'spoiler.notice_more_fmt' => '%s ve zincirdeki %d kayıt daha henüz izlenmedi — bu konu önceki sezonları ele verebilir.',
+    'spoiler.reveal'          => 'Yine de okumak istiyorum',
+    'spoiler.hide'            => 'Konuyu gizle',
+
     // Chronology marker add form
     'anime_details.marker_form.title'    => 'Yeni Kronoloji Notu Ekle',
     'anime_details.marker_form.after_episode' => 'Yayın sırasında (bölümden sonra):',
@@ -553,14 +560,16 @@ return [
         <li><strong>Cümleler (Etiketler)</strong> — "Ne İzlesem?" sistemi için</li>
         <li><strong>Yayın durumu, bölüm sayısı, yayın gün/saati</strong></li>
         <li><strong>Yayın Tarihi / Yayın Bitiş Tarihi</strong> — tarihin yalnızca bilinen kısmı girilebilir; bilinmeyen gün ya da ay <code>??</code> olarak görünür (<code>??.04.1979</code>, <code>??.??.1979</code>, <code>??.??.????</code>)</li>
+        <li><strong>Ülke</strong> — yapımın ülkesi; listede ülkeye göre filtrelemeyi besler</li>
         <li><strong>MAL / AniDB / AnimeSchedule linkleri</strong></li>
         <li><strong>Seri bilgileri</strong> (seri adı, medya türü, sonraki seri)</li>',
     'help.fields.catalog.note'               => 'Bu alanları elle değiştirirseniz, bir sonraki sync\'te <strong>üzerine yazılır</strong> (sunucunun dediği geçer).',
     'help.fields.personal.h3'                => '<i class="fas fa-user icon-inline"></i> Kişisel Alanlar (sync edilmez)',
     'help.fields.personal.list' => '<li><strong>İzlenen Bölüm sayısı</strong></li>
-        <li><strong>İzleme Durumu</strong> (İzlendi / İzleniyor / İzlenme Planlandı / İzleme Ertelendi / İzleme Bırakıldı) — listedeki <a href="#hizli-butonlar"><code>+/-</code> butonlarıyla otomatik değişebilir</a></li>
+        <li><strong>İzleme Durumu</strong> (İzlendi / İzleniyor / İzlenme Planlandı / İzleme Ertelendi / İzleme Bırakıldı) — listedeki <a href="help_basics.php#hizli-butonlar"><code>+/-</code> butonlarıyla otomatik değişebilir</a></li>
         <li><strong>Notlar</strong> — Size özel hatırlatmalar, yorumlar</li>
         <li><strong>Kişisel Konu</strong> — Kendi yorumunuz / açıklamanız</li>
+        <li><strong>İzlemeye Başlama / İzlemeyi Bitirme tarihleri</strong> — bir animeye ne zaman başlayıp ne zaman bitirdiğiniz</li>
         <li><strong>Poster (kendi yüklediyseniz)</strong></li>
         <li><strong>Sonraki bölüm tarihi</strong> (lokal hesap)</li>',
     'help.fields.personal.note'              => 'Bu alanlara sunucu <strong>dokunmaz</strong>. İstediğiniz kadar yazabilir, değiştirebilirsiniz.',
@@ -578,7 +587,7 @@ return [
 
     // Section: Quick watch buttons (+/-)
     'help.buttons.h2'                        => 'Hızlı İzleme Butonları (+/-)',
-    'help.buttons.intro'                     => 'Listede her animenin yanında <code>+</code> ve <code>-</code> butonları var. Bu butonlarla "Düzenle" ekranına gitmeden İzlenen Bölüm sayısını bir artırıp azaltabilirsiniz. Sayım değişirken belirli koşullarda <strong>İzleme Durumu da otomatik olarak güncellenir</strong>.',
+    'help.buttons.intro'                     => 'Listede her animenin yanında, ayrıca anime detay sayfasındaki "İzlenen Bölüm" satırında <code>+</code> ve <code>-</code> butonları var. Bu butonlarla "Düzenle" ekranına gitmeden İzlenen Bölüm sayısını bir artırıp azaltabilirsiniz. Sayım değişirken belirli koşullarda <strong>İzleme Durumu da otomatik olarak güncellenir</strong>.',
     'help.buttons.transitions.h3'            => 'Otomatik Durum Geçişleri',
     'help.buttons.transitions.intro'         => 'Aşağıdaki tablo beş temel durumu özetler:',
     'help.buttons.transitions.col_current'   => 'Şu anki durum',
@@ -704,7 +713,7 @@ return [
     'help.recom.h2'                          => 'Ne İzlesem? — Öneri Sistemi',
     'help.recom.intro'                       => 'Menüdeki "Ne İzlesem?" linki, listenizden size uygun anime önermesi için tasarlanmış bir araçtır.',
     'help.recom.howto.h3'                    => 'Nasıl Çalışır?',
-    'help.recom.howto.text'                  => 'Yönetici (admin) her animeye birkaç <strong>cümle etiketi</strong> atar: "Okulda geçsin", "Spor olsun", "Büyü olsun" gibi. Siz bu cümlelerden istediğinizi seç, "Öner" butonuna basın.',
+    'help.recom.howto.text'                  => 'Küratörler (moderatör ve yöneticiler) her animeye birkaç <strong>cümle etiketi</strong> atar: "Okulda geçsin", "Spor olsun", "Büyü olsun" gibi. Siz bu cümlelerden istediğinizi seç, "Öner" butonuna basın.',
     'help.recom.scoop.h3'                    => 'Kepçe Mantığı',
     'help.recom.scoop.text'                  => 'Her seçilen cümle bir kepçe gibi düşünün. Kepçe kendi eşleşmesini listeden çeker. Birden fazla kepçe seçerseniz, en çok kepçeye uyan anime üst sırada gözükür.',
     'help.recom.scoop.box_title'             => '<i class="fas fa-check"></i> Önemli:',
@@ -742,7 +751,7 @@ return [
 
     // Section: Update system
     'help.update.h2'                         => 'Güncelleme Sistemi',
-    'help.update.intro'                      => 'Anime Tracker\'ın kendisi zaman zaman yeni sürümlerle gelir. Liste Ayarları → "Güncelleme Kontrolü" düğmesi ile yeni sürüm olup olmadığını kontrol edebilirsiniz.',
+    'help.update.intro'                      => 'Anime Tracker\'ın kendisi zaman zaman yeni sürümlerle gelir. Liste Ayarları → "Güncelleme Kontrolü" düğmesi ile yeni sürüm olup olmadığını kontrol edebilirsiniz. Bu bölüm yalnızca <strong>kişisel (tek kullanıcılı) kurulumun sahibine</strong> görünür: çok kullanıcılı bir sitede güncellemeyi siteyi işleten kişi kaynak koddan yapar, o yüzden orada düğme yerine proje sayfasının bağlantısı durur.',
     'help.update.flow_intro'                 => 'Yeni sürüm varsa, tek tıkla otomatik güncelleme yapılır:',
     'help.update.flow_list' => '<li>Sunucudan yeni sürüm indirilir</li>
         <li>Dosyalar yerinde güncellenir (<code>config.php</code>, <code>uploads/</code> ve izleme verileriniz korunur)</li>
@@ -771,6 +780,206 @@ return [
     'help.tz.upgrade.text'                   => 'v0.5.1\'e geçtikten sonra hiçbir veriniz kaybolmaz. Yayın saatleri aynı görünür (Asia/Tokyo varsayılan TZ\'de eklenmiş kayıtlar hâlâ Asia/Tokyo\'da). Anime detay sayfasında yayın saatinin yanında TZ etiketi (JST, vs.) gözükür.',
 
     // Footer
+
+    // =================================================================
+    // 1.1.33 - yardima eklenen dort yeni grup ve uc yeni bolum
+    // =================================================================
+
+    // Yeni gruplar (help.php icindekiler + alt sayfa basliklari)
+    'help.group.list.heading'                => 'Liste, Arama ve Filtreler',
+    'help.group.list.page_title'             => 'Liste, Arama ve Filtreler - Anime Tracker',
+    'help.group.prefs.heading'               => 'Kişisel Tercihler',
+    'help.group.prefs.page_title'            => 'Kişisel Tercihler - Anime Tracker',
+    'help.group.transfer.heading'            => 'Liste Taşıma ve İçe Aktarma',
+    'help.group.transfer.page_title'         => 'Liste Taşıma ve İçe Aktarma - Anime Tracker',
+    'help.group.account.heading'             => 'Üyelik ve Katkı',
+    'help.group.account.page_title'          => 'Üyelik ve Katkı - Anime Tracker',
+
+    // Yeni icindekiler satirlari
+    'help.toc.list_tabs'                     => 'Genel Liste ve Kişisel Liste',
+    'help.toc.search'                        => 'Arama',
+    'help.toc.filters'                       => 'Filtreler ve Sıralama',
+    'help.toc.recent'                        => 'Son Güncellenenler',
+    'help.toc.prefs'                         => 'Tercihler — Hepsi Bir Arada',
+    'help.toc.ui_lang'                       => 'Arayüz Dili',
+    'help.toc.adult'                         => 'Yetişkin İçerik (+18)',
+    'help.toc.export'                        => 'Listeyi Dışa Aktar (yedek)',
+    'help.toc.import'                        => 'Listeyi İçe Aktar',
+    'help.toc.mal'                           => 'MyAnimeList Listesini Aktar',
+    'help.toc.anilist'                       => 'AniList Listesini Aktar',
+    'help.toc.clear'                         => 'Listeyi Temizle',
+    'help.toc.membership'                    => 'Giriş, Kayıt ve Hesap',
+    'help.toc.roles'                         => 'Roller — Kim Ne Yapabilir?',
+    'help.toc.add_anime'                     => 'Anime Ekleme ve Onay',
+    'help.toc.suggest'                       => 'Düzeltme Önerme',
+    'help.toc.series_timeline'               => 'Seri Kronolojisi Sayfası',
+    'help.toc.spoiler'                       => 'Spoiler Koruması',
+    'help.toc.broadcast'                     => 'Yayın Bilgileri ve Geri Sayım',
+
+    // -----------------------------------------------------------------
+    // help/help_list.php - liste sayfasi
+    // -----------------------------------------------------------------
+    'help.list.tabs.h2'                      => 'Genel Liste ve Kişisel Liste',
+    'help.list.tabs.intro'                   => 'Ana liste sayfasının üstünde iki sekme vardır. İkisi de aynı tabloyu çizer, farkları hangi animelerin içeri girdiğidir:',
+    'help.list.tabs.list' => '<li><strong>Genel Liste</strong> — Katalogdaki bütün animeler. Henüz elinize almadıklarınız da buradadır; katalog gezmek için bu sekme kullanılır.</li>
+        <li><strong>Kişisel Liste</strong> — Yalnızca bir <strong>izleme durumu seçtiğiniz</strong> animeler. "Seçim Yapılmamış" durumundakiler bu sekmede görünmez; yani listeye bir anime "girmek" demek, ona bir durum atamak demektir.</li>',
+    'help.list.tabs.pref'                    => 'Sayfa açılırken hangi sekmenin seçili geleceğini <strong>Liste Ayarları → Genel Ayarlar → "Varsayılan Liste"</strong> belirler. Sekmeye tıklamak bu varsayılanı bozmaz; yalnızca o gezinti için geçici olarak diğer sekmeye geçer.',
+    'help.list.tabs.box_title'               => '<i class="fas fa-info-circle"></i> Giriş yapmadan gezenler:',
+    'help.list.tabs.box_body'                => 'Kişisel liste kişiye özel izleme verisine dayanır; giriş yapmamış bir ziyaretçide böyle bir veri olmadığı için o sekme çalışmaz ve her zaman Genel Liste gösterilir.',
+
+    'help.list.search.h2'                    => 'Arama',
+    'help.list.search.text'                  => 'Listenin üstündeki <strong>"Anime ara..."</strong> kutusu hem <strong>anime ismini</strong> hem de <strong>alternatif isimleri</strong> tarar. Eşleşme kelimenin başından olmak zorunda değildir: "titan" yazmak "Attack on Titan" kaydını da getirir. Aramayı "Temizle" ile kaldırırsınız.',
+    'help.list.search.box_title'             => '<i class="fas fa-info-circle"></i> Arama ile harf filtresi aynı şey değil:',
+    'help.list.search.box_body'              => 'Arama kutusu ismin <strong>herhangi bir yerinde</strong> geçen metni bulur; "Harfe Göre Filtrele" ise yalnızca o harfle <strong>başlayan</strong> isimleri getirir.',
+
+    'help.list.filters.h2'                   => 'Filtreler ve Sıralama',
+    'help.list.filters.intro'                => 'Liste altı ayrı filtre sunar. Hepsi birlikte çalışır — seçtikleriniz birbirini daraltır, biri diğerini iptal etmez:',
+    'help.list.filters.list' => '<li><strong>Türe Göre</strong> — Aksiyon, Komedi gibi tür etiketleri. Tam tür adıyla eşleşir.</li>
+        <li><strong>İzleme Durumuna Göre</strong> — sizin durumunuz (İzleniyor, İzlendi, Planlandı, Ertelendi, Bırakıldı, Seçim Yapılmamış).</li>
+        <li><strong>Yayın Durumuna Göre</strong> — animenin kendi durumu (Devam Ediyor, Tamamlandı, Başlamadı, İptal Edildi).</li>
+        <li><strong>Harfe Göre</strong> — ismin ilk harfi.</li>
+        <li><strong>Yıla Göre</strong> — yayın yılı. Tarihin yalnızca yılı biliniyorsa (<code>??.??.2005</code>) kayıt yine kendi yılının altında çıkar.</li>
+        <li><strong>Ülkeye Göre</strong> — yapımın ülkesi. Yalnızca katalogda kayıtlı ülkeler listelenir.</li>',
+    'help.list.filters.combine'              => 'Filtreler ve arama sayfalama ile birlikte korunur: ikinci sayfaya geçtiğinizde seçimleriniz kaybolmaz.',
+    'help.list.filters.emotion.h3'           => 'Duygu Filtresi',
+    'help.list.filters.emotion.text'         => 'Bu filtre listede bir kutu olarak durmaz; <strong>İstatistikler sayfasındaki duygu rozetine tıklayınca</strong> devreye girer ve o duyguyu işaretlediğiniz animeleri getirir. Listenin üstünde "Duygu filtresi: ..." satırı görünür, yanındaki bağlantı filtreyi kaldırır.',
+    'help.list.filters.per_page.h3'          => 'Sayfada Göster',
+    'help.list.filters.per_page.text'        => 'Bir sayfada kaç anime görüneceğini seçersiniz: 10 (varsayılan), 20, 30, 50, 100 ya da "Hepsi". Katalog büyükse "Hepsi" seçeneği sayfayı yavaşlatabilir.',
+    'help.list.filters.sort.h3'              => 'Sıralama',
+    'help.list.filters.sort.text'            => 'Tablo başlıklarındaki küçük <code>↑</code> ve <code>↓</code> okları sıralamayı değiştirir. Dört sütunda sıralama yapılabilir: <strong>Anime</strong> (isim), <strong>Durum</strong>, <strong>İzlenen Bölüm</strong> ve <strong>Sonraki Bölüm</strong>. Durum sıralaması arayüz dilindeki etiket alfabesine göre yapılır.',
+
+    'help.list.recent.h2'                    => 'Son Güncellenenler',
+    'help.list.recent.text'                  => 'Menüdeki <strong>"Son Güncellenenler"</strong> sayfası, katalogda en son eklenen ya da bilgisi düzenlenen beş animeyi gösterir. Yeni ne girdi, hangi kayıt tazelendi diye bakmak içindir.',
+    'help.list.recent.box_title'             => '<i class="fas fa-info-circle"></i> "Son İzlenenler" ile karıştırmayın:',
+    'help.list.recent.box_body'              => 'İstatistikler sayfasındaki <strong>Son İzlenenler</strong> sekmesi <strong>sizin</strong> en son izleme hareketinizi gösterir. Buradaki <strong>Son Güncellenenler</strong> ise <strong>katalogun</strong> son değişikliklerini gösterir; siz bir bölüm işaretlediğinizde bu sayfa değişmez.',
+
+    // -----------------------------------------------------------------
+    // help/help_prefs.php - kisisel tercihler
+    // -----------------------------------------------------------------
+    'help.prefs.h2'                          => 'Tercihler — Hepsi Bir Arada',
+    'help.prefs.intro'                       => 'Kişisel tercihler <strong>Liste Ayarları → Genel Ayarlar</strong> sekmesinde toplanmıştır. Hepsi <strong>yalnızca sizi</strong> etkiler; başka kullanıcıların gördüğü hiçbir şeyi değiştirmez ve katalog verisine dokunmaz.',
+    'help.prefs.list' => '<li><strong>Arayüz Dili</strong> — sitenin kendi dili (Türkçe / İngilizce).</li>
+        <li><strong>Başlık Dili</strong> — anime isimlerinin hangi dilde yazılacağı. Ayrıntı: "Alanlar ve Kişisel Veri" sayfasındaki Başlık Dili bölümü.</li>
+        <li><strong>Varsayılan Liste</strong> — ana sayfa Genel Liste ile mi Kişisel Liste ile mi açılsın.</li>
+        <li><strong>Kronoloji Görünümü</strong> — kronoloji işaretleri yayın sırasıyla mı, hikaye sırasıyla mı, ikisiyle birden mi listelensin.</li>
+        <li><strong>Seri Kronolojisi Görünümü</strong> — seri kronolojisi sayfası hangi sekmeyle açılsın (zincir sırası / yayın tarihi).</li>
+        <li><strong>Spoiler Koruması</strong> — önceki sezonu izlemediğiniz animelerin konusu gizlensin mi.</li>
+        <li><strong>Yetişkin İçerik</strong> — +18 işaretli kayıtlar gösterilsin mi.</li>',
+
+    'help.prefs.ui_lang.h2'                  => 'Arayüz Dili',
+    'help.prefs.ui_lang.text'                => 'Site Türkçe ve İngilizce çalışır. Dili sayfaların sağ üstündeki dil seçicisinden ya da Liste Ayarları\'ndan değiştirebilirsiniz; seçim hesabınıza kaydedilir. Arayüz dili <strong>anime başlıklarının dilini değiştirmez</strong> — o ayrı bir tercihtir. Konu metinleri seçtiğiniz dilde yoksa Türkçe aslı gösterilir.',
+
+    'help.prefs.adult.h2'                    => 'Yetişkin İçerik (+18)',
+    'help.prefs.adult.intro'                 => 'Katalogdaki bazı kayıtlar ve bazı tür/cümle etiketleri <strong>+18</strong> olarak işaretlenir. Bu tercih <strong>varsayılan olarak kapalıdır</strong> ve kapalıyken:',
+    'help.prefs.adult.list' => '<li>+18 animeler listede, aramada, önerilerde ve istatistiklerde <strong>görünmez</strong>.</li>
+        <li>Böyle bir animenin detay sayfası açılırsa içerik yerine nötr bir uyarı çıkar.</li>
+        <li>+18 işaretli tür ve cümle etiketleri filtre listelerinden ve detay sayfasındaki rozetlerden düşer.</li>
+        <li>Seri ve kronoloji bağlantılarında +18 bir kayda atıf varsa yalnızca ismi gizlenir, bağlantının kendisi kalır.</li>',
+    'help.prefs.adult.box_title'             => '<i class="fas fa-info-circle"></i> Açmak size kalmış:',
+    'help.prefs.adult.box_body'              => 'Liste Ayarları → Genel Ayarlar → <strong>"Yetişkin içeriği göster"</strong> kutucuğunu işaretlediğinizde bu kayıtlar sizin için görünür olur. Tercih kişiye özeldir: bir moderatör de görmek için kendi kutucuğunu açar.',
+
+    'help.prefs.spoiler.h2'                  => 'Spoiler Koruması',
+    'help.prefs.spoiler.text'                => 'Bir serinin devam halkalarında, önceki halkaları izlemediyseniz konu doğrudan gösterilmez. Kuralın tamamı "Seriler ve Bölüm Bilgisi" sayfasındaki <a href="help_series.php#spoiler">Spoiler Koruması</a> bölümündedir. Kapatmak isterseniz: Liste Ayarları → Genel Ayarlar → <strong>"İzlemediğim sezonların konusunu gizle"</strong> kutucuğu.',
+
+    // -----------------------------------------------------------------
+    // help/help_transfer.php - disa/ice aktarma
+    // -----------------------------------------------------------------
+    'help.transfer.intro'                    => 'Liste Ayarları\'nın <strong>İçe/Dışa Aktar</strong> sekmesi dört ayrı iş yapar: yedek almak, yedeği geri yüklemek, MyAnimeList listesini taşımak ve AniList listesini taşımak.',
+    'help.transfer.export.h2'                => 'Listeyi Dışa Aktar (yedek)',
+    'help.transfer.export.text'              => '<strong>"Listeyi Dışa Aktar"</strong> düğmesi <code>anime_list_YYYY-AA-GG.json</code> adında tek bir JSON dosyası indirir. Dosyanın içinde bu kurulumdaki anime kayıtları ve onlara bağlı <strong>sizin</strong> verileriniz bulunur:',
+    'help.transfer.export.list' => '<li>İzleme durumu, izlenen bölüm sayısı, izlemeye başlama ve bitirme tarihleri</li>
+        <li>Notlar ve Kişisel Konu</li>
+        <li>Duygu işaretleriniz</li>
+        <li>Türler ve cümleler (isimleriyle, kimlik numaralarıyla değil)</li>
+        <li>Kronoloji işaretleri (bağlı animeye MAL/AniDB kimliğiyle atıf yaparak)</li>',
+    'help.transfer.export.box_title'         => '<i class="fas fa-shield-alt"></i> Neden isimle taşınıyor:',
+    'help.transfer.export.box_body'          => 'Tür, cümle ve kronoloji hedefleri dosyaya <strong>isim ve dış kimliklerle</strong> yazılır. Kayıt numaraları her kurulumda farklıdır; isimle taşınan bir yedek başka bir kuruluma da yüklenebilir.',
+
+    'help.transfer.import.h2'                => 'Listeyi İçe Aktar',
+    'help.transfer.import.text'              => 'Daha önce dışa aktarılmış bir JSON dosyasını yükler. Dosya geçerli JSON değilse işlem yapılmaz ve bir hata mesajı görürsünüz. Davranış kurulumun türüne göre değişir:',
+    'help.transfer.import.online.h3'         => 'Çok kullanıcılı sitede',
+    'help.transfer.import.online.text'       => 'Dosyadaki kayıtlar katalogla <strong>eşleştirilir</strong> ve eşleşenler sizin listenize eklenir — katalogun kendisine dokunulmaz. Katalogda karşılığı olmayan kayıtlar <strong>katalog önerisi</strong> olarak moderatör kuyruğuna düşer. Sonuçta kaç kaydın eklendiğini, kaç önerinin oluştuğunu ve kaçının zaten önerilmiş olduğunu bildiren bir özet görürsünüz.',
+    'help.transfer.import.selfhost.h3'       => 'Kişisel (tek kullanıcılı) kurulumda',
+    'help.transfer.import.selfhost.text'     => 'Yedek doğrudan geri yüklenir: anime kayıtları, türler, cümleler, kişisel verileriniz ve kronoloji işaretleri dosyadan yazılır. Bu işlem kurulum sahibine (yönetici) açıktır.',
+
+    'help.transfer.mal.h2'                   => 'MyAnimeList Listesini Aktar',
+    'help.transfer.mal.intro'                => 'MyAnimeList\'ten indirdiğiniz dışa aktarma dosyasını (<code>.xml</code> ya da sıkıştırılmış <code>.gz</code> hali) yükleyebilirsiniz. Akış üç adımdır:',
+    'help.transfer.mal.steps' => '<li><strong>Dosyayı seçin</strong> ve "Önizle" deyin.</li>
+        <li><strong>Önizlemeyi okuyun:</strong> kaç kayıt okundu, kaçı katalogda eşleşti, kaçı zaten listenizde, kaçının katalogda karşılığı yok.</li>
+        <li><strong>"İçe Aktar"</strong> ile onaylayın. Onaylamadan hiçbir şey yazılmaz.</li>',
+    'help.transfer.mal.box_title'            => '<i class="fas fa-info-circle"></i> Önizlemedeki iki seçenek:',
+    'help.transfer.mal.box_body'             => '<strong>İçe aktarılacak durumlar:</strong> yalnızca istediğiniz izleme durumlarını (örneğin sadece "İzlendi") almanızı sağlar. <strong>"Listemde zaten olan kayıtların üzerine yaz":</strong> işaretlenmezse listenizdeki mevcut kayıtlar korunur, yalnızca yeni olanlar eklenir. Katalogda karşılığı olmayan kayıtlar çok kullanıcılı sitede katalog önerisine dönüşür, kişisel kurulumda doğrudan eklenir.',
+    'help.transfer.mal.note'                 => 'MyAnimeList dosyası her anime için tek bir isim taşır; bu yüzden bu yoldan gelen kayıtlarda ikinci dildeki isimler oluşmaz.',
+
+    'help.transfer.anilist.h2'               => 'AniList Listesini Aktar',
+    'help.transfer.anilist.intro'            => 'Burada dosya yüklemezsiniz: <strong>AniList kullanıcı adınızı</strong> yazarsınız ve herkese açık listeniz AniList üzerinden çekilir. Yine önce önizleme gelir, onaylamadan hiçbir şey yazılmaz.',
+    'help.transfer.anilist.modes.h3'         => 'İki Aktarma Türü',
+    'help.transfer.anilist.modes' => '<li><strong>Listeyi izleme durumlarıyla aktar</strong> — durum, izlenen bölüm, tarihler ve notlar sizin listenize yazılır.</li>
+        <li><strong>Sadece içeriği aktar</strong> — kişisel izleme durumları alınmaz; yalnızca katalogda olmayan animeler öneri/kayıt olarak eklenir. Katalogu büyütmek için kullanışlıdır.</li>',
+    'help.transfer.anilist.box_title'        => '<i class="fas fa-info-circle"></i> Bilinmesi gerekenler:',
+    'help.transfer.anilist.box_body'         => 'Liste <strong>herkese açık</strong> olmalıdır; gizli listeler AniList tarafından verilmez. AniList istek sınırına takılırsanız birkaç dakika sonra tekrar deneyin. Ayrıca <strong>farklı AniList hesabı sayısı sınırlıdır</strong> — daha önce aktardığınız hesapları istediğiniz kadar yeniden senkronize edebilirsiniz, ama sürekli yeni hesap ekleyemezsiniz.',
+    'help.transfer.anilist.overwrite'        => '"Üzerine yaz" seçeneği yalnızca "durumlarıyla aktar" türünde çalışır; "sadece içerik" türünde yok sayılır.',
+
+    'help.transfer.clear.h2'                 => 'Listeyi Temizle',
+    'help.transfer.clear.text'               => 'Liste Ayarları\'ndaki <strong>Temizleme</strong> sekmesi bütün anime kayıtlarını siler. Bu düğme <strong>yalnızca yöneticiye</strong> görünür ve pratikte kişisel kurulumlar içindir: paylaşılan bir katalogda bütün kullanıcıların verisini birden silerdi.',
+    'help.transfer.clear.danger_title'       => '<i class="fas fa-exclamation-triangle"></i> Geri alınamaz:',
+    'help.transfer.clear.danger_body'        => 'Silme işlemi animelere bağlı her şeyi (izleme verisi, notlar, duygular, kronoloji işaretleri, dolgu kayıtları) birlikte götürür. Tür ve cümle sözlüğü kalır, ama animelerle bağları kalmaz. Önce <strong>dışa aktarıp yedek almadan</strong> bu düğmeye basmayın.',
+
+    // -----------------------------------------------------------------
+    // help/help_account.php - uyelik ve katki
+    // -----------------------------------------------------------------
+    'help.account.intro'                     => 'Bu bölüm <strong>çok kullanıcılı (online) kurulum</strong> içindir — yani birden fazla kişinin kendi listesini tuttuğu bir sitede. Kendi bilgisayarına ya da sunucusuna tek kişilik kurulum yapanlar için giriş diye bir şey yoktur; aşağıdakiler o kurulumda hiç görünmez.',
+    'help.account.membership.h2'             => 'Giriş, Kayıt ve Hesap',
+    'help.account.membership.intro'          => 'Katalogu gezmek, anime detaylarını okumak ve arama yapmak için <strong>giriş gerekmez</strong>. Giriş yapmak şunları açar: kendi listeniz, izleme durumları, notlar, Kişisel Konu, duygu işaretleri ve kişisel tercihler.',
+    'help.account.register.h3'               => 'Hesap Oluşturma',
+    'help.account.register.text'             => 'Site iki kayıt düzeninden biriyle çalışır. <strong>Davetli düzende</strong> (varsayılan) hesap açmak için bir <strong>davet kodu</strong> gerekir; kodunuz varsa "Kayıt ol" sayfasında koduyla birlikte kullanıcı adı ve şifre girersiniz. <strong>Açık düzende</strong> kod istenmez. Kullanıcı adı 3-32 karakter (harf, rakam, alt çizgi), şifre en az 8 karakter olmalıdır; e-posta isteğe bağlıdır.',
+    'help.account.invite.h3'                 => 'Davetiye Talebi',
+    'help.account.invite.text'               => 'Davet kodunuz yoksa kayıt sayfasındaki <strong>"Davetiye talep et"</strong> bağlantısından e-postanızı ve kısa bir gerekçe yazarak talep bırakabilirsiniz. Talep uygun görülürse size bir kod iletilir. Kontenjan dolduğunda yeni talep alınmayabilir.',
+    'help.account.account.h3'                => 'Hesap Sayfası',
+    'help.account.account.text'              => 'Giriş yaptıktan sonra sağ üstteki <strong>"Hesap"</strong> bağlantısı kullanıcı adınızı, e-postanızı ve rolünüzü gösterir; aynı sayfadan şifrenizi değiştirebilirsiniz (mevcut şifre + yeni şifre iki kez).',
+
+    'help.account.roles.h2'                  => 'Roller — Kim Ne Yapabilir?',
+    'help.account.roles.intro'               => 'Sitede dört yetki seviyesi vardır. Her seviye bir öncekinin yapabildiklerini de yapar:',
+    'help.account.roles.list' => '<li><strong>Ziyaretçi (girişsiz)</strong> — katalogu gezer, detayları okur, arama yapar, düzeltme önerir.</li>
+        <li><strong>Üye</strong> — kendi listesini tutar (izleme durumu, bölüm, notlar, Kişisel Konu, duygular), tercihlerini kaydeder, katalogda olmayan bir animeyi ekleme için gönderir.</li>
+        <li><strong>Moderatör</strong> — katalogu düzenler: gelen ekleme ve düzeltme önerilerini inceler, tür ve cümle sözlüğünü yönetir, kronoloji işaretlerini ekler/siler.</li>
+        <li><strong>Yönetici</strong> — bunlara ek olarak kullanıcı yönetimi, davetiyeler ve kayıt düzeni gibi site ayarlarından sorumludur.</li>',
+
+    'help.account.add.h2'                    => 'Anime Ekleme ve Onay',
+    'help.account.add.text'                  => 'Katalogda olmayan bir anime eklemek isterseniz (giriş yaptıysanız) <strong>"Yeni Anime Ekle"</strong> formunu kullanırsınız. Kaydınız doğrudan katalog listesine girmez: <strong>onay kuyruğuna</strong> düşer ve bir moderatör inceleyene kadar orada bekler.',
+    'help.account.add.box_title'             => '<i class="fas fa-clock"></i> Onay bekleyenler:',
+    'help.account.add.box_body'              => 'Ana listenin üstündeki <strong>"Onay bekleyenler"</strong> bağlantısı bekleyen eklemeleri gösterir; kaydınızın orada olduğunu görebilirsiniz. Moderatör onayladığında anime katalogda görünür olur ve herkes tarafından listelenebilir.',
+
+    'help.account.suggest.h2'                => 'Düzeltme Önerme',
+    'help.account.suggest.text'              => 'Bir animenin detay sayfasının altındaki <strong>"Düzeltme Öner"</strong> kutusuna yanlış ya da eksik bulduğunuz şeyi yazıp gönderirsiniz (örneğin "yayın tarihi yanlış", "tür eksik"). Öneri moderatör incelemesine düşer. Bunun için <strong>giriş yapmanız gerekmez</strong>. Kötüye kullanımı önlemek için kısa sürede gönderilebilecek öneri sayısı sınırlıdır.',
+
+    // -----------------------------------------------------------------
+    // help/help_series.php - 1.1.33'te eklenen uc bolum
+    // -----------------------------------------------------------------
+    'help.st.h2'                             => 'Seri Kronolojisi Sayfası',
+    'help.st.intro'                          => 'Bir seriye ait animelerden birinin detay sayfasındaki <strong>"Seri Kronolojisi"</strong> düğmesi, o serinin tamamını tek bir zaman çizgisinde gösterir. Sayfa iki sekmeyle açılır:',
+    'help.st.tabs.list' => '<li><strong>Zincir Sırası</strong> — "sonraki seri" bağlantılarıyla kurulmuş izleme sırası: birinci sezon, ikinci sezon, devam filmi... Sıra elle kurulur, yani küratörün önerdiği yoldur.</li>
+        <li><strong>Yayın Tarihi</strong> — aynı seri adını taşıyan <strong>her</strong> kayıt, ilk gösterim tarihine göre. Zincire hiç bağlanmamış kayıtlar (bağımsız filmler, özel bölümler) da burada görünür.</li>',
+    'help.st.tabs.text'                      => 'İki sekme aynı seriyi iki farklı soruyla okur: "hangi sırayla izlemeliyim" ve "ne zaman çıktı". Sayfanın hangi sekmeyle açılacağını Liste Ayarları → Genel Ayarlar → <strong>"Seri Kronolojisi Görünümü"</strong> belirler; sekmeye tıklamak bu varsayılanı bozmaz.',
+    'help.st.chains.h3'                      => 'Diğer Zincirler',
+    'help.st.chains.text'                    => 'Bir seri adı altında birden çok bağımsız zincir olabilir — örneğin sinema filmleri bir sıra, televizyon dizileri bambaşka bir sıra izleyebilir. Böyle durumlarda sekme çubuğunda <strong>"Diğer Zincir 1..N"</strong> sekmeleri belirir; numaralandırma en eski tarihli zincirden başlar. Hiçbir yere bağlanmamış tek kayıtlar zincir sayılmaz, onlar "Yayın Tarihi" sekmesinde durur.',
+
+    'help.spoiler.h2'                        => 'Spoiler Koruması',
+    'help.spoiler.intro'                     => 'Bir serinin ikinci ve sonraki halkalarının konusu, çoğu zaman kendinden öncekinin sonunu anlatır. Bu yüzden zincirde <strong>önce gelen halkalardan biri bile izlenmemişse</strong> konu doğrudan gösterilmez; <strong>"Yine de okumak istiyorum"</strong> düğmesinin arkasında bekler. Düğmeye basınca konu yerinde açılır.',
+    'help.spoiler.rules.h3'                  => 'Ne Zaman Çıkar, Ne Zaman Çıkmaz?',
+    'help.spoiler.rules.list' => '<li>Zincirdeki <strong>bütün</strong> önceki halkaları izlediyseniz düğme <strong>hiç çıkmaz</strong>, konu her zamanki gibi görünür.</li>
+        <li>Önceki halkalardan biri <strong>yarım</strong> kaldıysa ("İzleniyor") koruma devrede kalır — bıraktığınız yerden sonrasını anlatan bir özet de spoiler\'dır.</li>
+        <li><strong>Zaten başladığınız</strong> bir animede (izliyor, bitirmiş, ertelemiş ya da bırakmışsanız) düğme çıkmaz: o animenin konusunda sizin için sürpriz kalmamıştır.</li>
+        <li>Hiçbir zincire bağlı olmayan bağımsız kayıtlarda koruma çalışmaz — ortada "önceki" diye bir şey yoktur.</li>',
+    'help.spoiler.where'                     => 'Koruma iki yerde geçerlidir: anime detay sayfasındaki <strong>Konu</strong> satırı ve <strong>Öneriler → Sürpriz Seç</strong> kartındaki tanıtım metni. Kendi yazdığınız <strong>Kişisel Konu</strong> gizlenmez.',
+    'help.spoiler.box_title'                 => '<i class="fas fa-info-circle"></i> Kapatmak isterseniz:',
+    'help.spoiler.box_body'                  => 'Liste Ayarları → Genel Ayarlar → <strong>"İzlemediğim sezonların konusunu gizle"</strong> kutucuğunu kaldırın; o andan sonra hiçbir yerde düğme çıkmaz. Tercih kişiye özeldir. Giriş yapmamış ziyaretçilerde koruma her zaman açıktır: kişisel izleme verileri olmadığı için hiçbir sezon izlenmiş sayılmaz.',
+
+    'help.broadcast.h2'                      => 'Yayın Bilgileri ve Geri Sayım',
+    'help.broadcast.intro'                   => 'Yayını devam eden ya da henüz başlamamış animelerin detay sayfasında yayın günü, saati ve saat dilimi görünür. Bunlara dayanarak <strong>sonraki bölümün tarihi</strong> hesaplanır.',
+    'help.broadcast.countdown.h3'            => 'Başlamamış Animede Geri Sayım',
+    'help.broadcast.countdown.text'          => 'Yayını henüz başlamamış bir animede, ilk yayın tarihi ile yayın saati biliniyorsa sayfa <strong>ilk bölüme kalan süreyi</strong> gösterir. Bu süre kaydedilmez, sayfayı her açtığınızda o anki tarihe göre yeniden hesaplanır.',
+    'help.broadcast.partial'                 => 'Yayın tarihinin yalnızca yılı ya da ayı biliniyorsa (<code>??.??.2027</code>) geri sayım satırı <strong>hiç basılmaz</strong>: bilinmeyen bir güne kesin bir sayı uydurmak olurdu.',
     'help.footer'                            => 'Daha fazla sorunuz için: daha fazla ayrıntılı teknik bilgi proje <a href="https://github.com/hitsumo/animetracker" target="_blank" rel="noopener">GitHub sayfasında</a> bulunur.',
 
     // -----------------------------------------------------------------
@@ -1000,6 +1209,12 @@ return [
     'list_settings.st_mode.save'             => 'Kaydet',
 
     // 1.1.2 - yetiskin (+18) icerik gorunurluk toggle (list_settings)
+    // 1.1.33 - konu spoiler kapısı (user_pref 'spoiler_guard').
+    'list_settings.section.spoiler'          => 'Spoiler Koruması',
+    'list_settings.section.spoiler.desc'     => 'Varsayılan olarak açıktır. Açıkken, bir serinin önceki halkalarını izlemediyseniz devam sezonlarının konusu doğrudan gösterilmez; "okumak istiyorum" düğmesinin arkasında durur. Bu tercih yalnızca sizi etkiler.',
+    'list_settings.spoiler.checkbox'         => 'İzlemediğim sezonların konusunu gizle',
+    'list_settings.spoiler.save'             => 'Kaydet',
+
     'list_settings.section.adult'            => 'Yetişkin İçerik',
     'list_settings.section.adult.desc'       => 'Varsayılan olarak kapalıdır. Açılırsa +18 işaretli animeler liste, arama, öneri ve istatistiklerde görünür. Bu tercih yalnızca sizi etkiler.',
     'list_settings.adult.checkbox'           => 'Yetişkin içeriği göster',

@@ -1,0 +1,341 @@
+-- Anime Tracker - Migration 1.1.33
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- =====================================================================
+-- 1.1.33 - konu spoiler kapisi + yardim kapsami
+-- =====================================================================
+--
+-- IKI IS, AYNI SURUM:
+--   (1) Konu spoiler kapisi - izlenmemis sezonun konusu dugme arkasinda.
+--   (2) Yardim kapsami - yazilmis ama hic belgelenmemis ozellikler
+--       (liste/filtreler, kisisel tercihler, ice-disa aktarma, uyelik ve
+--       katki) yardima girdi. Ayrinti asagida, "IKINCI IS" basliginda.
+--
+-- SEMASIZ SURUM. Yeni tablo, kolon ya da enum degeri yoktur; bu klasorun
+-- tek amaci settings.version'i 1.1.33'e tasimaktir (runner yorumlari
+-- temizler ve bos ifade listesiyle surumu damgalar; bu dosyada
+-- calistirilacak SQL ifadesi yoktur).
+--
+-- Yeni bir KISISEL TERCIH eklendi ama o da sema degildir: user_pref
+-- key/value bir tablodur, yeni tercih yeni bir SATIRDIR (1.0.1'den beri
+-- kural bu). Satir ilk kullanimda kendiliginden olusur; migration'in
+-- onceden yazmasi gereken hicbir sey yok - ustelik yazsaydi YANLIS
+-- olurdu: varsayilan ACIK oldugu icin "kaydi olmayan kullanici" ile
+-- "acik diyen kullanici" ayni sonuca varir, tabloyu her uye icin bir
+-- satirla doldurmanin tek etkisi cop olurdu.
+--
+-- =====================================================================
+-- NEDEN
+-- =====================================================================
+--
+-- Bir serinin IKINCI ve sonraki halkalarinin KONUSU, kendinden onceki
+-- halkalarin sonunu ele verir. "X oldukten sonra geriye kalan ekip..."
+-- diye baslayan bir ozet, o animeyi henuz izlememis kisiye sifir bilgi
+-- verir ama bir onceki sezonu bastan sona spoiler'lar. Katalog buyudukce
+-- bu, listeyi gezerken kacinilmaz hale geliyor: kullanici devam
+-- sezonunun sayfasini yalnizca "kac bolum" diye acsa bile konu ekranda.
+--
+-- Cozum kapatmak degil, ARAYA BIR ADIM KOYMAK: konu sayfada durur, ama
+-- kullanici "yine de okumak istiyorum" demeden gorunmez.
+--
+-- =====================================================================
+-- KURAL
+-- =====================================================================
+--
+-- Zincirde (next_in_series) bu animeden ONCE gelen halkalardan biri bile
+-- izlenmemisse KATALOG konusu dogrudan basilmaz. Hepsi izlendiyse ortada
+-- dugme de yoktur - sayfa 1.1.32'deki gibi gorunur.
+--
+-- DORT KARAR:
+--
+--   (1) ZINCIRDEKI TUM ONCEKILER sorulur, yalnizca bir onceki halka
+--       degil. S3'un sayfasinda S2 izlenmis ama S1 atlanmissa konu yine
+--       de S1'i ele verebilir; "yalniz en yakin halkaya bak" kurali o
+--       kisiyi korumazdi. Maliyet halka basina bir sorgu, tavan 25 halka
+--       ve donguye karsi visited kumesi (seriesChainStartId ile ayni
+--       koruma).
+--
+--   (2) ANONIM ZIYARETCIDE DE CALISIR. Anonimin kisisel izleme verisi
+--       yoktur, yani hicbir sey izlenmis sayilmaz ve devam halkalarinin
+--       konusu kapinin arkasinda acilir. Katalogu ilk kez gezen kisi tam
+--       da korunmasi gereken kisidir; maliyeti tek tik.
+--
+--   (3) ANIMEYE BASLAMIS KULLANICIYA KAPI KURULMAZ. Izlemekte oldugun
+--       (ya da bitirdigin, erteledigin, biraktigin) bir animenin
+--       konusunda senin icin spoiler yoktur - onceki sezonu atlamis
+--       olsan bile onu zaten bu animeyi izlerken ogrendin. Olcut:
+--       watched_episodes > 0 ya da durum "planlandi/secilmemis" disinda
+--       bir sey.
+--
+--   (4) "IZLENIYOR" ONCEKI HALKA ICIN IZLENMIS SAYILMAZ. Yarim
+--       birakilmis bir sezonun sonunu ele veren ozet de spoiler'dir;
+--       yalnizca 'Watched' kapiyi acar.
+--
+-- =====================================================================
+-- NEDEN <details>, NEDEN JAVASCRIPT YOK
+-- =====================================================================
+--
+-- Kapi tarayicinin kendi <details>/<summary> ogesidir. Uc sonucu var:
+--   - JS kapaliyken de acilir, klavyeyle gezilebilir (JS'e bagli bir
+--     dugme, script yuklenmediginde konuyu ULASILAMAZ yapardi).
+--   - Ek istek yoktur: metin zaten sayfayla gelir, tik yalnizca acar.
+--   - Metin DOM'da durdugu icin arama motoru sayfanin konusunu yine
+--     gorur. Bu bilincli bir karardir: kapi bir SPOILER PERDESIDIR,
+--     erisim denetimi degil. Gizlenen sey zaten herkese acik bir katalog
+--     ozetidir; onu sunucuda kesmek, sayfanin arama sonuclarindaki
+--     aciklamasini da bozardi.
+--
+-- META ACIKLAMA (1.1.30) DEGISMEDI. Detay sayfasinin <meta description>
+-- alani konudan uretilmeye devam eder. Bir tarayici anime izlemez;
+-- ustelik aciklama TUM DUNYAYA yayimlanan tek bir metindir, ziyaretciye
+-- gore degismez - kisisel izleme durumuna gore sekillenen bir meta
+-- etiketi, ayni adresin herkese ayni cevabi vermesi kuralini bozardi.
+--
+-- =====================================================================
+-- NEREDE GORUNUR
+-- =====================================================================
+--
+--   anime_details.php     "Konu" satiri (KATALOG konusu).
+--   recommendations.php   Surpriz kartinin 200 karakterlik tanitimi.
+--
+-- Ikincisi olmasa koruma delik olurdu: detay sayfasi konuyu gizlerken
+-- surpriz karti ayni metnin ilk 200 karakterini basardi - ki spoiler
+-- cumlesi cogunlukla ozetin ILK cumlesidir.
+--
+-- KISISEL KONU (user_synopsis) KAPININ DISINDADIR. O metni kullanicinin
+-- KENDISI yazar ve yalnizca kendisi gorur; kisiyi kendi notundan
+-- korumanin anlami yok.
+--
+-- LISTE SAYFASI (index.php) HIC KONU BASMAZ - orada yapilacak bir sey
+-- yoktu, kart yalnizca baslik/durum/bolum gosterir.
+--
+-- =====================================================================
+-- TERCIH
+-- =====================================================================
+--
+-- user_pref 'spoiler_guard', VARSAYILAN ACIK ('0' disindaki her deger
+-- acik sayilir). Liste Ayarlari > "Spoiler Korumasi" kutucugu; ucu
+-- set_spoiler_pref.php (set_adult_pref.php'nin ayni kalibi, CSRF'li
+-- POST, ayni-host Referer sertlestirmesi).
+--
+-- Varsayilanin YONU yetiskin icerik tercihinin TERSIDIR: orada guvenli
+-- taraf "gosterme" oldugu icin varsayilan kapali, burada guvenli taraf
+-- "gizle" oldugu icin varsayilan aciktir. Ucta eksik/bozuk bir alan da
+-- bu yuzden '1'e duser.
+--
+-- Anonim ziyaretcinin tercih satiri olamaz (user_pref.user_id, users'a
+-- FK'li) ve list_settings.php zaten require_login() ile korunur; anonim
+-- icin kapi her zaman aciktir - okuma varsayilana duser, kapatma yolu
+-- yoktur. Tek tik uzaktaki bir perde icin bu yeterlidir.
+--
+-- =====================================================================
+-- IKINCI IS: YARDIM KAPSAMI (ayni surumde, ayri konu)
+-- =====================================================================
+--
+-- Kapi yazildiktan sonra yardim sayfalari bastan tarandi ve YAZILMIS AMA
+-- HIC BELGELENMEMIS ozellikler cikti. Yardim metinlerinin tamami lang
+-- dosyalarindaki help.* anahtarlarinda durur (help/*.php yalnizca
+-- iskelettir), yani bu is de buyuk olcude bir dil dosyasi isidir.
+--
+-- DORT YENI GRUP (yeni alt sayfalar):
+--
+--   help/help_list.php      Liste, arama ve filtreler: iki sekme
+--                           (Genel/Kisisel) ve varsayilan liste tercihi,
+--                           arama, alti filtre, duygu filtresi, sayfada
+--                           goster, siralama, "Son Guncellenenler".
+--   help/help_prefs.php     Liste Ayarlari > Genel Ayarlar'daki yedi
+--                           kisisel tercih tek yerde; arti kendi bolumu
+--                           olmayan ikisinin tam anlatimi (arayuz dili,
+--                           yetiskin icerik).
+--   help/help_transfer.php  Ice/Disa Aktar sekmesi: JSON yedek alma ve
+--                           geri yukleme, MyAnimeList ve AniList
+--                           aktarimi, "Listeyi Temizle" tehlikesi.
+--   help/help_account.php   Cok kullanicili kurulumun tamami: giris,
+--                           kayit, davetiye, hesap, dort rol, onay
+--                           kuyrugu, duzeltme onerisi.
+--
+-- UC YENI BOLUM (var olan "Seriler ve Bolum Bilgisi" sayfasina):
+--   #seri-kronolojisi  series_timeline.php sekmeleri (1.1.23) ve
+--                      "Diger Zincir 1..N" (1.1.25)
+--   #spoiler           bu surumun kapisi - KURALIN TEK KAYNAGI burasidir;
+--                      Kisisel Tercihler sayfasi yalnizca buraya isaret
+--                      eder, metni KOPYALAMAZ
+--   #yayin-bilgileri   yayin gunu/saati ve baslamamis animede geri sayim
+--                      (1.1.28 / 1.1.29), kismi tarihte basilmamasi dahil
+--
+-- BES DUZELTME (var olan metinlerde):
+--   - "+/- butonlari" artik detay sayfasindaki satiri da aniyor (1.1.27).
+--   - Kisisel alanlar listesine izlemeye baslama/bitirme tarihleri girdi.
+--   - Katalog alanlari listesine Ulke girdi (1.1.17).
+--   - Oneri sistemi "Yonetici (admin)" diyordu; cumle etiketlerini
+--     moderator de atiyor - "kuratorler" oldu.
+--   - Guncelleme bolumu artik SELF-HOST + YONETICI kaydini tasiyor:
+--     online kurulumda o dugme yerine proje sayfasinin baglantisi durur.
+--   - KIRIK BAGLANTI: kisisel alanlar listesindeki "+/- butonlari"
+--     baglantisi "#hizli-butonlar" diyordu, ama o capa BASKA bir sayfada
+--     (help_basics.php). Ayni sayfaya atlamaya calisip hicbir yere
+--     gitmiyordu; "help_basics.php#hizli-butonlar" oldu.
+--
+-- KAPSAM DISI (bilincli): moderator/yonetici panelleri (tur ve cumle
+-- yonetimi, onay ekranlari, davet uretimi) yardimda anlatilmadi. Yardim
+-- KULLANICIYA doniktur; yonetim ekranlari kendi icinde acikliyor.
+--
+-- =====================================================================
+-- YENI DOSYA (6)
+-- =====================================================================
+--
+--   files/set_spoiler_pref.php            tercih ucu
+--   files/help/help_list.php              yardim: liste ve filtreler
+--   files/help/help_prefs.php             yardim: kisisel tercihler
+--   files/help/help_transfer.php          yardim: ice/disa aktarma
+--   files/help/help_account.php           yardim: uyelik ve katki
+--   files/migration/1.1.33/upgrade.sql    (bu dosya)
+--
+-- YENI YARDIMCI DOSYA YOKTUR. Kapinin dort fonksiyonu var olan
+-- functions/series_helpers.php'ye eklendi: yaptigi is zincir yuruyusudur
+-- ve zincir yuruyusleri 1.1.25'ten beri o dosyada durur. Yeni bir modul,
+-- functions.php yukleyicisine de bir satir demekti - yarim yuklemede
+-- fatal ureten fazladan bir bagimlilik. Yeni yardim sayfalari yukleyiciye
+-- girmez (kendi basina acilan sayfalardir), bu yuzden ayni risk yok.
+--
+-- =====================================================================
+-- DEGISEN DOSYALAR (10)
+-- =====================================================================
+--
+--   files/functions/series_helpers.php  spoiler_guard_enabled(),
+--                                       seriesUnwatchedPredecessors(),
+--                                       spoiler_gate(),
+--                                       spoiler_gate_open()/_close()
+--   files/anime_details.php             konu satiri kapinin icine
+--   files/recommendations.php           surpriz kartinin tanitimi
+--   files/list_settings.php             "Spoiler Korumasi" kutucugu
+--   files/css/base.css                  .spoiler-guard* kurallari
+--   files/help.php                      icindekiler: dort yeni grup +
+--                                       seri grubunda uc yeni satir
+--   files/help/help_series.php          uc yeni bolum
+--   files/lang/tr.php, files/lang/en.php  128'er yeni anahtar (994 = 994)
+--                                       + alti metin duzeltmesi
+--   files/version.txt                   1.1.33
+--
+-- =====================================================================
+-- DOGRULAMA (calisan kodla, gercek MariaDB 10.4 uzerinde)
+-- =====================================================================
+--
+--   - 24 vaka, GERCEK functions/ dosyalari yuklenerek (yalnizca db.php
+--     taklit edildi) ayri bir at_sg_test veritabaninda kosuldu; yerel
+--     calisma veritabanina dokunulmadi. E_ALL acikti, tek uyari yok.
+--     Kapsanan: hicbiri izlenmemis (2 halka), yalniz biri izlenmis,
+--     hepsi izlenmis (kapi yok), zincirin basi, zincirde olmayan tek
+--     film, animenin kendisi izleniyor/birakilmis/planlandi-ama-3-bolum,
+--     onceki halka YARIM izlenmis (kapi VAR), DONGUSEL zincir (200 ms
+--     altinda dondu), +18 halkanin adinin maskelenmesi, 40 halkalik
+--     zincirde 25 tavani, uretilen markup'in acilis/kapanis dengesi,
+--     tekil/cogul uyari kalibi, kapi yokken SIFIR markup ve baslikta
+--     <script> kacislamasi.
+--   - Tercihin uc durumu HER BIRI AYRI SURECTE ('0', '1', kayit yok):
+--     fonksiyon sonucu istek basina onbelleklendigi icin tek surecte
+--     olculemezdi.
+--   - Anonim (user_id NULL) ayri surecte: uye 1 her seyi izlemis olsa
+--     bile anonime kapi kuruldu - kisisel veri sizmiyor.
+--   - anime_details.php ve recommendations.php GERCEK sayfalar olarak
+--     acildi (gecici config.php + bu test veritabani): kapi acikken ve
+--     kapaliyken cikti karsilastirildi, <details> ogesi konu satirinin
+--     ICINDE dogru yerde kapandi, kapi yokken sayfada tek bir
+--     spoiler-guard izi kalmadi.
+--   - Bu migration gercek MigrationManager ile 0.5'ten baslayan bos bir
+--     veritabaninda kosuldu ve sonra IKINCI KEZ kosuldu: ikinci kosuda
+--     0 migration, sema dokumu birebir ayni, settings.version 1.1.33.
+--   - Dil dosyalari: tr 994 / en 994, array_diff_key ikiyonlu BOS.
+--   - php -l: degisen/eklenen 14 PHP dosyasi, 14/14 gecti.
+--   - YARDIM SAYFALARI GERCEKTEN ACILDI: 11 sayfanin her biri (index +
+--     10 alt sayfa) once Turkce, sonra Ingilizce kosuldu (dil tercihi
+--     veritabaninda degistirilerek - lang_init user_pref'ten okur).
+--     Her kosuda arananlar: PHP uyarisi/hatasi (E_ALL, hicbiri yok), bos
+--     cikti, sayfaya dusen HAM CEVIRI ANAHTARI, kirik sayfa baglantisi ve
+--     KIRIK CAPA (her #anchor hedef dosyada id= olarak arandi). 22 kosu,
+--     22 temiz.
+--   - Anahtar denetimi: yardim sayfalarinin cagirdigi 318 anahtarin
+--     tamami dil dosyasinda VAR; ters yonde de bosluk yok - kullanilmayan
+--     help.* anahtari SIFIR (yani yazilip sayfaya konmamis metin yok).
+--
+-- KOSULMADI (durust sinir):
+--   - Gorunum yalnizca uretilen HTML uzerinden dogrulandi; kutunun
+--     tarayicidaki gorsel yerlesimi (kenarlik, dugme boslugu) canlida
+--     goz ile bakilmali.
+--   - Yardim sayfalari uretilen HTML uzerinden dogrulandi; tarayicida goz
+--     ile okunmadi. Yeni metinlerin ANLATTIGI davranis koddan tek tek
+--     dogrulandi (dosya adlari, alan adlari, sinirlar ve mesajlar
+--     okundu), ama her akis (ornegin gercek bir AniList aktarimi)
+--     bastan sona kosulmadi.
+--   - <details> ogesinin ESKI tarayicilardaki davranisi denenmedi.
+--     Destegi olmayan bir tarayici ozeti de govdeyi de duz metin olarak
+--     gosterir; yani en kotu durum "kapi yokmus gibi" davranmaktir,
+--     kirik sayfa degil.
+--
+-- =====================================================================
+-- MERKEZ KATALOG VERITABANI
+-- =====================================================================
+--
+-- ELLE ISLEM GEREKMEZ. Katalog teline dokunulmadi, sema degismedi,
+-- catalog_server/ altindaki hicbir dosya bu surumde degismedi. Kapi
+-- tamamen GORUNTULEME tarafindadir: hangi verinin geldigini degil, gelen
+-- verinin nasil gosterildigini belirler.
+--
+-- =====================================================================
+-- DAGITIM NOTU - UYGULAMA SUNUCUSU (animetracker.uzakdiyarlar.com)
+-- =====================================================================
+--
+-- YUKLENECEK DOSYALAR (10 degisen + 6 yeni = 16):
+--   files/version.txt                     (1.1.33)
+--   files/migration/1.1.33/upgrade.sql    (bu dosya, yeni klasor)
+--   files/set_spoiler_pref.php            (YENI)
+--   files/functions/series_helpers.php
+--   files/anime_details.php
+--   files/recommendations.php
+--   files/list_settings.php
+--   files/css/base.css
+--   files/lang/tr.php, files/lang/en.php
+--   files/help.php
+--   files/help/help_series.php
+--   files/help/help_list.php              (YENI)
+--   files/help/help_prefs.php             (YENI)
+--   files/help/help_transfer.php          (YENI)
+--   files/help/help_account.php           (YENI)
+--
+-- YARIM YUKLEME UYARISI:
+--   series_helpers.php ile uc sayfa (anime_details, recommendations,
+--   list_settings) BIRLIKTE gitmelidir. Yardimci eski kalirsa sayfalar
+--   var olmayan spoiler_gate()'i cagirir ve ACILMAZ. Tersi zararsizdir:
+--   yalniz yardimci yuklenirse yeni fonksiyonlar kimse tarafindan
+--   cagrilmaz.
+--   base.css eski kalirsa kapi CALISIR ama cirkin gorunur (ucgen
+--   isaretci geri gelir, dugme duz metin olur) - islevsel kayip yok.
+--   Dil dosyalari eski kalirsa uyari yerine "spoiler.notice_fmt" gibi
+--   ham anahtar gorunur.
+--   set_spoiler_pref.php eksik kalirsa kapi yine calisir, yalnizca Liste
+--   Ayarlari'ndaki kutucuk 404 verir.
+--   YARDIM TARAFI: help.php ile dort yeni alt sayfa BIRLIKTE gitmelidir -
+--   icindekiler onlara baglanti verir, dosyalar yoksa dort baglanti 404
+--   olur. Dil dosyalari eski kalirsa yeni yardim sayfalari ham anahtar
+--   basar (acilirlar, ama okunmazlar). Yardim tarafi uygulamanin geri
+--   kalanini etkilemez: eksik ya da eski kalmasi hicbir sayfayi bozmaz.
+--
+-- Tarayici onbellegi: CSS damgasi (?v=1.1.33) kendini tazeler - 1.1.24
+-- bu isi zaten cozdu, base.css degistigi icin burada onemlidir.
+--
+-- =====================================================================
+-- DAGITIM NOTU - IKINCI SUNUCU (animetracker.sicakcikolata.com)
+-- =====================================================================
+--
+-- Her surumde ELLE yapilan iki ISLEVSEL adim:
+--   version.txt                              -> 1.1.33
+--   updates/1.1.33/anime-tracker-1.1.33.zip  -> yeni paket
+-- Birincisi yapilmazsa her kurulumdaki "Guncelleme Denetle" hala
+-- 1.1.32'yi son surum sanar (files/check_update.php bu adresi okur).
+-- Ikincisi yapilmazsa "Guncelle" dugmesi indirme adresinde 404 alir
+-- (files/update.php, updates/{VERSION}/anime-tracker-{VERSION}.zip).
+--
+-- Bu surumde o sunucudaki katalog kodunda degisiklik YOKTUR.
+-- =====================================================================

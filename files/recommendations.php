@@ -543,8 +543,20 @@ $useCombinedTemplates  = ($totalEmotionsSelected > 0);
             <div style="margin: 8px 0;">
                 <?php echo watch_status_badge($surpriseAnime['watch_status']); ?>
             </div>
-            <p style="color: #666; margin: 12px 0;">
+            <?php /* 1.1.33: <p> yerine <div> - spoiler kapisi bir <details>
+               ogesidir ve <p> icinde gecerli degildir (tarayici paragrafi
+               erkenden kapatir). Gorunum ayni: ayni renk, ayni bosluk. */ ?>
+            <div style="color: #666; margin: 12px 0;">
                 <?php
+                // 1.1.33 - konu spoiler kapisi: zincirde bu animeden once
+                // gelen halkalardan biri izlenmemisse tanitim metni de
+                // dugmenin arkasina alinir. Detay sayfasi konuyu gizlerken
+                // surpriz kartinin ayni metnin 200 karakterini basmasi
+                // korumayi delerdi. Kapi gerekmiyorsa iki cagri da bos
+                // dize doner. $surpriseAnime kisisel izleme durumuyla
+                // birlestirilmis satirdir (yukaridaki LEFT JOIN).
+                $surpriseGate = spoiler_gate($pdo, $surpriseAnime);
+                echo spoiler_gate_open($surpriseGate);
                 // Pick the synopsis by UI language: English mode prefers
                 // synopsis_en and falls back to synopsis_tr; Turkish mode
                 // uses synopsis_tr. The legacy synopsis column is not read.
@@ -563,8 +575,9 @@ $useCombinedTemplates  = ($totalEmotionsSelected > 0);
                     $synopsis = mb_substr($synopsis, 0, 200) . '...';
                 }
                 echo htmlspecialchars($synopsis);
+                echo spoiler_gate_close($surpriseGate);
                 ?>
-            </p>
+            </div>
             <div class="rec-actions">
                 <a href="recommendations.php?mode=surprise" class="anime-list-button">
                     <i class="fas fa-dice"></i> <?php echo htmlspecialchars(t('recommendations.surprise.try_another'), ENT_QUOTES, 'UTF-8'); ?>

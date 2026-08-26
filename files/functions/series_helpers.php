@@ -432,3 +432,197 @@ function validateNextInSeries($pdo, $anime_id, $target_id) {
     }
     return true;
 }
+
+// =====================================================================
+// Konu spoiler kapisi (1.1.33)
+// =====================================================================
+// Bir serinin ikinci ve sonraki halkalarinin KONUSU, kendinden onceki
+// halkalarin sonunu ele verir: "X oldukten sonra kalan ekip..." diye
+// baslayan bir ozet, o animeyi henuz izlememis kisiye sifir bilgi verir
+// ama bir onceki sezonu bastan sona spoiler'lar.
+//
+// Kural: zincirde (next_in_series) bu animeden ONCE gelen kayitlardan
+// biri bile izlenmemisse konu dogrudan basilmaz, "okumak istiyorum"
+// dugmesinin arkasina alinir. Onceki halkalarin HEPSI izlendiyse ortada
+// dugme de yoktur - sayfa 1.1.32'deki gibi gorunur.
+//
+// UC KARAR:
+//
+//   (1) ZINCIRDEKI TUM ONCEKILER sorulur, yalnizca bir onceki halka
+//       degil. S3'un sayfasinda S2 izlenmis ama S1 atlanmissa konu yine
+//       de S1'i ele verebilir; "yalniz en yakin halkaya bak" kurali o
+//       kisiyi korumazdi.
+//
+//   (2) ANONIM ZIYARETCIDE DE CALISIR. Anonim kullanicinin kisisel
+//       izleme verisi yoktur, yani hicbir sey izlenmis sayilmaz ve devam
+//       halkalarinin konusu kapinin arkasinda acilir. Katalogu ilk kez
+//       gezen kisi tam da korunmasi gereken kisidir; maliyeti tek tik.
+//
+//   (3) ANIMEYE BASLAMIS KULLANICIYA KAPI KURULMAZ. Izlemekte oldugun
+//       (ya da bitirdigin, erteledigin, biraktigin) bir animenin
+//       konusunda senin icin spoiler yoktur - onceki sezonu atlamis
+//       olsan bile onu zaten bu animeyi izlerken ogrendin.
+//
+// Kapi kisi bazli tercihle kapatilabilir: user_pref 'spoiler_guard'
+// (varsayilan acik), Liste Ayarlari > "Spoiler korumasi".
+
+/**
+ * Kapi acik mi? user_pref 'spoiler_guard', varsayilan ACIK.
+ *
+ * Yalnizca '0' degeri kapatir; anahtar hic yoksa (yeni kurulum, anonim
+ * ziyaretci, tercihe hic dokunmamis kullanici) ozellik aciktir.
+ *
+ * Sonuc istek basina onbelleklenir - ayni sayfada birden cok yerden
+ * cagrilabilir ve tercih bir istek icinde degismez.
+ */
+function spoiler_guard_enabled($pdo) {
+    static $enabled = null;
+    if ($enabled === null) {
+        $enabled = (get_user_pref($pdo, current_user_id(), 'spoiler_guard', '1') !== '0');
+    }
+    return $enabled;
+}
+
+/**
+ * Zincirde bu animeden once gelen ve HENUZ IZLENMEMIS kayitlar.
+ *
+ * next_in_series geriye dogru yurunur (bu animeyi isaret eden kayit, onu
+ * isaret eden kayit, ...). Yalnizca watch_status'u 'Watched' OLMAYAN
+ * halkalar doner; en yakini listenin basindadir.
+ *
+ * "Izleniyor" izlenmis SAYILMAZ: yarim birakilmis bir sezonun sonunu ele
+ * veren ozet de spoiler'dir.
+ *
+ * seriesChainStartId() ile ayni yuruyus ve ayni dongu korumasi (visited
+ * kumesi); fark, bu yuruyusun her adimda kisisel izleme durumunu da
+ * okumasi ve zincirin basini degil izlenmemis halkalari toplamasidir.
+ * Ayni kaydi iki kayit birden isaret ediyorsa (veri bunu engellemez) en
+ * kucuk id secilir - seriesChainStartId() de oyle yapar.
+ *
+ * @param PDO $pdo
+ * @param int $anime_id  Zincirde durdugumuz kayit.
+ * @param int $limit     Toplanacak izlenmemis halka tavani (guvenlik agi).
+ * @return array         Satirlar: id, title, alternative_titles, is_adult, watch_status.
+ */
+function seriesUnwatchedPredecessors($pdo, $anime_id, $limit = 25) {
+    $unwatched = [];
+    $current   = (int)$anime_id;
+    $visited   = [$current => true];
+
+    $stmt = $pdo->prepare("
+        SELECT a.id, a.title, a.alternative_titles, a.is_adult,
+               ua.watch_status
+        FROM animes a
+        LEFT JOIN user_anime ua
+               ON ua.anime_id = a.id AND ua.user_id = ?
+        WHERE a.next_in_series = ?
+        ORDER BY a.id ASC
+        LIMIT 1
+    ");
+
+    while (count($unwatched) < $limit) {
+        $stmt->execute([current_user_id(), $current]);
+        $prev = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
+        if (!$prev) {
+            break;                        // zincirin basina gelindi
+        }
+        $prevId = (int)$prev['id'];
+        if (isset($visited[$prevId])) {
+            break;                        // circular guard
+        }
+        $visited[$prevId] = true;
+        if (($prev['watch_status'] ?? null) !== 'Watched') {
+            $unwatched[] = $prev;
+        }
+        $current = $prevId;
+    }
+
+    return $unwatched;
+}
+
+/**
+ * Bu anime icin konu spoiler kapisi gerekiyor mu?
+ *
+ * @param PDO   $pdo
+ * @param array $anime  En az id; varsa watch_status ve watched_episodes
+ *                      da okunur (ikisi de KISISEL alandir - cagiran
+ *                      taraf user_anime ile birlestirilmis satiri verir).
+ * @return array|null   Kapi gerekmiyorsa null. Gerekiyorsa:
+ *                        ['count' => izlenmemis halka sayisi,
+ *                         'title' => en yakin izlenmemis halkanin adi]
+ */
+function spoiler_gate($pdo, array $anime) {
+    if (empty($anime['id']) || !spoiler_guard_enabled($pdo)) {
+        return null;
+    }
+
+    // Karar (3): animeye baslamis kullaniciya kapi kurulmaz. Bolum sayaci
+    // 0'in ustundeyse ya da durum "planlandi / secilmemis" disinda bir
+    // seyse kisi bu animenin icindedir.
+    $status = $anime['watch_status'] ?? null;
+    if ((int)($anime['watched_episodes'] ?? 0) > 0
+        || ($status !== null && $status !== '' && $status !== 'PlanToWatch')) {
+        return null;
+    }
+
+    $unwatched = seriesUnwatchedPredecessors($pdo, (int)$anime['id']);
+    if (!$unwatched) {
+        return null;
+    }
+
+    // 1.1.2 - en yakin halka +18 damgaliysa ve izleyici yetiskin icerigi
+    // acmamissa basligi notr yer tutucuyla maskelenir: kapinin uyari
+    // metni, gizlenmesi gereken bir adi sizdiran yer olmamali.
+    $nearest = adult_mask_related($unwatched[0], 'is_adult', 'title', 'alternative_titles');
+
+    return [
+        'count' => count($unwatched),
+        'title' => display_title($nearest),
+    ];
+}
+
+/**
+ * Kapinin ACILIS markup'i (spoiler_gate_close() ile birlikte kullanilir).
+ *
+ * Neden acilis/kapanis cifti, tek bir spoiler_wrap($gate, $html) degil:
+ * kapinin sardigi icerik cagiran sayfanin KENDI sablonudur (konu metni +
+ * ceviri notu, ya da 200 karakterlik tanitim). Onu bir dizeye toplamak
+ * o markup'i yeniden yazmayi gerektirirdi; bu cift, var olan markup'a
+ * hic dokunmadan etrafina gecirilir.
+ *
+ * JAVASCRIPT YOKTUR. <details>/<summary> tarayicinin kendi acilir
+ * bolumudur: JS kapaliyken de acilir, klavyeyle gezilebilir ve icerik
+ * DOM'da durdugu icin arama motoru sayfanin konusunu yine gorur. Kapi
+ * bir spoiler perdesidir, erisim denetimi DEGIL - gizlenen sey zaten
+ * herkese acik bir katalog ozetidir.
+ *
+ * @param array|null $gate  spoiler_gate() sonucu; null ise bos dize.
+ * @return string
+ */
+function spoiler_gate_open($gate) {
+    if (!$gate) {
+        return '';
+    }
+    // Baslik once kacislanir, sonra ceviri kalibina yerlestirilir: kalip
+    // dil dosyasindan gelir (guvenilir), degisken kisim katalog verisidir.
+    $title  = htmlspecialchars($gate['title'], ENT_QUOTES, 'UTF-8');
+    $notice = ((int)$gate['count'] > 1)
+        ? sprintf(t('spoiler.notice_more_fmt'), $title, (int)$gate['count'] - 1)
+        : sprintf(t('spoiler.notice_fmt'), $title);
+
+    return '<details class="spoiler-guard">'
+         . '<summary class="spoiler-guard-toggle">'
+         . '<span class="spoiler-guard-note">' . $notice . '</span>'
+         . '<span class="spoiler-guard-action spoiler-guard-show">'
+         . htmlspecialchars(t('spoiler.reveal'), ENT_QUOTES, 'UTF-8') . '</span>'
+         . '<span class="spoiler-guard-action spoiler-guard-hide">'
+         . htmlspecialchars(t('spoiler.hide'), ENT_QUOTES, 'UTF-8') . '</span>'
+         . '</summary>'
+         . '<div class="spoiler-guard-body">';
+}
+
+/** Kapinin kapanis markup'i - bkz. spoiler_gate_open(). */
+function spoiler_gate_close($gate) {
+    return $gate ? '</div></details>' : '';
+}

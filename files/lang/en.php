@@ -219,6 +219,13 @@ return [
     'chrono.mode.showing'     => 'Showing: %s',
     'chrono.mode.toggle_hint' => 'Change view (release → story → both)',
 
+    // Synopsis spoiler guard (1.1.33). %s = title of the nearest unwatched
+    // entry in the chain, %d = how many further entries are unwatched.
+    'spoiler.notice_fmt'      => '%s is still unwatched — this synopsis may spoil the earlier season.',
+    'spoiler.notice_more_fmt' => '%s and %d more entries in the chain are still unwatched — this synopsis may spoil earlier seasons.',
+    'spoiler.reveal'          => 'Let me read it anyway',
+    'spoiler.hide'            => 'Hide synopsis',
+
     'anime_details.marker_form.title'    => 'Add New Chronology Note',
     'anime_details.marker_form.after_episode' => 'In release order (after episode):',
     'anime_details.marker_form.after_episode_placeholder' => 'e.g. 46',
@@ -521,14 +528,16 @@ return [
         <li><strong>Sentences (Tags)</strong> — For the "What Should I Watch?" system</li>
         <li><strong>Broadcast status, episode count, broadcast day/time</strong></li>
         <li><strong>Release Date / End Date</strong> — you can enter only the part you know; an unknown day or month shows as <code>??</code> (<code>??.04.1979</code>, <code>??.??.1979</code>, <code>??.??.????</code>)</li>
+        <li><strong>Country</strong> — country of production; this is what the country filter on the list uses</li>
         <li><strong>MAL / AniDB / AnimeSchedule links</strong></li>
         <li><strong>Series info</strong> (series name, media type, next in series)</li>',
     'help.fields.catalog.note'               => 'If you edit these fields manually, the next sync will <strong>overwrite</strong> them (the server has the last word).',
     'help.fields.personal.h3'                => '<i class="fas fa-user icon-inline"></i> Personal Fields (not synced)',
     'help.fields.personal.list' => '<li><strong>Watched Episodes count</strong></li>
-        <li><strong>Watch Status</strong> (Watched / Watching / Plan to Watch / On Hold / Dropped) — can change automatically via <a href="#hizli-butonlar">the <code>+/-</code> buttons in the list</a></li>
+        <li><strong>Watch Status</strong> (Watched / Watching / Plan to Watch / On Hold / Dropped) — can change automatically via <a href="help_basics.php#hizli-butonlar">the <code>+/-</code> buttons in the list</a></li>
         <li><strong>Notes</strong> — Your personal reminders, comments</li>
         <li><strong>Personal Synopsis</strong> — Your own take / description</li>
+        <li><strong>Start and finish dates</strong> — when you started an anime and when you finished it</li>
         <li><strong>Poster (if you uploaded one yourself)</strong></li>
         <li><strong>Next episode date</strong> (locally calculated)</li>',
     'help.fields.personal.note'              => 'The server <strong>never touches</strong> these. Write and edit them as much as you like.',
@@ -546,7 +555,7 @@ return [
 
     // Section: Quick watch buttons (+/-)
     'help.buttons.h2'                        => 'Quick Watch Buttons (+/-)',
-    'help.buttons.intro'                     => 'Each anime in the list has <code>+</code> and <code>-</code> buttons next to it. These let you bump the watched episode count up or down without opening the "Edit" screen. Under certain conditions the count change also <strong>updates the Watch Status automatically</strong>.',
+    'help.buttons.intro'                     => 'Each anime in the list has <code>+</code> and <code>-</code> buttons next to it, and so does the "Watched Episodes" row on the anime detail page. These let you bump the watched episode count up or down without opening the "Edit" screen. Under certain conditions the count change also <strong>updates the Watch Status automatically</strong>.',
     'help.buttons.transitions.h3'            => 'Automatic Status Transitions',
     'help.buttons.transitions.intro'         => 'The table below summarises the five main cases:',
     'help.buttons.transitions.col_current'   => 'Current status',
@@ -672,7 +681,7 @@ return [
     'help.recom.h2'                          => 'What Should I Watch? — Recommendation System',
     'help.recom.intro'                       => 'The "What Should I Watch?" link in the menu is a tool designed to suggest anime from your list that match your mood.',
     'help.recom.howto.h3'                    => 'How Does It Work?',
-    'help.recom.howto.text'                  => 'The admin assigns each anime a few <strong>sentence tags</strong>: "Set in school", "Has sports", "Has magic", etc. Pick whichever sentences you fancy and press "Recommend".',
+    'help.recom.howto.text'                  => 'Curators (moderators and administrators) assign each anime a few <strong>sentence tags</strong>: "Set in school", "Has sports", "Has magic", etc. Pick whichever sentences you fancy and press "Recommend".',
     'help.recom.scoop.h3'                    => 'Scoop Logic',
     'help.recom.scoop.text'                  => 'Think of each selected sentence as a scoop. Each scoop pulls its matches from the list. If you pick multiple scoops, the anime that match the most scoops bubble to the top.',
     'help.recom.scoop.box_title'             => '<i class="fas fa-check"></i> Important:',
@@ -710,7 +719,7 @@ return [
 
     // Section: Update system
     'help.update.h2'                         => 'Update System',
-    'help.update.intro'                      => 'Anime Tracker itself ships new releases from time to time. You can check whether a new version is available via List Settings → "Check for Updates".',
+    'help.update.intro'                      => 'Anime Tracker itself ships new releases from time to time. You can check whether a new version is available via List Settings → "Check for Updates". That section is only visible to the <strong>owner of a personal (single-user) install</strong>: on a multi-user site the operator updates from the source code, so a link to the project page stands there instead of a button.',
     'help.update.flow_intro'                 => 'If a new release is available, a one-click automatic update runs:',
     'help.update.flow_list' => '<li>The new release is downloaded from the server</li>
         <li>Files are updated in place (<code>config.php</code>, <code>uploads/</code> and your watch data are preserved)</li>
@@ -739,6 +748,206 @@ return [
     'help.tz.upgrade.text'                   => 'After upgrading to v0.5.1 none of your data is lost. Broadcast times look the same (entries that were added under the default Asia/Tokyo TZ are still Asia/Tokyo). The anime detail page shows a TZ label (JST, etc.) next to each broadcast time.',
 
     // Footer
+
+    // =================================================================
+    // 1.1.33 - four new help groups and three new sections
+    // =================================================================
+
+    // New groups (help.php table of contents + subpage headings)
+    'help.group.list.heading'                => 'List, Search and Filters',
+    'help.group.list.page_title'             => 'List, Search and Filters - Anime Tracker',
+    'help.group.prefs.heading'               => 'Personal Preferences',
+    'help.group.prefs.page_title'            => 'Personal Preferences - Anime Tracker',
+    'help.group.transfer.heading'            => 'Moving and Importing Lists',
+    'help.group.transfer.page_title'         => 'Moving and Importing Lists - Anime Tracker',
+    'help.group.account.heading'             => 'Membership and Contributing',
+    'help.group.account.page_title'          => 'Membership and Contributing - Anime Tracker',
+
+    // New table-of-contents entries
+    'help.toc.list_tabs'                     => 'Full List and My List',
+    'help.toc.search'                        => 'Search',
+    'help.toc.filters'                       => 'Filters and Sorting',
+    'help.toc.recent'                        => 'Recently Updated',
+    'help.toc.prefs'                         => 'Preferences — All in One Place',
+    'help.toc.ui_lang'                       => 'Interface Language',
+    'help.toc.adult'                         => 'Adult Content (18+)',
+    'help.toc.export'                        => 'Export Your List (backup)',
+    'help.toc.import'                        => 'Import a List',
+    'help.toc.mal'                           => 'Import a MyAnimeList List',
+    'help.toc.anilist'                       => 'Import an AniList List',
+    'help.toc.clear'                         => 'Clear the List',
+    'help.toc.membership'                    => 'Signing In, Registering, Account',
+    'help.toc.roles'                         => 'Roles — Who Can Do What?',
+    'help.toc.add_anime'                     => 'Adding an Anime and Approval',
+    'help.toc.suggest'                       => 'Suggesting a Correction',
+    'help.toc.series_timeline'               => 'The Series Chronology Page',
+    'help.toc.spoiler'                       => 'Spoiler Guard',
+    'help.toc.broadcast'                     => 'Broadcast Info and Countdown',
+
+    // -----------------------------------------------------------------
+    // help/help_list.php - the list page
+    // -----------------------------------------------------------------
+    'help.list.tabs.h2'                      => 'Full List and My List',
+    'help.list.tabs.intro'                   => 'There are two tabs at the top of the main list page. Both draw the same table; what differs is which anime get in:',
+    'help.list.tabs.list' => '<li><strong>Full List</strong> — every anime in the catalog, including the ones you have never touched. This is the tab for browsing.</li>
+        <li><strong>My List</strong> — only the anime you have <strong>given a watch status</strong>. Entries left as "Not Selected" do not appear here; putting an anime "in your list" means assigning it a status.</li>',
+    'help.list.tabs.pref'                    => 'Which tab opens by default is set in <strong>List Settings → General Settings → "Default List"</strong>. Clicking a tab does not change that default; it just switches for the current visit.',
+    'help.list.tabs.box_title'               => '<i class="fas fa-info-circle"></i> Browsing without signing in:',
+    'help.list.tabs.box_body'                => 'My List is built from personal watch data, and a signed-out visitor has none — so that tab does nothing and the Full List is always shown.',
+
+    'help.list.search.h2'                    => 'Search',
+    'help.list.search.text'                  => 'The <strong>"Search anime..."</strong> box above the list looks at both the <strong>anime title</strong> and its <strong>alternative titles</strong>. The match does not have to start the name: typing "titan" also finds "Attack on Titan". "Clear" removes the search.',
+    'help.list.search.box_title'             => '<i class="fas fa-info-circle"></i> Search and the letter filter are not the same:',
+    'help.list.search.box_body'              => 'The search box finds text <strong>anywhere</strong> in the name; "Filter by Letter" returns only names that <strong>begin</strong> with that letter.',
+
+    'help.list.filters.h2'                   => 'Filters and Sorting',
+    'help.list.filters.intro'                => 'The list offers six filters. They work together — each choice narrows the result further, none cancels another:',
+    'help.list.filters.list' => '<li><strong>By Genre</strong> — genre labels such as Action or Comedy. Matched on the exact genre name.</li>
+        <li><strong>By Watch Status</strong> — your own status (Watching, Watched, Plan to Watch, On Hold, Dropped, Not Selected).</li>
+        <li><strong>By Broadcast Status</strong> — the anime\'s own state (Airing, Finished, Not Started, Cancelled).</li>
+        <li><strong>By Letter</strong> — the first letter of the title.</li>
+        <li><strong>By Year</strong> — the release year. If only the year of the date is known (<code>??.??.2005</code>) the entry still appears under that year.</li>
+        <li><strong>By Country</strong> — country of production. Only countries actually recorded in the catalog are listed.</li>',
+    'help.list.filters.combine'              => 'Filters and search survive pagination: moving to page two does not drop your choices.',
+    'help.list.filters.emotion.h3'           => 'Emotion Filter',
+    'help.list.filters.emotion.text'         => 'This one is not a dropdown on the list page; it turns on when you <strong>click an emotion badge on the Statistics page</strong>, and it returns the anime you marked with that emotion. A "Emotion filter: ..." line appears above the list, with a link next to it that clears the filter.',
+    'help.list.filters.per_page.h3'          => 'Items Per Page',
+    'help.list.filters.per_page.text'        => 'Choose how many anime a page shows: 10 (the default), 20, 30, 50, 100, or "All". On a large catalog "All" can make the page slow.',
+    'help.list.filters.sort.h3'              => 'Sorting',
+    'help.list.filters.sort.text'            => 'The small <code>↑</code> and <code>↓</code> arrows in the table headers change the sort order. Four columns can be sorted: <strong>Anime</strong> (title), <strong>Status</strong>, <strong>Watched Episodes</strong> and <strong>Next Episode</strong>. Status sorts alphabetically by the label in the current interface language.',
+
+    'help.list.recent.h2'                    => 'Recently Updated',
+    'help.list.recent.text'                  => 'The <strong>"Recently Updated"</strong> page in the menu shows the five anime most recently added to, or edited in, the catalog. It answers "what is new, what got refreshed".',
+    'help.list.recent.box_title'             => '<i class="fas fa-info-circle"></i> Not to be confused with "Recently Watched":',
+    'help.list.recent.box_body'              => 'The <strong>Recently Watched</strong> tab on the Statistics page shows <strong>your</strong> latest watching activity. <strong>Recently Updated</strong> shows the latest changes to the <strong>catalog</strong>; marking an episode does not move anything on it.',
+
+    // -----------------------------------------------------------------
+    // help/help_prefs.php - personal preferences
+    // -----------------------------------------------------------------
+    'help.prefs.h2'                          => 'Preferences — All in One Place',
+    'help.prefs.intro'                       => 'Personal preferences live on the <strong>List Settings → General Settings</strong> tab. Every one of them affects <strong>only you</strong>: they change nothing for other users and never touch catalog data.',
+    'help.prefs.list' => '<li><strong>Interface Language</strong> — the language of the site itself (Turkish / English).</li>
+        <li><strong>Title Language</strong> — which language anime titles are written in. Details: the Title Language section on the "Fields and Personal Data" page.</li>
+        <li><strong>Default List</strong> — whether the home page opens on the Full List or My List.</li>
+        <li><strong>Chronology View</strong> — whether chronology markers are listed in release order, story order, or both.</li>
+        <li><strong>Series Chronology View</strong> — which tab the series chronology page opens on (chain order / air date).</li>
+        <li><strong>Spoiler Guard</strong> — whether the synopsis is hidden for anime whose earlier seasons you have not watched.</li>
+        <li><strong>Adult Content</strong> — whether entries marked 18+ are shown.</li>',
+
+    'help.prefs.ui_lang.h2'                  => 'Interface Language',
+    'help.prefs.ui_lang.text'                => 'The site runs in Turkish and English. Change the language from the picker at the top right of any page, or from List Settings; the choice is saved to your account. The interface language <strong>does not change anime titles</strong> — that is a separate preference. If a synopsis does not exist in your language, the Turkish original is shown.',
+
+    'help.prefs.adult.h2'                    => 'Adult Content (18+)',
+    'help.prefs.adult.intro'                 => 'Some catalog entries, and some genre/sentence labels, are marked <strong>18+</strong>. This preference is <strong>off by default</strong>, and while it is off:',
+    'help.prefs.adult.list' => '<li>18+ anime are <strong>not shown</strong> in lists, search, recommendations or statistics.</li>
+        <li>If such an anime\'s detail page is opened, a neutral notice appears instead of the content.</li>
+        <li>Genre and sentence labels marked 18+ drop out of the filter lists and off the detail page badges.</li>
+        <li>Where a series or chronology link points at an 18+ entry, only its title is hidden — the link itself stays.</li>',
+    'help.prefs.adult.box_title'             => '<i class="fas fa-info-circle"></i> Turning it on is up to you:',
+    'help.prefs.adult.box_body'              => 'Tick <strong>"Show adult content"</strong> under List Settings → General Settings and those entries become visible to you. The preference is per person: a moderator who wants to see them turns on their own checkbox too.',
+
+    'help.prefs.spoiler.h2'                  => 'Spoiler Guard',
+    'help.prefs.spoiler.text'                => 'For later entries in a series, the synopsis is not shown directly while you have not watched the entries before it. The full rule is in the <a href="help_series.php#spoiler">Spoiler Guard</a> section on the "Series and Episode Info" page. To switch it off: List Settings → General Settings → <strong>"Hide the synopsis of seasons I have not watched"</strong>.',
+
+    // -----------------------------------------------------------------
+    // help/help_transfer.php - export / import
+    // -----------------------------------------------------------------
+    'help.transfer.intro'                    => 'The <strong>Import/Export</strong> tab in List Settings does four separate jobs: taking a backup, restoring one, moving a MyAnimeList list in, and moving an AniList list in.',
+    'help.transfer.export.h2'                => 'Export Your List (backup)',
+    'help.transfer.export.text'              => 'The <strong>"Export List"</strong> button downloads a single JSON file named <code>anime_list_YYYY-MM-DD.json</code>. It contains the anime records of this installation together with <strong>your</strong> data attached to them:',
+    'help.transfer.export.list' => '<li>Watch status, watched episode count, start and finish dates</li>
+        <li>Notes and Personal Synopsis</li>
+        <li>Your emotion marks</li>
+        <li>Genres and sentences (by name, not by id)</li>
+        <li>Chronology markers (referring to the linked anime by its MAL/AniDB id)</li>',
+    'help.transfer.export.box_title'         => '<i class="fas fa-shield-alt"></i> Why names, not ids:',
+    'help.transfer.export.box_body'          => 'Genres, sentences and chronology targets are written with <strong>names and external ids</strong>. Record numbers differ in every installation; a backup carried by name can be restored into a different one.',
+
+    'help.transfer.import.h2'                => 'Import a List',
+    'help.transfer.import.text'              => 'This uploads a JSON file produced by the export above. If the file is not valid JSON nothing happens and you get an error message. What happens next depends on the kind of installation:',
+    'help.transfer.import.online.h3'         => 'On a multi-user site',
+    'help.transfer.import.online.text'       => 'Records in the file are <strong>matched</strong> against the catalog and the matches are added to your own list — the catalog itself is not touched. Records with no counterpart in the catalog become <strong>catalog suggestions</strong> in the moderator queue. You then get a summary: how many entries were added, how many suggestions were created, and how many had already been suggested.',
+    'help.transfer.import.selfhost.h3'       => 'On a personal (single-user) install',
+    'help.transfer.import.selfhost.text'     => 'The backup is restored directly: anime records, genres, sentences, your personal data and chronology markers are written from the file. This is available to the owner (administrator) of the installation.',
+
+    'help.transfer.mal.h2'                   => 'Import a MyAnimeList List',
+    'help.transfer.mal.intro'                => 'You can upload the export file you download from MyAnimeList (either the <code>.xml</code> or its compressed <code>.gz</code> form). The flow has three steps:',
+    'help.transfer.mal.steps' => '<li><strong>Choose the file</strong> and press "Preview".</li>
+        <li><strong>Read the preview:</strong> how many records were read, how many matched the catalog, how many are already in your list, and how many have no counterpart.</li>
+        <li><strong>Press "Import"</strong> to confirm. Nothing is written before you confirm.</li>',
+    'help.transfer.mal.box_title'            => '<i class="fas fa-info-circle"></i> The two options in the preview:',
+    'help.transfer.mal.box_body'             => '<strong>Statuses to import:</strong> lets you take only the watch statuses you want (say, only "Watched"). <strong>"Overwrite entries already in my list":</strong> if left unticked, your existing entries are kept and only new ones are added. Records with no counterpart become catalog suggestions on a multi-user site, and are added directly on a personal install.',
+    'help.transfer.mal.note'                 => 'A MyAnimeList file carries a single name per anime, so entries arriving through this route do not gain a second-language title.',
+
+    'help.transfer.anilist.h2'               => 'Import an AniList List',
+    'help.transfer.anilist.intro'            => 'Here you upload nothing: you type your <strong>AniList username</strong> and your public list is fetched from AniList. Again a preview comes first, and nothing is written before you confirm.',
+    'help.transfer.anilist.modes.h3'         => 'Two Import Modes',
+    'help.transfer.anilist.modes' => '<li><strong>Import the list with watch statuses</strong> — status, watched episodes, dates and notes are written into your list.</li>
+        <li><strong>Import content only</strong> — no personal watch state is taken; only anime missing from the catalog are added as records/suggestions. Useful for growing the catalog.</li>',
+    'help.transfer.anilist.box_title'        => '<i class="fas fa-info-circle"></i> Things to know:',
+    'help.transfer.anilist.box_body'         => 'The list must be <strong>public</strong>; AniList does not serve private lists. If you hit AniList\'s rate limit, wait a few minutes and try again. Also, the <strong>number of distinct AniList accounts is limited</strong> — you can re-sync accounts you have already imported as often as you like, but you cannot keep adding new ones.',
+    'help.transfer.anilist.overwrite'        => 'The "overwrite" option only applies to the "with watch statuses" mode; in "content only" mode it is ignored.',
+
+    'help.transfer.clear.h2'                 => 'Clear the List',
+    'help.transfer.clear.text'               => 'The <strong>Clear</strong> tab in List Settings deletes every anime record. The button is shown <strong>to administrators only</strong> and is really meant for personal installs: on a shared catalog it would wipe every user\'s data at once.',
+    'help.transfer.clear.danger_title'       => '<i class="fas fa-exclamation-triangle"></i> Cannot be undone:',
+    'help.transfer.clear.danger_body'        => 'Deleting takes everything attached to the anime with it (watch data, notes, emotions, chronology markers, filler records). The genre and sentence vocabulary survives, but its links to anime do not. Do not press this button without <strong>exporting a backup first</strong>.',
+
+    // -----------------------------------------------------------------
+    // help/help_account.php - membership and contributing
+    // -----------------------------------------------------------------
+    'help.account.intro'                     => 'This section is about a <strong>multi-user (online) installation</strong> — a site where several people keep their own lists. On a single-person install there is no sign-in at all, and nothing below appears there.',
+    'help.account.membership.h2'             => 'Signing In, Registering, Account',
+    'help.account.membership.intro'          => 'Browsing the catalog, reading anime details and searching need <strong>no account</strong>. Signing in is what unlocks your own list: watch statuses, notes, Personal Synopsis, emotion marks and personal preferences.',
+    'help.account.register.h3'               => 'Creating an Account',
+    'help.account.register.text'             => 'A site runs in one of two registration modes. In <strong>invite mode</strong> (the default) creating an account needs an <strong>invite code</strong>; with a code in hand you fill in the code, a username and a password on the "Register" page. In <strong>open mode</strong> no code is asked for. The username must be 3-32 characters (letters, digits, underscore) and the password at least 8; e-mail is optional.',
+    'help.account.invite.h3'                 => 'Requesting an Invite',
+    'help.account.invite.text'               => 'Without a code you can use the <strong>"Request an invite"</strong> link on the registration page and leave your e-mail with a short reason. If the request is accepted, a code is sent to you. When the quota is full, new requests may not be accepted.',
+    'help.account.account.h3'                => 'The Account Page',
+    'help.account.account.text'              => 'Once signed in, the <strong>"Account"</strong> link at the top right shows your username, e-mail and role; the same page is where you change your password (current password + the new one twice).',
+
+    'help.account.roles.h2'                  => 'Roles — Who Can Do What?',
+    'help.account.roles.intro'               => 'There are four levels. Each level can also do everything the one before it can:',
+    'help.account.roles.list' => '<li><strong>Visitor (signed out)</strong> — browses the catalog, reads details, searches, suggests corrections.</li>
+        <li><strong>Member</strong> — keeps a personal list (watch status, episodes, notes, Personal Synopsis, emotions), saves preferences, and submits an anime that is missing from the catalog.</li>
+        <li><strong>Moderator</strong> — curates the catalog: reviews incoming additions and correction suggestions, manages the genre and sentence vocabulary, adds and removes chronology markers.</li>
+        <li><strong>Administrator</strong> — on top of that, looks after user management, invites and site settings such as the registration mode.</li>',
+
+    'help.account.add.h2'                    => 'Adding an Anime and Approval',
+    'help.account.add.text'                  => 'To add an anime that is missing from the catalog you (once signed in) use the <strong>"Add New Anime"</strong> form. Your entry does not go straight into the catalog list: it lands in the <strong>approval queue</strong> and waits there until a moderator reviews it.',
+    'help.account.add.box_title'             => '<i class="fas fa-clock"></i> Pending approvals:',
+    'help.account.add.box_body'              => 'The <strong>"Pending approval"</strong> link above the main list shows the additions that are waiting, so you can see your own entry there. Once a moderator approves it, the anime becomes visible in the catalog and can be listed by everyone.',
+
+    'help.account.suggest.h2'                => 'Suggesting a Correction',
+    'help.account.suggest.text'              => 'At the bottom of an anime detail page the <strong>"Suggest a correction"</strong> box takes whatever you found wrong or missing (for example "release date is wrong", "a genre is missing") and sends it to the moderator queue. You <strong>do not need an account</strong> for this. To keep abuse down, the number of suggestions that can be sent in a short period is limited.',
+
+    // -----------------------------------------------------------------
+    // help/help_series.php - three sections added in 1.1.33
+    // -----------------------------------------------------------------
+    'help.st.h2'                             => 'The Series Chronology Page',
+    'help.st.intro'                          => 'The <strong>"Series Chronology"</strong> button on the detail page of any anime in a series shows that whole series on a single timeline. The page opens with two tabs:',
+    'help.st.tabs.list' => '<li><strong>Chain Order</strong> — the watch order built from the "next in series" links: first season, second season, sequel film... The chain is built by hand, so it is the order the curator recommends.</li>
+        <li><strong>Air Date</strong> — <strong>every</strong> record sharing the same series name, by first air date. Entries never linked into a chain (stand-alone films, specials) show up here too.</li>',
+    'help.st.tabs.text'                      => 'The two tabs read the same series with two different questions: "in what order should I watch this" and "when did it come out". Which tab the page opens on is set by List Settings → General Settings → <strong>"Series Chronology View"</strong>; clicking a tab does not change that default.',
+    'help.st.chains.h3'                      => 'Other Chains',
+    'help.st.chains.text'                    => 'One series name can hold more than one independent chain — the films may follow one order while the TV series follow a completely different one. In that case <strong>"Other Chain 1..N"</strong> tabs appear in the tab bar, numbered from the oldest chain. A single record linked to nothing does not count as a chain; those live on the "Air Date" tab.',
+
+    'help.spoiler.h2'                        => 'Spoiler Guard',
+    'help.spoiler.intro'                     => 'The synopsis of a second (or later) entry in a series usually describes how the previous one ended. So when <strong>any earlier entry in the chain is unwatched</strong>, the synopsis is not shown directly; it waits behind a <strong>"Let me read it anyway"</strong> button. Pressing it expands the synopsis in place.',
+    'help.spoiler.rules.h3'                  => 'When Does It Appear, and When Not?',
+    'help.spoiler.rules.list' => '<li>If you have watched <strong>every</strong> earlier entry in the chain, no button appears at all and the synopsis reads as usual.</li>
+        <li>If an earlier entry is only <strong>half</strong> watched ("Watching"), the guard stays on — a summary of what happens after the point you stopped is a spoiler too.</li>
+        <li>On an anime you have <strong>already started</strong> (watching, finished, on hold or dropped) no button appears: there is nothing left to spoil for you in its synopsis.</li>
+        <li>Stand-alone records that belong to no chain never trigger the guard — there is no "earlier" to speak of.</li>',
+    'help.spoiler.where'                     => 'The guard applies in two places: the <strong>Synopsis</strong> row on the anime detail page, and the teaser on the <strong>Recommendations → Surprise Me</strong> card. Your own <strong>Personal Synopsis</strong> is never hidden.',
+    'help.spoiler.box_title'                 => '<i class="fas fa-info-circle"></i> If you want it off:',
+    'help.spoiler.box_body'                  => 'Untick <strong>"Hide the synopsis of seasons I have not watched"</strong> under List Settings → General Settings, and no button appears anywhere from then on. The preference is per person. For signed-out visitors the guard is always on: with no personal watch data, no season counts as watched.',
+
+    'help.broadcast.h2'                      => 'Broadcast Info and Countdown',
+    'help.broadcast.intro'                   => 'For anime that are airing or have not started yet, the detail page shows the broadcast day, time and time zone. The <strong>date of the next episode</strong> is worked out from those.',
+    'help.broadcast.countdown.h3'            => 'Countdown on an Unaired Anime',
+    'help.broadcast.countdown.text'          => 'On an anime that has not started yet, if both the first air date and the broadcast time are known, the page shows <strong>how long is left until the first episode</strong>. That figure is never stored; it is recalculated against the current date every time you open the page.',
+    'help.broadcast.partial'                 => 'If only the year or the month of the release date is known (<code>??.??.2027</code>) the countdown line is <strong>not printed at all</strong>: it would mean inventing an exact number for an unknown day.',
     'help.footer'                            => 'For further questions: more detailed technical information is on the project\'s <a href="https://github.com/hitsumo/animetracker" target="_blank" rel="noopener">GitHub page</a>.',
 
     // -----------------------------------------------------------------
@@ -968,6 +1177,12 @@ return [
     'list_settings.st_mode.save'             => 'Save',
 
     // 1.1.2 - adult (18+) content visibility toggle (list_settings)
+    // 1.1.33 - synopsis spoiler guard (user_pref 'spoiler_guard').
+    'list_settings.section.spoiler'          => 'Spoiler Guard',
+    'list_settings.section.spoiler.desc'     => 'On by default. While on, the synopsis of a later entry in a series is not shown directly if you have not watched the entries that come before it; it waits behind a "let me read it" button. This preference affects only you.',
+    'list_settings.spoiler.checkbox'         => 'Hide the synopsis of seasons I have not watched',
+    'list_settings.spoiler.save'             => 'Save',
+
     'list_settings.section.adult'            => 'Adult Content',
     'list_settings.section.adult.desc'       => 'Off by default. When on, anime marked 18+ appear in lists, search, recommendations and statistics. This preference affects only you.',
     'list_settings.adult.checkbox'           => 'Show adult content',

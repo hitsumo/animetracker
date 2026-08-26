@@ -105,6 +105,14 @@ $anime['watch_finish_date'] = $uaState['watch_finish_date'];
 // Anime tamamlanmis mi kontrol et
 checkIfAnimeCompleted($pdo, $anime);
 
+// 1.1.33 - konu spoiler kapisi. Zincirde (next_in_series) bu animeden
+// once gelen halkalardan biri bile izlenmemisse KATALOG konusu dogrudan
+// basilmaz, "okumak istiyorum" dugmesinin arkasina alinir. Kural ve
+// gerekce: functions/series_helpers.php, spoiler_gate(). $anime satiri
+// bu noktada kisisel izleme durumuyla birlestirilmis durumdadir (yukarida
+// ua_get_state), yani helper bu anime icin ek sorgu yapmaz.
+$spoilerGate = spoiler_gate($pdo, $anime);
+
 // Series relationship data
 $relatedAnimes = getRelatedAnimes($pdo, $anime['series_name'] ?? null, $anime['id']);
 $chronologyMarkers = getChronologyMarkers($pdo, $anime['id']);
@@ -464,6 +472,11 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
                 <div class="detail-row">
                     <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.synopsis'), ENT_QUOTES, 'UTF-8'); ?></span>
                     <div class="detail-value synopsis">
+                        <?php /* 1.1.33: kapi gerekiyorsa konu (ve altindaki
+                           ceviri notu) <details> icine alinir; gerekmiyorsa
+                           iki cagri da bos dize doner ve markup 1.1.32'deki
+                           gibi kalir. */ ?>
+                        <?php echo spoiler_gate_open($spoilerGate); ?>
                         <?php echo render_synopsis($pdo, $showSyn); ?>
                         <?php if ($enLabeled): ?>
                         <span class="synopsis-meta">
@@ -473,6 +486,7 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
                         <?php elseif ($enFallback): ?>
                         <span class="synopsis-meta"><small><em><?php echo htmlspecialchars(t('anime_details.synopsis.en_unavailable'), ENT_QUOTES, 'UTF-8'); ?></em></small></span>
                         <?php endif; ?>
+                        <?php echo spoiler_gate_close($spoilerGate); ?>
                     </div>
                 </div>
                 <?php endif; ?>

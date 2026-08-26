@@ -77,12 +77,36 @@ lang_init($pdo);
             </ul>
         </div>
 
+        <?php /* 1.1.33: liste sayfasinin kendisi (sekmeler, arama, filtreler,
+           siralama) ve "Son Guncellenenler". Yardimda hic yoktu. */ ?>
+        <div class="toc-group">
+            <strong><a href="help/help_list.php"><?php echo htmlspecialchars(t('help.group.list.heading'), ENT_QUOTES, 'UTF-8'); ?></a></strong>
+            <ul>
+                <li><a href="help/help_list.php#liste-sekmeleri"><?php echo htmlspecialchars(t('help.toc.list_tabs'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+                <li><a href="help/help_list.php#arama"><?php echo htmlspecialchars(t('help.toc.search'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+                <li><a href="help/help_list.php#filtreler"><?php echo htmlspecialchars(t('help.toc.filters'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+                <li><a href="help/help_list.php#son-guncellenenler"><?php echo htmlspecialchars(t('help.toc.recent'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+            </ul>
+        </div>
+
         <div class="toc-group">
             <strong><a href="help/help_fields.php"><?php echo htmlspecialchars(t('help.group.fields.heading'), ENT_QUOTES, 'UTF-8'); ?></a></strong>
             <ul>
                 <li><a href="help/help_fields.php#alanlar"><?php echo htmlspecialchars(t('help.toc.fields'), ENT_QUOTES, 'UTF-8'); ?></a></li>
                 <li><a href="help/help_fields.php#kisisel-alanlar"><?php echo htmlspecialchars(t('help.toc.personal'), ENT_QUOTES, 'UTF-8'); ?></a></li>
                 <li><a href="help/help_fields.php#baslik-dili"><?php echo htmlspecialchars(t('help.toc.title_lang'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+            </ul>
+        </div>
+
+        <?php /* 1.1.33: Liste Ayarlari > Genel Ayarlar'daki yedi kisisel
+           tercih tek yerde. Baslik dili / kronoloji gorunumleri kendi
+           bolumlerinde kalir, buradaki liste onlara isaret eder. */ ?>
+        <div class="toc-group">
+            <strong><a href="help/help_prefs.php"><?php echo htmlspecialchars(t('help.group.prefs.heading'), ENT_QUOTES, 'UTF-8'); ?></a></strong>
+            <ul>
+                <li><a href="help/help_prefs.php#tercihler"><?php echo htmlspecialchars(t('help.toc.prefs'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+                <li><a href="help/help_prefs.php#arayuz-dili"><?php echo htmlspecialchars(t('help.toc.ui_lang'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+                <li><a href="help/help_prefs.php#yetiskin"><?php echo htmlspecialchars(t('help.toc.adult'), ENT_QUOTES, 'UTF-8'); ?></a></li>
             </ul>
         </div>
 
@@ -109,7 +133,35 @@ lang_init($pdo);
             <strong><a href="help/help_series.php"><?php echo htmlspecialchars(t('help.group.series.heading'), ENT_QUOTES, 'UTF-8'); ?></a></strong>
             <ul>
                 <li><a href="help/help_series.php#kronoloji"><?php echo htmlspecialchars(t('help.toc.chronology'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+                <li><a href="help/help_series.php#seri-kronolojisi"><?php echo htmlspecialchars(t('help.toc.series_timeline'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+                <li><a href="help/help_series.php#spoiler"><?php echo htmlspecialchars(t('help.toc.spoiler'), ENT_QUOTES, 'UTF-8'); ?></a></li>
                 <li><a href="help/help_series.php#dolgu"><?php echo htmlspecialchars(t('help.toc.filler'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+                <li><a href="help/help_series.php#yayin-bilgileri"><?php echo htmlspecialchars(t('help.toc.broadcast'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+            </ul>
+        </div>
+
+        <?php /* 1.1.33: Liste Ayarlari'nin "Ice/Disa Aktar" sekmesi -
+           yedek alma/geri yukleme, MAL ve AniList aktarimi, temizleme. */ ?>
+        <div class="toc-group">
+            <strong><a href="help/help_transfer.php"><?php echo htmlspecialchars(t('help.group.transfer.heading'), ENT_QUOTES, 'UTF-8'); ?></a></strong>
+            <ul>
+                <li><a href="help/help_transfer.php#disa-aktar"><?php echo htmlspecialchars(t('help.toc.export'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+                <li><a href="help/help_transfer.php#ice-aktar"><?php echo htmlspecialchars(t('help.toc.import'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+                <li><a href="help/help_transfer.php#mal"><?php echo htmlspecialchars(t('help.toc.mal'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+                <li><a href="help/help_transfer.php#anilist"><?php echo htmlspecialchars(t('help.toc.anilist'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+                <li><a href="help/help_transfer.php#temizle"><?php echo htmlspecialchars(t('help.toc.clear'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+            </ul>
+        </div>
+
+        <?php /* 1.1.33: cok kullanicili kurulumun tamami (giris, roller,
+           onay kuyrugu, duzeltme onerisi). Self-host'ta gorunmez. */ ?>
+        <div class="toc-group">
+            <strong><a href="help/help_account.php"><?php echo htmlspecialchars(t('help.group.account.heading'), ENT_QUOTES, 'UTF-8'); ?></a></strong>
+            <ul>
+                <li><a href="help/help_account.php#uyelik"><?php echo htmlspecialchars(t('help.toc.membership'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+                <li><a href="help/help_account.php#roller"><?php echo htmlspecialchars(t('help.toc.roles'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+                <li><a href="help/help_account.php#anime-ekleme"><?php echo htmlspecialchars(t('help.toc.add_anime'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+                <li><a href="help/help_account.php#oneri"><?php echo htmlspecialchars(t('help.toc.suggest'), ENT_QUOTES, 'UTF-8'); ?></a></li>
             </ul>
         </div>
 

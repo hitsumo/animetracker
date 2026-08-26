@@ -155,3 +155,68 @@ body {
 .synopsis-link:hover {
     color: #285a9e;
 }
+
+/* Konu spoiler kapisi (1.1.33) - zincirde onceki halkalari izlememis
+   kullaniciya konu dogrudan gosterilmez; metin bir <details> icinde
+   durur ve ozeti ("okumak istiyorum") tiklaninca acilir. Tarayicinin
+   kendi ogesi oldugu icin JavaScript yoktur; asagidaki iki kural
+   yalnizca varsayilan ucgen isaretcisini kaldirir ve acik/kapali
+   durumda hangi etiketin gorunecegini secer.
+   Kullanildigi yerler: anime_details.php (konu satiri),
+   recommendations.php (surpriz kartinin tanitim metni). */
+.spoiler-guard {
+    border: 1px dashed #e0a000;
+    border-radius: 6px;
+    background-color: #fffdf5;
+    padding: 10px 12px;
+}
+
+.spoiler-guard > summary {
+    cursor: pointer;
+    list-style: none;          /* Firefox: ucgen isaretciyi kaldir */
+    outline-offset: 2px;
+}
+
+/* WebKit/Blink ayni isaretciyi ayri bir sozde-oge ile cizer. */
+.spoiler-guard > summary::-webkit-details-marker {
+    display: none;
+}
+
+.spoiler-guard-note {
+    display: block;
+    color: #8a6d3b;
+    font-size: 0.9em;
+    line-height: 1.4;
+}
+
+.spoiler-guard-action {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 4px 12px;
+    border-radius: 4px;
+    background-color: #e0a000;
+    color: #fff;
+    font-size: 0.9em;
+    font-weight: 600;
+}
+
+.spoiler-guard > summary:hover .spoiler-guard-action {
+    background-color: #c68f00;
+}
+
+/* Kapaliyken "okumak istiyorum", acikken "konuyu gizle" gorunur. */
+.spoiler-guard .spoiler-guard-hide {
+    display: none;
+}
+
+.spoiler-guard[open] .spoiler-guard-show {
+    display: none;
+}
+
+.spoiler-guard[open] .spoiler-guard-hide {
+    display: inline-block;
+}
+
+.spoiler-guard-body {
+    margin-top: 10px;
+}

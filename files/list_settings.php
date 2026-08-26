@@ -1670,6 +1670,29 @@ if (isset($_POST['clear'])) {
                 </form>
             </div>
 
+            <?php // 1.1.33 - konu spoiler kapisi. Varsayilan ACIK; acikken bir
+                  // serinin devam halkasinin konusu, ondan onceki halkalar
+                  // izlenmedikce dogrudan basilmaz ("okumak istiyorum"
+                  // dugmesinin arkasinda durur). Kisi bazli tercih (user_pref
+                  // 'spoiler_guard'); yetiskin icerik toggle'inin AYNI kalibi,
+                  // set_spoiler_pref.php'ye POST eder. Tek fark varsayilanin
+                  // yonu: burada kutucuk isaretli ACILIR. ?>
+            <div class="settings-section">
+                <h3><?php echo htmlspecialchars(t('list_settings.section.spoiler'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                <p><?php echo htmlspecialchars(t('list_settings.section.spoiler.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
+                <form method="post" action="set_spoiler_pref.php">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="enabled" value="0">
+                    <label class="title-lang-toggle">
+                        <input type="checkbox" name="enabled" value="1"<?php echo spoiler_guard_enabled($pdo) ? ' checked' : ''; ?> onchange="this.form.submit()">
+                        <?php echo htmlspecialchars(t('list_settings.spoiler.checkbox'), ENT_QUOTES, 'UTF-8'); ?>
+                    </label>
+                    <noscript>
+                        <button type="submit" class="settings-button"><?php echo htmlspecialchars(t('list_settings.spoiler.save'), ENT_QUOTES, 'UTF-8'); ?></button>
+                    </noscript>
+                </form>
+            </div>
+
             <?php // 1.1.2 - yetiskin (+18) icerik gorunurlugu. Varsayilan kapali;
                   // acilinca +18 damgali animeler listelerde/aramada/kesifte gorunur.
                   // Kisi bazli tercih (user_pref show_adult_content); title_lang
