@@ -1,0 +1,237 @@
+-- Anime Tracker - Migration 1.1.34
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- =====================================================================
+-- 1.1.34 - izleme durumu artik ZORUNLU DEGIL (+ iki kucuk is)
+-- =====================================================================
+--
+-- UC IS, AYNI SURUM:
+--   (1) ASIL IS - anime eklerken izleme durumu secmek zorunlu degil.
+--   (2) Kurulum yedeginin adi (installer.nsi) - asagida.
+--   (3) Spoiler kapisinin kutusu kaldirildi (css/base.css) - asagida.
+-- Ikisi de birinci is kapandiktan SONRA kullanicinin istegiyle ayni surume
+-- eklendi; 1.1.34 canliya hic gitmemisti, yuklenmemis bir surumu bolmek
+-- yalnizca fazladan migration klasoru uretirdi (1.1.28 karari).
+--
+-- SEMASIZ SURUM. Yeni tablo, kolon ya da enum degeri yoktur; bu klasorun
+-- tek amaci settings.version'i 1.1.34'e tasimaktir (runner yorumlari
+-- temizler ve bos ifade listesiyle surumu damgalar; bu dosyada
+-- calistirilacak SQL ifadesi yoktur). 1.1.25 / 1.1.30 / 1.1.33 ile ayni
+-- kalip.
+--
+-- VERI DUZELTMESI DE YOKTUR ve bu bilinclidir: kusur kaydedilen veride
+-- degil, FORMDA idi. Bugune kadar kaydedilmis her satirin watch_status'u
+-- kullanicinin O AN sectigi degerdir - yanlis degil, yalnizca istemeden
+-- secilmis olabilir. Hangisinin "gercekten secildigini" ayirt eden bir
+-- iz yok; toplu bir UPDATE dogru veriyi de silerdi.
+--
+-- =====================================================================
+-- NEDEN
+-- =====================================================================
+--
+-- Anime ekleme formunda izleme durumu acilista SECILEMEZ bir degere
+-- kilitliydi ve alan `required` idi:
+--
+--     <select name="watch_status" ... required>
+--       <option value="">Seciniz</option>          <-- acilista secili
+--       ... Izlendi / Izleniyor / Planlandi / Ertelendi / Birakildi ...
+--       <option value="__unselected__">Secim Yapilmamis</option>
+--     </select>
+--
+-- Tarayici bos degerli secenegi `required` icin gecersiz sayar; boylece
+-- kullanici izleme durumu SECMEDEN anime EKLEYEMIYORDU. Form gonderilmiyor,
+-- ekranda "bu alani doldurun" cikiyordu.
+--
+-- Oysa "secim yapilmamis" bu alanda MESRU BIR DURUMDUR: 1.0.10'dan beri
+-- user_anime.watch_status NULL olabilir ve tum gosterim yuzeyleri o durumu
+-- "Secim Yapilmamis" diye basar (watch_status_label() NULL'i
+-- '__unselected__' sentineline katlar). Katalogtan ice aktarma da satirlari
+-- tam olarak boyle, izleme durumu BOS olarak acar - yani veri modeli bu
+-- durumu zaten destekliyordu, ELLE EKLEME onu yasakliyordu.
+--
+-- Cikis yolu aslinda vardi: listenin EN ALTINDAKI "Secim Yapilmamis"
+-- secenegi. Ama tepedeki "Seciniz" ile neredeyse ayni anlama geldigi icin
+-- pratikte gorunmuyordu - iki satir da "henuz secmedim" diyordu, biri
+-- kabul ediliyor, oteki reddediliyordu.
+--
+-- =====================================================================
+-- KARAR
+-- =====================================================================
+--
+--   (1) BOS "Seciniz" SECENEGI KALDIRILDI. Iki es anlamli satirdan
+--       reddedilen kaldirildi, kabul edilen kaldi.
+--
+--   (2) "Secim Yapilmamis" LISTENIN BASINA ALINDI ve acilista SECILI.
+--       Kullanici alana hic dokunmazsa anime izleme durumu BOS
+--       kaydedilir - istegin tam karsiligi budur.
+--
+--   (3) `required` KALDIRILDI. Bos degerli secenek kalmadigi icin bir
+--       daha asla tetiklenemezdi; duran ama isleyemeyen bir kisit,
+--       yalnizca sonraki okuyucuyu yaniltirdi.
+--
+--   (4) DUZENLEME EKRANI DA AYNI SIRAYA GETIRILDI. edit_anime.php'nin
+--       DAVRANISI zaten dogruydu (watch_status NULL ise "Secim
+--       Yapilmamis" secili geliyordu, o yuzden duzenlemede kimse
+--       takilmiyordu); degisen yalnizca SIRA ve olu "Seciniz" satiri.
+--       Iki ekranin ayni listeyi ayni sirada gostermesi, ekleme ile
+--       duzenleme arasinda gidip gelen kullanici icin tek kaliptir.
+--
+--   (5) BOS STRING DE NULL'A DUSER. `'__unselected__'` sentinelinin
+--       yanina `''` eklendi. Formda artik bos degerli secenek yok, ama
+--       alan hic gelmezse ya da elle bir istek atilirsa ENUM'a `''`
+--       yazmayi denemek yerine NULL'a dusmek dogru davranistir.
+--
+-- KAPSAM DISI (bilincli): "Yayin Durumu" alani `required` KALDI. O alan
+-- KATALOG verisidir, kisisel degil - her animenin bir yayin durumu vardir
+-- ve bos birakmak bir tercih degil, eksik kayittir. Ayni sekilde MAL ve
+-- AniDB baglantilarinin zorunlulugu da yerinde durur (katalog eslesmesi
+-- onlardan cikar).
+--
+-- =====================================================================
+-- DEGISEN DOSYALAR (5)
+-- =====================================================================
+--
+--   files/add_anime.php    izleme durumu select'i (bos secenek kaldirildi,
+--                          "Secim Yapilmamis" basa ve secili, required
+--                          kaldirildi) + POST tarafinda '' -> NULL
+--   files/edit_anime.php   ayni select duzeni (sira) + POST tarafinda
+--                          '' -> NULL
+--   files/css/base.css     spoiler kapisinin kutusu kaldirildi - UCUNCU IS
+--   files/version.txt      1.1.34
+--   installer.nsi          kurulum yedeginin adi - IKINCI IS, asagida
+--
+-- YENI DOSYA: yalnizca bu migration klasoru.
+--
+-- INSTALLER.NSI SUNUCUYA GITMEZ. files/ agacinin DISINDADIR: ne uygulama
+-- sunucusuna yuklenir, ne de guncelleme paketine (zip yalnizca files/
+-- agacindan uretilir) girer. Yalnizca Windows kurulum .exe'si DERLENIRKEN
+-- kullanilir. Bu yuzden "yuklenecek dosyalar" listesi 3+1 olarak kalir.
+--
+-- IKINCI IS: KURULUM YEDEGININ ADI
+--
+-- Kurulum, hedefte veritabani ZATEN VARSA dosyalari ezmeden once masaustune
+-- bir mysqldump birakir. O yedegin adindaki tarih, elle yazilan bir
+-- !define BUILD_DATE'ten geliyordu. Iki kusuru vardi:
+--
+--   (1) ELLE BAKIM. "Her .exe build edisinde guncelle" diyordu ama
+--       guncellenmiyordu; 2026-05-02'de kalmisti. Ad, kurulumun yapildigi
+--       gunu degil, guncellemenin unutuldugu gunu gosteriyordu.
+--   (2) UZERINE YAZMA - ASIL KUSUR. Ad SABIT oldugu icin ayni .exe ile
+--       ikinci kez kurulum yapildiginda birinci kurulumun yedegi SESSIZCE
+--       eziliyordu. Yedek tam da "kurulum ters giderse buradan don" diye
+--       aliniyor; donulecek noktanin kaybolmasi onu amacindan ediyordu.
+--
+-- Damga artik COMPILE-TIME'da degil KURULUM ANINDA uretiliyor (FileFunc.nsh
+-- GetTime, yerel saat) ve SAAT de iceriyor:
+--
+--     at_install_backup_2026-08-26_182630.sql
+--
+-- Ayni gun yapilan iki kurulum bile ayri dosyalara yazar; elle guncellenecek
+-- deger kalmadi. BUILD_DATE tanimi tamamen kaldirildi.
+--
+-- UCUNCU IS: SPOILER KAPISININ KUTUSU KALDIRILDI
+--
+-- 1.1.33'te gelen kapi, kesikli turuncu cerceve + krem zemin + ic bosluktan
+-- olusan bir KUTUYDU. Anime detay sayfasi ise duz satir duzenindedir
+-- (.detail-row: solda etiket, sagda deger, altinda ince gri ayrac). Kutu o
+-- duzenin icinde yamali duruyordu: izlenen "1. sezon" sade bir satirken,
+-- izlenmeyen "2. sezon" renkli bir pano gibi gorunuyordu. Kullanici ekran
+-- goruntusuyle bildirdi.
+--
+-- Uc secenek sunuldu (tamamen sade / kutu kalksin ama dugme kalsin / kutu
+-- kalsin ama yumusasin); kullanici BIRINCISINI sect.
+--
+--   .spoiler-guard          kural TAMAMEN kaldirildi (cerceve, zemin,
+--                           radius, padding)
+--   .spoiler-guard-note     #8a6d3b / 0.9em  ->  #888 / 0.85em
+--                           (.synopsis-meta ile ayni)
+--   .spoiler-guard-action   dolgulu turuncu dugme  ->  #3a7bd5 duz metin,
+--                           ALTI CIZGISIZ (text-decoration: none);
+--                           inline-block -> inline, padding/radius/dolgu yok
+--                           Alt cizgi kullanici istegiyle kaldirildi: cumle
+--                           ICINDE gecen baglantilarin (.synopsis-link,
+--                           .translation-note) cizgiye ihtiyaci var, duz
+--                           metinden baska turlu ayrilmazlar; bu etiket ise
+--                           KENDI SATIRINDA tek basina durur, renk zaten
+--                           tiklanabilirligi soyler. O ikisi DEGISMEDI.
+--   :hover                  #c68f00 zemin  ->  #285a9e metin rengi
+--   [open] .spoiler-guard-hide  inline-block -> inline
+--
+-- KAPININ ISLEVI DEGISMEDI. HTML uretimi (spoiler_gate_open/close),
+-- kural (seriesUnwatchedPredecessors), tercih (spoiler_guard) ve dil
+-- anahtarlari AYNEN duruyor; degisen yalnizca gorunum. JavaScript yine yok.
+--
+-- Oneriler -> Surpriz kartindaki tanitim metni ayni siniflari kullandigi
+-- icin o da kendiliginden sadelesti - orada kutu, bir kartin icinde ikinci
+-- bir kutu demekti.
+--
+-- DIL DOSYASI DEGISMEDI. Yeni metin yok; kaldirilan secenegin etiketi
+-- ('add_anime.option.choose' = "Seciniz" / "Select...") ayni iki sayfada
+-- BASKA yedi select tarafindan hala kullaniliyor (yayin gunu, seri, tur,
+-- zaman dilimi vb.), yani anahtar olu kalmadi.
+--
+-- JS DEGISMEDI. toggleWatchedEpisodes() select'in DEGERINE bakar,
+-- SIRASINA degil; '__unselected__' zaten "izlenen bolum kutusunu gizle"
+-- dalina duser (Watching/OnHold/Dropped disindaki her deger gibi).
+--
+-- =====================================================================
+-- MERKEZ KATALOG VERITABANI
+-- =====================================================================
+--
+-- ELLE ISLEM GEREKMEZ. watch_status KISISEL bir alandir, katalog telinde
+-- hic yer almaz; catalog_server/ altindaki hicbir dosya bu surumde
+-- degismedi.
+--
+-- =====================================================================
+-- DAGITIM NOTU - UYGULAMA SUNUCUSU (animetracker.uzakdiyarlar.com)
+-- =====================================================================
+--
+-- YUKLENECEK DOSYALAR (4 degisen + 1 yeni klasor):
+--   files/add_anime.php
+--   files/edit_anime.php
+--   files/css/base.css
+--   files/version.txt                     (1.1.34)
+--   files/migration/1.1.34/upgrade.sql    (bu dosya, yeni klasor)
+--
+-- installer.nsi BU LISTEDE YOKTUR ve olmamalidir: files/ agacinin
+-- disindadir, guncelleme paketine girmez, yalnizca .exe derlenirken
+-- kullanilir.
+--
+-- YARIM YUKLEME: dosyalarin birbirine KOD bagimliligi yoktur; her biri tek
+-- basina yuklenirse kendi sayfasi duzelir, otekiler eski davranisla
+-- calismaya devam eder. Yeni fonksiyon, yeni yardimci ya da yeni dil
+-- anahtari olmadigi icin "eski dosya yeni fonksiyonu cagirir" riski bu
+-- surumde yok.
+--
+-- TEK ISTISNA - CSS DAMGASI: base.css ile version.txt BIRLIKTE gitmelidir.
+-- Stil adreslerindeki damga version.txt'ten uretilir (1.1.24); surum eskide
+-- kalirsa tarayici damgayi AYNI gorur ve onbellekteki eski stili kullanmaya
+-- devam eder - yani yeni base.css sunucuda dursa bile kapi hala kutulu
+-- gorunebilir. Sira onemli degil, birlikte gitmeleri yeterli.
+--
+-- CANLI DURUM (26 Agustos 2026, kullanici bildirdi): uygulama sunucusunda
+-- 1.1.33 YUKLU. Yani kutu SU ANDA canlida gorunuyor ve bu surum onu
+-- kaldiriyor; base.css'in eski kopyasi tarayici onbelleginde kalirsa
+-- degisiklik gorunmez - yukaridaki damga kurali bu yuzden bu surumde
+-- teorik degil, PRATIK bir uyaridir.
+--
+-- Daha eski bir kurulumdan geliniyorsa (1.1.32 ve oncesi): base.css'in
+-- 1.1.33'te gelen .spoiler-guard* kurallari da bu dosyada durur, yani tek
+-- kopya iki surumun CSS'ini birden tasir - ayri bir islem gerekmez.
+--
+-- =====================================================================
+-- DAGITIM NOTU - IKINCI SUNUCU (animetracker.sicakcikolata.com)
+-- =====================================================================
+--
+-- Her surumde ELLE yapilan iki ISLEVSEL adim:
+--   version.txt                              -> 1.1.34
+--   updates/1.1.34/anime-tracker-1.1.34.zip  -> yeni paket
+-- Birincisi yapilmazsa her kurulumdaki "Guncelleme Denetle" hala
+-- 1.1.33'u son surum sanar (files/check_update.php bu adresi okur).
+-- Ikincisi yapilmazsa "Guncelle" dugmesi indirme adresinde 404 alir
+-- (files/update.php, updates/{VERSION}/anime-tracker-{VERSION}.zip).
+--
+-- Bu surumde o sunucudaki katalog kodunda degisiklik YOKTUR.
+-- =====================================================================

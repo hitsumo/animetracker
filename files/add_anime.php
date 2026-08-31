@@ -82,11 +82,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // adlandirildi - aksi halde form render asamasinda dropdown icin gereken
     // tum turler listesi silinirdi (variable shadowing).
     $posted_genres = !empty($_POST['genres']) ? explode(',', $_POST['genres']) : [];
-    $watch_status = $_POST['watch_status'];
+    $watch_status = $_POST['watch_status'] ?? '';
     // 1.0.10: '__unselected__' form sentineli NULL'a cevrilir - kullanici
     // bilincli olarak izleme durumu secmemistir; user_anime satiri NULL
     // watch_status ile dogar ("secim yapilmamis").
-    if ($watch_status === '__unselected__') {
+    // 1.1.34: bos string de ayni yere duser. Formda artik bos degerli secenek
+    // yoktur, ama alan hic gelmezse (JS'siz eski bir form, elle atilan bir
+    // istek) ENUM'a '' yazmaya calismak yerine NULL'a dusmek dogru davranistir.
+    if ($watch_status === '__unselected__' || $watch_status === '') {
         $watch_status = null;
     }
     // Kisisel izleme tarihleri (1.1.0, elle giris). Bos string -> NULL
@@ -737,12 +740,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <div class="form-group">
             <label for="watch_status"><?php echo htmlspecialchars(t('add_anime.label.watch_status'), ENT_QUOTES, 'UTF-8'); ?></label>
             <div class="input-area">
-                <select name="watch_status" onchange="toggleWatchedEpisodes()" required>
-                    <option value=""><?php echo htmlspecialchars(t('add_anime.option.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
+                <?php /* 1.1.34: bos "Seciniz" secenegi KALDIRILDI ve "Secim
+                         Yapilmamis" listenin basina, varsayilan secili hale
+                         alindi.
+
+                         Onceden acilista bos degerli "Seciniz" seciliydi ve
+                         select `required` idi: tarayici bos degeri gecersiz
+                         saydigi icin izleme durumu SECMEDEN anime
+                         eklenemiyordu. Oysa "secim yapilmamis" mesru bir
+                         durumdur (user_anime.watch_status NULL) ve listenin
+                         en altinda zaten bir secenek olarak duruyordu -
+                         tepedeki "Seciniz" ile ayni anlama geldigi icin
+                         pratikte gorunmuyordu.
+
+                         Artik iki satir tek satira indi: kullanici hicbir sey
+                         yapmazsa anime izleme durumu BOS kaydedilir. `required`
+                         kaldirildi cunku bos degerli secenek kalmadi - hicbir
+                         zaman tetiklenmeyecek bir kisit, yalnizca yanlis
+                         okumaya davetiye olurdu. */ ?>
+                <select name="watch_status" onchange="toggleWatchedEpisodes()">
+                    <option value="__unselected__" selected><?php echo htmlspecialchars(watch_status_label('__unselected__')); ?></option>
                     <?php foreach (watch_status_options() as $ws_value => $ws_label): ?>
                         <option value="<?php echo htmlspecialchars($ws_value); ?>"><?php echo htmlspecialchars($ws_label); ?></option>
                     <?php endforeach; ?>
-                    <option value="__unselected__"><?php echo htmlspecialchars(watch_status_label('__unselected__')); ?></option>
                 </select>
             </div>
         </div>

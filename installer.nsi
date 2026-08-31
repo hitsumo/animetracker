@@ -20,13 +20,23 @@ Unicode true
 ; bile sorunsuz okunur).
 !searchparse /file "files\version.txt" "" APP_VERSION ""
 
-; Build tarihi.
-; Her .exe build edisinde elle guncellenir. yyyy-mm-dd formatinda yaz.
-; Sadece install sirasinda DB yedegi alinirken yedek dosya adina yazilir
-; (orn. at_install_backup_2026-05-02.sql). Tek kullanicili bir uygulama
-; oldugu icin runtime tarihi yerine compile-time tarihi yeterlidir;
-; build ile install genelde ayni gun yapilir.
-!define BUILD_DATE "2026-05-02"
+; Yedek dosyasinin zaman damgasi.
+; 1.1.34 oncesi burada elle yazilan bir !define BUILD_DATE vardi ve yedek
+; dosyasinin adi ondan uretiliyordu. Iki kusuru vardi:
+;
+;   (1) ELLE BAKIM. "Her .exe build edisinde guncelle" diyordu ama pratikte
+;       guncellenmiyordu; 1.1.24'ten 1.1.34'e kadar 2026-05-02'de kaldi. Yani
+;       ad, kurulumun yapildigi gunu degil, unutuldugu gunu gosteriyordu.
+;   (2) UZERINE YAZMA - asil kusur bu. Ad SABIT oldugu icin ayni .exe ile
+;       ikinci kez kurulum yapildiginda birinci kurulumun yedegi SESSIZCE
+;       eziliyordu. Yedek tam da "kurulum ters giderse buradan don" diye
+;       aliniyor; donulecek noktanin kaybolmasi onu amacindan ediyordu.
+;
+; Cozum: damga artik COMPILE-TIME'da degil, KURULUM ANINDA uretiliyor
+; (FileFunc.nsh -> GetTime, yerel saat). Tarihin yanina SAAT de girdi, yani
+; ayni gun yapilan iki kurulum bile ayri dosyalara yazar. Elle guncellenecek
+; bir sey kalmadi.
+Var BACKUP_STAMP
 
 ; Kurulum tanımlamaları
 Name "Anime Tracker"
@@ -181,12 +191,21 @@ Section "Anime Tracker Kurulumu" SecMain
         ; DB'de uygulanmamis ise). Bu yuzden yedek alma adimi guvence saglar -
         ; install bozuk gitse bile bu yedekten geri donulebilir.
         ;
-        ; Yedek dosya adi: at_install_backup_${BUILD_DATE}.sql
-        ; BUILD_DATE bu dosyanin basinda elle tanimlanir; her .exe build edisinde
-        ; version.txt yaninda BUILD_DATE de guncellenmelidir.
+        ; Yedek dosya adi: at_install_backup_yyyy-mm-dd_hhmmss.sql
+        ; Damga KURULUM ANINDA uretilir (bkz. dosyanin basindaki BACKUP_STAMP
+        ; aciklamasi). Saat de ada girdigi icin ayni gun yapilan iki kurulum
+        ; birbirinin yedegini EZMEZ.
+        ;
+        ; $R0..$R6 kasten secildi: bu blogun ustunde $0/$1 veritabani
+        ; denetiminin ciktisini, altinda $2 config.php'nin dosya tutamacini
+        ; tasiyor. GetTime yedi register birden yazar; $0'dan baslamak
+        ; onlarin ustune binerdi.
+        ${GetTime} "" "L" $R0 $R1 $R2 $R3 $R4 $R5 $R6
+        StrCpy $BACKUP_STAMP "$R2-$R1-$R0_$R4$R5$R6"
+
         DetailPrint "Veritabani zaten mevcut, yedek aliniyor..."
-        ExecWait '"$SYSDIR\cmd.exe" /C ""C:\xampp\mysql\bin\mysqldump.exe" -u root anime_tracker > "$DESKTOP\at_install_backup_${BUILD_DATE}.sql""'
-        DetailPrint "Yedek alindi: $DESKTOP\at_install_backup_${BUILD_DATE}.sql"
+        ExecWait '"$SYSDIR\cmd.exe" /C ""C:\xampp\mysql\bin\mysqldump.exe" -u root anime_tracker > "$DESKTOP\at_install_backup_$BACKUP_STAMP.sql""'
+        DetailPrint "Yedek alindi: $DESKTOP\at_install_backup_$BACKUP_STAMP.sql"
     ${EndIf}
     
     ; config.php olustur

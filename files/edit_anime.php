@@ -166,10 +166,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // adlandirildi - aksi halde form render asamasinda dropdown icin gereken
     // tum turler listesi silinirdi (variable shadowing).
     $posted_genres = !empty($_POST['genres']) ? explode(',', $_POST['genres']) : [];
-    $watch_status = $_POST['watch_status'];
+    $watch_status = $_POST['watch_status'] ?? '';
     // 1.0.10: '__unselected__' form sentineli NULL'a cevrilir - durum
     // "secim yapilmamis"a geri alinabilir; ua_set_state NULL yazar.
-    if ($watch_status === '__unselected__') {
+    // 1.1.34: bos string de ayni yere duser (add_anime.php ile ayni gerekce).
+    if ($watch_status === '__unselected__' || $watch_status === '') {
         $watch_status = null;
     }
     // Kisisel izleme tarihleri (1.1.0, elle giris). Bos string -> NULL:
@@ -1074,12 +1075,20 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
             <div class="form-group">
                 <label for="watch_status"><?php echo htmlspecialchars(t('add_anime.label.watch_status'), ENT_QUOTES, 'UTF-8'); ?></label>
                 <div class="input-area">
-                    <select name="watch_status" onchange="toggleWatchedEpisodes()" required>
-                        <option value=""><?php echo htmlspecialchars(t('add_anime.option.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
+                    <?php /* 1.1.34: add_anime.php ile ayni duzen - bos "Seciniz"
+                             secenegi kaldirildi, "Secim Yapilmamis" listenin
+                             basina alindi. Burada davranis zaten dogruydu
+                             (NULL durum "Secim Yapilmamis"i secili getiriyordu),
+                             degisen yalnizca SIRA: iki ekran ayni listeyi ayni
+                             sirada gosterir. Bos string de NULL gibi ele alinir -
+                             ENUM'da olmayan bir deger hicbir secenegi
+                             secmeseydi tarayici ilkini secerdi; artik ilk secenek
+                             zaten dogru olan. */ ?>
+                    <select name="watch_status" onchange="toggleWatchedEpisodes()">
+                        <option value="__unselected__" <?php echo ($anime['watch_status'] === null || $anime['watch_status'] === '') ? 'selected' : ''; ?>><?php echo htmlspecialchars(watch_status_label('__unselected__')); ?></option>
                         <?php foreach (watch_status_options() as $ws_value => $ws_label): ?>
                             <option value="<?php echo htmlspecialchars($ws_value); ?>" <?php echo $anime['watch_status'] === $ws_value ? 'selected' : ''; ?>><?php echo htmlspecialchars($ws_label); ?></option>
                         <?php endforeach; ?>
-                        <option value="__unselected__" <?php echo $anime['watch_status'] === null ? 'selected' : ''; ?>><?php echo htmlspecialchars(watch_status_label('__unselected__')); ?></option>
                     </select>
                 </div>
             </div>
