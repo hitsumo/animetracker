@@ -98,10 +98,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
 
     $delete_id = (int)$_POST['delete_id'];
 
-    // Once image_path'i al ki DELETE sonrasi disktan silebilelim
-    $img_stmt = $pdo->prepare("SELECT image_path FROM animes WHERE id = ?");
-    $img_stmt->execute([$delete_id]);
-    $image_path = $img_stmt->fetchColumn();
+    // Once satirin kendisini al: DELETE'ten sonra sorulacak bir kayit
+    // kalmaz. image_path disktan silmek icin; title/mal_id/anidb_id ise
+    // 1.1.35 kara listesine yazmak icin gerekiyor (asagida).
+    $row_stmt = $pdo->prepare(
+        "SELECT image_path, title, mal_id, anidb_id FROM animes WHERE id = ?"
+    );
+    $row_stmt->execute([$delete_id]);
+    $deleted_row = $row_stmt->fetch(PDO::FETCH_ASSOC);
+    $image_path  = ($deleted_row !== false) ? $deleted_row['image_path'] : null;
 
     // 1.1.32: silinen adresleri IndexNow kuyruguna yaz. SILMEDEN ONCE
     // olmak ZORUNDA - hangi adreslerin var oldugunu (seri adi, marker,
@@ -120,6 +125,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
     // DB'den sil
     $stmt = $pdo->prepare("DELETE FROM animes WHERE id = ?");
     $stmt->execute([$delete_id]);
+
+    // 1.1.35: silinen animeyi ICE AKTARMA KARA LISTESINE yaz. Iki isi
+    // birden goruyor:
+    //
+    //   (1) SILME KAYDI. Silinen satir arkasinda hicbir iz birakmiyordu;
+    //       "neyi ayikladigim" yalnizca kuratorun aklindaydi.
+    //   (2) GERI GELMEYI ENGELLER. Bir ice aktarma girdisi zaten
+    //       "katalogda yok" oldugu icin eslesmemis sayilir - ki silme
+    //       tam olarak o durumu uretir. Yani silmek, animeyi bir sonraki
+    //       ice aktarmanin taze adayi haline getiriyordu.
+    //
+    // SILMEDEN SONRA olmasi onemli degil (satir zaten okundu, yukariya
+    // bakin) ama yazim SIRASI onemli: silme basarisiz olsaydi PDO
+    // istisna atardi ve buraya hic gelinmezdi.
+    //
+    // blacklist_add() self-host modda ve tablo yoksa sessizce hicbir sey
+    // yapmaz - defter tutmak, silmeyi bozacak bir sey degildir.
+    if ($deleted_row !== false) {
+        blacklist_add(
+            $pdo,
+            $deleted_row['mal_id'],
+            $deleted_row['anidb_id'],
+            (string)$deleted_row['title'],
+            'deleted'
+        );
+    }
 
     // Resmi disktan sil (varsa). Basarisiz olsa bile delete tamamlandi.
     if (!empty($image_path) && file_exists(__DIR__ . '/' . $image_path)) {

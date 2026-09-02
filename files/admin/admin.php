@@ -88,6 +88,12 @@ if ($pendingAvailable) {
 }
 
 
+// 1.1.35: ice aktarma kara listesi. Sayimi blacklist_count() verir; tablo
+// yoksa (migration kosmamis) null doner ve kart RAKAMSIZ cizilir - yaniltici
+// bir 0 basmaktansa hic basmamak, bu sayfanin oteki sayimlariyla ayni kalip.
+$blacklistAvailable = file_exists(__DIR__ . '/admin_blacklist.php');
+$blacklistCount     = ($blacklistAvailable && MULTI_USER_MODE) ? blacklist_count($pdo) : null;
+
 $catalogRequestsAvailable = file_exists(__DIR__ . '/admin_catalog_requests.php');
 $catalogRequestsCount = null;
 if (MULTI_USER_MODE && $catalogRequestsAvailable) {
@@ -341,6 +347,36 @@ if (MULTI_USER_MODE && $catalogRequestsAvailable) {
                         <div class="tool-status status-missing">
                             <i class="fas fa-exclamation-triangle"></i>
                             <?php echo htmlspecialchars(t('admin.tool.catalog_requests.missing_file'), ENT_QUOTES, 'UTF-8'); ?> <code>admin_catalog_requests.php</code>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Ice Aktarma Kara Listesi (silinen anime geri gelmesin) -->
+                <div class="tool-card">
+                    <h3>
+                        <i class="fas fa-ban"></i> <?php echo htmlspecialchars(t('admin.tool.blacklist.h3'), ENT_QUOTES, 'UTF-8'); ?>
+                        <?php if ($blacklistCount !== null && $blacklistCount > 0): ?>
+                            <span style="background: #dc3545; color: #fff; padding: 2px 10px;
+                                         border-radius: 12px; font-size: 0.75em; margin-left: 6px;">
+                                <?php echo $blacklistCount; ?>
+                            </span>
+                        <?php endif; ?>
+                    </h3>
+                    <p><?php echo t('admin.tool.blacklist.desc'); ?></p>
+                    <?php if ($blacklistAvailable): ?>
+                        <a href="admin_blacklist.php" class="tool-link">
+                            <i class="fas fa-list"></i>
+                            <?php if ($blacklistCount !== null && $blacklistCount > 0): ?>
+                                <?php echo htmlspecialchars(sprintf(t('admin.tool.blacklist.link.count'), (int)$blacklistCount), ENT_QUOTES, 'UTF-8'); ?>
+                            <?php else: ?>
+                                <?php echo htmlspecialchars(t('admin.tool.blacklist.link.open'), ENT_QUOTES, 'UTF-8'); ?>
+                            <?php endif; ?>
+                        </a>
+                    <?php else: ?>
+                        <span class="tool-link disabled"><?php echo htmlspecialchars(t('admin.tool.sync.link.disabled'), ENT_QUOTES, 'UTF-8'); ?></span>
+                        <div class="tool-status status-missing">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <?php echo htmlspecialchars(t('admin.tool.blacklist.missing_file'), ENT_QUOTES, 'UTF-8'); ?> <code>admin_blacklist.php</code>
                         </div>
                     <?php endif; ?>
                 </div>

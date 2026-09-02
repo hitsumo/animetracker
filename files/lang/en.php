@@ -1118,6 +1118,12 @@ return [
     'list_settings.mal.preview.unmatched_note.online'   => 'Entries not in the catalog will be sent as catalog suggestions.',
     'list_settings.mal.preview.unmatched_note.selfhost' => 'Entries not in the catalog will be added locally.',
     'list_settings.mal.result'               => 'Import complete: %d written, %d skipped (already in list), %d suggested/added.',
+    // 1.1.35 - admin blacklist (import_blacklist). Both the MAL and the
+    // AniList import use the same two keys, hence the shared 'import.'
+    // prefix rather than 'mal.' / 'anilist.'. Multi-user mode only; these
+    // strings are never printed on a self-host install.
+    'list_settings.import.blocked_preview'   => '%d of these are on the admin blacklist and will be skipped.',
+    'list_settings.import.blocked_result'    => '%d animes were skipped because they are on the admin blacklist.',
     'list_settings.section.anilist_import'      => 'Import AniList List',
     'list_settings.section.anilist_import.desc' => 'Enter your AniList username; your public anime list is fetched from AniList. A preview is shown first; nothing is saved until you confirm. (Your list must be public.)',
     'list_settings.anilist.username_label'      => 'AniList username',

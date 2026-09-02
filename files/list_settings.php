@@ -682,6 +682,9 @@ if (isset($_POST['mal_preview'])) {
                     'matched'   => 0,
                     'already'   => 0,
                     'unmatched' => 0,
+                    // 1.1.35: katalogda YOK ama yonetici kara listesinde -
+                    // yani 'unmatched' olacakken engellenen girdiler.
+                    'blocked'   => 0,
                 ];
                 // Per source-status tally, powering the filter checkboxes.
                 $byStatus = [];
@@ -703,6 +706,15 @@ if (isset($_POST['mal_preview'])) {
                             $e['bucket'] = 'matched';
                             $counts['matched']++;
                         }
+                    } elseif (blacklist_blocks($pdo, $e['mal_id'])) {
+                        // 1.1.35: kara listedekiler oneri KUYRUGUNA
+                        // girmez. Kapi yalnizca bu dalda durur - katalogda
+                        // GERCEKTEN duran bir anime (yukaridaki $aid dali)
+                        // kara listede olsa bile uyenin listesine
+                        // eklenebilir; kara liste "katalogda olmasin"
+                        // demektir, "kimse izleyemesin" demek degil.
+                        $e['bucket'] = 'blocked';
+                        $counts['blocked']++;
                     } else {
                         $e['bucket'] = 'unmatched';
                         $counts['unmatched']++;
@@ -744,6 +756,7 @@ if (isset($_POST['mal_commit'])) {
 
         $uid = current_user_id();
         $written = 0; $skipped = 0; $requested = 0;
+        $blocked = 0; // 1.1.35 - kara liste yuzunden atlananlar
 
         $byMal  = $pdo->prepare("SELECT id FROM animes WHERE mal_id = ? LIMIT 1");
         $hasRow = $pdo->prepare(
@@ -788,6 +801,14 @@ if (isset($_POST['mal_commit'])) {
 
                 // Unmatched: needs a mal_id (dedup key) and a title.
                 if ($e['mal_id'] === null || $e['title'] === '') {
+                    continue;
+                }
+                // 1.1.35: onizlemeden BAGIMSIZ ikinci kapi. Oturumdaki
+                // kuru kosu eski olabilir (baska bir sekmede kara listeye
+                // eklendi, ya da onizleme yukseltmeden once alindi); yazan
+                // taraf her zaman kendisi sorar.
+                if (blacklist_blocks($pdo, $e['mal_id'])) {
+                    $blocked++;
                     continue;
                 }
                 $suggExists->execute([$uid, $e['mal_id']]);
@@ -851,6 +872,12 @@ if (isset($_POST['mal_commit'])) {
         $success_message = sprintf(
             t('list_settings.mal.result'), $written, $skipped, $requested
         );
+        // 1.1.35: engellenenler AYRI bir cumle olarak eklenir. Var olan
+        // bicim dizesine dorduncu bir %d koymak, ceviriyi ve 1.1.1'den
+        // beri ayni duran mesaji kirardi; sifirken hicbir sey yazilmaz.
+        if ($blocked > 0) {
+            $success_message .= ' ' . sprintf(t('list_settings.import.blocked_result'), $blocked);
+        }
     }
 }
 
@@ -930,6 +957,9 @@ if (isset($_POST['anilist_preview'])) {
             'matched'   => 0,
             'already'   => 0,
             'unmatched' => 0,
+            // 1.1.35: katalogda YOK ama yonetici kara listesinde - yani
+            // 'unmatched' olacakken engellenen girdiler.
+            'blocked'   => 0,
         ];
         $byStatus = [];
 
@@ -950,6 +980,12 @@ if (isset($_POST['anilist_preview'])) {
                     $e['bucket'] = 'matched';
                     $counts['matched']++;
                 }
+            } elseif (blacklist_blocks($pdo, $e['mal_id'])) {
+                // 1.1.35 - MAL onizlemesindeki kapinin ikizi. Yalnizca
+                // eslesmeyen dalda durur: katalogda duran bir anime kara
+                // listede olsa bile uyenin listesine eklenebilir.
+                $e['bucket'] = 'blocked';
+                $counts['blocked']++;
             } else {
                 $e['bucket'] = 'unmatched';
                 $counts['unmatched']++;
@@ -1015,6 +1051,7 @@ if (isset($_POST['anilist_commit'])) {
         $uid = current_user_id();
         $written = 0; $skipped = 0; $requested = 0; // list-mode tallies
         $catNew = 0; $catHave = 0;                   // content-mode tallies
+        $blocked = 0;                                // 1.1.35 - kara liste
 
         $byMal  = $pdo->prepare("SELECT id FROM animes WHERE mal_id = ? LIMIT 1");
         $hasRow = $pdo->prepare(
@@ -1077,6 +1114,14 @@ if (isset($_POST['anilist_commit'])) {
                 // Unmatched: needs a mal_id (dedup key) and a title. Same catalog
                 // suggestion path in both modes.
                 if ($e['mal_id'] === null || $e['title'] === '') {
+                    continue;
+                }
+                // 1.1.35: onizlemeden BAGIMSIZ ikinci kapi (MAL tarafiyla
+                // ayni gerekce - oturumdaki kuru kosu eski olabilir).
+                // Iki KIP icin de ayni: 'content' de 'list' de eslesmeyen
+                // girdiyi yalnizca catalog_requests'e yazardi.
+                if (blacklist_blocks($pdo, $e['mal_id'])) {
+                    $blocked++;
                     continue;
                 }
                 $suggExists->execute([$uid, $e['mal_id']]);
@@ -1169,6 +1214,11 @@ if (isset($_POST['anilist_commit'])) {
         $success_message = $contentOnly
             ? sprintf(t('list_settings.anilist.result_content'), $catNew, $catHave)
             : sprintf(t('list_settings.anilist.result'), $written, $skipped, $requested);
+        // 1.1.35: engellenenler AYRI bir cumle (bkz. MAL tarafindaki not).
+        // Iki bicim dizesinin de arg sayisi degismeden kalir.
+        if ($blocked > 0) {
+            $success_message .= ' ' . sprintf(t('list_settings.import.blocked_result'), $blocked);
+        }
     }
 }
 
@@ -1428,6 +1478,16 @@ if (isset($_POST['clear'])) {
                         t('list_settings.mal.preview.summary'),
                         (int)$c['total'], (int)$c['matched'], (int)$c['already'], (int)$c['unmatched']
                     ), ENT_QUOTES, 'UTF-8'); ?></p>
+                    <?php // 1.1.35 - kara liste yuzunden engellenenler AYRI bir
+                          // satirda. Ozet bicim dizesine dokunulmadi (arg sayisi
+                          // sabit kaldi); sifirken hicbir sey basilmaz. ?? 0:
+                          // yukseltmeden ONCE alinmis bir oturum stash'inda bu
+                          // anahtar yoktur. ?>
+                    <?php if ((int)($c['blocked'] ?? 0) > 0): ?>
+                        <p class="mal-unmatched-note"><?php echo htmlspecialchars(sprintf(
+                            t('list_settings.import.blocked_preview'), (int)$c['blocked']
+                        ), ENT_QUOTES, 'UTF-8'); ?></p>
+                    <?php endif; ?>
 
                     <form method="post">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
@@ -1496,6 +1556,16 @@ if (isset($_POST['clear'])) {
                         t('list_settings.anilist.preview.summary'),
                         (int)$ac['total'], (int)$ac['matched'], (int)$ac['already'], (int)$ac['unmatched']
                     ), ENT_QUOTES, 'UTF-8'); ?></p>
+                    <?php // 1.1.35 - kara liste yuzunden engellenenler AYRI bir
+                          // satirda. Ozet bicim dizesine dokunulmadi (arg sayisi
+                          // sabit kaldi); sifirken hicbir sey basilmaz. ?? 0:
+                          // yukseltmeden ONCE alinmis bir oturum stash'inda bu
+                          // anahtar yoktur. ?>
+                    <?php if ((int)($ac['blocked'] ?? 0) > 0): ?>
+                        <p class="mal-unmatched-note"><?php echo htmlspecialchars(sprintf(
+                            t('list_settings.import.blocked_preview'), (int)$ac['blocked']
+                        ), ENT_QUOTES, 'UTF-8'); ?></p>
+                    <?php endif; ?>
 
                     <form method="post">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">

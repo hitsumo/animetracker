@@ -1150,6 +1150,13 @@ return [
     'list_settings.mal.preview.unmatched_note.online'   => 'Katalogda olmayanlar katalog önerisi olarak gönderilecek.',
     'list_settings.mal.preview.unmatched_note.selfhost' => 'Katalogda olmayanlar yerel olarak eklenecek.',
     'list_settings.mal.result'               => 'İçe aktarma tamamlandı: %d yazıldı, %d atlandı (zaten listede), %d öneri/eklendi.',
+    // 1.1.35 - yonetici kara listesi (import_blacklist). MAL ve AniList ice
+    // aktarmalarinin IKISI de ayni iki anahtari kullanir; bu yuzden anahtar
+    // adi 'mal.' ya da 'anilist.' degil, ortak 'import.' onekiyle durur.
+    // Kara liste yalnizca cok kullanicili modda etkindir, self-host'ta bu
+    // metinler hic basilmaz.
+    'list_settings.import.blocked_preview'   => 'Bunlardan %d tanesi yönetici kara listesinde; içe aktarımda atlanacak.',
+    'list_settings.import.blocked_result'    => '%d anime yönetici kara listesinde olduğu için atlandı.',
     'list_settings.section.anilist_import'      => 'AniList Listesini İçe Aktar',
     'list_settings.section.anilist_import.desc' => 'AniList kullanıcı adınızı girin; herkese açık anime listeniz AniList üzerinden çekilir. Önce bir önizleme gösterilir; onaylamadan hiçbir şey kaydedilmez. (Listenizin herkese açık olması gerekir.)',
     'list_settings.anilist.username_label'      => 'AniList kullanıcı adı',

@@ -749,6 +749,59 @@ CREATE TABLE IF NOT EXISTS `catalog_requests` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
+-- Table: import_blacklist (1.1.35)
+-- The catalog owner's "do not re-import" list. Deleting a catalog anime
+-- (index.php, online mode) records its identity here, and the AniList /
+-- MAL import refuses to raise a catalog_requests row for anything named
+-- here. Without it, a deleted anime is by definition "unmatched" on the
+-- next import and comes straight back - and nothing anywhere recorded
+-- WHAT had been pruned.
+--
+-- ONLINE ONLY. Every helper in functions/blacklist_helpers.php returns
+-- early unless MULTI_USER_MODE is on: the list is a curation policy for
+-- the SHARED catalog, and a self-host install has no shared catalog. The
+-- table is still created in every install so the two modes share one
+-- schema (same choice as catalog_requests / invites).
+--
+-- Purely app-side: never pushed to the central catalog, never carried by
+-- the catalog wire format. A self-host user syncing the catalog is
+-- unaffected by what the owner blacklisted.
+--
+--   mal_id / anidb_id - the match keys, the same stable identities animes
+--     and catalog_requests use. UNIQUE and NULLABLE: MySQL allows any
+--     number of NULLs in a UNIQUE column, which is what lets a deletion
+--     of an id-less row still be recorded. Such a row is a LOG ENTRY
+--     only - with no id there is nothing to match an import against.
+--     Deliberately NOT matched on title: two unrelated shows share a
+--     title often enough that dropping a legitimate import over an old
+--     deletion's name would be worse than the problem being solved.
+--   reason - 'deleted' written by the delete handler, 'manual' typed on
+--     admin/admin_blacklist.php.
+--   created_by - users.id (set NULL if the user is deleted).
+--
+-- Kept in sync with migration/1.1.35/upgrade.sql so a FRESH install
+-- (which stamps the current version and skips older migrations) still
+-- gets the table from this base schema.
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `import_blacklist` (
+  `id`         int(11) NOT NULL AUTO_INCREMENT,
+  `mal_id`     int(11) DEFAULT NULL,
+  `anidb_id`   int(11) DEFAULT NULL,
+  `title`      varchar(255) NOT NULL,
+  `reason`     enum('deleted','manual') NOT NULL DEFAULT 'manual',
+  `note`       varchar(255) DEFAULT NULL,
+  `created_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_blacklist_mal`   (`mal_id`),
+  UNIQUE KEY `uq_blacklist_anidb` (`anidb_id`),
+  KEY `idx_blacklist_created` (`created_at`),
+  CONSTRAINT `fk_blacklist_user`
+    FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
 -- Table: anilist_import_sources (1.1.11)
 -- App-side ledger of the DISTINCT AniList accounts a user has imported
 -- from. Online (multi-user) mode caps a normal member at N distinct
