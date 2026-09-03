@@ -382,6 +382,13 @@ return [
     'add_anime.hint.watch_dates'             => 'Elle girilir, boş bırakılabilir. Kişiseldir; katalog senkronuyla paylaşılmaz.',
     'add_anime.warn.date_order'              => 'Bitiş tarihi başlangıçtan önce. Yine de kaydedilir.',
     'add_anime.hint.series_name'             => 'Aynı seriye ait animeler bu adı paylaşır. Mevcut seriler otomatik önerilir.',
+    // 1.1.36 - Zincir Adi. series_name HANGI SERI, bu alan SERININ ICINDE
+    // HANGI HAT demektir; next_in_series ise o hattaki SIRA. Anahtar
+    // 'add_anime.' onekinde cunku iki form da (ekle + duzenle) ayni ucluyu
+    // kullanir - series_name'in kendisi de oyle.
+    'add_anime.label.chain_name'             => 'Zincir Adı (opsiyonel):',
+    'add_anime.ph.chain_name'                => 'Örn: 90\'lar Anime, Crystal, Sinema Filmleri',
+    'add_anime.hint.chain_name'              => 'Bir serinin içindeki ayrı izleme hattı. Aynı adı taşıyan kayıtlar tek zincir sayılır ve seri kronolojisinde kendi sekmesinde görünür. Boş bırakırsanız kayıt yalnızca "Sıradaki Anime" bağlantılarına göre gruplanır.',
     'add_anime.hint.tags'                    => 'Yazinca eslesenler gozukur. Eslesme yoksa Enter ile yeni cumle olusturulur.',
     'add_anime.link.manage_tags'             => 'Cumleleri yonet',
 
@@ -962,7 +969,7 @@ return [
         <li><strong>Yayın Tarihi</strong> — aynı seri adını taşıyan <strong>her</strong> kayıt, ilk gösterim tarihine göre. Zincire hiç bağlanmamış kayıtlar (bağımsız filmler, özel bölümler) da burada görünür.</li>',
     'help.st.tabs.text'                      => 'İki sekme aynı seriyi iki farklı soruyla okur: "hangi sırayla izlemeliyim" ve "ne zaman çıktı". Sayfanın hangi sekmeyle açılacağını Liste Ayarları → Genel Ayarlar → <strong>"Seri Kronolojisi Görünümü"</strong> belirler; sekmeye tıklamak bu varsayılanı bozmaz.',
     'help.st.chains.h3'                      => 'Diğer Zincirler',
-    'help.st.chains.text'                    => 'Bir seri adı altında birden çok bağımsız zincir olabilir — örneğin sinema filmleri bir sıra, televizyon dizileri bambaşka bir sıra izleyebilir. Böyle durumlarda sekme çubuğunda <strong>"Diğer Zincir 1..N"</strong> sekmeleri belirir; numaralandırma en eski tarihli zincirden başlar. Hiçbir yere bağlanmamış tek kayıtlar zincir sayılmaz, onlar "Yayın Tarihi" sekmesinde durur.',
+    'help.st.chains.text'                    => 'Bir seri adı altında birden çok bağımsız zincir olabilir — örneğin sinema filmleri bir sıra, televizyon dizileri bambaşka bir sıra izleyebilir; ya da aynı hikâye iki kez anlatılmış olabilir (1990’ların Sailor Moon’u ile 2014 Crystal gibi). Her hatta bir <strong>zincir adı</strong> verebilirsiniz (düzenleme ekranındaki “Zincir Adı” alanı); adı paylaşan kayıtlar tek zincir sayılır ve sekme o adla görünür. Ad vermezseniz sekme eskisi gibi <strong>"Diğer Zincir 1..N"</strong> diye adlandırılır; numaralandırma en eski tarihli zincirden başlar.<br><br>Adı olan bir hat, içinde <strong>tek bir kayıt</strong> olsa bile kendi sekmesini alır — çünkü ad vermek bilinçli bir beyandır: “bu kayıt kendi hattıdır”. Adı olmayan ve hiçbir yere bağlanmamış tek kayıtlar ise zincir sayılmaz, onlar "Yayın Tarihi" sekmesinde durur.<br><br>Zincir adı aynı zamanda <strong>konu spoiler kapısını</strong> da sınırlar: kapı yalnızca aynı hattaki önceki halkalara bakar, başka bir hattaki kayıtları “önce izlenmesi gereken” saymaz.',
 
     'help.spoiler.h2'                        => 'Spoiler Koruması',
     'help.spoiler.intro'                     => 'Bir serinin ikinci ve sonraki halkalarının konusu, çoğu zaman kendinden öncekinin sonunu anlatır. Bu yüzden zincirde <strong>önce gelen halkalardan biri bile izlenmemişse</strong> konu doğrudan gösterilmez; <strong>"Yine de okumak istiyorum"</strong> düğmesinin arkasında bekler. Düğmeye basınca konu yerinde açılır.',

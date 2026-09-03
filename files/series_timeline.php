@@ -24,6 +24,13 @@
  * kayit bu gorunumu bolemez. Ic ice gecen yayin donemleri (ayni anda
  * yayinda iki dizi) tarih araliklariyla oldugu gibi gorunur.
  *
+ * 1.1.36: zincirin artik bir ADI olabilir (animes.chain_name). Sekme
+ * etiketi "Diger Zincir 1" yerine o ad olur ve uyelik yuruyusten degil
+ * ADDAN gelir - boylece hicbir yere baglanmamis TEK bir kayit da kendi
+ * hattini beyan edebilir (Space Adventure Cobra'nin 1982 filmi gibi:
+ * AniDB'ye gore TV dizisinin alternative version'u, devami degil). Kural
+ * series_helpers.php'deki chain_same()'de tek yerde durur.
+ *
  * 1.1.25: bir seri adi altinda birden cok zincir olabilir (filmler bir
  * zincir, TV dizileri bambaska bir zincir). 1.1.24'e kadar yalnizca
  * istenen animenin zinciri cizilirdi; digerlerine ancak o zincirdeki bir
@@ -55,7 +62,7 @@ if ($id <= 0) {
 
 // 1.1.23: istekteki animeyi en basta getir - sekme gosterimi ve yayin
 // tarihi gorunumu series_name'den beslenir, zincirden bagimsizdir.
-$reqStmt = $pdo->prepare("SELECT id, series_name FROM animes WHERE id = ?");
+$reqStmt = $pdo->prepare("SELECT id, series_name, chain_name FROM animes WHERE id = ?");
 $reqStmt->execute([$id]);
 $reqAnime = $reqStmt->fetch(PDO::FETCH_ASSOC);
 $reqStmt->closeCursor();
@@ -64,6 +71,9 @@ if (!$reqAnime) {
     exit;
 }
 $hasSeriesName = !empty($reqAnime['series_name']);
+// 1.1.36: istekteki animenin hatti. Bos ise ilk sekme eski "Zincir Sirasi"
+// yazisini kullanir - adsiz kurulumlarda gorunum degismez.
+$ownChainName = chain_name_norm($reqAnime['chain_name'] ?? null);
 
 // Mod cozumu (1.1.15 kalibi): sekme linki ?mode= ile gelir, gecerliyse
 // oturuma yazilir (gezinirken secim korunur, kayitli varsayilan ezilmez).
@@ -411,24 +421,49 @@ function seriesMediaIcon($type) {
 
     <?php // 1.1.23: sekmeler yalniz seri adi dolu animede cikar - yayin
           // tarihi gorunumu series_name'den beslenir.
-          // 1.1.25: varsa "Diger Zincir N" sekmeleri sona eklenir. Bu
-          // linkler mode tasimaz: kalici sekme tercihi bozulmasin diye. ?>
+          // 1.1.25: varsa "Diger Zincir N" sekmeleri eklenir. Bu linkler
+          // mode tasimaz: kalici sekme tercihi bozulmasin diye.
+          // 1.1.36: (a) sekme etiketi, zincirin ADI varsa o addir;
+          // (b) ZINCIR SEKMELERI ARTIK BIR ARADA durur ve "Yayin Tarihi"
+          // sona gecti - adlar gelince araya giren bir sekme okumayi
+          // boluyordu. Adres ve davranis degismedi, yalnizca sira. ?>
     <?php if ($hasSeriesName): ?>
     <div class="st-tabs">
         <a href="series_timeline.php?id=<?php echo (int)$id; ?>&amp;mode=chain"
-           class="<?php echo ($stMode === 'chain' && !$viewingOtherChain) ? 'active' : ''; ?>"><?php echo htmlspecialchars(t('series_timeline.tab.chain'), ENT_QUOTES, 'UTF-8'); ?></a>
-        <a href="series_timeline.php?id=<?php echo (int)$id; ?>&amp;mode=airdate"
-           class="<?php echo ($stMode === 'airdate' && !$viewingOtherChain) ? 'active' : ''; ?>"><?php echo htmlspecialchars(t('series_timeline.tab.airdate'), ENT_QUOTES, 'UTF-8'); ?></a>
-        <?php foreach ($otherChains as $ocIndex => $otherChain): ?>
-            <?php // Etiket "Diger Zincir 1..N"; ipucu metni zincirin kac
-                  // anime tasidigini soyler. Baslik yazilmaz - +18 maskesi
-                  // sekmeden sizmasin. ?>
+           class="<?php echo ($stMode === 'chain' && !$viewingOtherChain) ? 'active' : ''; ?>"><?php
+            echo htmlspecialchars(
+                $ownChainName !== null ? $ownChainName : t('series_timeline.tab.chain'),
+                ENT_QUOTES, 'UTF-8'
+            );
+        ?></a>
+        <?php
+            // Adsiz zincirler eski "Diger Zincir N" etiketini korur. Sayac
+            // YALNIZCA adsizlar uzerinde ilerler: adlandirilmis bir hat
+            // araya girdiginde numaralar atlamasin, "Diger Zincir 1" hep
+            // adsizlarin ilki olsun.
+            $ocUnnamed = 0;
+        ?>
+        <?php foreach ($otherChains as $otherChain): ?>
+            <?php
+                $ocName = $otherChain['name'] ?? null;
+                if ($ocName !== null) {
+                    $ocLabel = $ocName;
+                } else {
+                    $ocUnnamed++;
+                    $ocLabel = sprintf(t('series_timeline.tab.other_chain'), $ocUnnamed);
+                }
+            ?>
+            <?php // Ipucu metni zincirin kac anime tasidigini soyler. Baslik
+                  // yazilmaz - +18 maskesi sekmeden sizmasin. Zincir ADI ise
+                  // kuratorun kendi yazdigi etikettir, baslik degildir. ?>
             <a href="series_timeline.php?id=<?php echo (int)$id; ?>&amp;chain=<?php echo (int)$otherChain['start_id']; ?>"
                title="<?php echo htmlspecialchars(sprintf(t('series_timeline.count'), (int)$otherChain['count']), ENT_QUOTES, 'UTF-8'); ?>"
                class="<?php echo ($viewingOtherChain && $activeChainStart === $otherChain['start_id']) ? 'active' : ''; ?>"><?php
-                echo htmlspecialchars(sprintf(t('series_timeline.tab.other_chain'), $ocIndex + 1), ENT_QUOTES, 'UTF-8');
+                echo htmlspecialchars($ocLabel, ENT_QUOTES, 'UTF-8');
             ?></a>
         <?php endforeach; ?>
+        <a href="series_timeline.php?id=<?php echo (int)$id; ?>&amp;mode=airdate"
+           class="<?php echo ($stMode === 'airdate' && !$viewingOtherChain) ? 'active' : ''; ?>"><?php echo htmlspecialchars(t('series_timeline.tab.airdate'), ENT_QUOTES, 'UTF-8'); ?></a>
     </div>
     <?php endif; ?>
 

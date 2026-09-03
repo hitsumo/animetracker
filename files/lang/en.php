@@ -349,6 +349,13 @@ return [
     'add_anime.hint.watch_dates'             => 'Entered manually, may be left blank. Personal; not shared via catalog sync.',
     'add_anime.warn.date_order'              => 'Finish date is before start. It will still be saved.',
     'add_anime.hint.series_name'             => 'Anime in the same series share this name. Existing series are auto-suggested.',
+    // 1.1.36 - Chain name. series_name says WHICH SERIES, this says WHICH
+    // TRACK inside it, and next_in_series says the ORDER along that track.
+    // Kept under the 'add_anime.' prefix because both forms (add + edit)
+    // share the same trio, exactly as series_name does.
+    'add_anime.label.chain_name'             => 'Chain name (optional):',
+    'add_anime.ph.chain_name'                => 'e.g. 90s Anime, Crystal, Movies',
+    'add_anime.hint.chain_name'              => 'A separate watch track inside a series. Entries sharing a name count as one chain and get their own tab on the series timeline. Leave it empty to group the entry by its "Next anime" links alone.',
     'add_anime.hint.tags'                    => 'Matching sentences appear as you type. Press Enter to create a new one if there is no match.',
     'add_anime.link.manage_tags'             => 'Manage sentences',
 
@@ -930,7 +937,7 @@ return [
         <li><strong>Air Date</strong> — <strong>every</strong> record sharing the same series name, by first air date. Entries never linked into a chain (stand-alone films, specials) show up here too.</li>',
     'help.st.tabs.text'                      => 'The two tabs read the same series with two different questions: "in what order should I watch this" and "when did it come out". Which tab the page opens on is set by List Settings → General Settings → <strong>"Series Chronology View"</strong>; clicking a tab does not change that default.',
     'help.st.chains.h3'                      => 'Other Chains',
-    'help.st.chains.text'                    => 'One series name can hold more than one independent chain — the films may follow one order while the TV series follow a completely different one. In that case <strong>"Other Chain 1..N"</strong> tabs appear in the tab bar, numbered from the oldest chain. A single record linked to nothing does not count as a chain; those live on the "Air Date" tab.',
+    'help.st.chains.text'                    => 'One series name can hold more than one independent chain — the films may follow one order while the TV series follow a completely different one, or the same story may have been told twice (the 1990s Sailor Moon and the 2014 Crystal run). You can give each track a <strong>chain name</strong> (the “Chain name” field on the edit screen); entries sharing a name count as one chain and the tab carries that name. Without a name the tab keeps the old <strong>"Other Chain 1..N"</strong> label, numbered from the oldest chain.<br><br>A named track gets its own tab even when it holds <strong>a single record</strong> — naming it is a deliberate statement: “this entry is its own track”. An unnamed record linked to nothing does not count as a chain; those live on the "Air Date" tab.<br><br>The chain name also bounds the <strong>synopsis spoiler gate</strong>: it only looks at earlier entries on the same track, and never treats a record from another track as something you should have watched first.',
 
     'help.spoiler.h2'                        => 'Spoiler Guard',
     'help.spoiler.intro'                     => 'The synopsis of a second (or later) entry in a series usually describes how the previous one ended. So when <strong>any earlier entry in the chain is unwatched</strong>, the synopsis is not shown directly; it waits behind a <strong>"Let me read it anyway"</strong> button. Pressing it expands the synopsis in place.',

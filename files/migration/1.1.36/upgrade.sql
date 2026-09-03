@@ -1,0 +1,147 @@
+-- Anime Tracker - Migration 1.1.36
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- =====================================================================
+-- 1.1.36 - Zincir adi: bir serideki her hat kendi adiyla anilir
+-- =====================================================================
+--
+-- SORUN
+--
+-- 1.1.25'ten beri bir seri adi altinda birden cok zincir olabiliyordu,
+-- ama zincirin KENDISI bir sey degildi: yalnizca next_in_series
+-- yuruyusunun urettigi gecici bir kumeydi. Bunun uc sonucu vardi.
+--
+--   1. ZINCIR ADLANDIRILAMIYORDU. Sekmeler "Diger Zincir 1..N" diyordu.
+--      Hangisinin ne oldugunu yalnizca icine bakip anliyordun.
+--
+--   2. "BUNLAR AYRI HATLAR" DENEMIYORDU. Elde yalnizca "birbirine bagli
+--      mi" vardi; "ayni hikayenin baska anlatimi" diye bir sey
+--      sOylenemiyordu. Iki gercek ornek, ikisi de kullanicinin kendi
+--      katalogundan:
+--
+--        Space Adventure Cobra (1982) filmi, AniDB'ye gore Space Cobra
+--        TV dizisinin ALTERNATIVE VERSION'udur - devami degil. Ikisi de
+--        baglanmamisti, dolayisiyla ikisi de "1 anime" diyen bir zincir
+--        gosteriyordu ve hicbir sekme cikmiyordu.
+--
+--        Sailor Moon Crystal (AniDB: alternative version) ise TAM TERSI:
+--        90'lar zincirinin ICINE, Sailor Stars'in arkasina baglanmisti.
+--        Zaman cizelgesi "Sailor Stars'tan sonra Crystal" diyordu ve
+--        spoiler kapisi, Crystal'i acan kisiye 90'lar serisinin sekiz
+--        kaydini "izlenmemis oncul" olarak sayiyordu.
+--
+--   3. TEK KAYITLIK BIR HAT IFADE EDILEMIYORDU. getSeriesChains()
+--      $min_length = 2 uyguluyordu: hicbir yere baglanmamis TEK kayit
+--      zincir sayilmaz. Bu kural 1.1.25'te dogruydu - yoksa seri adini
+--      paylasan her bagimsiz film ayri bir sekme uretirdi - ama Cobra'nin
+--      filmi gibi BILEREK ayri duran bir kaydi da gorunmez kiliyordu.
+--
+-- COZUM: UYELIK ADDAN, SIRA BAGDAN
+--
+-- Tek bir kolon: animes.chain_name. series_name HANGI SERI, chain_name
+-- SERININ ICINDE HANGI HAT, next_in_series O HATTAKI SIRA. Uc alan
+-- birbirinden bagimsizdir.
+--
+-- Kural TEK YERDE durur - functions/series_helpers.php icindeki
+-- chain_same():
+--
+--     next_in_series bagi YALNIZCA iki ucun zincir adi ayni oldugunda
+--     izlenir; NULL ile NULL da "ayni" sayilir.
+--
+-- Bu tek cumle uc yuruyusu birden yonetir (geri: seriesChainStartId,
+-- ileri: seriesChainIds, spoiler: seriesUnwatchedPredecessors). Kural iki
+-- kopya halinde yazilsaydi biri degistigi gun ayrisirdi.
+--
+-- GERIYE UYUMLULUK, IDDIA DEGIL OLCUM
+--
+-- 1.1.36 oncesi her satirin chain_name'i NULL'dur. NULL == NULL oldugu
+-- icin her karsilastirma true doner, hicbir yuruyus kisalmaz ve zincir
+-- kesfi 1.1.35 ile BIREBIR ayni sonucu verir. Bu, migration'in
+-- dogrulamasinda gercek veriyle olculdu (asagida).
+--
+-- ADSIZ TEK KAYIT ZINCIR DEGILDIR, ADLI TEK KAYIT ZINCIRDIR
+--
+-- $min_length artik yalnizca ADSIZ zincirlere uygulanir. Gerekcesi: adsiz
+-- tek bir kayit bir beyan degil, yalnizca bir kayittir (1.1.25 karari
+-- aynen gecerli). Adi olan tek kayit ise BILINCLI bir beyandir - "bu
+-- kayit kendi hattidir". Cobra'nin 1982 filmi tam olarak budur.
+--
+-- ULASILAMAYAN UYE DUSURULMEZ
+--
+-- Uyelik addan geldigi icin bir uye adi tasiyip hicbir baga sahip
+-- olmayabilir (henuz baglanmamis ya da aradaki bag unutulmus). Boyle bir
+-- uyeyi listeden dusurmek adin YALAN soylemesi olurdu ("bu hatta 5 kayit
+-- var" deyip 3 gostermek). Ulasilamayanlar YAYIN TARIHINE gore sona
+-- eklenir; zincirin bagli kismi hep ustte kalir, yani kuratorun kurdugu
+-- sira her zaman onceliklidir.
+--
+-- SPOILER KAPISI TARIHE DUSMEZ - BILINCLI ASIMETRI
+--
+-- Kapi da ad sinirinda durur (Crystal ornegi bu yuzden duzelir), AMA
+-- listedeki gibi tarihe DUSMEZ. Fark su: listede bir kaydi GOSTERMEK
+-- zararsizdir; "sunu once izlemelisin" demek ise bir IDDIADIR ve
+-- yalnizca kuratorun ELLE kurdugu baga dayanmalidir. Girilmemis bir bagi
+-- yayin tarihinden uydurmak, spoiler uyarisini tahmine cevirirdi.
+--
+-- SEMA: TEK YENI KOLON
+--
+--   animes.chain_name varchar(100) NULL
+--   KEY idx_chain_name (series_name, chain_name)
+--
+-- Index BILESIKTIR ve series_name basta durur, cunku her sorgu once seri
+-- adiyla daralir (getSeriesChains, seriesChainAppendUnlinked,
+-- getAllChainNames hepsi oyle). Tek basina chain_name uzerinde bir index
+-- bu sorgularin hicbirine yaramazdi.
+--
+-- varchar(100), series_name'in 255'i degil: bu bir ESER ADI degil, bir
+-- HAT ETIKETI ("90'lar Anime", "Crystal", "Sinema Filmleri"). Kisa
+-- tutmak, sekme cubugunda tasan etiketleri de bastan engeller.
+--
+-- UYGULAMAYA OZELDIR
+--
+-- next_in_series gibi MERKEZE GITMEZ. catalog_push.php ve
+-- catalog_server/catalog.php bu alani hic anmaz; katalog telinde yeni
+-- alan yoktur, merkez veritabaninda ELLE ALTER GEREKMEZ ve
+-- catalog_server/ altinda degisen dosya yoktur. Self-host bir kullanici,
+-- kuratorun hatlarini nasil adlandirdigindan etkilenmez.
+--
+-- catalog_import.php'nin UPDATE ifadesi kolonlari tek tek sayar ve
+-- chain_name o listede yoktur, yani katalog senkronu adi EZMEZ; INSERT
+-- ise yeni satiri NULL ile acar. Ikisi de next_in_series'in bugunku
+-- davranisinin aynisidir ve bu surumde o dosyaya DOKUNULMADI.
+--
+-- JSON YEDEK
+--
+-- Disa aktarim "SELECT * FROM animes" oldugu icin chain_name kendiliginden
+-- yedege girer; geri yukleme ise kolonlari tek tek saydigi icin
+-- list_settings.php'ye elle eklendi. 1.1.17'de country'nin dustugu tuzagin
+-- aynisi - eklenmeseydi yedek-al/geri-yukle turunda ad sessizce kaybolurdu.
+--
+-- Not: next_in_series geri yuklemede zaten TASINMIYOR (anime id'leri
+-- kurulumdan kuruluma degisir, kronoloji notlarindaki kimlik dortlusu
+-- kalibi gerekir). Yani bir yedegi geri yukledikten sonra ad korunur, bag
+-- korunmaz. Bu 1.1.36'nin getirdigi bir kusur degil, var olan bir
+-- boslugun artik daha az zarar vermesi: hatlarin ADI hayatta kalir.
+--
+-- ------------------------------------------------------------------
+-- DOGRULAMA
+-- ------------------------------------------------------------------
+-- Migration bu semanin bir KOPYASINDA gercek MigrationManager ile
+-- kosuldu, sonra IKINCI KEZ kosuldu: birinci kosuda 1 migration,
+-- ikincisinde 0; kolon/index dokumu birebir ayni kaldi. Zincir kesfi
+-- gercek Sailor Moon ve Cobra verisi uzerinde, adlar YAZILMADAN once ve
+-- YAZILDIKTAN sonra olculdu. Ayrintili vaka listesi CHANGELOG_1_1_36.md
+-- ve proje_durumu_87.md'de.
+--
+-- Runner asagidaki yorum satirlarini temizler ve ifadeleri sirayla
+-- calistirir; kolon/index zaten varsa gelen 1060/1061 hatalari yok
+-- sayilir (idempotent), settings.version 1.1.36'ya tasinir.
+-- =====================================================================
+
+ALTER TABLE `animes`
+  ADD COLUMN `chain_name` varchar(100) DEFAULT NULL AFTER `series_name`;
+
+ALTER TABLE `animes`
+  ADD KEY `idx_chain_name` (`series_name`, `chain_name`);

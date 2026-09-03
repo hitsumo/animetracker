@@ -191,6 +191,82 @@ function display_related_title($row) {
 }
 
 /**
+ * Zincir adlarini (1.1.36) datalist icin dondur.
+ *
+ * $series_name verilirse yalnizca O SERIDEKI adlar doner - kurator bir
+ * animeyi duzenlerken kendi serisinin hatlarini gorur, katalogdaki butun
+ * zincir adlari listeye dolmaz. Bos birakilirsa tum adlar doner.
+ *
+ * @param PDO         $pdo
+ * @param string|null $series_name
+ * @return string[]
+ */
+function getAllChainNames($pdo, $series_name = null)
+{
+    if ($series_name !== null && $series_name !== '') {
+        $stmt = $pdo->prepare("
+            SELECT DISTINCT chain_name
+            FROM animes
+            WHERE chain_name IS NOT NULL AND chain_name != ''
+              AND series_name = ?
+            ORDER BY chain_name ASC
+        ");
+        $stmt->execute([$series_name]);
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+    $stmt = $pdo->query("
+        SELECT DISTINCT chain_name
+        FROM animes
+        WHERE chain_name IS NOT NULL AND chain_name != ''
+        ORDER BY chain_name ASC
+    ");
+    return $stmt->fetchAll(PDO::FETCH_COLUMN);
+}
+
+/**
+ * Zincir adini karsilastirma icin normalize et (1.1.36).
+ *
+ * Bos dize ile NULL AYNI SEYDIR: ikisi de "adsiz" demektir. Form bos
+ * gonderirse '' gelir, katalogtan gelen satirda NULL durur; ikisi ayri
+ * sayilsaydi aralarindaki bag koparadi.
+ *
+ * @param mixed $v
+ * @return string|null
+ */
+function chain_name_norm($v)
+{
+    $v = trim((string)($v === null ? '' : $v));
+    return $v === '' ? null : $v;
+}
+
+/**
+ * 1.1.36 - ZINCIRIN TEK KURALI.
+ *
+ * Iki kayit ayni zincirde mi? next_in_series bagi YALNIZCA iki ucun
+ * zincir adi ayni oldugunda izlenir (ikisi de adsizsa yine ayni sayilir).
+ *
+ * Neden tek bir kural: 1.1.36 oncesinde zincir tamamen yuruyusten
+ * turuyordu, yani "bu iki kayit ayni hatta mi" sorusunun cevabi yoktu -
+ * yalnizca "birbirine bagli mi" vardi. Sailor Moon'da Crystal (AniDB'ye
+ * gore alternative version) zincire baglanmisti ve zaman cizelgesi
+ * "Sailor Stars'tan sonra Crystal" diyordu; spoiler kapisi da 90'lar
+ * serisini Crystal'in oncülü sayiyordu. Ad bu soruyu cevaplanabilir
+ * kiliyor ve cevabi TEK yerde tutuyor: bu fonksiyon.
+ *
+ * Adsiz veriye etkisi YOKTUR: 1.1.36 oncesi her satirin chain_name'i
+ * NULL'dur, yani her karsilastirma true doner ve yuruyus 1.1.35 ile
+ * birebir ayni kalir.
+ *
+ * @param mixed $a
+ * @param mixed $b
+ * @return bool
+ */
+function chain_same($a, $b)
+{
+    return chain_name_norm($a) === chain_name_norm($b);
+}
+
+/**
  * Return all distinct series_name values from the animes table,
  * sorted alphabetically. Used to populate the datalist/auto-complete
  * in the add/edit forms so the user does not have to type series
@@ -283,19 +359,47 @@ function getSeriesAnimesByAirDate($pdo, $series_name) {
 /**
  * Walk backwards via next_in_series until nobody points at the current
  * anime; that anime is the chain's start. Visited-set guards a cycle.
+ *
+ * 1.1.36: yuruyus ZINCIR ADI SINIRINDA DURUR (chain_same). Farkli adli
+ * bir kayit bu animeyi isaret ediyorsa o baska bir hattir ve zincirin
+ * basi burasidir. Adsiz veride her karsilastirma true dondugu icin
+ * davranis 1.1.35 ile birebir aynidir.
  */
 function seriesChainStartId($pdo, $anime_id) {
     $current = (int)$anime_id;
     $visited = [];
+
+    // Yuruyusun tasidigi ad: BASLANGIC kaydinin adi. Her adimda yeniden
+    // okunmaz - yoksa adi degisen bir halka zinciri sessizce baska bir
+    // hatta kaydirirdi.
+    $nameStmt = $pdo->prepare("SELECT chain_name FROM animes WHERE id = ?");
+    $nameStmt->execute([$current]);
+    $chainName = $nameStmt->fetchColumn();
+    $nameStmt->closeCursor();
+    if ($chainName === false) {
+        return $current; // satir yok; cagiran taraf zaten bos zincir gorur
+    }
+
     while (true) {
         if (isset($visited[$current])) break; // circular guard
         $visited[$current] = true;
-        $stmt = $pdo->prepare("SELECT id FROM animes WHERE next_in_series = ?");
+        $stmt = $pdo->prepare(
+            "SELECT id, chain_name FROM animes WHERE next_in_series = ? ORDER BY id ASC"
+        );
         $stmt->execute([$current]);
-        $prev = $stmt->fetchColumn();
+        $prev = null;
+        // Birden cok kayit ayni animeyi isaret edebilir (kolon tekil DEGIL,
+        // yalnizca hedefi tekil). Ayni adli ILK onculu al - id sirasi
+        // seriesUnwatchedPredecessors ile ayni secimi yapar.
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            if (chain_same($row['chain_name'], $chainName)) {
+                $prev = (int)$row['id'];
+                break;
+            }
+        }
         $stmt->closeCursor();
         if (!$prev) break;
-        $current = (int)$prev;
+        $current = $prev;
     }
     return $current;
 }
@@ -303,19 +407,31 @@ function seriesChainStartId($pdo, $anime_id) {
 /**
  * Walk the chain forward from its start, returning only the ids. Used by
  * getSeriesChains() where the full display row would be wasted work.
+ *
+ * 1.1.36: yuruyus ZINCIR ADI SINIRINDA DURUR - baslangicin adindan farkli
+ * adli bir halkaya gecilmez.
  */
 function seriesChainIds($pdo, $start_id) {
     $ids = [];
     $current = (int)$start_id;
     $visited = [];
+    $chainName = null;
+    $first = true;
+
     while ($current) {
         if (isset($visited[$current])) break; // circular guard
         $visited[$current] = true;
-        $stmt = $pdo->prepare("SELECT id, next_in_series FROM animes WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT id, next_in_series, chain_name FROM animes WHERE id = ?");
         $stmt->execute([$current]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         $stmt->closeCursor();
         if (!$row) break;
+        if ($first) {
+            $chainName = $row['chain_name'];
+            $first = false;
+        } elseif (!chain_same($row['chain_name'], $chainName)) {
+            break; // baska bir hatta gecis - zincir burada biter
+        }
         $ids[] = (int)$row['id'];
         $current = $row['next_in_series'] ? (int)$row['next_in_series'] : null;
     }
@@ -323,38 +439,139 @@ function seriesChainIds($pdo, $start_id) {
 }
 
 /**
+ * 1.1.36 - ADLI bir zincirin, yuruyusun ULASAMADIGI uyelerini ekle.
+ *
+ * Ad UYELIGI belirler, next_in_series SIRAYI belirler. Bu ikisi ayri
+ * oldugu icin bir uye adi tasiyip da hicbir baga sahip olmayabilir: ya
+ * hentestir ya da aradaki bir bag girilmeyi unutulmustur. Boyle bir uyeyi
+ * listeden dusurmek, adin YALAN soylemesi demek olurdu ("bu hatta 5 kayit
+ * var" deyip 3 gostermek).
+ *
+ * Ulasilamayanlar YAYIN TARIHINE gore sona eklenir - uydurma bir sira
+ * degil, elde olan tek nesnel olcut. Zincirin bagli kismi once gelir,
+ * yani kuratorun kurdugu sira her zaman ustundedir.
+ *
+ * Adsiz zincirlerde (chain_name NULL) hicbir sey yapmaz: orada uyelik
+ * zaten yuruyusun kendisidir.
+ *
+ * @param PDO    $pdo
+ * @param int[]  $ids          Yuruyusun urettigi id dizisi (sirali).
+ * @param string $series_name
+ * @param mixed  $chain_name
+ * @return int[]
+ */
+function seriesChainAppendUnlinked($pdo, array $ids, $series_name, $chain_name)
+{
+    $name = chain_name_norm($chain_name);
+    if ($name === null || empty($series_name)) {
+        return $ids;
+    }
+    $stmt = $pdo->prepare("
+        SELECT id
+        FROM animes
+        WHERE series_name = ? AND chain_name = ?
+        ORDER BY (release_date IS NULL) ASC, release_date ASC, id ASC
+    ");
+    $stmt->execute([$series_name, $name]);
+    $members = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    $stmt->closeCursor();
+
+    $have = array_flip($ids);
+    foreach ($members as $mid) {
+        $mid = (int)$mid;
+        if (!isset($have[$mid])) {
+            $ids[] = $mid;
+            $have[$mid] = true;
+        }
+    }
+    return $ids;
+}
+
+/**
+ * 1.1.36 - verilen id'ler icin gosterim satirlarini VERILEN SIRADA dondur.
+ *
+ * getSeriesChainRows() 1.1.35'te her halka icin ayri bir sorgu atiyordu;
+ * ad geldikten sonra sira artik yalniz yuruyusten cikmadigi (ulasilmayan
+ * uyeler sona ekleniyor) icin "once id listesini kur, sonra tek sorguyla
+ * cek" kalibina gecildi. Kolon kumesi getSeriesAnimesByAirDate() ile ayni
+ * kalir - series_timeline.php iki modu da tek kart sablonuyla cizer.
+ *
+ * @param PDO   $pdo
+ * @param int[] $ids
+ * @return array
+ */
+function seriesRowsByIds($pdo, array $ids)
+{
+    if (empty($ids)) {
+        return [];
+    }
+    $clean = [];
+    foreach ($ids as $i) {
+        $i = (int)$i;
+        if ($i > 0) { $clean[] = $i; }
+    }
+    if (empty($clean)) {
+        return [];
+    }
+    $ph = implode(',', array_fill(0, count($clean), '?'));
+    $stmt = $pdo->prepare("
+        SELECT a.id, a.title, a.alternative_titles, a.media_type, a.total_episodes, a.aired_episodes,
+               COALESCE(ua.watched_episodes, 0) AS watched_episodes,
+               ua.watch_status,
+               a.status, a.image_path,
+               a.release_date, a.release_date_precision,
+               a.end_date, a.end_date_precision,
+               a.is_adult, a.next_in_series, a.series_name, a.chain_name
+        FROM animes a
+        LEFT JOIN user_anime ua
+               ON ua.anime_id = a.id AND ua.user_id = ?
+        WHERE a.id IN ($ph)
+    ");
+    $stmt->execute(array_merge([current_user_id()], $clean));
+    $byId = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $byId[(int)$r['id']] = $r;
+    }
+    $stmt->closeCursor();
+
+    // Istenen SIRAYI koru - IN(...) sirayi garanti etmez.
+    $out = [];
+    foreach ($clean as $i) {
+        if (isset($byId[$i])) { $out[] = $byId[$i]; }
+    }
+    return $out;
+}
+
+/**
  * Walk the chain forward from its start, collecting the full display rows
  * series_timeline.php draws. Column set matches getSeriesAnimesByAirDate()
  * so the page renders both views with one card template.
+ *
+ * 1.1.36: uc adim oldu - (1) ad sinirinda duran ileri yuruyus,
+ * (2) adli zincirin ulasilmayan uyelerinin tarihe gore sona eklenmesi,
+ * (3) tek sorguyla gosterim satirlarinin cekilmesi.
  */
 function getSeriesChainRows($pdo, $start_id) {
-    $chain = [];
-    $current = (int)$start_id;
-    $visited = [];
-    while ($current) {
-        if (isset($visited[$current])) break; // circular guard
-        $visited[$current] = true;
-        $stmt = $pdo->prepare("
-            SELECT a.id, a.title, a.alternative_titles, a.media_type, a.total_episodes, a.aired_episodes,
-                   COALESCE(ua.watched_episodes, 0) AS watched_episodes,
-                   ua.watch_status,
-                   a.status, a.image_path,
-                   a.release_date, a.release_date_precision,
-                   a.end_date, a.end_date_precision,
-                   a.is_adult, a.next_in_series, a.series_name
-            FROM animes a
-            LEFT JOIN user_anime ua
-                   ON ua.anime_id = a.id AND ua.user_id = ?
-            WHERE a.id = ?
-        ");
-        $stmt->execute([current_user_id(), $current]);
-        $anime = $stmt->fetch(PDO::FETCH_ASSOC);
-        $stmt->closeCursor();
-        if (!$anime) break;
-        $chain[] = $anime;
-        $current = $anime['next_in_series'] ? (int)$anime['next_in_series'] : null;
+    $start_id = (int)$start_id;
+    if ($start_id <= 0) {
+        return [];
     }
-    return $chain;
+
+    $ids = seriesChainIds($pdo, $start_id);
+    if (empty($ids)) {
+        return [];
+    }
+
+    // Baslangicin serisi ve adi - ulasilmayan uyeler bu ikisiyle bulunur.
+    $meta = $pdo->prepare("SELECT series_name, chain_name FROM animes WHERE id = ?");
+    $meta->execute([$start_id]);
+    $head = $meta->fetch(PDO::FETCH_ASSOC);
+    $meta->closeCursor();
+    if ($head) {
+        $ids = seriesChainAppendUnlinked($pdo, $ids, $head['series_name'], $head['chain_name']);
+    }
+
+    return seriesRowsByIds($pdo, $ids);
 }
 
 /**
@@ -376,34 +593,49 @@ function getSeriesChains($pdo, $series_name, $min_length = 2) {
         return [];
     }
     $stmt = $pdo->prepare("
-        SELECT id
+        SELECT id, chain_name
         FROM animes
         WHERE series_name = ?
         ORDER BY (release_date IS NULL) ASC, release_date ASC, id ASC
     ");
     $stmt->execute([$series_name]);
-    $memberIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
     $stmt->closeCursor();
 
     $seen = [];
     $chains = [];
-    foreach ($memberIds as $memberId) {
-        $memberId = (int)$memberId;
+    foreach ($members as $member) {
+        $memberId = (int)$member['id'];
         if (isset($seen[$memberId])) {
             continue;
         }
+        $name    = chain_name_norm($member['chain_name']);
         $startId = seriesChainStartId($pdo, $memberId);
-        $ids = seriesChainIds($pdo, $startId);
+        $ids     = seriesChainIds($pdo, $startId);
+
+        // 1.1.36: adli zincirde uyelik ADDAN gelir, yuruyusten degil -
+        // hic baglanmamis uyeler de bu hatta aittir.
+        $ids = seriesChainAppendUnlinked($pdo, $ids, $series_name, $name);
+
         foreach ($ids as $cid) {
             $seen[$cid] = true;
         }
-        if (count($ids) < $min_length) {
+
+        // 1.1.36: $min_length yalnizca ADSIZ zincirlere uygulanir. Adsiz tek
+        // bir kayit "zincir" degildir (yoksa seri adini paylasan her bagimsiz
+        // film ayri bir sekme uretirdi, 1.1.25 karari). ADI OLAN tek kayit ise
+        // bilincli bir beyandir: "bu kayit kendi hattidir" - Space Adventure
+        // Cobra'nin 1982 filmi tam olarak budur, TV dizisinin devami degil
+        // AniDB'ye gore alternative version'udur ve zincire baglanmamalidir.
+        if ($name === null && count($ids) < $min_length) {
             continue;
         }
+
         $chains[] = [
             'start_id' => $startId,
             'ids'      => $ids,
             'count'    => count($ids),
+            'name'     => $name,
         ];
     }
     return $chains;
@@ -509,20 +741,50 @@ function seriesUnwatchedPredecessors($pdo, $anime_id, $limit = 25) {
     $current   = (int)$anime_id;
     $visited   = [$current => true];
 
+    // 1.1.36: KAPI DA ZINCIR ADI SINIRINDA DURUR.
+    //
+    // Bu, adin varlik sebeplerinden biridir. Sailor Moon'da Crystal 90'lar
+    // zincirine bagliydi ve kapi, Crystal'i acan kisiye 90'lar serisinin
+    // sekiz kaydini "izlenmemis oncul" diye sayiyordu. Oysa Crystal ayni
+    // hikayenin YENIDEN ANLATIMIDIR (AniDB: alternative version), oncesi
+    // degil. Iki hat ayri adlandirildiginda kapi artik sinirda durur.
+    //
+    // TARIHE DUSULMEZ: getSeriesChainRows() adli bir zincirin baglanmamis
+    // uyelerini yayin tarihine gore listeye ekler, ama KAPI bunu YAPMAZ.
+    // Listede bir kaydi gostermek zararsizdir; "sunu once izlemelisin"
+    // demek ise bir iddiadir ve yalnizca kuratorun ELLE kurdugu baga
+    // dayanmalidir. Girilmemis bir bagi tarihten uydurmak, spoiler
+    // uyarisini tahmine cevirirdi.
+    $nameStmt = $pdo->prepare("SELECT chain_name FROM animes WHERE id = ?");
+    $nameStmt->execute([$current]);
+    $chainName = $nameStmt->fetchColumn();
+    $nameStmt->closeCursor();
+    if ($chainName === false) {
+        return [];
+    }
+
     $stmt = $pdo->prepare("
-        SELECT a.id, a.title, a.alternative_titles, a.is_adult,
+        SELECT a.id, a.title, a.alternative_titles, a.is_adult, a.chain_name,
                ua.watch_status
         FROM animes a
         LEFT JOIN user_anime ua
                ON ua.anime_id = a.id AND ua.user_id = ?
         WHERE a.next_in_series = ?
         ORDER BY a.id ASC
-        LIMIT 1
     ");
 
     while (count($unwatched) < $limit) {
         $stmt->execute([current_user_id(), $current]);
-        $prev = $stmt->fetch(PDO::FETCH_ASSOC);
+        // Ayni adli ILK onculu al (id sirasi) - seriesChainStartId() ile
+        // ayni secim. Kolon tekil olmadigi icin birden cok kayit ayni
+        // animeyi isaret edebilir.
+        $prev = null;
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            if (chain_same($row['chain_name'], $chainName)) {
+                $prev = $row;
+                break;
+            }
+        }
         $stmt->closeCursor();
         if (!$prev) {
             break;                        // zincirin basina gelindi

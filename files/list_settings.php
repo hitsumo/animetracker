@@ -457,11 +457,11 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                     synopsis, synopsis_tr, synopsis_en, translation_status,
                     release_date, release_date_precision,
                     end_date, end_date_precision,
-                    series_name, media_type, country,
+                    series_name, chain_name, media_type, country,
                     mal_id, anidb_id, catalog_uuid, source, filler_tracking
                 ) VALUES (
                     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
                 )");
 
             foreach ($animes as $anime) {
@@ -511,6 +511,12 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                         $anime['end_date']            ?? null,
                         date_precision_normalize($anime['end_date_precision'] ?? 'full'),
                         $anime['series_name']         ?? null,
+                        // 1.1.36: zincir adi. Disa aktarim "SELECT * FROM animes"
+                        // oldugu icin JSON'a kendiliginden giriyor; burada
+                        // tasinmazsa yedek-al/geri-yukle turunda sessizce
+                        // kaybolurdu - 1.1.17'de country'nin dustugu tuzagin
+                        // aynisi. 1.1.36 oncesi yedeklerde alan yok -> NULL.
+                        $anime['chain_name']          ?? null,
                         $anime['media_type']          ?? null,
                         // 1.1.17: yedek disa aktarimi "SELECT * FROM animes"
                         // oldugu icin country zaten JSON'a giriyor; burada

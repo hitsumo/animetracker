@@ -37,6 +37,37 @@ SET time_zone = "+00:00";
 --   next_in_series  - Optional pointer to the next anime.id the user
 --                     should watch after finishing this one. Validated
 --                     by validateNextInSeries() in functions.php.
+--   chain_name      - Free-text name of the WATCH TRACK this entry belongs
+--                     to inside its series (1.1.36). NULL for entries that
+--                     are not on a named track.
+--
+--                     series_name says WHICH FRANCHISE, chain_name says
+--                     WHICH TRACK inside it, next_in_series says the ORDER
+--                     along that track. The three are independent.
+--
+--                     Why it exists: before 1.1.36 a "chain" was derived
+--                     purely by walking next_in_series, so there was no way
+--                     to say "these two entries are separate tellings of the
+--                     same story". Space Adventure Cobra's 1982 film is an
+--                     ALTERNATIVE VERSION of the Space Cobra TV series (per
+--                     AniDB), not its sequel; Sailor Moon Crystal is an
+--                     alternative version of the 90s run. Both were either
+--                     invisible or wrongly linked. A name makes the track
+--                     itself expressible.
+--
+--                     THE RULE (functions/series_helpers.php, chain_same()):
+--                     a next_in_series link is followed ONLY when both ends
+--                     carry the same chain_name; NULL equals NULL, so data
+--                     written before 1.1.36 walks exactly as it did before.
+--                     Membership comes from the NAME, order from the LINK -
+--                     which is why a named entry with no link at all is
+--                     still a chain of one, while an unnamed one is not
+--                     (that would give every standalone film its own tab,
+--                     the 1.1.25 decision).
+--
+--                     App-local, like next_in_series: never pushed to the
+--                     central catalog, so a self-host install is unaffected
+--                     by how the curator organises their tracks.
 --
 -- Title fields:
 --   title             - Romaji title (Latin-script Japanese), used as the
@@ -185,6 +216,7 @@ CREATE TABLE IF NOT EXISTS `animes` (
   `end_date` date DEFAULT NULL,
   `end_date_precision` enum('full','month','year','none') NOT NULL DEFAULT 'full',
   `series_name` varchar(255) DEFAULT NULL,
+  `chain_name` varchar(100) DEFAULT NULL,
   `media_type` enum('TV','Film','OVA','Special','ONA') DEFAULT NULL,
   `country` char(2) DEFAULT NULL,
   `next_in_series` int(11) DEFAULT NULL,
@@ -198,6 +230,7 @@ CREATE TABLE IF NOT EXISTS `animes` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `idx_series_name` (`series_name`),
+  KEY `idx_chain_name` (`series_name`, `chain_name`),
   KEY `idx_next_in_series` (`next_in_series`),
   UNIQUE KEY `idx_mal_id` (`mal_id`),
   UNIQUE KEY `idx_anidb_id` (`anidb_id`),

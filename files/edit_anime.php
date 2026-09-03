@@ -54,6 +54,11 @@ $genres = getAllGenres($pdo);
 // Seri adlarini cek (datalist auto-complete icin)
 $seriesNames = getAllSeriesNames($pdo);
 
+// 1.1.36: zincir adlarini da cek. Filtresiz (tum seriler) cunku kurator
+// formda seri adini da degistirebilir - seriye gore daraltilmis bir liste
+// o an yanlis seriye ait olurdu. Adlandirilmis hat sayisi zaten azdir.
+$chainNames = getAllChainNames($pdo);
+
 // Tum cumleleri cek (oneri sistemi icin tag input auto-complete kaynagi)
 $allTags = getAllTags($pdo);
 
@@ -283,6 +288,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $series_name = $_POST['series_name'] ?? null;
     $media_type = $_POST['media_type'] ?? null;
     $next_in_series = $_POST['next_in_series'] ?? null;
+    // 1.1.36 - zincir adi. Bos ise NULL'a duser (chain_name_norm), boylece
+    // '' ile NULL ayni sey olur ve chain_same() ikisini esit sayar.
+    $chain_name = chain_name_norm($_POST['chain_name'] ?? null);
+    if ($chain_name !== null) { $chain_name = mb_substr($chain_name, 0, 100); }
 
     // 1.1.17: yapim ulkesi (ISO 3166-1 alpha-2 kodu). Bkz. add_anime.php -
     // acilir kutudan gelir ama elle duzenlenmis POST'a karsi suzuluyor.
@@ -447,6 +456,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             end_date = ?,
             end_date_precision = ?,
             series_name = ?,
+            chain_name = ?,
             media_type = ?,
             country = ?,
             next_in_series = ?,
@@ -491,6 +501,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $end_date,
             $end_date_prec,
             $series_name,
+            $chain_name,
             $media_type,
             $country,
             $next_in_series,
@@ -1190,6 +1201,23 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                         <?php endforeach; ?>
                     </datalist>
                     <small class="form-text text-muted"><?php echo htmlspecialchars(t('add_anime.hint.series_name'), ENT_QUOTES, 'UTF-8'); ?></small>
+                </div>
+            </div>
+
+            <?php // 1.1.36 - Zincir Adi. series_name HANGI SERI, bu alan
+                  // SERININ ICINDE HANGI HAT demektir (orn. "90'lar Anime" /
+                  // "Crystal"). Bos birakilabilir: adsiz kayitlar 1.1.35'teki
+                  // gibi yalnizca next_in_series yuruyusune gore gruplanir. ?>
+            <div class="form-group">
+                <label for="chain_name"><?php echo htmlspecialchars(t('add_anime.label.chain_name'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <div class="input-area">
+                    <input type="text" name="chain_name" id="chain_name" list="chain-name-list" maxlength="100" value="<?php echo htmlspecialchars($anime['chain_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.chain_name'), ENT_QUOTES, 'UTF-8'); ?>">
+                    <datalist id="chain-name-list">
+                        <?php foreach ($chainNames as $cn): ?>
+                            <option value="<?php echo htmlspecialchars($cn, ENT_QUOTES, 'UTF-8'); ?>">
+                        <?php endforeach; ?>
+                    </datalist>
+                    <small class="form-text text-muted"><?php echo htmlspecialchars(t('add_anime.hint.chain_name'), ENT_QUOTES, 'UTF-8'); ?></small>
                 </div>
             </div>
 
