@@ -343,6 +343,115 @@ function seo_head(array $opts = []) {
  */
 define('SEO_SITEMAP_CHUNK', 2000);
 
+// =====================================================================
+// 1.1.37 - "Bu kayit indekslenmeye deger mi?" TEK KURAL
+// =====================================================================
+//
+// SORUN. Katalog uc yoldan buyuyor ve bunlarin ikisi (offline->online
+// aktarim, MAL/AniList aktarimi) kaydi INCE STUB olarak aciyor: baslik ve
+// kimlik var, konu yok, gorsel yok. Katalogun buyuk cogunlugu bugun bu
+// halde. 1.1.30'a kadar sitemap'in tek filtresi "is_adult = 0" idi, yani
+// bu stub'larin HEPSI sitemap'e giriyordu; 1.1.32'de IndexNow eklenince
+// ayni adresler arama motorlarina AKTIF olarak da itilmeye basladi.
+//
+// Sonucu: binlerce ince sayfa indekslenir. Zarari o sayfalarla sinirli
+// kalmaz - alan adinin tumunun degerlendirmesini asagi ceker, ve geri
+// almak (yeniden tarama + indeksten dusme) hic indekslenmemekten cok
+// daha uzun surer.
+//
+// KURAL. Bir kaydin ziyaretciye baslik disinda verecek bir seyi varsa
+// indekslenir: konu (herhangi bir dilde), gorsel, ya da kronoloji notu.
+// Bolum sayisi ya da tarih TEK BASINA yetmez - onlar bir okuyucunun
+// arama sonucundan bekledigi icerik degil, kunye alanidir.
+//
+// NEDEN TEK YERDE. Bu kurali UC yer kullanir: sitemap sayimi, sitemap
+// listesi ve IndexNow'in tek-kayit karsiligi (seo_anime_locs). Ucu de
+// "genel bir katalog adresi nedir" sorusunu cevaplamak zorunda ve
+// seo_anime_locs'un kendi yorumunun dedigi gibi: "Two copies of the rule
+// would drift the first time one of them changed." Ayni gerekce
+// 1.1.36'da chain_same() icin de gecerliydi.
+//
+// SINIR. Kural yalnizca anime_details.php'yi kapsar. chronology.php
+// zaten marker sarti tasiyor (marker varsa kurasyon var demektir),
+// series_timeline.php ise TOPLU bir sayfadir - uyelerinden biri ince
+// olsa da liste kendi basina anlamlidir.
+
+/**
+ * SQL parcasi: verilen tablo takma adi icin "icerigi var mi" kosulu.
+ *
+ * @param string $alias animes tablosunun sorgudaki takma adi.
+ * @return string WHERE'e AND ile eklenebilir, parantezli parca.
+ */
+function seo_has_content_sql($alias = 'a') {
+    // Takma ad KOD icinden gelir (kullanicidan degil), ama bu parca duz
+    // metin olarak SQL'e giriyor - suzgec, ileride biri disaridan gelen
+    // bir degeri buraya verirse diye duruyor.
+    $a = preg_replace('/[^A-Za-z0-9_]/', '', (string)$alias);
+    if ($a === '') {
+        $a = 'a';
+    }
+    return "(
+           ($a.synopsis_tr IS NOT NULL AND $a.synopsis_tr <> '')
+        OR ($a.synopsis_en IS NOT NULL AND $a.synopsis_en <> '')
+        OR ($a.synopsis    IS NOT NULL AND $a.synopsis    <> '')
+        OR ($a.image_path  IS NOT NULL AND $a.image_path  <> '')
+        OR EXISTS(SELECT 1 FROM chronology_markers mc WHERE mc.anime_id = $a.id)
+    )";
+}
+
+/**
+ * PHP ikizi: elde SATIR varken ayni karari ver.
+ *
+ * 'has_markers' anahtari varsa kullanilir; yoksa marker'in bilinmedigi
+ * kabul edilir ve YALNIZCA alan kontrolu yapilir - cagiran taraf marker'i
+ * biliyorsa satira koymalidir (seo_anime_has_content() bunu yapar).
+ *
+ * @param array $row
+ * @return bool
+ */
+function seo_row_has_content(array $row) {
+    foreach (['synopsis_tr', 'synopsis_en', 'synopsis', 'image_path'] as $field) {
+        if (isset($row[$field]) && trim((string)$row[$field]) !== '') {
+            return true;
+        }
+    }
+    return !empty($row['has_markers']);
+}
+
+/**
+ * Sayfa tarafi: satirda marker bilgisi yoksa onu da sor.
+ *
+ * anime_details.php elindeki katalog satirini verir; o satirda
+ * 'has_markers' YOKTUR. Alanlarin biri doluysa hic sorgu atilmaz (olagan
+ * durum); yalnizca satir bombosken tek bir EXISTS sorgusu kosar.
+ *
+ * @param PDO   $pdo
+ * @param array $row
+ * @return bool
+ */
+function seo_anime_has_content($pdo, array $row) {
+    if (seo_row_has_content($row)) {
+        return true;
+    }
+    if (array_key_exists('has_markers', $row) || empty($row['id'])) {
+        return false;
+    }
+    try {
+        $stmt = $pdo->prepare(
+            "SELECT EXISTS(SELECT 1 FROM chronology_markers WHERE anime_id = ?)"
+        );
+        $stmt->execute([(int)$row['id']]);
+        $has = (int)$stmt->fetchColumn() === 1;
+        $stmt->closeCursor();
+        return $has;
+    } catch (PDOException $e) {
+        // Okunamiyorsa INDEKSLENEBILIR say: bir hata yuzunden gecerli bir
+        // sayfayi indeksten dusurmek, bir stub'i indekslemekten kotudur.
+        error_log('[anime_tracker] seo_anime_has_content: ' . $e->getMessage());
+        return true;
+    }
+}
+
 /**
  * How many catalog rows the sitemap covers.
  *
@@ -356,7 +465,10 @@ define('SEO_SITEMAP_CHUNK', 2000);
  */
 function seo_sitemap_anime_count($pdo) {
     try {
-        $stmt = $pdo->query("SELECT COUNT(*) FROM animes WHERE is_adult = 0");
+        $stmt = $pdo->query(
+            "SELECT COUNT(*) FROM animes a
+              WHERE a.is_adult = 0 AND " . seo_has_content_sql('a')
+        );
         return (int)$stmt->fetchColumn();
     } catch (PDOException $e) {
         error_log('[anime_tracker] seo_sitemap_anime_count: ' . $e->getMessage());
@@ -427,6 +539,7 @@ function seo_sitemap_anime_entries($pdo, $offset = 0, $limit = SEO_SITEMAP_CHUNK
                        AND a2.is_adult = 0) AS series_head
               FROM animes a
              WHERE a.is_adult = 0
+               AND " . seo_has_content_sql('a') . "
              ORDER BY a.id
              LIMIT " . (int)$limit . " OFFSET " . (int)$offset;
         $stmt = $pdo->query($sql);
@@ -540,6 +653,7 @@ function seo_anime_locs($pdo, $animeId, $forceChronology = false) {
             SELECT a.id,
                    a.is_adult,
                    a.series_name,
+                   a.synopsis_tr, a.synopsis_en, a.synopsis, a.image_path,
                    EXISTS(SELECT 1 FROM chronology_markers m
                            WHERE m.anime_id = a.id) AS has_markers
               FROM animes a
@@ -554,6 +668,13 @@ function seo_anime_locs($pdo, $animeId, $forceChronology = false) {
     }
 
     if (!$row || (int)$row['is_adult'] === 1) {
+        return [];
+    }
+
+    // 1.1.37: ince stub duyurulmaz. $forceChronology bunu DELMEZ - o
+    // bayrak "son marker silindi, adresi yeniden taratalim" demek, ve
+    // marker'i kalmamis bir stub zaten indekslenmemeli.
+    if (!seo_row_has_content($row)) {
         return [];
     }
 

@@ -434,6 +434,16 @@ function anilist_graphql_request($query, array $variables)
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POST           => true,
         CURLOPT_POSTFIELDS     => $payload,
+        // 1.1.37 - istegi IMZALA. Sozlesmeye uymak icin degil (uyumluyuz:
+        // yalnizca kullanicinin KENDI listesi cekiliyor, katalog taranmiyor
+        // ve alanlar kimlik/siniflandirmayla sinirli) - fark edildiginde ne
+        // olacagi icin. Kimliksiz bir istek karsi taraf icin "bilinmeyen
+        // bot"tur ve yapilacak sey sessizce engellemektir; kimlikli istek
+        // once bir e-posta getirir, yani aciklama ya da izin sansi dogar.
+        CURLOPT_USERAGENT      => 'AnimeTracker/'
+            . (function_exists('asset_version') && asset_version() !== ''
+                ? asset_version() : 'dev')
+            . ' (+https://github.com/hitsumo/animetracker)',
         CURLOPT_HTTPHEADER     => [
             'Content-Type: application/json',
             'Accept: application/json',

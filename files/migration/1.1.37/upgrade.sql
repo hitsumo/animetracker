@@ -1,0 +1,126 @@
+-- Anime Tracker - Migration 1.1.37
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- =====================================================================
+-- 1.1.37 - SEMA DEGISIKLIGI YOKTUR
+-- =====================================================================
+--
+-- Bu dosya bilerek BOSTUR. Runner yorumlari temizler, calistiracak ifade
+-- bulamaz ve yalnizca settings.version'i 1.1.37'ye tasir. Klasorun var
+-- olmasi gerekiyor: surum atlanirsa MigrationManager sirayi kaybeder.
+-- (Ayni kalip 1.1.34'te de kullanildi.)
+--
+-- ---------------------------------------------------------------------
+-- Bu surumde ne var: dort kucuk ve birbirinden BAGIMSIZ is
+-- ---------------------------------------------------------------------
+--
+-- 1) INCE STUB'LAR ARTIK INDEKSLENMIYOR  (asil is)
+--
+--    Katalog uc yoldan buyuyor ve ikisi (offline->online aktarim,
+--    MAL/AniList aktarimi) kaydi INCE STUB olarak aciyor: baslik ve
+--    kimlik var, konu yok, gorsel yok. Katalogun buyuk cogunlugu bugun
+--    bu halde.
+--
+--    1.1.30'a kadar sitemap'in tek filtresi "is_adult = 0" idi, yani bu
+--    stub'larin HEPSI sitemap'e giriyordu. 1.1.32'de IndexNow eklenince
+--    ayni adresler arama motorlarina AKTIF olarak itilmeye de basladi.
+--    Site 1-2 Eylul 2026'da Google/Yandex/Bing'e tanitilinca sorun
+--    teorik olmaktan cikti: binlerce ince sayfa indekslenmeye acildi.
+--    Zarari o sayfalarla sinirli kalmaz - alan adinin TUMUNUN
+--    degerlendirmesini asagi ceker, ve geri almak (yeniden tarama +
+--    indeksten dusme) hic indekslenmemekten cok daha uzun surer.
+--
+--    KURAL (functions/seo_helpers.php, seo_has_content_sql() ve PHP
+--    ikizi seo_row_has_content()): bir kaydin ziyaretciye baslik disinda
+--    verecek bir seyi varsa indekslenir - konu (herhangi bir dilde),
+--    gorsel, ya da kronoloji notu. Bolum sayisi veya tarih TEK BASINA
+--    yetmez: onlar okuyucunun arama sonucundan bekledigi icerik degil,
+--    kunye alanidir.
+--
+--    Kural UC yerde kullaniliyor ve TEK yerde tanimli: sitemap sayimi,
+--    sitemap listesi, IndexNow'in tek-kayit karsiligi (seo_anime_locs).
+--    Ucu de "genel bir katalog adresi nedir" sorusunu cevaplamak
+--    zorunda; seo_anime_locs'un kendi yorumu bunu zaten soyluyordu:
+--    "Two copies of the rule would drift the first time one of them
+--    changed." Ayni gerekce 1.1.36'da chain_same() icin de gecerliydi.
+--
+--    Detay sayfasi ayrica "noindex, FOLLOW" tasir: sayfa indekslenmez
+--    ama BAGLANTILARI izlenir, yani ayni serideki dolu kayitlar buradan
+--    kesfedilmeye devam eder.
+--
+--    SINIR: kural yalnizca anime_details.php'yi kapsar. chronology.php
+--    zaten marker sarti tasiyor (marker varsa kurasyon var demektir);
+--    series_timeline.php ise TOPLU bir sayfadir - uyelerinden biri ince
+--    olsa da liste kendi basina anlamlidir.
+--
+--    Kayitlar SILINMEZ, GIZLENMEZ. Site icinde her sey eskisi gibi
+--    gorunur ve gezilir; degisen tek sey arama motorlarina ne
+--    duyuruldugu. Bir stub'a konu ya da gorsel eklendigi anda
+--    kendiliginden yeniden indekslenebilir hale gelir.
+--
+-- 2) YEDEK DIL ARTIK INGILIZCE  (onceden Turkce)
+--
+--    t() sirayla bakar: secili dil -> yedek -> anahtarin kendisi. Iki
+--    dil varken yedegin hangisi oldugu onemsizdi (ikisi de tam). Ucuncu
+--    bir dil eklenince onemli oluyor: cevirisi eksik kalan bir anahtarda
+--    Endonezyaca konusan bir ziyaretciye TURKCE dusmek, Ingilizce
+--    dusmekten acikca kotu.
+--
+--    Bu, dil katkisini MUMKUN kilan sey: eksik ceviri ekrani bozmaz,
+--    Ingilizceye duser. Yani bir katkici sozlugun tamamini bitirmeden de
+--    gonderebilir.
+--
+--    Guvenli, cunku iki sozluk de tam - parite her surumde olculuyor
+--    (1.1.37 kapanisinda 999 = 999). Yonetici sozlugunde de ayni degisim
+--    yapildi.
+--
+-- 3) ANILIST ISTEKLERI ARTIK KENDINI TANITIYOR
+--
+--    CURLOPT_USERAGENT: "AnimeTracker/<surum> (+depo adresi)".
+--
+--    Sozlesmeye uymak icin DEGIL - zaten uyumluyuz: sorgu
+--    mediaList(userName:) ile yalnizca kullanicinin KENDI listesini
+--    ceker, katalog taramaz, ve media nesnesinden yalnizca kimlik ve
+--    siniflandirma alanlarini alir (konu/gorsel/tarih/bolum/tur/iliski
+--    ALINMAZ). MAL tarafinda ise API'ye hic istek yok; o aktarim
+--    kullanicinin kendi .xml/.gz dosyasindan okunur.
+--
+--    Sebep, fark edildiginde NE OLACAGI: kimliksiz bir istek karsi taraf
+--    icin "bilinmeyen bot"tur ve yapilacak sey sessizce engellemektir -
+--    bir sabah aktarim calismaz ve nedeni bilinmez. Kimlikli istek once
+--    bir e-posta getirir, yani aciklama ya da izin sansi dogar.
+--
+--    AnimeSchedule'a eklenmedi: o istekler zaten Bearer anahtariyla
+--    imzali, yani kimlik bilgisi mevcut.
+--
+-- 4) README'YE "YENI DIL EKLEME" BOLUMU
+--
+--    Depodaki tek yildiz Endonezyali bir kullanicidan geldi ve ileride
+--    baska diller de dusunuluyor. Ceviriyi yapay zeka uretebilir; ufak
+--    yanlislar ise topluluga bir katki KAPISI olur - insanin duzeltmek
+--    isteyecegi en kucuk ve en guvenli ilk katki, kendi dilindeki yanlis
+--    bir cumledir. (2) sayesinde eksik ceviri ekrani bozmadigi icin bu
+--    pratikte mumkun.
+--
+--    UYARI olarak yazildi: SONUCU OLAN metinler (18+ uyarisi, silme
+--    onayi, spoiler kapisi, yedek/geri yukleme uyarilari) insan gozunden
+--    gecmeli. Yanlissa sonuc "tuhaf" degil ZARAR olur.
+--
+-- ---------------------------------------------------------------------
+-- Dagitim
+-- ---------------------------------------------------------------------
+--
+-- Merkez katalog sunucusunda yapilacak bir sey YOK: katalog telinde yeni
+-- alan yok, elle ALTER gerekmiyor, catalog_server/ altinda degisen dosya
+-- yok.
+--
+-- Yarim yukleme riski: anime_details.php TEK BASINA yuklenirse yeni
+-- seo_anime_has_content() bulunamaz ve sayfa coker. functions/
+-- seo_helpers.php ile BIRLIKTE gitmeli. Diger uc isin dosyalari
+-- birbirinden bagimsizdir.
+--
+-- SELF-HOST etkilenmez: o modda zaten her sayfa noindex (1.1.30) ve
+-- sitemap kapali; bu surumun SEO kismi yalnizca online modda gorunur.
+-- =====================================================================

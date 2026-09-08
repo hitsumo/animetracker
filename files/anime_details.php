@@ -265,12 +265,19 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
     if ($metaDesc === '') {
         $metaDesc = sprintf(t('seo.anime.description_fmt'), display_title($anime));
     }
+    // 1.1.37 - INCE STUB indekslenmez. Katalogun buyuk kismi konu/gorsel
+    // girilmemis kayitlardan olusuyor (offline ve MAL/AniList aktarimlari
+    // boyle aciyor); boyle bir sayfanin arama sonucunda verecegi sey yok.
+    // "noindex, follow": sayfa indekslenmez ama BAGLANTILARI izlenir, yani
+    // ayni serideki dolu kayitlar buradan kesfedilmeye devam eder.
+    // Kural sitemap ve IndexNow ile AYNI yerden gelir (seo_helpers.php).
     echo seo_head([
         'title'       => display_title($anime),
         'description' => $metaDesc,
         'canonical'   => 'anime_details.php?id=' . (int)$anime['id'],
         'image'       => $anime['image_path'] ?? '',
         'type'        => 'article',
+        'noindex'     => !seo_anime_has_content($pdo, $anime),
     ]);
     ?>
     <?php echo asset_styles(); ?>

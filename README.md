@@ -124,6 +124,28 @@ geri gönderilir (imzalı, sunucudan sunucuya) ve diğer kurulumlar bir sonraki
 güncellemede alır. Kişisel veriler (izleme durumu, notlar, duygular) asla katalogla
 paylaşılmaz — yalnızca liste dışa/içe aktarmayla taşınır.
 
+### Yeni dil ekleme
+
+Arayüz şu an Türkçe ve İngilizce. Yeni bir dil eklemek için üç adım:
+
+1. `files/lang/en.php` dosyasını kopyala, `files/lang/<kod>.php` olarak
+   kaydet (`<kod>` iki harfli dil kodu — `id`, `de`, `es` …). Yönetici
+   arayüzü de isteniyorsa `files/lang/admin_en.php` için aynısını yap.
+2. Dizideki **değerleri** çevir; **anahtarlara dokunma**
+   (`'add_anime.label.chain_name' => '...'` — soldaki taraf aynı kalmalı).
+3. `files/functions/i18n_helpers.php` içindeki izinli diller listesine
+   kodu ekle ve bir pull request gönder.
+
+**Sözlüğün tamamını bitirmen gerekmez.** Çevrilmemiş bir anahtar İngilizceye
+düşer, ekranda bozuk bir şey görünmez — yani dosyayı parça parça
+tamamlayabilirsin.
+
+Bir uyarı: çoğu metinde ufak bir hata zararsızdır, ama **sonucu olan**
+metinler bir insan gözünden geçmeli — 18+ içerik uyarısı, silme onayları,
+spoiler kapısı ve yedekleme/geri yükleme uyarıları. Bunlar yanlış çevrilirse
+sonuç yalnızca "tuhaf" olmaz; kullanıcı yanlışlıkla veri silebilir ya da
+spoiler görebilir.
+
 ### Teknoloji ve lisans
 
 PHP · MariaDB / MySQL · vanilla JavaScript · XAMPP veya Docker.
@@ -216,6 +238,29 @@ approves a pending anime, the record is automatically pushed back to the central
 server (signed, server-to-server) and other installs receive it on their next
 update. Personal data (watch status, notes, emotions) is never shared with the
 catalog — it only moves via list export/import.
+
+### Adding a language
+
+The interface currently ships in Turkish and English. To add a language:
+
+1. Copy `files/lang/en.php` to `files/lang/<code>.php` (`<code>` is the
+   two-letter language code — `id`, `de`, `es` …). Do the same for
+   `files/lang/admin_en.php` if you also want the admin screens.
+2. Translate the **values**, leave the **keys alone**
+   (`'add_anime.label.chain_name' => '...'` — the left-hand side must not
+   change).
+3. Add the code to the allowed-languages list in
+   `files/functions/i18n_helpers.php` and open a pull request.
+
+**You do not have to finish the whole dictionary.** Any key you have not
+translated falls back to English, so nothing on screen breaks — the file can
+be completed a piece at a time.
+
+One caution: in most strings a small mistake is harmless, but the ones that
+carry **consequences** deserve a human check — the adult-content warning,
+delete confirmations, the spoiler gate, and the backup/restore warnings. If
+those are mistranslated the result is not merely awkward; a user can lose
+data or be shown a spoiler.
 
 ### Tech and license
 

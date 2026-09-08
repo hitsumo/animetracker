@@ -172,8 +172,18 @@ function lang_init($pdo) {
         $lang = 'tr';
     }
 
+    // 1.1.37 - YEDEK DIL INGILIZCE (onceden Turkce idi).
+    //
+    // t() sirayla bakar: secili dil -> yedek -> anahtarin kendisi. Iki dil
+    // varken yedegin hangisi oldugu onemsizdi (ikisi de tamdi). Ucuncu bir
+    // dil eklenince onemli oluyor: cevirisi eksik kalan bir anahtarda
+    // Endonezyaca konusan bir ziyaretciye TURKCE dusmek, Ingilizce dusmekten
+    // acikca kotu. Ingilizce burada "ortak zemin" rolunde.
+    //
+    // Guvenli, cunku iki sozluk de TAM: 1.1.36 kapanisinda parite olculdu
+    // (999 = 999, iki yonde de eksik anahtar yok) ve her surumde olculuyor.
     $dict     = _lang_load($lang);
-    $fallback = ($lang === 'tr') ? $dict : _lang_load('tr');
+    $fallback = ($lang === 'en') ? $dict : _lang_load('en');
 
     _lang_cache([
         'lang'     => $lang,
@@ -222,8 +232,11 @@ function current_lang() {
  *
  * Lookup order:
  *   1. Active language dictionary (loaded by lang_init).
- *   2. Turkish dictionary (fallback - English may have gaps while
- *      translation is in progress).
+ *   2. English dictionary (fallback, 1.1.37 - was Turkish until then).
+ *      English is the common ground once a third language exists: a key
+ *      an Indonesian translation has not reached yet should fall to
+ *      English, not to Turkish. Both TR and EN are kept complete, and
+ *      key parity is measured every release.
  *   3. The key itself, returned unchanged - a visible token tells
  *      the developer which entry is missing without leaving the
  *      user with a blank screen.
@@ -270,8 +283,9 @@ function lang_init_admin($pdo) {
     $cache = _lang_cache();
     $lang = $cache['lang'];
 
+    // 1.1.37 - yonetici sozlugunde de yedek Ingilizce (yukaridaki gerekce).
     $adminDict     = _lang_load_admin($lang);
-    $adminFallback = ($lang === 'tr') ? $adminDict : _lang_load_admin('tr');
+    $adminFallback = ($lang === 'en') ? $adminDict : _lang_load_admin('en');
 
     $cache['dict']     = array_merge($cache['dict'],     $adminDict);
     $cache['fallback'] = array_merge($cache['fallback'], $adminFallback);
