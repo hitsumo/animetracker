@@ -1,0 +1,165 @@
+-- Anime Tracker - Migration 1.1.38
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- =====================================================================
+-- 1.1.38 - Tipli iliskiler: iki kaydin bagi ARTIK BIR TUR TASIYOR
+-- =====================================================================
+--
+-- SORUN
+--
+-- 1.1.36 bir serideki her izleme hattina AD verdi ("uyelik addan, sira
+-- bagdan") ve iki gercek hatayi gorunur kildi. Ama o surumun kendi
+-- teshisi, cozdugunden fazlasini soyluyordu: ortadaki eksik yalnizca
+-- HANGI HAT bilgisi degil, NE TUR BAG bilgisiydi.
+--
+--   Space Adventure Cobra'nin 1982 filmi, AniDB'ye gore TV dizisinin
+--   ALTERNATIVE VERSION'udur. Katalog yalnizca "bagli" ya da "bagsiz"
+--   diyebiliyordu; kuratorun dogru cevabi - "bunlar birbirine aittir ama
+--   biri digerinin DEVAMI DEGILDIR" - soylenemiyordu. Soylenemeyen bu
+--   cumle ekranda EKSIK VERI gibi gorunuyordu.
+--
+--   Sailor Moon Crystal (yine alternative version) tam tersini yapmisti:
+--   90'lar zincirinin ICINE baglanmisti, yani zaman cizelgesi var
+--   olmayan bir izleme sirasi iddia ediyor, spoiler kapisi da sekiz
+--   ilgisiz kaydi Crystal'in izlenmemis onculu sayiyordu.
+--
+-- 1.1.36 ikisini de gorunur hale getirdi (ad koyarak), ama neden ayri
+-- durduklarini kayda gecirmedi. Bu surum onu yapar.
+--
+-- COZUM: TEK YENI TABLO, SIRASIZ TURLER
+--
+--   anime_relations(from_anime_id, to_anime_id, relation_type)
+--
+-- Bes tur: alternative_version, alternative_setting, side_story,
+-- summary, other.
+--
+-- `sequel` ENUM'DA YOKTUR - VE BU BILINCLIDIR.
+--
+-- Izleme SIRASI hala tek bir yerde durur: animes.next_in_series. Sequel
+-- kenari burada da saklanabilseydi ayni cift hakkinda IKI kaynak
+-- konusabilir, celistiklerinde de birinin kazanmasi gerekirdi. Degeri
+-- enum'a hic koymamak, celiskiyi "onerilmez" degil GIRILEMEZ yapar.
+-- Buradaki her tur SIRASIZDIR: iki kaydin ilgili oldugunu soyler, hangisinin
+-- once izlenecegini ASLA soylemez. Bu tablo ne seri kronolojisini ne de
+-- spoiler kapisini besler - ikisi de 1.1.37'deki mantiklarini aynen
+-- surdurur.
+--
+-- (Yol haritasinin ucuncu adimi - sequel/prequel'in tabloya tasinmasi ve
+-- next_in_series'in emekliye ayrilmasi - 1.1.39'a birakildi. Gerekce
+-- KARARLAR_4 sec.94'te: kullanicinin verisinde DALLANMA YOK, yani o adim
+-- henuz varsayima dayali; ilk iki adim ise iki tasarimda da birebir
+-- aynidir, dolayisiyla hicbir emek ziyan olmaz.)
+--
+-- YON VE TERSI
+--
+-- Bir satir "FROM, TO'NUN <tur>'UDUR" diye okunur:
+--
+--   side_story : `from` yan hikayedir, `to` ana hikayedir.
+--   summary    : `from` ozettir,      `to` tam hikayedir.
+--
+-- Asimetrik olan yalnizca bu ikisidir ve asimetri GERCEKTIR: A, B'nin yan
+-- hikayesiyse B, A'nin yan hikayesi DEGIL, ANA hikayesidir. Ayni satir bu
+-- yuzden iki ucta iki farkli etiketle cizilir
+-- (relation_helpers.php -> anime_relation_type_label($type, $inverse)).
+-- Kalan uc tur iki yonden de ayni cumleyi kurar; onlarda yon bilgi
+-- tasimadigi icin YAZARKEN normallestirilir (kucuk id one alinir). Aksi
+-- halde ayni cumle yon basina bir kez, yani iki kez saklanabilir ve
+-- uniq_relation_pair bunu yakalayamazdi.
+--
+-- BIR CIFT, EN COK BIR ILISKI
+--
+-- uniq_relation_pair yalnizca ayni sirali ciftin ayni turle
+-- tekrarlanmasini engeller. Ikinci bir kural add_anime_relation.php'de
+-- durur: ayni iki anime arasinda (hangi yonde olursa olsun) IKINCI bir
+-- iliski reddedilir. Gerekce: bir cift uzerinde iki satir ya tekrardir
+-- ("alternatif versiyon" iki kez) ya da celiskidir ("A, B'nin ozetidir"
+-- ve ayni anda "B, A'nin ozetidir"); kuratorun tek ve daha iyi bir tur
+-- secerek ifade edemeyecegi ucuncu bir durum yoktur.
+--
+-- ZINCIR CELISKISI DE ENGELLENIR
+--
+-- next_in_series ile BIRBIRINE BAGLI iki kayit arasina iliski
+-- kurulamaz: o cift ayni anda hem sirali hem sirasiz oldugunu iddia
+-- ederdi - yani tam olarak Sailor Moon Crystal hatasi. Kontrol 1.1.36'nin
+-- kuralini TEKRARLAMAZ, CAGIRIR: bag yalnizca iki ucun zincir adi ayniysa
+-- izlenir (chain_same), dolayisiyla adlar farkli oldugu icin zaten
+-- izlenmeyen "uykudaki" bir bag hicbir seyi engellemez. Tek kural, tek
+-- yer.
+--
+-- SEMA: TEK YENI TABLO, YENI KOLON YOK
+--
+--   anime_relations
+--     id, from_anime_id, to_anime_id, relation_type, created_at
+--     UNIQUE (from_anime_id, to_anime_id, relation_type)
+--     KEY (to_anime_id)          -- ters yon sorgusu icin
+--     FK her iki uca da ON DELETE CASCADE
+--
+-- Index'in ikinci kolonu ayri durur cunku okuma sorgusu iki yonu birden
+-- tarar (WHERE from = ? OR to = ?): birlesik UNIQUE zaten from ile
+-- basladigindan ileri yonu karsilar, idx_relation_to da geri yonu.
+--
+-- CASCADE, marker'lardaki kaliptir: bir anime silindiginde iliskileri de
+-- gider, oksuz satir kalmaz. Kara listenin (1.1.35) silme akisini
+-- etkilemez - o akis animes satirini siler, gerisi veritabaninin isidir.
+--
+-- animes TABLOSUNA DOKUNULMADI. next_in_series ve chain_name oldugu gibi
+-- durur; bu surum var olan hicbir veriyi tasimaz, hicbir bagi
+-- donusturmez. Migration'dan sonra tablo BOSTUR ve iliskileri kurator
+-- elle girer. (1.1.39'da mevcut baglar tek bir INSERT ile `sequel`
+-- kenarina cevrilebilir; hibrit doneminde tabloya elle `sequel` girilmis
+-- OLAMAZ, cunku enum'da o deger yoktur - yani cakisma da olamaz.)
+--
+-- UYGULAMAYA OZELDIR
+--
+-- next_in_series ve chain_name gibi MERKEZE GITMEZ. Katalog telinde yeni
+-- alan yoktur, merkez veritabaninda ELLE ALTER GEREKMEZ ve catalog_server/
+-- altinda degisen dosya yoktur. Gerekce, next_in_series'i yerelde tutan
+-- gerekcenin aynisi: bir iliski, iki YEREL satir kimliginden ibarettir ve
+-- her kurulum satirlarini farkli numaralandirir.
+--
+-- (1.1.31'in dersi: merkezdeki ALTER atlanirsa catalog 503 verir ve push
+-- duser. Bu surumde atlanacak bir ALTER yok.)
+--
+-- JSON YEDEK
+--
+-- Iliskiler yedege GIRER. Tasima bicimi kronoloji marker'larininkiyle
+-- ayni: karsi uc, yerel id ile degil KIMLIK DORTLUSUYLE yazilir (mal_id,
+-- anidb_id, catalog_uuid, baslik) ve geri yuklemede ikinci turda cozulur.
+-- Boylece yedek-al/geri-yukle turunda iliskiler sessizce kaybolmaz -
+-- next_in_series'in bugun dustugu tuzak budur ve tekrarlanmadi.
+--
+-- Her iliski tam BIR KEZ yazilir: yalnizca `from` ucundaki anime onu
+-- disari aktarir. Iki uctan da yazilsaydi geri yuklemede ayni cift icin
+-- iki satir denenir, ikincisi UNIQUE'e takilirdi.
+--
+-- ------------------------------------------------------------------
+-- DOGRULAMA
+-- ------------------------------------------------------------------
+-- Migration bu semanin bir KOPYASINDA gercek MigrationManager mantigiyla
+-- kosuldu, sonra IKINCI KEZ kosuldu: birinci kosuda 1 migration,
+-- ikincisinde 0; tablo/index/FK dokumu birebir ayni kaldi ve ikinci
+-- kosudan once eklenen satir yerinde durdu (tablo yeniden
+-- olusturulmamis). Ayrintili vaka listesi CHANGELOG_1_1_38.md ve
+-- proje_durumu_89.md'de.
+--
+-- Runner asagidaki yorum satirlarini temizler ve tek ifadeyi calistirir;
+-- tablo zaten varsa IF NOT EXISTS (ve gelirse 1050 hatasi) yok sayilir,
+-- settings.version 1.1.38'e tasinir.
+-- =====================================================================
+
+CREATE TABLE IF NOT EXISTS `anime_relations` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `from_anime_id` int(11) NOT NULL,
+  `to_anime_id` int(11) NOT NULL,
+  `relation_type` enum('alternative_version','alternative_setting','side_story','summary','other') NOT NULL DEFAULT 'other',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_relation_pair` (`from_anime_id`, `to_anime_id`, `relation_type`),
+  KEY `idx_relation_to` (`to_anime_id`),
+  CONSTRAINT `fk_relation_from`
+    FOREIGN KEY (`from_anime_id`) REFERENCES `animes` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_relation_to`
+    FOREIGN KEY (`to_anime_id`) REFERENCES `animes` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

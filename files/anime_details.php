@@ -115,6 +115,11 @@ $spoilerGate = spoiler_gate($pdo, $anime);
 
 // Series relationship data
 $relatedAnimes = getRelatedAnimes($pdo, $anime['series_name'] ?? null, $anime['id']);
+// 1.1.38 - tipli iliskiler (anime_relations). Burasi yalnizca GOSTERIR;
+// kurma/silme edit_anime.php'deki panelde durur. Iliskiler SIRASIZDIR -
+// hicbiri "once sunu izle" demez - ve bu sayfadaki iki sirali ozelligi
+// (zincir yuruyusu ve spoiler kapisi) etkilemezler.
+$animeRelations = anime_relations_grouped(getAnimeRelations($pdo, $anime['id']));
 $chronologyMarkers = getChronologyMarkers($pdo, $anime['id']);
 $chronologyAlert = getActiveChronologyAlert($pdo, $anime['id'], $anime['watched_episodes']);
 
@@ -813,6 +818,44 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
                 <a href="series_timeline.php?id=<?php echo (int)$anime['id']; ?>" class="chronology-button" style="background: #8e44ad;">
                     <i class="fas fa-list-ol"></i> <?php echo htmlspecialchars(t('anime_details.btn.series_chronology'), ENT_QUOTES, 'UTF-8'); ?>
                 </a>
+            </div>
+            <?php endif; ?>
+
+            <?php // ============================================================
+                  // SECTION: Iliskili Animeler (1.1.38)
+                  // Tipli ve SIRASIZ iliskiler: "ayni hikayenin baska bir
+                  // anlatimi", "yan hikaye", "ozet". Yukaridaki "Siradaki"
+                  // kartindan farki tam olarak budur - o bir SIRA soyler,
+                  // burasi hicbir sira iddia etmez.
+                  //
+                  // Basliklar iliskinin TURUNE gore degil, o ucun ETIKETINE
+                  // gore gruplanir: ayni satir iki ucta iki farkli cumle
+                  // kurar (A, B'nin yan hikayesiyse B, A'nin ANA hikayesidir).
+                  // ============================================================
+            ?>
+            <?php if (!empty($animeRelations)): ?>
+            <div class="relation-section">
+                <h3><i class="fas fa-code-branch"></i> <?php echo htmlspecialchars(t('anime_details.section.relations'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                <div class="relation-section-list">
+                    <?php foreach ($animeRelations as $relLabel => $relRows): ?>
+                    <div class="relation-group">
+                        <h4><?php echo htmlspecialchars($relLabel, ENT_QUOTES, 'UTF-8'); ?></h4>
+                        <?php foreach ($relRows as $rel): ?>
+                        <div class="relation-row">
+                            <a href="anime_details.php?id=<?php echo (int)$rel['other_id']; ?>" class="relation-row-link">
+                                <?php echo htmlspecialchars(display_title($rel), ENT_QUOTES, 'UTF-8'); ?>
+                                <?php if (!empty($rel['media_type'])): ?>
+                                    (<?php echo htmlspecialchars($rel['media_type'], ENT_QUOTES, 'UTF-8'); ?>)
+                                <?php endif; ?>
+                            </a>
+                            <span class="relation-row-status ws-<?php echo watch_status_css_class($rel['watch_status']); ?>">
+                                <?php echo htmlspecialchars(watch_status_label($rel['watch_status']), ENT_QUOTES, 'UTF-8'); ?>
+                            </span>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
             </div>
             <?php endif; ?>
 

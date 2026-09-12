@@ -545,8 +545,10 @@ function fetchAnimeScheduleData() {
             // eklenir ki kullanici formda olmayan bir alani aramasin.
             // offsetParent === null => eleman ya kendisi ya da bir atasi
             // display:none.
+            // 1.1.38: olcum artik animeFormFieldHidden() ile - SEKME
+            // paneli "gizli" saymaz (dosyanin sonundaki nota bakin).
             const names = filled.map(function (f) {
-                return f.el.offsetParent === null
+                return animeFormFieldHidden(f.el)
                     ? f.name + ' ' + (LANG.field_hidden_suffix || '(*)')
                     : f.name;
             });
@@ -626,3 +628,144 @@ function checkWatchDateOrder() {
     const invalid = (startEl.value !== '' && finishEl.value !== '' && finishEl.value < startEl.value);
     warnEl.style.display = invalid ? 'block' : 'none';
 }
+
+// =====================================================================
+// 1.1.38 - Sekmeli form (add_anime.php + edit_anime.php)
+// =====================================================================
+//
+// Form TEK POST olarak kaldi; degisen yalnizca hangi alan grubunun ayni
+// anda gorundugu. Kalip 1.1.13'un Liste Ayarlari sekmelerinin aynisi ve
+// ayni sebeple progressive enhancement: cubuk CSS ile gizli baslar, bu
+// blok .js-tabs sinifini ekleyince acilir. JS calismazsa butun paneller
+// alt alta gorunur, yani sayfa 1.1.37'deki gibi calisir.
+//
+// UC FARK (ve gerekceleri):
+//
+//   1. Eslesme id ile DEGIL data-tab-panel DEGERIYLE yapilir. Iliskiler
+//      paneli ana formun DISINDA olmak zorunda (ic ice <form> olamaz) ama
+//      "Seri" sekmesine ait; bir sekmenin birden cok dumege yayilabilmesi
+//      tam olarak bunun icin.
+//
+//   2. Gecersiz bir alan gizli sekmede kalirsa tarayici formu SESSIZCE
+//      gondermez ("not focusable"): kullanici Guncelle'ye basar, hicbir
+//      sey olmaz. Bu yuzden 'invalid' olayi yakalanip o alanin sekmesi
+//      acilir - tarayicinin kendi baloncugu ancak alan gorunurken cikar.
+//      Submit olayi bu is icin KULLANILAMAZ: form gecersizse tarayici
+//      submit'i hic ateslemez.
+//
+//   3. Aktif sekme sessionStorage'da tutulur, sayfa BASINA ayri anahtar
+//      (ekleme ile duzenleme ayni sekmede acilmasin diye degil - ayni
+//      sayfaya donunce kullanicinin birakti yerden devam etmesi icin).
+(function () {
+    var container = document.querySelector('.form-tabs-container');
+    if (!container) { return; }
+
+    var tabs = Array.prototype.slice.call(container.querySelectorAll('.form-tab'));
+    var panels = Array.prototype.slice.call(container.querySelectorAll('.form-tab-panel'));
+    if (!tabs.length || !panels.length) { return; }
+
+    var STORE_KEY = 'anime_form_tab:' + (location.pathname.split('/').pop() || 'form');
+
+    function activate(name) {
+        var found = false;
+        panels.forEach(function (p) {
+            var on = (p.getAttribute('data-tab-panel') === name);
+            p.classList.toggle('active', on);
+            if (on) { found = true; }
+        });
+        if (!found) { return false; }
+        tabs.forEach(function (t) {
+            t.classList.toggle('active', t.getAttribute('data-tab-target') === name);
+        });
+        return true;
+    }
+
+    container.classList.add('js-tabs');
+
+    var stored = null;
+    try { stored = sessionStorage.getItem(STORE_KEY); } catch (e) {}
+    if (!stored || !activate(stored)) {
+        activate(tabs[0].getAttribute('data-tab-target'));
+    }
+
+    tabs.forEach(function (t) {
+        t.addEventListener('click', function () {
+            var name = t.getAttribute('data-tab-target');
+            if (activate(name)) {
+                try { sessionStorage.setItem(STORE_KEY, name); } catch (e) {}
+            }
+        });
+    });
+
+    // Gecersiz alanin sekmesini ac (yukaridaki 2 numarali not).
+    var form = document.getElementById('anime-form');
+    if (form) {
+        var switching = false;
+        form.addEventListener('invalid', function (e) {
+            if (switching) { return; }   // ilk gecersiz alan kazanir
+            var node = e.target;
+            while (node && node !== container) {
+                if (node.classList && node.classList.contains('form-tab-panel')) {
+                    var name = node.getAttribute('data-tab-panel');
+                    if (!node.classList.contains('active')) {
+                        switching = true;
+                        activate(name);
+                        try { sessionStorage.setItem(STORE_KEY, name); } catch (e2) {}
+                        setTimeout(function () { switching = false; }, 0);
+                    }
+                    return;
+                }
+                node = node.parentElement;
+            }
+        }, true);
+    }
+})();
+
+// 1.1.38 - "Otomatik Doldur" raporundaki gorunurluk olcumu.
+//
+// Rapor, doldurdugu ama EKRANDA OLMAYAN alanin adina "(gizli bolumde)"
+// ekler ki kullanici formda olmayan bir alani aramasin (1.1.27). Sekmeler
+// gelince offsetParent === null testi yanilir hale geldi: baska sekmedeki
+// her alan "gizli" sayilirdi, yani not neredeyse her alanda cikar ve
+// anlamini yitirirdi. Baska bir sekmede olmak GIZLI olmak degildir - alan
+// oradadir, kullanici sekmeye basinca gorur.
+//
+// Bu yuzden gorunurluk atalar tek tek gezilerek olculur ve SEKME PANELI
+// atlanir; geriye gercek sebepler kalir (durum'a bagli yayin bolumu, tek
+// bolumluk yapimda gizlenen bitis tarihi, vb.).
+function animeFormFieldHidden(el) {
+    var node = el;
+    while (node && node !== document.body) {
+        var isPanel = node.classList && node.classList.contains('form-tab-panel');
+        if (!isPanel && window.getComputedStyle(node).display === 'none') {
+            return true;
+        }
+        node = node.parentElement;
+    }
+    return false;
+}
+
+// 1.1.38 - Iliski hedefi kutusunu "Siradaki Anime" kutusundan doldur.
+//
+// Iki kutu ayni listeyi gosterir (ayni $allAnimes, ayni siralama, ayni
+// yildiz isareti). Ikisini de sunucuda basmak sayfayi katalog boyutunda
+// IKIYE katlardi: 8000 kayitlik yerel katalogda 1,9 MB yerine 3,9 MB
+// olculdu. O yuzden ikinci kutu bos gelir ve secenekleri burada klonlanir
+// - kopyalama tarayicida, tel uzerinde tek liste.
+(function () {
+    var target = document.querySelector('select[data-clone-options-from]');
+    if (!target) { return; }
+    var source = document.getElementById(target.getAttribute('data-clone-options-from'));
+    if (!source) { return; }
+
+    var frag = document.createDocumentFragment();
+    for (var i = 0; i < source.options.length; i++) {
+        var opt = source.options[i];
+        if (opt.value === '') { continue; }   // "Seciniz" hedefte zaten var
+        frag.appendChild(opt.cloneNode(true));
+    }
+    target.appendChild(frag);
+    // Kaynak kutuda bir secim varsa klon o "selected" niteligini de
+    // tasir; hedef kutu bos ("Seciniz") baslamali.
+    target.selectedIndex = 0;
+})();

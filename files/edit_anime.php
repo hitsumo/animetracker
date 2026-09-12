@@ -101,6 +101,19 @@ $allAnimesStmt = $pdo->prepare("
 $allAnimesStmt->execute([(int)$id, $anime['series_name'], $anime['series_name']]);
 $allAnimes = $allAnimesStmt->fetchAll(PDO::FETCH_ASSOC);
 
+// 1.1.38 - tipli iliskiler. Panel ana formun ALTINDA durur: ic ice <form>
+// yazilamaz, ve iliski ekleme/silme ana formun "Guncelle" tusuna baglanamaz
+// (kaydedilmemis alanlari da gonderirdi). Kendi uclariyla yazar -
+// add_anime_relation.php / delete_anime_relation.php - ve buraya geri doner.
+//
+// Hedef anime YUKARIDAKI $allAnimes listesinden secilir: next_in_series
+// dropdown'u icin zaten yuklu, yani ikinci bir sorgu yok ve secim seri
+// adiyla sinirli DEGIL (alternatif bir kurgu cogu zaman baska bir seri
+// adi tasir - detay sayfasindaki marker formunun ayni-seri listesi bu is
+// icin fazla dar kalirdi).
+$relations     = getAnimeRelations($pdo, $id);
+$relationError = anime_relation_error_message($_GET['relation_error'] ?? '');
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // CSRF kontrolu - form'dan gelen token oturumdaki ile eslesmiyorsa reddet.
     // hash_equals timing-safe karsilastirma yapar (bkz. functions.php csrf_verify).
@@ -766,8 +779,34 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
 
         <div class="section-spacing"></div>
 
-        <form action="" method="post" enctype="multipart/form-data">
+        <?php // ============================================================
+              // 1.1.38 - SEKMELI FORM
+              //
+              // Form tek POST olarak kaldi; degisen yalnizca hangi alan
+              // grubunun ayni anda GORUNDUGU. Kalip 1.1.13'un Liste
+              // Ayarlari sekmeleriyle ayni: cubuk JS kapaliyken gizlidir ve
+              // butun paneller alt alta gorunur, yani JS olmadan sayfa
+              // 1.1.37'deki haliyle calisir.
+              //
+              // Iliskiler paneli ana formun DISINDA olmak ZORUNDA (ic ice
+              // form olamaz), ama ayni sekmeye ait: paneller id ile degil
+              // data-tab-panel DEGERIYLE eslesir, yani bir sekme birden cok
+              // dugume yayilabilir.
+              // ============================================================
+        ?>
+        <div class="form-tabs-container">
+            <div class="form-tabs" role="tablist">
+                <button type="button" class="form-tab active" role="tab" data-tab-target="tab-basic"><?php echo htmlspecialchars(t('form.tab.basic'), ENT_QUOTES, 'UTF-8'); ?></button>
+                <button type="button" class="form-tab" role="tab" data-tab-target="tab-synopsis"><?php echo htmlspecialchars(t('form.tab.synopsis'), ENT_QUOTES, 'UTF-8'); ?></button>
+                <button type="button" class="form-tab" role="tab" data-tab-target="tab-series"><?php echo htmlspecialchars(t('form.tab.series_relations'), ENT_QUOTES, 'UTF-8'); ?></button>
+                <button type="button" class="form-tab" role="tab" data-tab-target="tab-broadcast"><?php echo htmlspecialchars(t('form.tab.broadcast'), ENT_QUOTES, 'UTF-8'); ?></button>
+                <button type="button" class="form-tab" role="tab" data-tab-target="tab-personal"><?php echo htmlspecialchars(t('form.tab.personal'), ENT_QUOTES, 'UTF-8'); ?></button>
+            </div>
+
+        <form action="" method="post" enctype="multipart/form-data" id="anime-form">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+            <?php // Kunye: kaydin ne oldugunu soyleyen alanlar. ?>
+            <div class="form-tab-panel active" data-tab-panel="tab-basic">
             <div class="form-group">
                 <label for="title"><?php echo htmlspecialchars(t('add_anime.label.title'), ENT_QUOTES, 'UTF-8'); ?></label>
                 <div class="input-area">
@@ -809,6 +848,164 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                 </div>
             </div>
 
+            <div class="form-group">
+                <label for="media_type"><?php echo htmlspecialchars(t('add_anime.label.media_type'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <div class="input-area">
+                    <select name="media_type" id="media_type">
+                        <option value=""><?php echo htmlspecialchars(t('add_anime.option.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
+                        <option value="TV" <?php echo ($anime['media_type'] ?? '') === 'TV' ? 'selected' : ''; ?>>TV</option>
+                        <option value="Film" <?php echo ($anime['media_type'] ?? '') === 'Film' ? 'selected' : ''; ?>>Film</option>
+                        <option value="OVA" <?php echo ($anime['media_type'] ?? '') === 'OVA' ? 'selected' : ''; ?>>OVA</option>
+                        <option value="Special" <?php echo ($anime['media_type'] ?? '') === 'Special' ? 'selected' : ''; ?>>Special</option>
+                        <option value="ONA" <?php echo ($anime['media_type'] ?? '') === 'ONA' ? 'selected' : ''; ?>>ONA</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 1.1.17: yapim ulkesi. value ISO kodu, gorunen metin cevrilmis
+                 ulke adi. Kayitli kod artik listede degilse (country_codes()
+                 haritasindan cikarilmissa) hicbir secenek 'selected' olmaz ve
+                 kutu "Seciniz"e duser - kaydedilirse alan NULL'a doner. -->
+            <div class="form-group">
+                <label for="country"><?php echo htmlspecialchars(t('add_anime.label.country'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <div class="input-area">
+                    <select name="country" id="country">
+                        <option value=""><?php echo htmlspecialchars(t('add_anime.option.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
+                        <?php foreach (country_options() as $c_code => $c_label): ?>
+                        <option value="<?php echo htmlspecialchars($c_code, ENT_QUOTES, 'UTF-8'); ?>" <?php echo ($anime['country'] ?? '') === $c_code ? 'selected' : ''; ?>><?php echo htmlspecialchars($c_label, ENT_QUOTES, 'UTF-8'); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+    <label for="status"><?php echo htmlspecialchars(t('add_anime.label.status'), ENT_QUOTES, 'UTF-8'); ?></label>
+    <div class="input-area">
+        <?php if ($anime['status'] == 'Yayın Tamamlandı'): ?>
+            <!-- Yayin tamamlandiysa, alan kilitli olsun -->
+            <input type="text" name="status" value="Yayın Tamamlandı" readonly class="locked-field">
+<div style="margin-top: 10px;"></div>
+<input type="hidden" name="status" value="Yayın Tamamlandı">
+<small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.status.locked_hint'), ENT_QUOTES, 'UTF-8'); ?></small>
+        <?php else: ?>
+            <select name="status" onchange="toggleBroadcastDetails()" required>
+                <?php // 1.1.10: five states via the broadcast_status helper. Only
+                      // non-finished rows reach this select (finished is locked
+                      // above), so any of the other four can be the current value. ?>
+                <?php foreach (broadcast_status_options() as $bs_value => $bs_label): ?>
+                <option value="<?php echo htmlspecialchars($bs_value, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $anime['status'] === $bs_value ? ' selected' : ''; ?>><?php echo htmlspecialchars($bs_label, ENT_QUOTES, 'UTF-8'); ?></option>
+                <?php endforeach; ?>
+            </select>
+        <?php endif; ?>
+    </div>
+</div>
+
+            <div class="form-group">
+                <label for="total_episodes"><?php echo htmlspecialchars(t('add_anime.label.total_episodes'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <div class="input-area">
+                    <input type="number" name="total_episodes" value="<?php echo htmlspecialchars($anime['total_episodes'] ?? ''); ?>" min="0" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.total_episodes'), ENT_QUOTES, 'UTF-8'); ?>" oninput="toggleEndDateBySingleEpisode()">
+                </div>
+            </div>
+
+            <div id="aired-episodes-section" style="display: <?php echo $anime['status'] == 'Yayın Devam Ediyor' ? 'block' : 'none'; ?>;">
+                <div class="form-group">
+                    <label for="aired_episodes"><?php echo htmlspecialchars(t('add_anime.label.aired_episodes'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <div class="input-area">
+                        <input type="number" name="aired_episodes" id="aired_episodes" value="<?php echo htmlspecialchars($anime['aired_episodes'] ?? ''); ?>" min="0" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.aired_episodes'), ENT_QUOTES, 'UTF-8'); ?>">
+                        <?php
+                        // Senkronize butonu sadece MAL ID dolu animelerde gosterilir.
+                        // mal_id yoksa AnimeSchedule timetable'da eslestirme yapilamaz,
+                        // butonu gostermek anlamsiz olur. Anime durumu kontrolu zaten
+                        // parent div ile saglaniyor (sadece "Yayin Devam Ediyor" iken
+                        // bu tum bolum gorunur).
+                        if (!empty($anime['mal_id'])):
+                        ?>
+                        <button type="button" id="aired-sync-btn" onclick="syncAiredEpisodes()" style="margin-top:8px; padding:8px 14px; background:#27ae60; color:#fff; border:none; border-radius:4px; cursor:pointer;">
+                            <i class="fas fa-sync"></i> <?php echo htmlspecialchars(t('add_anime.btn.animeschedule_fetch'), ENT_QUOTES, 'UTF-8'); ?>
+                        </button>
+                        <div id="aired-sync-status" style="margin-top:8px; font-size:13px;"></div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+
+            <?php // 1.1.31 - tarihin bilinen parcasi kadari girilebilir. Blok
+                  // render_partial_date_field() ile basilir (bkz. add_anime.php);
+                  // kayitli tarih + hassasiyet uc girdiye dagitilir. Eski
+                  // date('Y-m-d', strtotime(...)) cagrisi kalkti: bozuk bir
+                  // degeri sessizce baska bir tarihe cevirebiliyordu. ?>
+            <?php render_partial_date_field(
+                    'release_date',
+                    t('add_anime.label.release_date'),
+                    $anime['release_date'] ?? null,
+                    $anime['release_date_precision'] ?? 'full'
+                  ); ?>
+
+            <?php
+                // Madde E - Tek bolumlu animede end-date bastan gizli olur.
+                // Status finished AND total_episodes != 1 ise gosterilir.
+                $endDateInitialDisplay = ($anime['status'] == 'Yayın Tamamlandı'
+                                          && (int)($anime['total_episodes'] ?? 0) !== 1)
+                                         ? 'block' : 'none';
+            ?>
+            <div id="end-date-section" style="display: <?php echo $endDateInitialDisplay; ?>;">
+                <?php render_partial_date_field(
+                        'end_date',
+                        t('add_anime.label.end_date'),
+                        $anime['end_date'] ?? null,
+                        $anime['end_date_precision'] ?? 'full'
+                      ); ?>
+            </div>
+
+            <?php // 1.1.2 - yetiskin (+18) icerik bayragi. Mevcut deger
+                  // ($anime['is_adult']) ile on-isaretli. Isaretli anime +18
+                  // damgalanir; gorunurluk ayar kapaliyken gizlenir. Gorsel
+                  // duzen filler-toggle sinifiyla paylasilir. ?>
+            <div class="form-group">
+                <label for="is_adult_chk"><?php echo htmlspecialchars(t('add_anime.label.is_adult'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <div class="input-area">
+                    <label class="filler-toggle">
+                        <input type="checkbox" name="is_adult" id="is_adult_chk" value="1"<?php echo !empty($anime['is_adult']) ? ' checked' : ''; ?>>
+                        <span class="filler-toggle-hint"><?php echo htmlspecialchars(t('add_anime.hint.is_adult'), ENT_QUOTES, 'UTF-8'); ?></span>
+                    </label>
+                </div>
+            </div>
+
+            <?php // 0.7 - filler bolum izleme gorunurluk toggle'i. Mevcut
+                  // deger ($anime['filler_tracking']) ile on-isaretli. Acilinca
+                  // anime_details.php'de filler ozeti + Duzenle linki gorunur;
+                  // kapatmak filler kayitlarini SILMEZ, gizler. Standart
+                  // form-group deseni: label sol + input-area sag. KARARLAR
+                  // Bolum 8. ?>
+            <div class="form-group">
+                <label for="filler_tracking_chk"><?php echo htmlspecialchars(t('add_anime.label.filler_tracking'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <div class="input-area">
+                    <label class="filler-toggle">
+                        <input type="checkbox" name="filler_tracking" id="filler_tracking_chk" value="1"<?php echo !empty($anime['filler_tracking']) ? ' checked' : ''; ?>>
+                        <span class="filler-toggle-hint"><?php echo htmlspecialchars(t('add_anime.hint.filler_tracking'), ENT_QUOTES, 'UTF-8'); ?></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="image"><?php echo htmlspecialchars(t('add_anime.label.image'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <div class="input-area">
+                    <div class="file-upload">
+                        <input type="file" name="image" id="image" accept="image/*" onchange="updateFileName(this)">
+                        <label for="image" class="file-upload-label">
+                            <i class="fas fa-upload"></i> <?php echo htmlspecialchars(t('add_anime.btn.choose_file'), ENT_QUOTES, 'UTF-8'); ?>
+                        </label>
+                        <span class="file-name-display" id="file-name">
+                            <?php echo basename($anime['image_path']); ?>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            </div><!-- /tab-basic -->
+
+            <?php // Konu ve siniflandirma: metinler, turler, cumleler. ?>
+            <div class="form-tab-panel" data-tab-panel="tab-synopsis">
             <?php
             // Synopsis display (0.7.3 - language-specific personal synopsis).
             // State is per language, independent:
@@ -898,114 +1095,112 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
             <?php endif; ?>
 
             <div class="form-group">
-                <label for="total_episodes"><?php echo htmlspecialchars(t('add_anime.label.total_episodes'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <label><?php echo htmlspecialchars(t('add_anime.label.genres'), ENT_QUOTES, 'UTF-8'); ?></label>
                 <div class="input-area">
-                    <input type="number" name="total_episodes" value="<?php echo htmlspecialchars($anime['total_episodes'] ?? ''); ?>" min="0" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.total_episodes'), ENT_QUOTES, 'UTF-8'); ?>" oninput="toggleEndDateBySingleEpisode()">
-                </div>
-            </div>
+                    <div class="genre-selection-container">
+                        <?php // data-no-enhance: this picker resets its own value and gains
+                              // options at runtime (anime_form.js), so it is left native. ?>
+                        <select id="genre-select" onchange="addSelectedGenre(this)" data-no-enhance>
+                            <option value=""><?php echo htmlspecialchars(t('add_anime.option.choose_from_existing'), ENT_QUOTES, 'UTF-8'); ?></option>
+                            <?php foreach ($genres as $genre): ?>
+                                <option value="<?php echo htmlspecialchars($genre['name']); ?>">
+                                    <?php echo htmlspecialchars($genre['name']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
 
-            <div id="aired-episodes-section" style="display: <?php echo $anime['status'] == 'Yayın Devam Ediyor' ? 'block' : 'none'; ?>;">
-                <div class="form-group">
-                    <label for="aired_episodes"><?php echo htmlspecialchars(t('add_anime.label.aired_episodes'), ENT_QUOTES, 'UTF-8'); ?></label>
-                    <div class="input-area">
-                        <input type="number" name="aired_episodes" id="aired_episodes" value="<?php echo htmlspecialchars($anime['aired_episodes'] ?? ''); ?>" min="0" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.aired_episodes'), ENT_QUOTES, 'UTF-8'); ?>">
-                        <?php
-                        // Senkronize butonu sadece MAL ID dolu animelerde gosterilir.
-                        // mal_id yoksa AnimeSchedule timetable'da eslestirme yapilamaz,
-                        // butonu gostermek anlamsiz olur. Anime durumu kontrolu zaten
-                        // parent div ile saglaniyor (sadece "Yayin Devam Ediyor" iken
-                        // bu tum bolum gorunur).
-                        if (!empty($anime['mal_id'])):
-                        ?>
-                        <button type="button" id="aired-sync-btn" onclick="syncAiredEpisodes()" style="margin-top:8px; padding:8px 14px; background:#27ae60; color:#fff; border:none; border-radius:4px; cursor:pointer;">
-                            <i class="fas fa-sync"></i> <?php echo htmlspecialchars(t('add_anime.btn.animeschedule_fetch'), ENT_QUOTES, 'UTF-8'); ?>
-                        </button>
-                        <div id="aired-sync-status" style="margin-top:8px; font-size:13px;"></div>
-                        <?php endif; ?>
+                        <div class="new-genre-input">
+                            <input type="text" id="new-genre" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.new_genre'), ENT_QUOTES, 'UTF-8'); ?>">
+                            <button type="button" class="add-button" onclick="addNewGenre()">
+                                <i class="fas fa-plus"></i> <?php echo htmlspecialchars(t('add_anime.btn.add_genre'), ENT_QUOTES, 'UTF-8'); ?>
+                            </button>
+                        </div>
                     </div>
+                    <div id="genre-tags" class="genre-tags">
+                        <!-- Secilen tur etiketleri JavaScript ile doldurulacak -->
+                    </div>
+                    <input type="hidden" name="genres" id="genres-input" value="<?php echo htmlspecialchars(implode(',', $selected_genres)); ?>">
                 </div>
             </div>
 
-            <?php // 0.7 - filler bolum izleme gorunurluk toggle'i. Mevcut
-                  // deger ($anime['filler_tracking']) ile on-isaretli. Acilinca
-                  // anime_details.php'de filler ozeti + Duzenle linki gorunur;
-                  // kapatmak filler kayitlarini SILMEZ, gizler. Standart
-                  // form-group deseni: label sol + input-area sag. KARARLAR
-                  // Bolum 8. ?>
             <div class="form-group">
-                <label for="filler_tracking_chk"><?php echo htmlspecialchars(t('add_anime.label.filler_tracking'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <label><?php echo htmlspecialchars(t('add_anime.label.tags'), ENT_QUOTES, 'UTF-8'); ?></label>
                 <div class="input-area">
-                    <label class="filler-toggle">
-                        <input type="checkbox" name="filler_tracking" id="filler_tracking_chk" value="1"<?php echo !empty($anime['filler_tracking']) ? ' checked' : ''; ?>>
-                        <span class="filler-toggle-hint"><?php echo htmlspecialchars(t('add_anime.hint.filler_tracking'), ENT_QUOTES, 'UTF-8'); ?></span>
-                    </label>
+                    <div class="tag-input-wrapper" style="position: relative;">
+                        <input type="text" id="tag-input" autocomplete="off" maxlength="150"
+                               placeholder="<?php echo htmlspecialchars(t('add_anime.ph.tag_input'), ENT_QUOTES, 'UTF-8'); ?>"
+                               style="width: 100%; padding: 8px;">
+                        <div id="tag-suggestions" class="tag-suggestions"
+                             style="display: none; position: absolute; top: 100%; left: 0; right: 0;
+                                    background: #fff; border: 1px solid #ccc; border-top: none;
+                                    max-height: 200px; overflow-y: auto; z-index: 100;"></div>
+                    </div>
+                    <div id="selected-tags" class="genre-tags" style="margin-top: 8px;">
+                        <!-- Secilen cumle rozetleri JS ile doldurulacak -->
+                    </div>
+                    <input type="hidden" name="tags" id="tags-input" value="<?php echo htmlspecialchars(implode(',', $selected_tag_names)); ?>">
+                    <small class="form-text text-muted">
+                        <?php echo htmlspecialchars(t('add_anime.hint.tags'), ENT_QUOTES, 'UTF-8'); ?>
+                        <a href="manage_tags.php"><?php echo htmlspecialchars(t('add_anime.link.manage_tags'), ENT_QUOTES, 'UTF-8'); ?></a>
+                    </small>
                 </div>
             </div>
 
-            <?php // 1.1.2 - yetiskin (+18) icerik bayragi. Mevcut deger
-                  // ($anime['is_adult']) ile on-isaretli. Isaretli anime +18
-                  // damgalanir; gorunurluk ayar kapaliyken gizlenir. Gorsel
-                  // duzen filler-toggle sinifiyla paylasilir. ?>
+            </div><!-- /tab-synopsis -->
+
+            <?php // Seri: hangi seri, hangi hat, o hattaki sira. Iliskiler paneli formun ALTINDA ama AYNI sekmede. ?>
+            <div class="form-tab-panel" data-tab-panel="tab-series">
             <div class="form-group">
-                <label for="is_adult_chk"><?php echo htmlspecialchars(t('add_anime.label.is_adult'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <label for="series_name"><?php echo htmlspecialchars(t('add_anime.label.series_name'), ENT_QUOTES, 'UTF-8'); ?></label>
                 <div class="input-area">
-                    <label class="filler-toggle">
-                        <input type="checkbox" name="is_adult" id="is_adult_chk" value="1"<?php echo !empty($anime['is_adult']) ? ' checked' : ''; ?>>
-                        <span class="filler-toggle-hint"><?php echo htmlspecialchars(t('add_anime.hint.is_adult'), ENT_QUOTES, 'UTF-8'); ?></span>
-                    </label>
+                    <input type="text" name="series_name" id="series_name" list="series-name-list" value="<?php echo htmlspecialchars($anime['series_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.series_name'), ENT_QUOTES, 'UTF-8'); ?>">
+                    <datalist id="series-name-list">
+                        <?php foreach ($seriesNames as $sn): ?>
+                            <option value="<?php echo htmlspecialchars($sn, ENT_QUOTES, 'UTF-8'); ?>">
+                        <?php endforeach; ?>
+                    </datalist>
+                    <small class="form-text text-muted"><?php echo htmlspecialchars(t('add_anime.hint.series_name'), ENT_QUOTES, 'UTF-8'); ?></small>
                 </div>
             </div>
 
-            <?php // 1.1.31 - tarihin bilinen parcasi kadari girilebilir. Blok
-                  // render_partial_date_field() ile basilir (bkz. add_anime.php);
-                  // kayitli tarih + hassasiyet uc girdiye dagitilir. Eski
-                  // date('Y-m-d', strtotime(...)) cagrisi kalkti: bozuk bir
-                  // degeri sessizce baska bir tarihe cevirebiliyordu. ?>
-            <?php render_partial_date_field(
-                    'release_date',
-                    t('add_anime.label.release_date'),
-                    $anime['release_date'] ?? null,
-                    $anime['release_date_precision'] ?? 'full'
-                  ); ?>
-
-            <?php
-                // Madde E - Tek bolumlu animede end-date bastan gizli olur.
-                // Status finished AND total_episodes != 1 ise gosterilir.
-                $endDateInitialDisplay = ($anime['status'] == 'Yayın Tamamlandı'
-                                          && (int)($anime['total_episodes'] ?? 0) !== 1)
-                                         ? 'block' : 'none';
-            ?>
-            <div id="end-date-section" style="display: <?php echo $endDateInitialDisplay; ?>;">
-                <?php render_partial_date_field(
-                        'end_date',
-                        t('add_anime.label.end_date'),
-                        $anime['end_date'] ?? null,
-                        $anime['end_date_precision'] ?? 'full'
-                      ); ?>
+            <?php // 1.1.36 - Zincir Adi. series_name HANGI SERI, bu alan
+                  // SERININ ICINDE HANGI HAT demektir (orn. "90'lar Anime" /
+                  // "Crystal"). Bos birakilabilir: adsiz kayitlar 1.1.35'teki
+                  // gibi yalnizca next_in_series yuruyusune gore gruplanir. ?>
+            <div class="form-group">
+                <label for="chain_name"><?php echo htmlspecialchars(t('add_anime.label.chain_name'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <div class="input-area">
+                    <input type="text" name="chain_name" id="chain_name" list="chain-name-list" maxlength="100" value="<?php echo htmlspecialchars($anime['chain_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.chain_name'), ENT_QUOTES, 'UTF-8'); ?>">
+                    <datalist id="chain-name-list">
+                        <?php foreach ($chainNames as $cn): ?>
+                            <option value="<?php echo htmlspecialchars($cn, ENT_QUOTES, 'UTF-8'); ?>">
+                        <?php endforeach; ?>
+                    </datalist>
+                    <small class="form-text text-muted"><?php echo htmlspecialchars(t('add_anime.hint.chain_name'), ENT_QUOTES, 'UTF-8'); ?></small>
+                </div>
             </div>
 
             <div class="form-group">
-    <label for="status"><?php echo htmlspecialchars(t('add_anime.label.status'), ENT_QUOTES, 'UTF-8'); ?></label>
-    <div class="input-area">
-        <?php if ($anime['status'] == 'Yayın Tamamlandı'): ?>
-            <!-- Yayin tamamlandiysa, alan kilitli olsun -->
-            <input type="text" name="status" value="Yayın Tamamlandı" readonly class="locked-field">
-<div style="margin-top: 10px;"></div>
-<input type="hidden" name="status" value="Yayın Tamamlandı">
-<small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.status.locked_hint'), ENT_QUOTES, 'UTF-8'); ?></small>
-        <?php else: ?>
-            <select name="status" onchange="toggleBroadcastDetails()" required>
-                <?php // 1.1.10: five states via the broadcast_status helper. Only
-                      // non-finished rows reach this select (finished is locked
-                      // above), so any of the other four can be the current value. ?>
-                <?php foreach (broadcast_status_options() as $bs_value => $bs_label): ?>
-                <option value="<?php echo htmlspecialchars($bs_value, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $anime['status'] === $bs_value ? ' selected' : ''; ?>><?php echo htmlspecialchars($bs_label, ENT_QUOTES, 'UTF-8'); ?></option>
-                <?php endforeach; ?>
-            </select>
-        <?php endif; ?>
-    </div>
-</div>
+                <label for="next_in_series"><?php echo htmlspecialchars(t('edit_anime.label.next_in_series'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <div class="input-area">
+                    <select name="next_in_series" id="next_in_series">
+                        <option value=""><?php echo htmlspecialchars(t('add_anime.option.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
+                        <?php foreach ($allAnimes as $a): ?>
+                            <option value="<?php echo (int)$a['id']; ?>" <?php echo ((int)($anime['next_in_series'] ?? 0)) === (int)$a['id'] ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($a['title'], ENT_QUOTES, 'UTF-8'); ?>
+                                <?php if (!empty($a['media_type'])): ?>(<?php echo htmlspecialchars($a['media_type']); ?>)<?php endif; ?>
+                                <?php if (!empty($a['series_name']) && $a['series_name'] === ($anime['series_name'] ?? '')): ?>★<?php endif; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.hint.next_in_series'), ENT_QUOTES, 'UTF-8'); ?></small>
+                </div>
+            </div>
 
+            </div><!-- /tab-series -->
+
+            <?php // Yayin ve kaynaklar: Otomatik Doldur ile doldurdugu alanlar bilerek ayni sekmede. ?>
+            <div class="form-tab-panel" data-tab-panel="tab-broadcast">
             <?php
                 // 1.1.28 - Yayin bilgileri bolumu devam eden animenin yaninda
                 // BASLAMAMIS anime icin de acilir; haftalik yayin gunu/saati
@@ -1084,6 +1279,34 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
             </div>
 
             <div class="form-group">
+                <label for="anidb_link"><?php echo htmlspecialchars(t('add_anime.label.anidb_link'), ENT_QUOTES, 'UTF-8'); ?> <span style="color:#d32f2f;">*</span></label>
+                <div class="input-area">
+                    <input type="url" name="anidb_link" required placeholder="<?php echo htmlspecialchars(t('add_anime.ph.anidb_link'), ENT_QUOTES, 'UTF-8'); ?>" value="<?php echo htmlspecialchars($anime['anidb_link'] ?? ''); ?>">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="mal_link"><?php echo htmlspecialchars(t('add_anime.label.mal_link'), ENT_QUOTES, 'UTF-8'); ?> <span style="color:#d32f2f;">*</span></label>
+                <div class="input-area">
+                    <input type="url" name="mal_link" required placeholder="<?php echo htmlspecialchars(t('add_anime.ph.mal_link'), ENT_QUOTES, 'UTF-8'); ?>" value="<?php echo htmlspecialchars($anime['mal_link'] ?? ''); ?>">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="anime_schedule_link"><?php echo htmlspecialchars(t('add_anime.label.animeschedule_link'), ENT_QUOTES, 'UTF-8'); ?></label>
+                <div class="input-area">
+                    <input type="url" name="anime_schedule_link" id="anime_schedule_link" value="<?php echo htmlspecialchars($anime['anime_schedule_link'] ?? ''); ?>" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.animeschedule_link'), ENT_QUOTES, 'UTF-8'); ?>">
+                    <button type="button" id="animeschedule-fetch-btn" onclick="fetchAnimeScheduleData()" style="margin-top:8px; padding:8px 14px; background:#5a4ed1; color:#fff; border:none; border-radius:4px; cursor:pointer;">
+                        <i class="fas fa-magic"></i> <?php echo htmlspecialchars(t('add_anime.btn.animeschedule_fetch'), ENT_QUOTES, 'UTF-8'); ?>
+                    </button>
+                    <div id="animeschedule-status" style="margin-top:8px; font-size:13px;"></div>
+                </div>
+            </div>
+
+            </div><!-- /tab-broadcast -->
+
+            <?php // Kisisel: yalnizca bu kullaniciya ait veriler (user_anime). ?>
+            <div class="form-tab-panel" data-tab-panel="tab-personal">
+            <div class="form-group">
                 <label for="watch_status"><?php echo htmlspecialchars(t('add_anime.label.watch_status'), ENT_QUOTES, 'UTF-8'); ?></label>
                 <div class="input-area">
                     <?php /* 1.1.34: add_anime.php ile ayni duzen - bos "Seciniz"
@@ -1132,58 +1355,6 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
             </div>
 
             <div class="form-group">
-                <label><?php echo htmlspecialchars(t('add_anime.label.genres'), ENT_QUOTES, 'UTF-8'); ?></label>
-                <div class="input-area">
-                    <div class="genre-selection-container">
-                        <?php // data-no-enhance: this picker resets its own value and gains
-                              // options at runtime (anime_form.js), so it is left native. ?>
-                        <select id="genre-select" onchange="addSelectedGenre(this)" data-no-enhance>
-                            <option value=""><?php echo htmlspecialchars(t('add_anime.option.choose_from_existing'), ENT_QUOTES, 'UTF-8'); ?></option>
-                            <?php foreach ($genres as $genre): ?>
-                                <option value="<?php echo htmlspecialchars($genre['name']); ?>">
-                                    <?php echo htmlspecialchars($genre['name']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-
-                        <div class="new-genre-input">
-                            <input type="text" id="new-genre" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.new_genre'), ENT_QUOTES, 'UTF-8'); ?>">
-                            <button type="button" class="add-button" onclick="addNewGenre()">
-                                <i class="fas fa-plus"></i> <?php echo htmlspecialchars(t('add_anime.btn.add_genre'), ENT_QUOTES, 'UTF-8'); ?>
-                            </button>
-                        </div>
-                    </div>
-                    <div id="genre-tags" class="genre-tags">
-                        <!-- Secilen tur etiketleri JavaScript ile doldurulacak -->
-                    </div>
-                    <input type="hidden" name="genres" id="genres-input" value="<?php echo htmlspecialchars(implode(',', $selected_genres)); ?>">
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label><?php echo htmlspecialchars(t('add_anime.label.tags'), ENT_QUOTES, 'UTF-8'); ?></label>
-                <div class="input-area">
-                    <div class="tag-input-wrapper" style="position: relative;">
-                        <input type="text" id="tag-input" autocomplete="off" maxlength="150"
-                               placeholder="<?php echo htmlspecialchars(t('add_anime.ph.tag_input'), ENT_QUOTES, 'UTF-8'); ?>"
-                               style="width: 100%; padding: 8px;">
-                        <div id="tag-suggestions" class="tag-suggestions"
-                             style="display: none; position: absolute; top: 100%; left: 0; right: 0;
-                                    background: #fff; border: 1px solid #ccc; border-top: none;
-                                    max-height: 200px; overflow-y: auto; z-index: 100;"></div>
-                    </div>
-                    <div id="selected-tags" class="genre-tags" style="margin-top: 8px;">
-                        <!-- Secilen cumle rozetleri JS ile doldurulacak -->
-                    </div>
-                    <input type="hidden" name="tags" id="tags-input" value="<?php echo htmlspecialchars(implode(',', $selected_tag_names)); ?>">
-                    <small class="form-text text-muted">
-                        <?php echo htmlspecialchars(t('add_anime.hint.tags'), ENT_QUOTES, 'UTF-8'); ?>
-                        <a href="manage_tags.php"><?php echo htmlspecialchars(t('add_anime.link.manage_tags'), ENT_QUOTES, 'UTF-8'); ?></a>
-                    </small>
-                </div>
-            </div>
-
-            <div class="form-group">
                 <label for="notes"><?php echo htmlspecialchars(t('add_anime.label.notes'), ENT_QUOTES, 'UTF-8'); ?></label>
                 <div class="input-area">
                     <textarea name="notes" rows="4"><?php echo htmlspecialchars($anime['notes']); ?></textarea>
@@ -1191,135 +1362,114 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                 </div>
             </div>
 
-            <div class="form-group">
-                <label for="series_name"><?php echo htmlspecialchars(t('add_anime.label.series_name'), ENT_QUOTES, 'UTF-8'); ?></label>
-                <div class="input-area">
-                    <input type="text" name="series_name" id="series_name" list="series-name-list" value="<?php echo htmlspecialchars($anime['series_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.series_name'), ENT_QUOTES, 'UTF-8'); ?>">
-                    <datalist id="series-name-list">
-                        <?php foreach ($seriesNames as $sn): ?>
-                            <option value="<?php echo htmlspecialchars($sn, ENT_QUOTES, 'UTF-8'); ?>">
-                        <?php endforeach; ?>
-                    </datalist>
-                    <small class="form-text text-muted"><?php echo htmlspecialchars(t('add_anime.hint.series_name'), ENT_QUOTES, 'UTF-8'); ?></small>
-                </div>
-            </div>
+            </div><!-- /tab-personal -->
 
-            <?php // 1.1.36 - Zincir Adi. series_name HANGI SERI, bu alan
-                  // SERININ ICINDE HANGI HAT demektir (orn. "90'lar Anime" /
-                  // "Crystal"). Bos birakilabilir: adsiz kayitlar 1.1.35'teki
-                  // gibi yalnizca next_in_series yuruyusune gore gruplanir. ?>
-            <div class="form-group">
-                <label for="chain_name"><?php echo htmlspecialchars(t('add_anime.label.chain_name'), ENT_QUOTES, 'UTF-8'); ?></label>
-                <div class="input-area">
-                    <input type="text" name="chain_name" id="chain_name" list="chain-name-list" maxlength="100" value="<?php echo htmlspecialchars($anime['chain_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.chain_name'), ENT_QUOTES, 'UTF-8'); ?>">
-                    <datalist id="chain-name-list">
-                        <?php foreach ($chainNames as $cn): ?>
-                            <option value="<?php echo htmlspecialchars($cn, ENT_QUOTES, 'UTF-8'); ?>">
-                        <?php endforeach; ?>
-                    </datalist>
-                    <small class="form-text text-muted"><?php echo htmlspecialchars(t('add_anime.hint.chain_name'), ENT_QUOTES, 'UTF-8'); ?></small>
-                </div>
-            </div>
+        </form>
 
-            <div class="form-group">
-                <label for="media_type"><?php echo htmlspecialchars(t('add_anime.label.media_type'), ENT_QUOTES, 'UTF-8'); ?></label>
-                <div class="input-area">
-                    <select name="media_type" id="media_type">
-                        <option value=""><?php echo htmlspecialchars(t('add_anime.option.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
-                        <option value="TV" <?php echo ($anime['media_type'] ?? '') === 'TV' ? 'selected' : ''; ?>>TV</option>
-                        <option value="Film" <?php echo ($anime['media_type'] ?? '') === 'Film' ? 'selected' : ''; ?>>Film</option>
-                        <option value="OVA" <?php echo ($anime['media_type'] ?? '') === 'OVA' ? 'selected' : ''; ?>>OVA</option>
-                        <option value="Special" <?php echo ($anime['media_type'] ?? '') === 'Special' ? 'selected' : ''; ?>>Special</option>
-                        <option value="ONA" <?php echo ($anime['media_type'] ?? '') === 'ONA' ? 'selected' : ''; ?>>ONA</option>
-                    </select>
-                </div>
-            </div>
+            <?php // Iliskiler: DOM'da formun disinda, sekme olarak "tab-series" icinde. ?>
+            <div class="form-tab-panel" data-tab-panel="tab-series">
+        <?php // ============================================================
+              // 1.1.38 - ILISKILER PANELI
+              //
+              // Ana formun DISINDA durur (ic ice form olamaz) ve kendi
+              // uclariyla yazar. Buradaki her tur SIRASIZDIR: iki kaydin
+              // ilgili oldugunu soyler, hangisinin once izlenecegini
+              // soylemez - o soruyu hala yukaridaki "Siradaki Anime" alani
+              // cevaplar. Bu yuzden `sequel` bu listede YOKTUR (KARARLAR_4
+              // sec.94): iki kaynak ayni cift hakkinda celisemesin.
+              //
+              // Formun tek sorusu: "sectigin anime, BU animenin ___'idir".
+              // Iki tur iki yonlu oldugu icin listede iki kez gecer (yan
+              // hikaye / ana hikaye, ozet / tam hikaye).
+              // ============================================================
+        ?>
+        <div class="relation-panel" id="relations">
+            <h3><i class="fas fa-code-branch"></i> <?php echo htmlspecialchars(t('relation.panel.title'), ENT_QUOTES, 'UTF-8'); ?></h3>
+            <p class="relation-panel-hint"><?php echo htmlspecialchars(t('relation.panel.hint'), ENT_QUOTES, 'UTF-8'); ?></p>
 
-            <!-- 1.1.17: yapim ulkesi. value ISO kodu, gorunen metin cevrilmis
-                 ulke adi. Kayitli kod artik listede degilse (country_codes()
-                 haritasindan cikarilmissa) hicbir secenek 'selected' olmaz ve
-                 kutu "Seciniz"e duser - kaydedilirse alan NULL'a doner. -->
-            <div class="form-group">
-                <label for="country"><?php echo htmlspecialchars(t('add_anime.label.country'), ENT_QUOTES, 'UTF-8'); ?></label>
-                <div class="input-area">
-                    <select name="country" id="country">
-                        <option value=""><?php echo htmlspecialchars(t('add_anime.option.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
-                        <?php foreach (country_options() as $c_code => $c_label): ?>
-                        <option value="<?php echo htmlspecialchars($c_code, ENT_QUOTES, 'UTF-8'); ?>" <?php echo ($anime['country'] ?? '') === $c_code ? 'selected' : ''; ?>><?php echo htmlspecialchars($c_label, ENT_QUOTES, 'UTF-8'); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-            </div>
+            <?php if ($relationError !== ''): ?>
+            <div class="relation-error"><i class="fas fa-exclamation-triangle"></i> <?php echo htmlspecialchars($relationError, ENT_QUOTES, 'UTF-8'); ?></div>
+            <?php endif; ?>
 
-            <div class="form-group">
-                <label for="next_in_series"><?php echo htmlspecialchars(t('edit_anime.label.next_in_series'), ENT_QUOTES, 'UTF-8'); ?></label>
-                <div class="input-area">
-                    <select name="next_in_series" id="next_in_series">
-                        <option value=""><?php echo htmlspecialchars(t('add_anime.option.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
-                        <?php foreach ($allAnimes as $a): ?>
-                            <option value="<?php echo (int)$a['id']; ?>" <?php echo ((int)($anime['next_in_series'] ?? 0)) === (int)$a['id'] ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($a['title'], ENT_QUOTES, 'UTF-8'); ?>
-                                <?php if (!empty($a['media_type'])): ?>(<?php echo htmlspecialchars($a['media_type']); ?>)<?php endif; ?>
-                                <?php if (!empty($a['series_name']) && $a['series_name'] === ($anime['series_name'] ?? '')): ?>★<?php endif; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.hint.next_in_series'), ENT_QUOTES, 'UTF-8'); ?></small>
+            <?php if (empty($relations)): ?>
+            <p class="relation-empty"><?php echo htmlspecialchars(t('relation.panel.empty'), ENT_QUOTES, 'UTF-8'); ?></p>
+            <?php else: ?>
+            <div class="relation-list">
+                <?php foreach ($relations as $rel): ?>
+                <div class="relation-item">
+                    <span class="relation-label"><?php echo htmlspecialchars($rel['label'], ENT_QUOTES, 'UTF-8'); ?></span>
+                    <a class="relation-link" href="anime_details.php?id=<?php echo (int)$rel['other_id']; ?>">
+                        <?php echo htmlspecialchars(display_title($rel), ENT_QUOTES, 'UTF-8'); ?>
+                    </a>
+                    <?php if (!empty($rel['media_type'])): ?>
+                    <span class="relation-media">(<?php echo htmlspecialchars($rel['media_type'], ENT_QUOTES, 'UTF-8'); ?>)</span>
+                    <?php endif; ?>
+                    <form method="POST" action="delete_anime_relation.php" class="relation-delete-form"
+                          onsubmit="return confirm(<?php echo htmlspecialchars(json_encode(t('relation.delete_confirm'), JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8'); ?>);">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+                        <input type="hidden" name="relation_id" value="<?php echo (int)$rel['id']; ?>">
+                        <input type="hidden" name="anime_id" value="<?php echo (int)$id; ?>">
+                        <button type="submit" class="relation-delete-btn" title="<?php echo htmlspecialchars(t('relation.delete_tooltip'), ENT_QUOTES, 'UTF-8'); ?>"><i class="fas fa-times"></i></button>
+                    </form>
                 </div>
+                <?php endforeach; ?>
             </div>
+            <?php endif; ?>
 
-            <div class="form-group">
-                <label for="anidb_link"><?php echo htmlspecialchars(t('add_anime.label.anidb_link'), ENT_QUOTES, 'UTF-8'); ?> <span style="color:#d32f2f;">*</span></label>
-                <div class="input-area">
-                    <input type="url" name="anidb_link" required placeholder="<?php echo htmlspecialchars(t('add_anime.ph.anidb_link'), ENT_QUOTES, 'UTF-8'); ?>" value="<?php echo htmlspecialchars($anime['anidb_link'] ?? ''); ?>">
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="mal_link"><?php echo htmlspecialchars(t('add_anime.label.mal_link'), ENT_QUOTES, 'UTF-8'); ?> <span style="color:#d32f2f;">*</span></label>
-                <div class="input-area">
-                    <input type="url" name="mal_link" required placeholder="<?php echo htmlspecialchars(t('add_anime.ph.mal_link'), ENT_QUOTES, 'UTF-8'); ?>" value="<?php echo htmlspecialchars($anime['mal_link'] ?? ''); ?>">
-                </div>
-            </div>
-            <div class="form-group">
-                <label for="anime_schedule_link"><?php echo htmlspecialchars(t('add_anime.label.animeschedule_link'), ENT_QUOTES, 'UTF-8'); ?></label>
-                <div class="input-area">
-                    <input type="url" name="anime_schedule_link" id="anime_schedule_link" value="<?php echo htmlspecialchars($anime['anime_schedule_link'] ?? ''); ?>" placeholder="<?php echo htmlspecialchars(t('add_anime.ph.animeschedule_link'), ENT_QUOTES, 'UTF-8'); ?>">
-                    <button type="button" id="animeschedule-fetch-btn" onclick="fetchAnimeScheduleData()" style="margin-top:8px; padding:8px 14px; background:#5a4ed1; color:#fff; border:none; border-radius:4px; cursor:pointer;">
-                        <i class="fas fa-magic"></i> <?php echo htmlspecialchars(t('add_anime.btn.animeschedule_fetch'), ENT_QUOTES, 'UTF-8'); ?>
-                    </button>
-                    <div id="animeschedule-status" style="margin-top:8px; font-size:13px;"></div>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="image"><?php echo htmlspecialchars(t('add_anime.label.image'), ENT_QUOTES, 'UTF-8'); ?></label>
-                <div class="input-area">
-                    <div class="file-upload">
-                        <input type="file" name="image" id="image" accept="image/*" onchange="updateFileName(this)">
-                        <label for="image" class="file-upload-label">
-                            <i class="fas fa-upload"></i> <?php echo htmlspecialchars(t('add_anime.btn.choose_file'), ENT_QUOTES, 'UTF-8'); ?>
-                        </label>
-                        <span class="file-name-display" id="file-name">
-                            <?php echo basename($anime['image_path']); ?>
-                        </span>
+            <div class="relation-add-form">
+                <h4><?php echo htmlspecialchars(t('relation.form.title'), ENT_QUOTES, 'UTF-8'); ?></h4>
+                <form method="POST" action="add_anime_relation.php">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+                    <input type="hidden" name="anime_id" value="<?php echo (int)$id; ?>">
+                    <div class="relation-form-row">
+                        <label for="other_anime_id"><?php echo htmlspecialchars(t('relation.form.target'), ENT_QUOTES, 'UTF-8'); ?></label>
+                        <?php // Secenekler SUNUCUDA BASILMAZ: bu liste, yukaridaki
+                              // "Siradaki Anime" kutusunun BIREBIR AYNISI olurdu
+                              // (ayni $allAnimes, ayni siralama, ayni yildiz
+                              // isareti) ve katalog buyudukce sayfayi ikiye
+                              // katlardi - 8000 kayitlik yerel katalogda olculdu:
+                              // 1,9 MB -> 3,9 MB. anime_link_search.php'nin kendi
+                              // yorumu bu tuzagi zaten adiyla anmisti ("shipping a
+                              // SECOND full copy ... would grow the page with the
+                              // catalog"). Onun yerine js/anime_form.js secenekleri
+                              // ilk kutudan KLONLAR. Sayfa zaten baska alanlar icin
+                              // (tur secimi, etiketler, alternatif isim satirlari)
+                              // JS gerektiriyor, yani yeni bir bagimlilik degil. ?>
+                        <select name="other_anime_id" id="other_anime_id" required
+                                data-clone-options-from="next_in_series">
+                            <option value=""><?php echo htmlspecialchars(t('add_anime.option.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
+                        </select>
                     </div>
-                </div>
+                    <div class="relation-form-row">
+                        <label for="relation_choice"><?php echo htmlspecialchars(t('relation.form.type'), ENT_QUOTES, 'UTF-8'); ?></label>
+                        <select name="relation_choice" id="relation_choice" required>
+                            <?php foreach (anime_relation_choices() as $choiceKey => $choiceLabel): ?>
+                            <option value="<?php echo htmlspecialchars($choiceKey, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($choiceLabel, ENT_QUOTES, 'UTF-8'); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <small class="form-text text-muted"><?php echo htmlspecialchars(t('relation.form.hint'), ENT_QUOTES, 'UTF-8'); ?></small>
+                    <div class="relation-form-row">
+                        <button type="submit" class="relation-add-btn"><i class="fas fa-plus"></i> <?php echo htmlspecialchars(t('relation.form.submit'), ENT_QUOTES, 'UTF-8'); ?></button>
+                    </div>
+                </form>
             </div>
+        </div>
+            </div><!-- /tab-series (iliskiler) -->
 
             <div class="button-group">
-                <input type="submit" value="<?php echo htmlspecialchars(t('edit_anime.btn.submit'), ENT_QUOTES, 'UTF-8'); ?>" class="submit-button">
+                <input type="submit" form="anime-form" value="<?php echo htmlspecialchars(t('edit_anime.btn.submit'), ENT_QUOTES, 'UTF-8'); ?>" class="submit-button">
                 <?php // 1.1.8: admin-only tam-katalog push. Ayri submit - name'i yalniz ?>
                 <?php // tiklaninca gonderilir, "Guncelle" bu butonu TETIKLEMEZ. Sunucu ?>
                 <?php // tarafi ayrica can('admin') dogrular. Yalniz online + admin gorur. ?>
                 <?php if (MULTI_USER_MODE && can($pdo, 'admin')): ?>
-                <button type="submit" name="full_catalog_push" value="1" class="submit-button" style="background:#fd7e14;" onclick="return confirm('<?php echo htmlspecialchars(t('edit_anime.confirm.full_push'), ENT_QUOTES, 'UTF-8'); ?>');"><?php echo htmlspecialchars(t('edit_anime.btn.full_push'), ENT_QUOTES, 'UTF-8'); ?></button>
+                <button type="submit" form="anime-form" name="full_catalog_push" value="1" class="submit-button" style="background:#fd7e14;" onclick="return confirm('<?php echo htmlspecialchars(t('edit_anime.confirm.full_push'), ENT_QUOTES, 'UTF-8'); ?>');"><?php echo htmlspecialchars(t('edit_anime.btn.full_push'), ENT_QUOTES, 'UTF-8'); ?></button>
                 <?php endif; ?>
                 <a href="index.php" class="cancel-button"><?php echo htmlspecialchars(t('add_anime.btn.cancel'), ENT_QUOTES, 'UTF-8'); ?></a>
                 <?php // 1.1.5: duzenlenen animenin detay sayfasi butonu, aksiyon butonlarinin yaninda (Anime Listesi ust bolumde kalir). ?>
                 <a class="anime-list-button" href="anime_details.php?id=<?php echo (int)$id; ?>"><?php echo htmlspecialchars(t('edit_anime.btn.view_detail'), ENT_QUOTES, 'UTF-8'); ?></a>
             </div>
-        </form>
+        </div><!-- /.form-tabs-container -->
     </div>
 
     <script>

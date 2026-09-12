@@ -228,6 +228,7 @@ return [
     'anime_details.section.next_up'      => 'Sıradaki',
     'anime_details.section.related'      => 'Bağlantılı Animeler',
     'anime_details.section.related_other_type' => 'Diğer',
+    'anime_details.section.relations'    => 'İlişkili Animeler',   // 1.1.38
     'anime_details.section.chronology'   => 'Kronoloji Notları',
 
     // Chronology alert
@@ -267,6 +268,54 @@ return [
     'anime_details.marker_form.note'     => 'Not (opsiyonel):',
     'anime_details.marker_form.note_placeholder' => 'Örn: Kanonik kronoloji',
     'anime_details.marker_form.submit'   => 'Ekle',
+
+    // ------------------------------------------------------------------
+    // 1.1.38 - Tipli iliskiler (anime_relations)
+    //
+    // Iki grup anahtar, iki ayri is:
+    //   relation.type.*  bir iliskinin BIR UCTAN okunusu (baslik olur).
+    //                    Ayni satir iki ucta iki farkli etiket verir:
+    //                    A, B'nin yan hikayesiyse B, A'nin ANA hikayesidir.
+    //                    Simetrik turlerde (alternatif versiyon/kurgu,
+    //                    diger) iki uc de ayni etiketi kullanir.
+    //   relation.opt.*   formdaki secenekler. Form tek soru sorar -
+    //                    "sectigin anime, BU animenin ___'idir" - o yuzden
+    //                    bunlar iyelik ekiyle yazilir ve iki yonlu turler
+    //                    listede iki kez gecer.
+    // ------------------------------------------------------------------
+    'relation.type.alternative_version' => 'Alternatif Versiyon',
+    'relation.type.alternative_setting' => 'Alternatif Kurgu',
+    'relation.type.side_story'          => 'Yan Hikâye',
+    'relation.type.parent_story'        => 'Ana Hikâye',
+    'relation.type.summary'             => 'Özet',
+    'relation.type.full_story'          => 'Tam Hikâye',
+    'relation.type.other'               => 'Diğer İlişki',
+
+    'relation.opt.alternative_version'  => 'Alternatif versiyonu',
+    'relation.opt.alternative_setting'  => 'Alternatif kurgusu',
+    'relation.opt.side_story'           => 'Yan hikâyesi',
+    'relation.opt.parent_story'         => 'Ana hikâyesi',
+    'relation.opt.summary'              => 'Özeti',
+    'relation.opt.full_story'           => 'Tam hikâyesi',
+    'relation.opt.other'                => 'İlişkilisi (diğer)',
+
+    'relation.panel.title'   => 'İlişkiler',
+    'relation.panel.hint'    => 'Bu animenin başka kayıtlarla olan tipli bağları. Hiçbiri izleme sırası belirtmez — sırayı yukarıdaki "Sıradaki Anime" alanı söyler.',
+    'relation.panel.empty'   => 'Bu anime için henüz ilişki tanımlanmadı.',
+    'relation.form.title'    => 'Yeni İlişki Ekle',
+    'relation.form.target'   => 'İlişkili anime:',
+    'relation.form.type'     => 'İlişki türü:',
+    'relation.form.hint'     => 'Seçtiğiniz anime, bu animenin yukarıda işaretlediğiniz türü olur. Örnek: Space Adventure Cobra filmi, TV dizisinin alternatif versiyonudur.',
+    'relation.form.submit'   => 'Ekle',
+    'relation.delete_confirm' => 'Bu ilişkiyi silmek istediğinize emin misiniz?',
+    'relation.delete_tooltip' => 'İlişkiyi sil',
+
+    'relation.error.input'   => 'İlişki eklenemedi: anime ya da tür seçilmedi.',
+    'relation.error.self'    => 'Bir anime kendisiyle ilişkilendirilemez.',
+    'relation.error.missing' => 'İlişkinin uçlarından biri bulunamadı.',
+    'relation.error.exists'  => 'Bu iki anime arasında zaten bir ilişki var. Yerine başkasını kurmak için önce mevcut olanı silin.',
+    'relation.error.chain'   => 'Bu iki anime "Sıradaki Anime" ile birbirine bağlı, yani bir izleme sırası tanımlıyorlar. Buradaki türlerin hiçbiri sıra belirtmez; ilişki kurmak için önce o bağı kaldırın.',
+    'relation.error.failed'  => 'İlişki kaydedilirken bir hata oluştu.',
 
     // JS alerts on the emotion toolbar
     'anime_details.js.operation_failed'  => 'İşlem başarısız oldu.',
@@ -389,6 +438,19 @@ return [
     'add_anime.label.chain_name'             => 'Zincir Adı (opsiyonel):',
     'add_anime.ph.chain_name'                => 'Örn: 90\'lar Anime, Crystal, Sinema Filmleri',
     'add_anime.hint.chain_name'              => 'Bir serinin içindeki ayrı izleme hattı. Aynı adı taşıyan kayıtlar tek zincir sayılır ve seri kronolojisinde kendi sekmesinde görünür. Boş bırakırsanız kayıt yalnızca "Sıradaki Anime" bağlantılarına göre gruplanır.',
+
+    // ------------------------------------------------------------------
+    // 1.1.38 - Ekleme/duzenleme formunun sekmeleri. Ayni kume iki sayfada
+    // da kullanilir; tek fark "Seri" sekmesinin adidir - duzenleme
+    // sayfasinda o sekme Iliskiler panelini de tasir, ekleme sayfasinda
+    // (kayit henuz yokken iliskinin bir ucu eksik olacagi icin) tasimaz.
+    // ------------------------------------------------------------------
+    'form.tab.basic'            => 'Künye',
+    'form.tab.synopsis'         => 'Konu ve Türler',
+    'form.tab.series'           => 'Seri',
+    'form.tab.series_relations' => 'Seri ve İlişkiler',
+    'form.tab.broadcast'        => 'Yayın ve Kaynaklar',
+    'form.tab.personal'         => 'Kişisel',
     'add_anime.hint.tags'                    => 'Yazinca eslesenler gozukur. Eslesme yoksa Enter ile yeni cumle olusturulur.',
     'add_anime.link.manage_tags'             => 'Cumleleri yonet',
 
@@ -1126,6 +1188,7 @@ return [
     'list_settings.aired.result.errors'      => '%d hata',
     'list_settings.import.result'            => '%d anime içe aktarıldı, %d atlandı.',
     'list_settings.import.markers'           => '%d kronoloji notu bağlandı, %d atlandı.',
+    'list_settings.import.relations'         => '%d ilişki bağlandı, %d atlandı.',   // 1.1.38
     'list_settings.import.invalid_format'    => 'Lütfen geçerli bir JSON dosyası yükleyin!',
     'list_settings.import.online_result'     => 'İçe aktarma tamamlandı: %d anime listenize eklendi, %d yeni katalog önerisi oluşturuldu, %d zaten önerilmişti.',
     'list_settings.import.upload_error'      => 'Dosya yüklenemedi (hata kodu: %d). Lütfen tekrar deneyin.',

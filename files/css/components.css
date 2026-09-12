@@ -767,3 +767,65 @@ textarea:focus {
     color: #2e7d32;
     font-weight: 600;
 }
+
+/* ======================================================================
+   1.1.38 — Sekmeli form (add_anime.php + edit_anime.php)
+   Kalip 1.1.13'un Liste Ayarlari sekmeleriyle ayni ve ayni sebeple
+   "progressive enhancement": cubuk JS kapaliyken GIZLIDIR ve butun
+   paneller alt alta gorunur, yani JS'siz sayfa 1.1.37'deki gibi calisir.
+   Sinif adlari .settings-* degil .form-* cunku iki yuzeyin olculeri
+   farkli (form sayfasi genis, ayarlar dar) ve birinin degismesi
+   digerini bozmamali.
+   ====================================================================== */
+.form-tabs-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.form-tabs {
+    display: none;
+    gap: 6px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    border-bottom: 2px solid #e0ddd4;
+}
+
+.js-tabs .form-tabs {
+    display: flex;
+}
+
+.form-tab {
+    border: none;
+    background: none;
+    padding: 10px 18px;
+    font-size: 1em;
+    font-weight: 500;
+    color: #6b6a63;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    border-radius: 6px 6px 0 0;
+}
+
+.form-tab:hover {
+    color: #333;
+    background: #f4f2ec;
+}
+
+.form-tab.active {
+    color: #D85A30;
+    border-bottom-color: #D85A30;
+    font-weight: 600;
+}
+
+/* JS acikken pasif panel gizli; kapaliyken tum paneller alt alta.
+   Bir sekme birden cok panele yayilabilir (iliskiler paneli formun
+   DISINDA ama ayni sekmede), o yuzden eslesme id ile degil
+   data-tab-panel degeriyle yapilir - burasi yalnizca gorunurluk. */
+.js-tabs .form-tab-panel {
+    display: none;
+}
+
+.js-tabs .form-tab-panel.active {
+    display: block;
+}

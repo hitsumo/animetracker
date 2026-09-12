@@ -233,6 +233,28 @@ if (isset($_POST['export'])) {
           WHERE cm.anime_id = ?
           ORDER BY cm.after_episode"
     );
+    // 1.1.38 - tipli iliskiler. Marker'larla ayni tasima kurali: karsi uc
+    // YEREL id ile degil KIMLIK DORTLUSUYLE yazilir (mal_id / anidb_id /
+    // catalog_uuid / baslik), cunku her kurulum satirlarini farkli
+    // numaralandirir. Boylece iliskiler yedek-al/geri-yukle turunda
+    // kaybolmaz - next_in_series'in bugun dustugu tuzak budur.
+    //
+    // Yalnizca `from` ucundaki anime iliskiyi disari aktarir, yani her
+    // iliski dosyada tam BIR KEZ gecer. Iki uctan da yazilsaydi geri
+    // yuklemede ayni cift icin iki satir denenir, ikincisi UNIQUE'e
+    // takilirdi. Yon bilgisi de boylece korunur: satir "from, to'nun
+    // <tur>'udur" diye okunur ve yazan uc her zaman `from`tur.
+    $exportRelationStmt = $pdo->prepare(
+        "SELECT r.relation_type,
+                o.mal_id       AS other_mal_id,
+                o.anidb_id     AS other_anidb_id,
+                o.catalog_uuid AS other_catalog_uuid,
+                o.title        AS other_title
+           FROM anime_relations r
+           JOIN animes o ON o.id = r.to_anime_id
+          WHERE r.from_anime_id = ?
+          ORDER BY r.relation_type, o.title"
+    );
     foreach ($animes as &$a) {
         $gRows = getAnimeGenres($pdo, $a['id']);
         $tRows = getAnimeTags($pdo, $a['id']);
@@ -253,6 +275,8 @@ if (isset($_POST['export'])) {
         $a['emotions']         = $exportEmoStmt->fetchAll(PDO::FETCH_COLUMN);
         $exportMarkerStmt->execute([$a['id']]);
         $a['markers']          = $exportMarkerStmt->fetchAll(PDO::FETCH_ASSOC);
+        $exportRelationStmt->execute([$a['id']]);
+        $a['relations']        = $exportRelationStmt->fetchAll(PDO::FETCH_ASSOC);
     }
     unset($a);
 
@@ -439,6 +463,12 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
             // related anime may not be imported yet when its host is
             // processed. Collect them here, resolve after every anime exists.
             $pendingMarkers = [];
+            // 1.1.38: iliskiler de ikinci tura kalir, ayni sebeple - bir
+            // iliskinin karsi ucu, `from` ucu islenirken henuz ice
+            // aktarilmamis olabilir.
+            $pendingRelations = [];
+            // Ilk turda sayilir (tur taninmadi), ikinci turda degil.
+            $relationsUnknown = 0;
 
             // Match-or-insert lookups: the catalog sync may already have filled
             // animes with the same mal_id/anidb_id/catalog_uuid, so a blind
@@ -447,6 +477,12 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
             $matchMal   = $pdo->prepare("SELECT id FROM animes WHERE mal_id = ? LIMIT 1");
             $matchAnidb = $pdo->prepare("SELECT id FROM animes WHERE anidb_id = ? LIMIT 1");
             $matchUuid  = $pdo->prepare("SELECT id FROM animes WHERE catalog_uuid = ? LIMIT 1");
+            // 1.1.38: baslik esleyicisi de burada hazirlanir. 1.1.35'te
+            // marker turunun ICINDE duruyordu; iliskiler turu de ayni
+            // zinciri (mal -> anidb -> uuid -> baslik) kullandigi icin
+            // yedekte iliski olup marker olmayan bir dosya onu tanimsiz
+            // bulurdu. Iki tur da ayni ifadeyi okur.
+            $matchTitle = $pdo->prepare("SELECT id FROM animes WHERE title = ? LIMIT 1");
 
             $stmt = $pdo->prepare("INSERT INTO animes (
                     title, alternative_titles, status,
@@ -576,6 +612,32 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                                 'title'  => $mk['related_title'] ?? null,
                             ];
                         }
+
+                        // Ayni kalip iliskiler icin (1.1.38). Tur beyaz
+                        // listeden gecer ve TANINMAYAN bir tur ATLANIR -
+                        // 'other'a dusurulmez. Gerekce: dosya elle
+                        // duzenlenmis ya da DAHA YENI bir surumden gelmis
+                        // olabilir (1.1.39 `sequel` ekleyecek), ve
+                        // anlamadigimiz bir bagi "diger" diye kaydetmek,
+                        // kaydetmemekten kotudur: cifti dolduracagi icin
+                        // kuratorun sonradan DOGRU turu girmesini de
+                        // engellerdi. Atlananlar sonuc cumlesinde sayilir.
+                        foreach ((array)($anime['relations'] ?? []) as $rl) {
+                            if (!is_array($rl)) { continue; }
+                            $rlType = $rl['relation_type'] ?? '';
+                            if (!in_array($rlType, anime_relation_types(), true)) {
+                                $relationsUnknown++;
+                                continue;
+                            }
+                            $pendingRelations[] = [
+                                'from'  => $animeId,
+                                'type'  => $rlType,
+                                'mal'   => !empty($rl['other_mal_id'])       ? (int)$rl['other_mal_id']   : null,
+                                'anidb' => !empty($rl['other_anidb_id'])     ? (int)$rl['other_anidb_id'] : null,
+                                'uuid'  => !empty($rl['other_catalog_uuid']) ? $rl['other_catalog_uuid']  : null,
+                                'title' => $rl['other_title'] ?? null,
+                            ];
+                        }
                     }
                     $imported++;
                 } catch (Exception $e) {
@@ -593,7 +655,6 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
             $markersLinked  = 0;
             $markersSkipped = 0;
             if (!empty($pendingMarkers)) {
-                $matchTitle = $pdo->prepare("SELECT id FROM animes WHERE title = ? LIMIT 1");
                 $markerIns  = $pdo->prepare(
                     "INSERT INTO chronology_markers (anime_id, after_episode, story_after_episode, related_anime_id, note, source)
                      VALUES (?, ?, ?, ?, ?, ?)"
@@ -619,6 +680,56 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                 }
             }
 
+            // 1.1.38 - iliskilerin ikinci turu. Marker turuyla ayni kimlik
+            // zincirini (mal -> anidb -> uuid -> baslik) kullanir ve ayni
+            // sarti tasir: bir iliski IKI ucunu da ister; karsi uc bu
+            // kurulumda yoksa iliski atlanir ve sayilir.
+            //
+            // Yon KORUNUR: disa aktarim yalnizca `from` ucundan yazdigi
+            // icin buradaki $pr['from'] her zaman satirin from_anime_id'sidir.
+            // Normallestirme (simetrik turlerde kucuk id one) burada TEKRAR
+            // uygulanmaz - kaynak kurulumda zaten uygulanmisti ve yeniden
+            // uygulamak, asimetrik turlerin yonunu bozardi.
+            $relationsLinked  = 0;
+            $relationsSkipped = 0;
+            if (!empty($pendingRelations)) {
+                $relIns = $pdo->prepare(
+                    "INSERT INTO anime_relations (from_anime_id, to_anime_id, relation_type)
+                     VALUES (?, ?, ?)"
+                );
+                foreach ($pendingRelations as $pr) {
+                    $otherId = 0;
+                    if ($pr['mal'] !== null)                { $matchMal->execute([$pr['mal']]);     $otherId = (int)$matchMal->fetchColumn(); }
+                    if (!$otherId && $pr['anidb'] !== null) { $matchAnidb->execute([$pr['anidb']]); $otherId = (int)$matchAnidb->fetchColumn(); }
+                    if (!$otherId && $pr['uuid'] !== null)  { $matchUuid->execute([$pr['uuid']]);   $otherId = (int)$matchUuid->fetchColumn(); }
+                    if (!$otherId && !empty($pr['title']))  { $matchTitle->execute([$pr['title']]); $otherId = (int)$matchTitle->fetchColumn(); }
+
+                    if ($otherId <= 0 || $otherId === $pr['from']) { $relationsSkipped++; continue; }
+
+                    // BIR CIFT, EN COK BIR ILISKI - geri yukleme de bu
+                    // kurala uyar, yoksa dosya uygulamanin asla uretmeyecegi
+                    // bir duruma sokabilirdi. Ayni cift zaten AYNI turle
+                    // kayitliysa is yapilmis sayilir (ayni yedegi ikinci kez
+                    // yuklemek bir hata degildir); BASKA bir turle kayitliysa
+                    // uzerine ikinci bir iddia yazilmaz, atlanir.
+                    $existing = anime_relation_between($pdo, $pr['from'], $otherId);
+                    if ($existing !== false) {
+                        if ($existing['relation_type'] === $pr['type']) { $relationsLinked++; }
+                        else { $relationsSkipped++; }
+                        continue;
+                    }
+
+                    try {
+                        $relIns->execute([$pr['from'], $otherId, $pr['type']]);
+                        $relationsLinked++;
+                    } catch (PDOException $e) {
+                        // UNIQUE (from, to, type): iki ayni satir ayni
+                        // dosyada gecmis. Istenen sonuc zaten yerinde.
+                        $relationsLinked++;
+                    }
+                }
+            }
+
             if ($imported > 0) {
                 $success_message = sprintf(t('list_settings.import.result'), $imported, $skipped);
                 // Only mention markers when the file actually carried some,
@@ -626,6 +737,15 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                 if (!empty($pendingMarkers)) {
                     $success_message .= ' ' . sprintf(
                         t('list_settings.import.markers'), $markersLinked, $markersSkipped
+                    );
+                }
+                // Ayni kural iliskiler icin: 1.1.38 oncesi yedeklerde
+                // 'relations' anahtari yoktur, o dosyalar fazladan bir
+                // cumle gormez.
+                if (!empty($pendingRelations) || $relationsUnknown > 0) {
+                    $success_message .= ' ' . sprintf(
+                        t('list_settings.import.relations'),
+                        $relationsLinked, $relationsSkipped + $relationsUnknown
                     );
                 }
             } else {

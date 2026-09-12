@@ -200,6 +200,7 @@ return [
     'anime_details.section.next_up'      => 'Next Up',
     'anime_details.section.related'      => 'Related Anime',
     'anime_details.section.related_other_type' => 'Other',
+    'anime_details.section.relations'    => 'Relations',           // 1.1.38
     'anime_details.section.chronology'   => 'Chronology Notes',
 
     'anime_details.alert.watch_after'    => 'Watch after episode %d:',
@@ -236,6 +237,54 @@ return [
     'anime_details.marker_form.note'     => 'Note (optional):',
     'anime_details.marker_form.note_placeholder' => 'e.g. Canonical chronology',
     'anime_details.marker_form.submit'   => 'Add',
+
+    // ------------------------------------------------------------------
+    // 1.1.38 - Typed relations (anime_relations)
+    //
+    //   relation.type.*  how a relation reads from ONE end (used as a
+    //                    heading). The same row gives two different
+    //                    labels at its two ends: if A is B's side story,
+    //                    then B is A's PARENT story. Symmetric types
+    //                    (alternative version/setting, other) read the
+    //                    same either way.
+    //   relation.opt.*   the form's options. The form asks one question -
+    //                    "the anime you picked is this anime's ___".
+    //                    The two asymmetric types appear twice, once per
+    //                    direction.
+    // ------------------------------------------------------------------
+    'relation.type.alternative_version' => 'Alternative Version',
+    'relation.type.alternative_setting' => 'Alternative Setting',
+    'relation.type.side_story'          => 'Side Story',
+    'relation.type.parent_story'        => 'Parent Story',
+    'relation.type.summary'             => 'Summary',
+    'relation.type.full_story'          => 'Full Story',
+    'relation.type.other'               => 'Other Relation',
+
+    'relation.opt.alternative_version'  => 'Alternative version',
+    'relation.opt.alternative_setting'  => 'Alternative setting',
+    'relation.opt.side_story'           => 'Side story',
+    'relation.opt.parent_story'         => 'Parent story',
+    'relation.opt.summary'              => 'Summary',
+    'relation.opt.full_story'           => 'Full story',
+    'relation.opt.other'                => 'Related (other)',
+
+    'relation.panel.title'   => 'Relations',
+    'relation.panel.hint'    => 'Typed links between this anime and other entries. None of them states a watch order - that is what the "Next Anime" field above is for.',
+    'relation.panel.empty'   => 'No relation has been recorded for this anime yet.',
+    'relation.form.title'    => 'Add a Relation',
+    'relation.form.target'   => 'Related anime:',
+    'relation.form.type'     => 'Relation type:',
+    'relation.form.hint'     => 'The anime you pick becomes what you selected above, for this anime. Example: the Space Adventure Cobra film is the alternative version of the TV series.',
+    'relation.form.submit'   => 'Add',
+    'relation.delete_confirm' => 'Are you sure you want to delete this relation?',
+    'relation.delete_tooltip' => 'Delete relation',
+
+    'relation.error.input'   => 'The relation was not added: no anime or no type was selected.',
+    'relation.error.self'    => 'An anime cannot be related to itself.',
+    'relation.error.missing' => 'One end of the relation could not be found.',
+    'relation.error.exists'  => 'These two animes already have a relation. Delete the existing one first if you want a different type.',
+    'relation.error.chain'   => 'These two animes are linked with "Next Anime", which states a watch order. None of the types here states an order; remove that link first.',
+    'relation.error.failed'  => 'Something went wrong while saving the relation.',
 
     'anime_details.js.operation_failed'  => 'Operation failed.',
     'anime_details.js.connection_error'  => 'Connection error. Please try again.',
@@ -356,6 +405,19 @@ return [
     'add_anime.label.chain_name'             => 'Chain name (optional):',
     'add_anime.ph.chain_name'                => 'e.g. 90s Anime, Crystal, Movies',
     'add_anime.hint.chain_name'              => 'A separate watch track inside a series. Entries sharing a name count as one chain and get their own tab on the series timeline. Leave it empty to group the entry by its "Next anime" links alone.',
+
+    // ------------------------------------------------------------------
+    // 1.1.38 - Tabs of the add/edit form. The same set on both pages; the
+    // only difference is the "Series" tab's name - on the edit page that
+    // tab also carries the Relations panel, on the add page it does not
+    // (the record does not exist yet, so one end would be missing).
+    // ------------------------------------------------------------------
+    'form.tab.basic'            => 'Basics',
+    'form.tab.synopsis'         => 'Synopsis & Genres',
+    'form.tab.series'           => 'Series',
+    'form.tab.series_relations' => 'Series & Relations',
+    'form.tab.broadcast'        => 'Broadcast & Sources',
+    'form.tab.personal'         => 'Personal',
     'add_anime.hint.tags'                    => 'Matching sentences appear as you type. Press Enter to create a new one if there is no match.',
     'add_anime.link.manage_tags'             => 'Manage sentences',
 
@@ -1094,6 +1156,7 @@ return [
     'list_settings.aired.result.errors'      => '%d errors',
     'list_settings.import.result'            => '%d anime imported, %d skipped.',
     'list_settings.import.markers'           => '%d chronology note linked, %d skipped.',
+    'list_settings.import.relations'         => '%d relation linked, %d skipped.',      // 1.1.38
     'list_settings.import.invalid_format'    => 'Please upload a valid JSON file!',
     'list_settings.import.online_result'     => 'Import complete: %d anime added to your list, %d new catalog requests created, %d were already suggested.',
     'list_settings.import.upload_error'      => 'File upload failed (error code: %d). Please try again.',

@@ -427,6 +427,85 @@ CREATE TABLE IF NOT EXISTS `chronology_markers` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
+-- Table: anime_relations  (1.1.38)
+-- Typed, ORDERLESS links between two animes: "another telling of the
+-- same story", "a side story", "a summary". Introduced as the second of
+-- the three steps in KARARLAR_4 sec.94 - chain_name (1.1.36) ->
+-- anime_relations (1.1.38) -> sequel/prequel move here and
+-- animes.next_in_series retires (1.1.39).
+--
+-- WHY: until 1.1.36 the catalog could only say "linked" (next_in_series)
+-- or "not linked". Two records that belong together but do NOT follow
+-- one another had no way to say so - the honest answer looked exactly
+-- like missing data. Space Adventure Cobra's 1982 film (AniDB: the TV
+-- series' ALTERNATIVE VERSION) sat unlinked and invisible; Sailor Moon
+-- Crystal (also an alternative version) had been linked INTO the middle
+-- of the 90s chain, so the timeline claimed a watch order that does not
+-- exist. 1.1.36 named the tracks; this table names the LINK TYPE.
+--
+-- `sequel` IS DELIBERATELY NOT IN THE ENUM. Watch order still lives in
+-- exactly one place (animes.next_in_series). If a sequel edge could also
+-- be stored here, two sources could disagree about the same pair and
+-- something would have to break the tie. Leaving the value out makes the
+-- contradiction impossible to enter rather than merely discouraged.
+-- Every type here is orderless: nothing in this table feeds the series
+-- timeline or the spoiler gate.
+--
+-- DIRECTION. A row reads FROM IS THE <type> OF TO:
+--   side_story - `from` is the side story, `to` is the parent story.
+--   summary    - `from` is the summary,   `to` is the full story.
+-- Those are the only asymmetric types and the asymmetry is real: if A is
+-- B's side story then B is A's PARENT story, not its side story. The
+-- detail page renders the same row with the flipped label at the other
+-- end (functions/relation_helpers.php, anime_relation_type_label()).
+-- The other three types read identically from both ends, so their
+-- direction carries no information and is CANONICALISED on write
+-- (smaller id first) - otherwise the same statement could be stored once
+-- per direction and uniq_relation_pair would not catch it.
+--
+-- ONE RELATION PER PAIR. uniq_relation_pair only stops an exact repeat of
+-- the same ordered pair + type; add_anime_relation.php additionally
+-- refuses ANY second relation between the same two animes (either
+-- direction), because a pair with two rows is either a duplicate or a
+-- contradiction. It also refuses a relation between two animes that are
+-- actively chained with next_in_series - that pair would claim to be
+-- ordered and orderless at once, which is the Sailor Moon Crystal bug.
+--
+-- Used by:
+--   - add_anime_relation.php / delete_anime_relation.php (write)
+--   - edit_anime.php (the curator's panel below the main form)
+--   - anime_details.php ("Iliskili Animeler" section, read-only)
+--   - list_settings.php (JSON backup: export + restore)
+--   - functions/relation_helpers.php (all rules)
+--
+-- LOCAL ONLY, like next_in_series and chain_name: the catalog wire
+-- format gains no field, no manual ALTER is needed on the central
+-- catalog server and no file under catalog_server/ changed. A relation
+-- is a pair of LOCAL row ids and every install numbers its rows
+-- differently; the JSON backup therefore carries the far end by the
+-- stable-identity quadruple (mal_id / anidb_id / catalog_uuid / title),
+-- the same way chronology markers travel.
+--
+-- Both foreign keys cascade, so deleting an anime takes its relations
+-- with it and no orphan can survive.
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `anime_relations` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `from_anime_id` int(11) NOT NULL,
+  `to_anime_id` int(11) NOT NULL,
+  `relation_type` enum('alternative_version','alternative_setting','side_story','summary','other') NOT NULL DEFAULT 'other',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_relation_pair` (`from_anime_id`, `to_anime_id`, `relation_type`),
+  KEY `idx_relation_to` (`to_anime_id`),
+  CONSTRAINT `fk_relation_from`
+    FOREIGN KEY (`from_anime_id`) REFERENCES `animes` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_relation_to`
+    FOREIGN KEY (`to_anime_id`) REFERENCES `animes` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
 -- Table: tags
 -- Free-form descriptive sentences used by the recommendation system
 -- (recommendations.php). These are intentionally separate from the
