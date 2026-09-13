@@ -4,8 +4,7 @@
 
 <h1 align="center">
   Anime Tracker<br>
-  <sub><b>Animenin hissedildiği yer.</b></sub><br>
-  <sub><b>Where anime is felt.</b></sub>
+  <img src="docs/screenshots/slogan.png" alt="Animenin hissedildiği yer. / Where anime is felt." width="290">
 </h1>
 
 <p align="center">
