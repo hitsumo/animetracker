@@ -5,6 +5,10 @@
 <h1 align="center">Anime Tracker</h1>
 
 <p align="center">
+  <b>Animenin hissedildiği yer.</b> · <i>Where anime is felt.</i>
+</p>
+
+<p align="center">
   Türkçe-öncelikli, açık kaynak anime takip uygulaması —
   self-host (tek kullanıcı) veya online (çok kullanıcı) çalışır.<br>
   <i>An open-source, Turkish-first anime tracker — runs self-hosted (single user)
