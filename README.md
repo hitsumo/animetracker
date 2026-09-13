@@ -2,11 +2,11 @@
   <img src="docs/screenshots/logo.png" alt="Anime Tracker" width="96">
 </p>
 
-<h1 align="center">Anime Tracker</h1>
-
-<p align="center">
-  <b>Animenin hissedildiği yer.</b> · <i>Where anime is felt.</i>
-</p>
+<h1 align="center">
+  Anime Tracker<br>
+  <sub><b>Animenin hissedildiği yer.</b></sub><br>
+  <sub><b>Where anime is felt.</b></sub>
+</h1>
 
 <p align="center">
   Türkçe-öncelikli, açık kaynak anime takip uygulaması —
