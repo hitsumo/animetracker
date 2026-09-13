@@ -105,7 +105,7 @@ $anime['watch_finish_date'] = $uaState['watch_finish_date'];
 // Anime tamamlanmis mi kontrol et
 checkIfAnimeCompleted($pdo, $anime);
 
-// 1.1.33 - konu spoiler kapisi. Zincirde (next_in_series) bu animeden
+// 1.1.33 - konu spoiler kapisi. Zincirde (`sequel` yuruyusu) bu animeden
 // once gelen halkalardan biri bile izlenmemisse KATALOG konusu dogrudan
 // basilmaz, "okumak istiyorum" dugmesinin arkasina alinir. Kural ve
 // gerekce: functions/series_helpers.php, spoiler_gate(). $anime satiri
@@ -116,10 +116,11 @@ $spoilerGate = spoiler_gate($pdo, $anime);
 // Series relationship data
 $relatedAnimes = getRelatedAnimes($pdo, $anime['series_name'] ?? null, $anime['id']);
 // 1.1.38 - tipli iliskiler (anime_relations). Burasi yalnizca GOSTERIR;
-// kurma/silme edit_anime.php'deki panelde durur. Iliskiler SIRASIZDIR -
-// hicbiri "once sunu izle" demez - ve bu sayfadaki iki sirali ozelligi
-// (zincir yuruyusu ve spoiler kapisi) etkilemezler.
-$animeRelations = anime_relations_grouped(getAnimeRelations($pdo, $anime['id']));
+// kurma/silme edit_anime.php'deki panelde durur. 1.1.40: `sequel` de bu
+// tabloda - "Devami" / "Oncesi" basliklariyla asagidaki bolume girer VE
+// asagidaki "Siradaki" karti ile "Seri Kronolojisi" dugmesini besler.
+$animeRelationRows = getAnimeRelations($pdo, $anime['id']);
+$animeRelations    = anime_relations_grouped($animeRelationRows);
 $chronologyMarkers = getChronologyMarkers($pdo, $anime['id']);
 $chronologyAlert = getActiveChronologyAlert($pdo, $anime['id'], $anime['watched_episodes']);
 
@@ -149,41 +150,24 @@ if (!empty($chronologyMarkers)) {
     }
 }
 
-// Siradaki anime bilgisi (next_in_series foreign key)
-$nextAnime = null;
-if (!empty($anime['next_in_series'])) {
-    // watch_status is personal (user_anime, 1.0.1) - join the current
-    // user's row so the "next in series" card shows their progress.
-    $nextStmt = $pdo->prepare(
-        "SELECT a.id, a.title, a.alternative_titles,
-                ua.watch_status,
-                a.media_type, a.image_path, a.is_adult
-         FROM animes a
-         LEFT JOIN user_anime ua
-                ON ua.anime_id = a.id AND ua.user_id = :uid
-         WHERE a.id = :id"
-    );
-    $nextStmt->execute([
-        ':uid' => current_user_id(),
-        ':id'  => (int)$anime['next_in_series'],
-    ]);
-    $nextAnime = $nextStmt->fetch(PDO::FETCH_ASSOC);
-    // 1.1.2 - sirali seri iliskisi: sonraki anime +18 ise basligini notr yer
-    // tutucuyla maskele (kart kalir, baslik sizmaz; link gated detaya gider).
-    if ($nextAnime) {
-        $nextAnime = adult_mask_related($nextAnime, 'is_adult', 'title', 'alternative_titles');
-    }
+// Siradaki anime (1.1.40: `sequel` kenarindan, next_in_series kolonu emekli).
+// Kart, zincir yuruyusunun bir adimidir: seriesChainStep() ayni adli ILK
+// devami secer, yani chain_name kurali (1.1.36) burada da gecerlidir -
+// baska bir hattaki "devam" bu kartta gorunmez (asagidaki Iliskili
+// Animeler bolumunde gorunur; o bolum ham veridir, kart ise kuratorun
+// kurdugu hattir). Satir kisisel izleme durumunu zaten tasir.
+$nextAnime = seriesChainStep($pdo, (int)$anime['id'], 'next', $anime['chain_name'] ?? null);
+// 1.1.2 - sirali seri iliskisi: sonraki anime +18 ise basligini notr yer
+// tutucuyla maskele (kart kalir, baslik sizmaz; link gated detaya gider).
+if ($nextAnime) {
+    $nextAnime = adult_mask_related($nextAnime, 'is_adult', 'title', 'alternative_titles');
 }
 
-// Check if this anime is part of a next_in_series chain (either it
-// points forward or another anime points to it). Used to show the
-// "Seri Kronolojisi" button.
-$isInSeriesChain = !empty($anime['next_in_series']);
-if (!$isInSeriesChain) {
-    $chainCheck = $pdo->prepare("SELECT COUNT(*) FROM animes WHERE next_in_series = ?");
-    $chainCheck->execute([(int)$anime['id']]);
-    $isInSeriesChain = ((int)$chainCheck->fetchColumn() > 0);
-    $chainCheck->closeCursor();
+// Bu anime bir sira zincirinin parcasi mi (devami ya da onculu var mi)?
+// "Seri Kronolojisi" dugmesi icin. Iliskiler zaten yuklu - ek sorgu yok.
+$isInSeriesChain = false;
+foreach ($animeRelationRows as $relRow) {
+    if ($relRow['relation_type'] === 'sequel') { $isInSeriesChain = true; break; }
 }
 
 // 1.1.23: Seri Kronolojisi'nin Yayin Tarihi sekmesi series_name'den
@@ -791,9 +775,9 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
             <?php endif; ?>
 
             <?php // ============================================================
-                  // SECTION: Siradaki Anime (next_in_series)
+                  // SECTION: Siradaki Anime (`sequel` kenari, 1.1.40)
                   // Bu animeyi tamamen bitirdikten sonra izlenecek anime.
-                  // Sadece next_in_series FK dolu ise gosterilir.
+                  // Ayni adli bir devam varsa gosterilir.
                   // ============================================================
             ?>
             <?php if ($nextAnime): ?>
@@ -823,10 +807,11 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
 
             <?php // ============================================================
                   // SECTION: Iliskili Animeler (1.1.38)
-                  // Tipli ve SIRASIZ iliskiler: "ayni hikayenin baska bir
-                  // anlatimi", "yan hikaye", "ozet". Yukaridaki "Siradaki"
-                  // kartindan farki tam olarak budur - o bir SIRA soyler,
-                  // burasi hicbir sira iddia etmez.
+                  // Tipli iliskiler: "devami" / "oncesi" (1.1.40, sirali),
+                  // "ayni hikayenin baska bir anlatimi", "yan hikaye", "ozet"
+                  // (sirasiz). Yukaridaki "Siradaki" karti ile bilerek
+                  // ortusur: kart zincir yuruyusunun adimidir (chain_name
+                  // kuraliyla suzulmus), burasi kayitli HER bagin listesi.
                   //
                   // Basliklar iliskinin TURUNE gore degil, o ucun ETIKETINE
                   // gore gruplanir: ayni satir iki ucta iki farkli cumle

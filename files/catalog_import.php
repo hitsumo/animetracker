@@ -322,7 +322,7 @@ $insertSql = "
         episode_interval, broadcast_day, broadcast_time, broadcast_timezone,
         synopsis_tr, synopsis_en, translation_status,
         release_date, release_date_precision, end_date, end_date_precision,
-        series_name, media_type, country, next_in_series,
+        series_name, media_type, country,
         mal_id, anidb_id, catalog_uuid, source, is_adult
     ) VALUES (
         :title, :alternative_titles, :status, :total_episodes, :aired_episodes,
@@ -332,7 +332,7 @@ $insertSql = "
         :episode_interval, :broadcast_day, :broadcast_time, :broadcast_timezone,
         :synopsis_tr, :synopsis_en, :translation_status,
         :release_date, :release_date_precision, :end_date, :end_date_precision,
-        :series_name, :media_type, :country, NULL,
+        :series_name, :media_type, :country,
         :mal_id, :anidb_id, :catalog_uuid, 'catalog', :is_adult
     )
 ";

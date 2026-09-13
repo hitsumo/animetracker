@@ -7,7 +7,7 @@
  *
  * POST endpoint behind the list-settings <select> that saves which tab
  * the series timeline (series_timeline.php) opens in: 'chain' (the
- * next_in_series walk) or 'airdate' (every anime sharing the series
+ * `sequel` walk) or 'airdate' (every anime sharing the series
  * name, by first air/release date).
  *
  * The tabs on series_timeline.php itself do NOT post here - they are

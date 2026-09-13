@@ -166,7 +166,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Series relationship fields (v0.5 mid-cycle)
     $series_name = $_POST['series_name'] ?? null;
     $media_type = $_POST['media_type'] ?? null;
-    $next_in_series = $_POST['next_in_series'] ?? null;
     // 1.1.36 - zincir adi. Bos ise NULL'a duser (chain_name_norm), boylece
     // '' ile NULL ayni sey olur ve chain_same() ikisini esit sayar.
     $chain_name = chain_name_norm($_POST['chain_name'] ?? null);
@@ -224,7 +223,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Series fields: bos string'leri NULL'a cevir
     if ($series_name === '') { $series_name = null; }
     if ($media_type === '')  { $media_type = null; }
-    if ($next_in_series === '' || $next_in_series === '0') { $next_in_series = null; }
     $country = is_valid_country_code($country) ? strtoupper($country) : null;
 
     // Status-based normalization for episode counts.
@@ -304,7 +302,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // approval), so the historical default is preserved.
     $source = (MULTI_USER_MODE && can($pdo, 'moderate')) ? 'catalog' : 'local';
 
-    $sql = "INSERT INTO animes (title, alternative_titles, status, total_episodes, aired_episodes, image_path, next_episode_date, anidb_link, mal_link, anime_schedule_link, episode_interval, broadcast_day, broadcast_time, broadcast_timezone, synopsis_tr, synopsis_en, translation_status, release_date, release_date_precision, end_date, end_date_precision, series_name, chain_name, media_type, country, next_in_series, mal_id, anidb_id, filler_tracking, is_adult, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO animes (title, alternative_titles, status, total_episodes, aired_episodes, image_path, next_episode_date, anidb_link, mal_link, anime_schedule_link, episode_interval, broadcast_day, broadcast_time, broadcast_timezone, synopsis_tr, synopsis_en, translation_status, release_date, release_date_precision, end_date, end_date_precision, series_name, chain_name, media_type, country, mal_id, anidb_id, filler_tracking, is_adult, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     $stmt = $pdo->prepare($sql);
 
@@ -339,7 +337,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $chain_name,
             $media_type,
             $country,
-            $next_in_series,
             $mal_id,
             $anidb_id,
             $filler_tracking,
@@ -843,7 +840,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <?php // 1.1.36 - Zincir Adi. series_name HANGI SERI, bu alan SERININ
               // ICINDE HANGI HAT demektir (orn. "90'lar Anime" / "Crystal").
               // Bos birakilabilir: adsiz kayitlar 1.1.35'teki gibi yalnizca
-              // next_in_series yuruyusune gore gruplanir. ?>
+              // sira baglarina (Devami/Oncesi, duzenleme ekranindaki
+              // Iliskiler paneli) gore gruplanir. ?>
         <div class="form-group">
             <label for="chain_name"><?php echo htmlspecialchars(t('add_anime.label.chain_name'), ENT_QUOTES, 'UTF-8'); ?></label>
             <div class="input-area">

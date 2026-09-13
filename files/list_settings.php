@@ -237,7 +237,8 @@ if (isset($_POST['export'])) {
     // YEREL id ile degil KIMLIK DORTLUSUYLE yazilir (mal_id / anidb_id /
     // catalog_uuid / baslik), cunku her kurulum satirlarini farkli
     // numaralandirir. Boylece iliskiler yedek-al/geri-yukle turunda
-    // kaybolmaz - next_in_series'in bugun dustugu tuzak budur.
+    // kaybolmaz - next_in_series'in 1.1.40'a kadar dustugu tuzak buydu;
+    // sira artik `sequel` kenari olarak ayni yoldan tasinir.
     //
     // Yalnizca `from` ucundaki anime iliskiyi disari aktarir, yani her
     // iliski dosyada tam BIR KEZ gecer. Iki uctan da yazilsaydi geri
@@ -617,7 +618,8 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                         // listeden gecer ve TANINMAYAN bir tur ATLANIR -
                         // 'other'a dusurulmez. Gerekce: dosya elle
                         // duzenlenmis ya da DAHA YENI bir surumden gelmis
-                        // olabilir (1.1.39 `sequel` ekleyecek), ve
+                        // olabilir (1.1.40 `sequel` ekledi - bu dosyanin
+                        // 1.1.38 kopyasi onu atlar), ve
                         // anlamadigimiz bir bagi "diger" diye kaydetmek,
                         // kaydetmemekten kotudur: cifti dolduracagi icin
                         // kuratorun sonradan DOGRU turu girmesini de
@@ -1843,7 +1845,7 @@ if (isset($_POST['clear'])) {
             </div>
 
             <?php // 1.1.23 - seri kronolojisi gorunum varsayilani. series_timeline.php
-                  // hangi sekmeyle acilsin: zincir sirasi (next_in_series yuruyusu)
+                  // hangi sekmeyle acilsin: zincir sirasi (`sequel` yuruyusu)
                   // ya da yayin tarihi (ayni seri adi, ilk gosterim tarihine gore).
                   // Kisi bazli tercih (user_pref 'series_timeline_mode'); sayfadaki
                   // sekmeler bu varsayilani ezmeden gecici degistirir.

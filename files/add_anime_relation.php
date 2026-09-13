@@ -25,7 +25,7 @@
  * page.
  *
  * NOT pushed to the central catalog: a relation is a pair of LOCAL row
- * ids, exactly like next_in_series and chain_name. See the migration
+ * ids, exactly like chain_name (and next_in_series before 1.1.40). See the migration
  * notes in migration/1.1.38/upgrade.sql.
  */
 
@@ -91,14 +91,10 @@ if (anime_relation_between($pdo, $anime_id, $other_id) !== false) {
     relation_redirect($anime_id, 'exists');
 }
 
-// Every type here is ORDERLESS, so a pair that next_in_series already
-// chains cannot also carry one - that pair would claim to be ordered and
-// unordered at once. The check calls the 1.1.36 rule (chain_same) rather
-// than restating it, so a dormant link (different chain names, therefore
-// never followed) blocks nothing.
-if (anime_relation_chain_conflict($pdo, $anime_id, $other_id)) {
-    relation_redirect($anime_id, 'chain');
-}
+// (1.1.38 checked here that the pair was not chained with next_in_series.
+// 1.1.40 retired the column: the order IS a relation now, and the one-
+// relation-per-pair rule above already makes "ordered and orderless at
+// once" impossible to enter.)
 
 list($from, $to) = anime_relation_endpoints($anime_id, $other_id, $choice['type'], $choice['inverse']);
 

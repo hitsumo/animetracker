@@ -744,28 +744,3 @@ function animeFormFieldHidden(el) {
     }
     return false;
 }
-
-// 1.1.38 - Iliski hedefi kutusunu "Siradaki Anime" kutusundan doldur.
-//
-// Iki kutu ayni listeyi gosterir (ayni $allAnimes, ayni siralama, ayni
-// yildiz isareti). Ikisini de sunucuda basmak sayfayi katalog boyutunda
-// IKIYE katlardi: 8000 kayitlik yerel katalogda 1,9 MB yerine 3,9 MB
-// olculdu. O yuzden ikinci kutu bos gelir ve secenekleri burada klonlanir
-// - kopyalama tarayicida, tel uzerinde tek liste.
-(function () {
-    var target = document.querySelector('select[data-clone-options-from]');
-    if (!target) { return; }
-    var source = document.getElementById(target.getAttribute('data-clone-options-from'));
-    if (!source) { return; }
-
-    var frag = document.createDocumentFragment();
-    for (var i = 0; i < source.options.length; i++) {
-        var opt = source.options[i];
-        if (opt.value === '') { continue; }   // "Seciniz" hedefte zaten var
-        frag.appendChild(opt.cloneNode(true));
-    }
-    target.appendChild(frag);
-    // Kaynak kutuda bir secim varsa klon o "selected" niteligini de
-    // tasir; hedef kutu bos ("Seciniz") baslamali.
-    target.selectedIndex = 0;
-})();

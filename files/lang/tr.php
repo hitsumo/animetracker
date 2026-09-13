@@ -283,6 +283,10 @@ return [
     //                    bunlar iyelik ekiyle yazilir ve iki yonlu turler
     //                    listede iki kez gecer.
     // ------------------------------------------------------------------
+    // 1.1.40 - sirali tur. Satir "from, to'nun devamidir"; to ucundan
+    // bakinca etiket "Oncesi" olur (sequel <-> prequel).
+    'relation.type.sequel'              => 'Devamı',
+    'relation.type.prequel'             => 'Öncesi',
     'relation.type.alternative_version' => 'Alternatif Versiyon',
     'relation.type.alternative_setting' => 'Alternatif Kurgu',
     'relation.type.side_story'          => 'Yan Hikâye',
@@ -291,6 +295,8 @@ return [
     'relation.type.full_story'          => 'Tam Hikâye',
     'relation.type.other'               => 'Diğer İlişki',
 
+    'relation.opt.sequel'               => 'Devamı (bundan sonra izlenir)',
+    'relation.opt.prequel'              => 'Öncesi (bundan önce izlenir)',
     'relation.opt.alternative_version'  => 'Alternatif versiyonu',
     'relation.opt.alternative_setting'  => 'Alternatif kurgusu',
     'relation.opt.side_story'           => 'Yan hikâyesi',
@@ -300,12 +306,12 @@ return [
     'relation.opt.other'                => 'İlişkilisi (diğer)',
 
     'relation.panel.title'   => 'İlişkiler',
-    'relation.panel.hint'    => 'Bu animenin başka kayıtlarla olan tipli bağları. Hiçbiri izleme sırası belirtmez — sırayı yukarıdaki "Sıradaki Anime" alanı söyler.',
+    'relation.panel.hint'    => 'Bu animenin başka kayıtlarla olan tipli bağları. İzleme sırasını yalnızca "Devamı" / "Öncesi" kurar; seri kronolojisi ve spoiler koruması bu bağı izler. Diğer türler sıra belirtmez.',
     'relation.panel.empty'   => 'Bu anime için henüz ilişki tanımlanmadı.',
     'relation.form.title'    => 'Yeni İlişki Ekle',
     'relation.form.target'   => 'İlişkili anime:',
     'relation.form.type'     => 'İlişki türü:',
-    'relation.form.hint'     => 'Seçtiğiniz anime, bu animenin yukarıda işaretlediğiniz türü olur. Örnek: Space Adventure Cobra filmi, TV dizisinin alternatif versiyonudur.',
+    'relation.form.hint'     => 'Seçtiğiniz anime, bu animenin yukarıda işaretlediğiniz türü olur. Örnek: Sailor Moon R, Sailor Moon\'un devamıdır; Space Adventure Cobra filmi, TV dizisinin alternatif versiyonudur. ★ = aynı seri.',
     'relation.form.submit'   => 'Ekle',
     'relation.delete_confirm' => 'Bu ilişkiyi silmek istediğinize emin misiniz?',
     'relation.delete_tooltip' => 'İlişkiyi sil',
@@ -314,7 +320,6 @@ return [
     'relation.error.self'    => 'Bir anime kendisiyle ilişkilendirilemez.',
     'relation.error.missing' => 'İlişkinin uçlarından biri bulunamadı.',
     'relation.error.exists'  => 'Bu iki anime arasında zaten bir ilişki var. Yerine başkasını kurmak için önce mevcut olanı silin.',
-    'relation.error.chain'   => 'Bu iki anime "Sıradaki Anime" ile birbirine bağlı, yani bir izleme sırası tanımlıyorlar. Buradaki türlerin hiçbiri sıra belirtmez; ilişki kurmak için önce o bağı kaldırın.',
     'relation.error.failed'  => 'İlişki kaydedilirken bir hata oluştu.',
 
     // JS alerts on the emotion toolbar
@@ -432,12 +437,12 @@ return [
     'add_anime.warn.date_order'              => 'Bitiş tarihi başlangıçtan önce. Yine de kaydedilir.',
     'add_anime.hint.series_name'             => 'Aynı seriye ait animeler bu adı paylaşır. Mevcut seriler otomatik önerilir.',
     // 1.1.36 - Zincir Adi. series_name HANGI SERI, bu alan SERININ ICINDE
-    // HANGI HAT demektir; next_in_series ise o hattaki SIRA. Anahtar
+    // HANGI HAT demektir; sira bagi (Devami/Oncesi) ise o hattaki SIRA. Anahtar
     // 'add_anime.' onekinde cunku iki form da (ekle + duzenle) ayni ucluyu
     // kullanir - series_name'in kendisi de oyle.
     'add_anime.label.chain_name'             => 'Zincir Adı (opsiyonel):',
     'add_anime.ph.chain_name'                => 'Örn: 90\'lar Anime, Crystal, Sinema Filmleri',
-    'add_anime.hint.chain_name'              => 'Bir serinin içindeki ayrı izleme hattı. Aynı adı taşıyan kayıtlar tek zincir sayılır ve seri kronolojisinde kendi sekmesinde görünür. Boş bırakırsanız kayıt yalnızca "Sıradaki Anime" bağlantılarına göre gruplanır.',
+    'add_anime.hint.chain_name'              => 'Bir serinin içindeki ayrı izleme hattı. Aynı adı taşıyan kayıtlar tek zincir sayılır ve seri kronolojisinde kendi sekmesinde görünür. Boş bırakırsanız kayıt yalnızca "Devamı" / "Öncesi" bağlarına göre gruplanır.',
 
     // ------------------------------------------------------------------
     // 1.1.38 - Ekleme/duzenleme formunun sekmeleri. Ayni kume iki sayfada
@@ -558,8 +563,6 @@ return [
     'edit_anime.ph.user_synopsis_en'         => 'Your own comment / translation / summary',
 
     // Next-in-series field (only on edit, not on add)
-    'edit_anime.label.next_in_series'        => 'Sıradaki Anime (opsiyonel):',
-    'edit_anime.hint.next_in_series'         => 'Bu animeyi bitirdikten sonra izlenecek anime. ★ = aynı seri.',
 
     // Duplicate detection - edit-side wording differs from add (a value
     // is "used by another record" rather than "already exists").
@@ -797,8 +800,8 @@ return [
     'help.chrono.intro'                      => 'Birbirine bağlı animeler için iki tür ilişki sistemi var:',
     'help.chrono.series.h3'                  => 'Seri Bilgisi',
     'help.chrono.series.text'                => 'Bir anime\'nin hangi seriye ait olduğu <strong>seri adı</strong> ve <strong>medya türü</strong> (TV / Film / OVA / Special / ONA) ile belirlenir. Aynı seri adını paylaşan animeler anime detayında "Bağlı Animeler" bölümünde gözükür.',
-    'help.chrono.next.h3'                    => 'Sonraki Seri (next_in_series)',
-    'help.chrono.next.text'                  => 'Bir animeyi bitirince hangi animeyi izlemeniz gerektiği. Detay sayfasında "Sırada" kutusunda gözükür.',
+    'help.chrono.next.h3'                    => 'İzleme Sırası (Devamı / Öncesi)',
+    'help.chrono.next.text'                  => 'Bir animeyi bitirince hangi animeyi izlemeniz gerektiği. Düzenleme ekranındaki <strong>İlişkiler</strong> panelinde kurulur: karşı animeyi seçip "Devamı" (ya da öteki uçtan "Öncesi") türünü işaretlersiniz. Detay sayfasında "Sırada" kutusunda gözükür; seri kronolojisinin zincir sekmesi ve konu spoiler koruması bu bağı izler.',
     'help.chrono.markers.h3'                 => 'Kronoloji İşaretleri',
     'help.chrono.markers.text'               => 'Detective Conan gibi seriler için: "54. bölümden sonra 1. filmi izle" gibi bölüm seviyesinde işaretler tutulur. Detay sayfasında aktif uyarı olarak görülür, ayrı bir "Kronoloji" sayfasında da timeline halinde listelenir.',
     'help.chrono.story.h3'                   => 'Yayın Sırası ve Hikaye Sırası',
@@ -1282,7 +1285,7 @@ return [
     'list_settings.chrono_mode.save'         => 'Kaydet',
     // 1.1.23 - seri kronolojisi görünüm varsayılanı
     'list_settings.section.st_mode'          => 'Seri Kronolojisi Görünümü',
-    'list_settings.section.st_mode.desc'     => 'Seri kronolojisi sayfası hangi sekmeyle açılsın: zincir sırası (Sıradaki Anime bağlantılarını takip eder) ya da yayın tarihi (aynı seri adını taşıyan tüm animeleri ilk gösterim tarihine göre dizer). Sayfadaki sekmelerle geçici olarak değiştirebilirsiniz. Bu tercih yalnızca sizi etkiler.',
+    'list_settings.section.st_mode.desc'     => 'Seri kronolojisi sayfası hangi sekmeyle açılsın: zincir sırası (Devamı / Öncesi bağlarını takip eder) ya da yayın tarihi (aynı seri adını taşıyan tüm animeleri ilk gösterim tarihine göre dizer). Sayfadaki sekmelerle geçici olarak değiştirebilirsiniz. Bu tercih yalnızca sizi etkiler.',
     'list_settings.st_mode.save'             => 'Kaydet',
 
     // 1.1.2 - yetiskin (+18) icerik gorunurluk toggle (list_settings)

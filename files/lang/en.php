@@ -252,6 +252,10 @@ return [
     //                    The two asymmetric types appear twice, once per
     //                    direction.
     // ------------------------------------------------------------------
+    // 1.1.40 - the ordered type. A row reads "from is the sequel of to";
+    // seen from the `to` end the label flips to "Prequel".
+    'relation.type.sequel'              => 'Sequel',
+    'relation.type.prequel'             => 'Prequel',
     'relation.type.alternative_version' => 'Alternative Version',
     'relation.type.alternative_setting' => 'Alternative Setting',
     'relation.type.side_story'          => 'Side Story',
@@ -260,6 +264,8 @@ return [
     'relation.type.full_story'          => 'Full Story',
     'relation.type.other'               => 'Other Relation',
 
+    'relation.opt.sequel'               => 'Sequel (watched after this one)',
+    'relation.opt.prequel'              => 'Prequel (watched before this one)',
     'relation.opt.alternative_version'  => 'Alternative version',
     'relation.opt.alternative_setting'  => 'Alternative setting',
     'relation.opt.side_story'           => 'Side story',
@@ -269,12 +275,12 @@ return [
     'relation.opt.other'                => 'Related (other)',
 
     'relation.panel.title'   => 'Relations',
-    'relation.panel.hint'    => 'Typed links between this anime and other entries. None of them states a watch order - that is what the "Next Anime" field above is for.',
+    'relation.panel.hint'    => 'Typed links between this anime and other entries. Only "Sequel" / "Prequel" state a watch order; the series timeline and the spoiler guard follow that link. The other types state no order.',
     'relation.panel.empty'   => 'No relation has been recorded for this anime yet.',
     'relation.form.title'    => 'Add a Relation',
     'relation.form.target'   => 'Related anime:',
     'relation.form.type'     => 'Relation type:',
-    'relation.form.hint'     => 'The anime you pick becomes what you selected above, for this anime. Example: the Space Adventure Cobra film is the alternative version of the TV series.',
+    'relation.form.hint'     => 'The anime you pick becomes what you selected above, for this anime. Examples: Sailor Moon R is the sequel of Sailor Moon; the Space Adventure Cobra film is the alternative version of the TV series. ★ = same series.',
     'relation.form.submit'   => 'Add',
     'relation.delete_confirm' => 'Are you sure you want to delete this relation?',
     'relation.delete_tooltip' => 'Delete relation',
@@ -283,7 +289,6 @@ return [
     'relation.error.self'    => 'An anime cannot be related to itself.',
     'relation.error.missing' => 'One end of the relation could not be found.',
     'relation.error.exists'  => 'These two animes already have a relation. Delete the existing one first if you want a different type.',
-    'relation.error.chain'   => 'These two animes are linked with "Next Anime", which states a watch order. None of the types here states an order; remove that link first.',
     'relation.error.failed'  => 'Something went wrong while saving the relation.',
 
     'anime_details.js.operation_failed'  => 'Operation failed.',
@@ -399,12 +404,12 @@ return [
     'add_anime.warn.date_order'              => 'Finish date is before start. It will still be saved.',
     'add_anime.hint.series_name'             => 'Anime in the same series share this name. Existing series are auto-suggested.',
     // 1.1.36 - Chain name. series_name says WHICH SERIES, this says WHICH
-    // TRACK inside it, and next_in_series says the ORDER along that track.
+    // TRACK inside it, and the sequel link says the ORDER along that track.
     // Kept under the 'add_anime.' prefix because both forms (add + edit)
     // share the same trio, exactly as series_name does.
     'add_anime.label.chain_name'             => 'Chain name (optional):',
     'add_anime.ph.chain_name'                => 'e.g. 90s Anime, Crystal, Movies',
-    'add_anime.hint.chain_name'              => 'A separate watch track inside a series. Entries sharing a name count as one chain and get their own tab on the series timeline. Leave it empty to group the entry by its "Next anime" links alone.',
+    'add_anime.hint.chain_name'              => 'A separate watch track inside a series. Entries sharing a name count as one chain and get their own tab on the series timeline. Leave it empty to group the entry by its "Sequel" / "Prequel" links alone.',
 
     // ------------------------------------------------------------------
     // 1.1.38 - Tabs of the add/edit form. The same set on both pages; the
@@ -526,8 +531,6 @@ return [
     'edit_anime.ph.user_synopsis_en'         => 'Your own comment / translation / summary',
 
     // Next-in-series field (only on edit, not on add)
-    'edit_anime.label.next_in_series'        => 'Next in Series (optional):',
-    'edit_anime.hint.next_in_series'         => 'The anime to watch after this one. ★ = same series.',
 
     // Duplicate detection - edit-side wording differs from add (a value
     // is "used by another record" rather than "already exists").
@@ -765,8 +768,8 @@ return [
     'help.chrono.intro'                      => 'There are two relationship systems for related anime:',
     'help.chrono.series.h3'                  => 'Series Info',
     'help.chrono.series.text'                => 'Which series an anime belongs to is determined by its <strong>series name</strong> and <strong>media type</strong> (TV / Film / OVA / Special / ONA). Anime sharing the same series name appear under "Related Anime" on the anime detail page.',
-    'help.chrono.next.h3'                    => 'Next in Series (next_in_series)',
-    'help.chrono.next.text'                  => 'Which anime to watch after finishing the current one. Appears in the "Next Up" box on the detail page.',
+    'help.chrono.next.h3'                    => 'Watch Order (Sequel / Prequel)',
+    'help.chrono.next.text'                  => 'Which anime to watch after finishing the current one. It is set in the <strong>Relations</strong> panel of the edit screen: pick the other anime and choose "Sequel" (or "Prequel" from the other end). It appears in the "Next Up" box on the detail page; the chain tab of the series timeline and the synopsis spoiler guard follow this link.',
     'help.chrono.markers.h3'                 => 'Chronology Markers',
     'help.chrono.markers.text'               => 'For series like Detective Conan: episode-level markers such as "after episode 54, watch the first movie" are stored. They appear as active alerts on the detail page and are listed as a timeline on a separate "Chronology" page.',
     'help.chrono.story.h3'                   => 'Release Order and Story Order',
@@ -1249,7 +1252,7 @@ return [
     'list_settings.chrono_mode.save'         => 'Save',
     // 1.1.23 - series timeline default view
     'list_settings.section.st_mode'          => 'Series Chronology View',
-    'list_settings.section.st_mode.desc'     => 'Chooses which tab the series chronology page opens in: chain order (follows the Next in Series links) or air date (lists every anime sharing the series name by first air/release date). You can switch temporarily with the tabs on the page. This preference affects only you.',
+    'list_settings.section.st_mode.desc'     => 'Chooses which tab the series chronology page opens in: chain order (follows the Sequel / Prequel links) or air date (lists every anime sharing the series name by first air/release date). You can switch temporarily with the tabs on the page. This preference affects only you.',
     'list_settings.st_mode.save'             => 'Save',
 
     // 1.1.2 - adult (18+) content visibility toggle (list_settings)

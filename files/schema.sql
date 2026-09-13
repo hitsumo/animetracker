@@ -34,19 +34,20 @@ SET time_zone = "+00:00";
 --   media_type      - One of TV / Film / OVA / Special / ONA. Used to
 --                     group entries within a series on the detail page.
 --                     NULL allowed for legacy rows.
---   next_in_series  - Optional pointer to the next anime.id the user
---                     should watch after finishing this one. Validated
---                     by validateNextInSeries() in functions.php.
+--   (next_in_series - RETIRED in 1.1.40. The "watch this next" pointer is
+--                     now a `sequel` row in anime_relations; see that
+--                     table. The migration converted every link.)
 --   chain_name      - Free-text name of the WATCH TRACK this entry belongs
 --                     to inside its series (1.1.36). NULL for entries that
 --                     are not on a named track.
 --
 --                     series_name says WHICH FRANCHISE, chain_name says
---                     WHICH TRACK inside it, next_in_series says the ORDER
---                     along that track. The three are independent.
+--                     WHICH TRACK inside it, the `sequel` relation says
+--                     the ORDER along that track. The three are
+--                     independent.
 --
 --                     Why it exists: before 1.1.36 a "chain" was derived
---                     purely by walking next_in_series, so there was no way
+--                     purely by walking the order links, so there was no way
 --                     to say "these two entries are separate tellings of the
 --                     same story". Space Adventure Cobra's 1982 film is an
 --                     ALTERNATIVE VERSION of the Space Cobra TV series (per
@@ -56,7 +57,7 @@ SET time_zone = "+00:00";
 --                     itself expressible.
 --
 --                     THE RULE (functions/series_helpers.php, chain_same()):
---                     a next_in_series link is followed ONLY when both ends
+--                     a `sequel` link is followed ONLY when both ends
 --                     carry the same chain_name; NULL equals NULL, so data
 --                     written before 1.1.36 walks exactly as it did before.
 --                     Membership comes from the NAME, order from the LINK -
@@ -65,7 +66,7 @@ SET time_zone = "+00:00";
 --                     (that would give every standalone film its own tab,
 --                     the 1.1.25 decision).
 --
---                     App-local, like next_in_series: never pushed to the
+--                     App-local, like anime_relations: never pushed to the
 --                     central catalog, so a self-host install is unaffected
 --                     by how the curator organises their tracks.
 --
@@ -219,7 +220,6 @@ CREATE TABLE IF NOT EXISTS `animes` (
   `chain_name` varchar(100) DEFAULT NULL,
   `media_type` enum('TV','Film','OVA','Special','ONA') DEFAULT NULL,
   `country` char(2) DEFAULT NULL,
-  `next_in_series` int(11) DEFAULT NULL,
   `mal_id` int(11) DEFAULT NULL,
   `anidb_id` int(11) DEFAULT NULL,
   `catalog_uuid` varchar(36) DEFAULT NULL,
@@ -231,12 +231,9 @@ CREATE TABLE IF NOT EXISTS `animes` (
   PRIMARY KEY (`id`),
   KEY `idx_series_name` (`series_name`),
   KEY `idx_chain_name` (`series_name`, `chain_name`),
-  KEY `idx_next_in_series` (`next_in_series`),
   UNIQUE KEY `idx_mal_id` (`mal_id`),
   UNIQUE KEY `idx_anidb_id` (`anidb_id`),
-  UNIQUE KEY `idx_catalog_uuid` (`catalog_uuid`),
-  CONSTRAINT `fk_next_in_series`
-    FOREIGN KEY (`next_in_series`) REFERENCES `animes` (`id`) ON DELETE SET NULL
+  UNIQUE KEY `idx_catalog_uuid` (`catalog_uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -427,12 +424,12 @@ CREATE TABLE IF NOT EXISTS `chronology_markers` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
--- Table: anime_relations  (1.1.38)
--- Typed, ORDERLESS links between two animes: "another telling of the
--- same story", "a side story", "a summary". Introduced as the second of
--- the three steps in KARARLAR_4 sec.94 - chain_name (1.1.36) ->
--- anime_relations (1.1.38) -> sequel/prequel move here and
--- animes.next_in_series retires (1.1.39).
+-- Table: anime_relations  (1.1.38, `sequel` added 1.1.40)
+-- Typed links between two animes: the ordered "sequel" and the orderless
+-- "another telling of the same story", "a side story", "a summary".
+-- Introduced as the second of the three steps in KARARLAR_4 sec.94 -
+-- chain_name (1.1.36) -> anime_relations (1.1.38) -> sequel/prequel move
+-- here and animes.next_in_series retires (1.1.40).
 --
 -- WHY: until 1.1.36 the catalog could only say "linked" (next_in_series)
 -- or "not linked". Two records that belong together but do NOT follow
@@ -443,19 +440,25 @@ CREATE TABLE IF NOT EXISTS `chronology_markers` (
 -- of the 90s chain, so the timeline claimed a watch order that does not
 -- exist. 1.1.36 named the tracks; this table names the LINK TYPE.
 --
--- `sequel` IS DELIBERATELY NOT IN THE ENUM. Watch order still lives in
--- exactly one place (animes.next_in_series). If a sequel edge could also
--- be stored here, two sources could disagree about the same pair and
--- something would have to break the tie. Leaving the value out makes the
--- contradiction impossible to enter rather than merely discouraged.
--- Every type here is orderless: nothing in this table feeds the series
--- timeline or the spoiler gate.
+-- `sequel` (1.1.40) IS THE ONE ORDERED TYPE. Until 1.1.40 watch order
+-- lived in animes.next_in_series and `sequel` was kept out of this enum so
+-- two sources could never disagree about a pair. 1.1.40 moved the order
+-- here and dropped the column: it is still in exactly one place, and the
+-- one-relation-per-pair rule below still makes "ordered and orderless at
+-- once" impossible to enter. The series timeline and the spoiler gate walk
+-- `sequel` edges (functions/series_helpers.php, seriesChainNeighbours) -
+-- following the 1.1.36 chain_name rule - and nothing else in this table.
+-- A record may now have several sequels (the column was single-valued);
+-- the walk takes the first same-named one by id, as it always did for
+-- several predecessors, and the chain NAME decides which branch a
+-- timeline shows.
 --
 -- DIRECTION. A row reads FROM IS THE <type> OF TO:
+--   sequel     - `from` is the sequel,     `to` comes BEFORE it.
 --   side_story - `from` is the side story, `to` is the parent story.
---   summary    - `from` is the summary,   `to` is the full story.
--- Those are the only asymmetric types and the asymmetry is real: if A is
--- B's side story then B is A's PARENT story, not its side story. The
+--   summary    - `from` is the summary,    `to` is the full story.
+-- Those are the asymmetric types and the asymmetry is real: if A is
+-- B's sequel then B is A's PREQUEL, not its sequel. The
 -- detail page renders the same row with the flipped label at the other
 -- end (functions/relation_helpers.php, anime_relation_type_label()).
 -- The other three types read identically from both ends, so their
@@ -467,18 +470,20 @@ CREATE TABLE IF NOT EXISTS `chronology_markers` (
 -- the same ordered pair + type; add_anime_relation.php additionally
 -- refuses ANY second relation between the same two animes (either
 -- direction), because a pair with two rows is either a duplicate or a
--- contradiction. It also refuses a relation between two animes that are
--- actively chained with next_in_series - that pair would claim to be
--- ordered and orderless at once, which is the Sailor Moon Crystal bug.
+-- contradiction - and, since 1.1.40, because that is what keeps a pair
+-- from being ordered (`sequel`) and orderless at once, which was the
+-- Sailor Moon Crystal bug.
 --
 -- Used by:
 --   - add_anime_relation.php / delete_anime_relation.php (write)
 --   - edit_anime.php (the curator's panel below the main form)
---   - anime_details.php ("Iliskili Animeler" section, read-only)
+--   - anime_details.php ("Iliskili Animeler" section + "Next Up" card)
+--   - series_timeline.php / spoiler gate via functions/series_helpers.php
+--     (`sequel` walk)
 --   - list_settings.php (JSON backup: export + restore)
 --   - functions/relation_helpers.php (all rules)
 --
--- LOCAL ONLY, like next_in_series and chain_name: the catalog wire
+-- LOCAL ONLY, like chain_name: the catalog wire
 -- format gains no field, no manual ALTER is needed on the central
 -- catalog server and no file under catalog_server/ changed. A relation
 -- is a pair of LOCAL row ids and every install numbers its rows
@@ -494,7 +499,7 @@ CREATE TABLE IF NOT EXISTS `anime_relations` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `from_anime_id` int(11) NOT NULL,
   `to_anime_id` int(11) NOT NULL,
-  `relation_type` enum('alternative_version','alternative_setting','side_story','summary','other') NOT NULL DEFAULT 'other',
+  `relation_type` enum('alternative_version','alternative_setting','side_story','summary','other','sequel') NOT NULL DEFAULT 'other',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_relation_pair` (`from_anime_id`, `to_anime_id`, `relation_type`),

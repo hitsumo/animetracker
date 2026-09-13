@@ -27,19 +27,31 @@
  *   exist and the spoiler gate counted eight unrelated records as Crystal's
  *   unwatched predecessors.
  *
- * This file is the second of the three steps recorded in KARARLAR_4 sec.94:
- * chain_name (1.1.36) -> anime_relations, ORDERLESS types only (1.1.38) ->
- * sequel/prequel move into the table and next_in_series retires (1.1.39).
+ * This file is the second and third of the three steps recorded in
+ * KARARLAR_4 sec.94: chain_name (1.1.36) -> anime_relations, ORDERLESS
+ * types only (1.1.38) -> sequel/prequel move into the table and
+ * animes.next_in_series retires (1.1.40).
  *
- * WHY `sequel` IS NOT IN THE ENUM
+ * `sequel` - THE ONE ORDERED TYPE (1.1.40)
  *
- * Watch ORDER still lives in exactly one place: animes.next_in_series. If
- * this table could also carry a `sequel` edge, two sources could disagree
- * about the same pair and the timeline would have to pick a winner. Leaving
- * the value out of the enum makes that contradiction impossible to enter -
- * not merely discouraged. Every type defined here is ORDERLESS: it says the
- * two records are related, never which one is watched first. Nothing in
- * this file feeds the series timeline or the spoiler gate.
+ * Until 1.1.40 watch ORDER lived in exactly one place, animes.next_in_series,
+ * and `sequel` was deliberately kept OUT of this enum so that two sources
+ * could never disagree about the same pair. 1.1.40 keeps the "one place"
+ * rule and moves the place: the column is gone, the order is the `sequel`
+ * edge in this table, and the migration turned every existing link into
+ * one such edge. The contradiction is still impossible to enter - now
+ * because a pair carries at most ONE relation (see anime_relation_between),
+ * so "A is B's sequel" and "A is B's alternative version" cannot coexist.
+ *
+ * Only `sequel` states an order. The series timeline and the spoiler gate
+ * (functions/series_helpers.php) walk `sequel` edges and NOTHING else; the
+ * other five types are as orderless as they were in 1.1.38. The 1.1.36
+ * rule is untouched: an edge is followed only when both ends carry the
+ * same chain_name (chain_same). With the column gone a record may have
+ * several sequels (branching); the walk takes the first same-named one by
+ * id, exactly as it already did for several predecessors, and the chain
+ * NAME - not the program - decides which branch a timeline shows
+ * (KARARLAR_4 sec.94).
  *
  * DIRECTION AND ITS INVERSE
  *
@@ -47,30 +59,37 @@
  *
  *     (from_anime_id, to_anime_id, relation_type)
  *
+ *   sequel     : `from` is the sequel,     `to` is what comes BEFORE it.
  *   side_story : `from` is the side story, `to` is the parent story.
- *   summary    : `from` is the summary,   `to` is the full story.
+ *   summary    : `from` is the summary,    `to` is the full story.
  *
- * Those two are the only asymmetric types, and the asymmetry is real: if A
- * is B's side story, B is NOT A's side story - it is A's PARENT story. So
- * the same row renders with two different labels depending on which end is
- * being viewed (anime_relation_type_label(..., $inverse)). The remaining
- * three (alternative_version, alternative_setting, other) mean the same
- * thing read either way; for them the direction carries no information, so
- * it is CANONICALISED at write time (smaller id first). Without that, the
+ * Those three are the asymmetric types, and the asymmetry is real: if A
+ * is B's sequel, B is NOT A's sequel - it is A's PREQUEL. So the same row
+ * renders with two different labels depending on which end is being
+ * viewed (anime_relation_type_label(..., $inverse)). The remaining three
+ * (alternative_version, alternative_setting, other) mean the same thing
+ * read either way; for them the direction carries no information, so it
+ * is CANONICALISED at write time (smaller id first). Without that, the
  * same statement could be stored twice - once per direction - and the
  * UNIQUE key would not catch it.
  *
- * LOCAL ONLY - LIKE next_in_series AND chain_name
+ * The `sequel` direction mirrors the old column: a.next_in_series = b
+ * ("after a comes b") became the row (from = b, to = a, sequel) - "b is
+ * the sequel of a". Read from a's page that is "Sequel: b", from b's page
+ * "Prequel: a".
+ *
+ * LOCAL ONLY - LIKE chain_name (AND LIKE next_in_series WAS)
  *
  * Relations are NOT pushed to the central catalog: the wire format gains no
  * field, no manual ALTER is needed on the catalog server, and no file under
- * catalog_server/ changed in this release. The reason is the one that keeps
- * next_in_series local too - a relation is a pair of LOCAL row ids, and
- * every install numbers its rows differently. Carrying it would need the
- * stable-identity quadruple the chronology markers use (mal_id / anidb_id /
- * catalog_uuid / title); the JSON backup in list_settings.php does exactly
- * that, so a relation survives backup-and-restore even though it does not
- * cross to the central catalog.
+ * catalog_server/ changed. The reason is the one that kept next_in_series
+ * local - a relation is a pair of LOCAL row ids, and every install numbers
+ * its rows differently. Carrying it would need the stable-identity
+ * quadruple the chronology markers use (mal_id / anidb_id / catalog_uuid /
+ * title); the JSON backup in list_settings.php does exactly that, so a
+ * relation survives backup-and-restore even though it does not cross to
+ * the central catalog. Since 1.1.40 that includes the watch order: the
+ * old column never made it into a restore, the `sequel` edge does.
  */
 
 // =====================================================================
@@ -80,14 +99,16 @@
 /**
  * The relation types, in display order.
  *
- * The order is also the grouping order on the detail page: the two
- * "another telling of the same thing" types first, then the two
- * "smaller piece / shorter cut" types, then the catch-all.
+ * The order is also the grouping order on the detail page: the ordered
+ * type first (1.1.40 - it is the one a viewer acts on: "what do I watch
+ * next"), then the two "another telling of the same thing" types, then
+ * the two "smaller piece / shorter cut" types, then the catch-all.
  *
  * @return string[] enum values of anime_relations.relation_type
  */
 function anime_relation_types() {
     return [
+        'sequel',
         'alternative_version',
         'alternative_setting',
         'side_story',
@@ -124,6 +145,7 @@ function anime_relation_symmetric($type) {
  */
 function anime_relation_type_label($type, $inverse = false) {
     if ($inverse) {
+        if ($type === 'sequel')     { return t('relation.type.prequel'); }
         if ($type === 'side_story') { return t('relation.type.parent_story'); }
         if ($type === 'summary')    { return t('relation.type.full_story'); }
     }
@@ -137,15 +159,22 @@ function anime_relation_type_label($type, $inverse = false) {
  * The <select> options of the add-relation form, in display order.
  *
  * The form asks ONE question - "the anime you picked is this anime's
- * ____" - so the labels are possessive and the two asymmetric types appear
- * twice, once per direction. The key is what the form posts; the '|inv'
- * suffix marks the inverted direction. Keys are opaque to the UI: only
- * anime_relation_parse_choice() takes them apart.
+ * ____" - so the labels are possessive and the three asymmetric types
+ * appear twice, once per direction. The key is what the form posts; the
+ * '|inv' suffix marks the inverted direction. Keys are opaque to the UI:
+ * only anime_relation_parse_choice() takes them apart.
+ *
+ * 1.1.40: "sequel" / "prequel" are the two faces of the ordered type. They
+ * replaced the form's "Next Anime" <select>: picking B as this anime's
+ * SEQUEL is what setting next_in_series = B used to be, and picking B as
+ * its PREQUEL is the same link entered from the other end.
  *
  * @return array<string,string> choice key => translated label
  */
 function anime_relation_choices() {
     return [
+        'sequel'              => t('relation.opt.sequel'),
+        'sequel|inv'          => t('relation.opt.prequel'),
         'alternative_version' => t('relation.opt.alternative_version'),
         'alternative_setting' => t('relation.opt.alternative_setting'),
         'side_story'          => t('relation.opt.side_story'),
@@ -334,48 +363,6 @@ function anime_relation_between($pdo, $a, $b) {
 }
 
 /**
- * Are these two animes ALREADY linked as a watch order?
- *
- * Every type in this table is orderless, so a relation between two records
- * that the curator has also chained with next_in_series states two
- * incompatible things at once - which is precisely the Sailor Moon Crystal
- * bug that 1.1.36 was written for. The endpoint blocks it and names the
- * fix ("remove the Next Anime link first").
- *
- * The check honours the 1.1.36 rule instead of restating it: a link is
- * only followed when both ends carry the SAME chain name (chain_same),
- * so a dormant link - one the timeline already ignores because the names
- * differ - does not block anything. One rule, one place.
- *
- * @param PDO $pdo
- * @param int $a
- * @param int $b
- * @return bool
- */
-function anime_relation_chain_conflict($pdo, $a, $b) {
-    $stmt = $pdo->prepare("
-        SELECT id, chain_name, next_in_series
-          FROM animes
-         WHERE id IN (:a, :b)
-    ");
-    $stmt->execute([':a' => (int)$a, ':b' => (int)$b]);
-    $rows = [];
-    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-        $rows[(int)$row['id']] = $row;
-    }
-    if (count($rows) !== 2) {
-        return false;
-    }
-    $rowA = $rows[(int)$a];
-    $rowB = $rows[(int)$b];
-
-    $linked = ((int)($rowA['next_in_series'] ?? 0) === (int)$b)
-           || ((int)($rowB['next_in_series'] ?? 0) === (int)$a);
-
-    return $linked && chain_same($rowA['chain_name'], $rowB['chain_name']);
-}
-
-/**
  * The sentence for a relation_error code coming back on the URL.
  *
  * The endpoint sends a fixed KEYWORD, never text: the message itself is
@@ -391,7 +378,9 @@ function anime_relation_error_message($code) {
     if ($code === '') {
         return '';
     }
-    $known = ['input', 'self', 'missing', 'exists', 'chain', 'failed'];
+    // 1.1.40: 'chain' retired with next_in_series - a pair can no longer be
+    // ordered and orderless at once, because it carries at most one relation.
+    $known = ['input', 'self', 'missing', 'exists', 'failed'];
     if (!in_array($code, $known, true)) {
         $code = 'failed';
     }

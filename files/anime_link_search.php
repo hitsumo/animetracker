@@ -17,7 +17,7 @@
  * data half of that job: type a title, get back the mal_id.
  *
  * WHY AN ENDPOINT AND NOT AN INLINE LIST: edit_anime.php already ships the
- * whole anime list once, for the next_in_series <select>. That list carries
+ * whole anime list once, for the relation target <select>. That list carries
  * id + title + media_type and is bounded by "same series or everything" -
  * shipping a SECOND full copy (this time with mal_id, alternative titles
  * and dates) on every form load would grow the page with the catalog, and

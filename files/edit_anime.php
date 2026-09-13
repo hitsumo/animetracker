@@ -87,9 +87,12 @@ $anime['user_synopsis_en'] = $uaState['user_synopsis_en'];
 $anime['watch_start_date']  = $uaState['watch_start_date'];
 $anime['watch_finish_date'] = $uaState['watch_finish_date'];
 
-// "Siradaki anime" dropdown'u icin: tum animeleri cek (mevcut anime haric).
-// series_name dolu ise ayni seridekiler basta gosterilir, diger animeler
-// de listelenir cunku kullanici farkli bir seriye isaret etmek isteyebilir.
+// Iliskiler panelindeki hedef kutusu icin: tum animeleri cek (mevcut anime
+// haric). series_name dolu ise ayni seridekiler basta gosterilir, diger
+// animeler de listelenir cunku kullanici farkli bir seriye isaret etmek
+// isteyebilir (alternatif bir kurgu cogu zaman baska bir seri adi tasir).
+// 1.1.40'a kadar bu liste "Siradaki Anime" kutusunundu; o kutu kolonuyla
+// birlikte emekli oldu, liste tek kullaniciya kaldi.
 $allAnimesStmt = $pdo->prepare("
     SELECT id, title, series_name, media_type
     FROM animes
@@ -106,11 +109,13 @@ $allAnimes = $allAnimesStmt->fetchAll(PDO::FETCH_ASSOC);
 // (kaydedilmemis alanlari da gonderirdi). Kendi uclariyla yazar -
 // add_anime_relation.php / delete_anime_relation.php - ve buraya geri doner.
 //
-// Hedef anime YUKARIDAKI $allAnimes listesinden secilir: next_in_series
-// dropdown'u icin zaten yuklu, yani ikinci bir sorgu yok ve secim seri
-// adiyla sinirli DEGIL (alternatif bir kurgu cogu zaman baska bir seri
-// adi tasir - detay sayfasindaki marker formunun ayni-seri listesi bu is
+// Hedef anime YUKARIDAKI $allAnimes listesinden secilir; secim seri adiyla
+// sinirli DEGIL (detay sayfasindaki marker formunun ayni-seri listesi bu is
 // icin fazla dar kalirdi).
+//
+// 1.1.40 - izleme SIRASI da bu panelden kurulur: "Devami" / "Oncesi"
+// secenekleri `sequel` kenarini yazar. Eski "Siradaki Anime" kutusu ve
+// animes.next_in_series kolonu emekli (KARARLAR_4 sec.94, ucuncu adim).
 $relations     = getAnimeRelations($pdo, $id);
 $relationError = anime_relation_error_message($_GET['relation_error'] ?? '');
 
@@ -300,7 +305,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Series relationship fields
     $series_name = $_POST['series_name'] ?? null;
     $media_type = $_POST['media_type'] ?? null;
-    $next_in_series = $_POST['next_in_series'] ?? null;
     // 1.1.36 - zincir adi. Bos ise NULL'a duser (chain_name_norm), boylece
     // '' ile NULL ayni sey olur ve chain_same() ikisini esit sayar.
     $chain_name = chain_name_norm($_POST['chain_name'] ?? null);
@@ -357,14 +361,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Series fields: bos string'leri NULL'a cevir
     if ($series_name === '') { $series_name = null; }
     if ($media_type === '')  { $media_type = null; }
-    if ($next_in_series === '' || $next_in_series === '0') { $next_in_series = null; }
     $country = is_valid_country_code($country) ? strtoupper($country) : null;
-
-    // Circular reference check: A -> B -> A dongusu olusmasin
-    if ($next_in_series !== null && !validateNextInSeries($pdo, $id, $next_in_series)) {
-        $next_in_series = null;
-        error_log('[anime_tracker] Circular next_in_series prevented: anime ' . $id . ' -> ' . $_POST['next_in_series']);
-    }
 
     // Status-based normalization for episode counts.
     // Frontend (JS) already hides aired_episodes when status is 'Yayin Tamamlandi',
@@ -472,7 +469,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             chain_name = ?,
             media_type = ?,
             country = ?,
-            next_in_series = ?,
             mal_id = ?,
             anidb_id = ?,
             filler_tracking = ?,
@@ -517,7 +513,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $chain_name,
             $media_type,
             $country,
-            $next_in_series,
             $mal_id,
             $anidb_id,
             $filler_tracking,
@@ -1166,7 +1161,7 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
             <?php // 1.1.36 - Zincir Adi. series_name HANGI SERI, bu alan
                   // SERININ ICINDE HANGI HAT demektir (orn. "90'lar Anime" /
                   // "Crystal"). Bos birakilabilir: adsiz kayitlar 1.1.35'teki
-                  // gibi yalnizca next_in_series yuruyusune gore gruplanir. ?>
+                  // gibi yalnizca sira baglarina (Devami/Oncesi) gore gruplanir. ?>
             <div class="form-group">
                 <label for="chain_name"><?php echo htmlspecialchars(t('add_anime.label.chain_name'), ENT_QUOTES, 'UTF-8'); ?></label>
                 <div class="input-area">
@@ -1180,22 +1175,9 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                 </div>
             </div>
 
-            <div class="form-group">
-                <label for="next_in_series"><?php echo htmlspecialchars(t('edit_anime.label.next_in_series'), ENT_QUOTES, 'UTF-8'); ?></label>
-                <div class="input-area">
-                    <select name="next_in_series" id="next_in_series">
-                        <option value=""><?php echo htmlspecialchars(t('add_anime.option.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
-                        <?php foreach ($allAnimes as $a): ?>
-                            <option value="<?php echo (int)$a['id']; ?>" <?php echo ((int)($anime['next_in_series'] ?? 0)) === (int)$a['id'] ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($a['title'], ENT_QUOTES, 'UTF-8'); ?>
-                                <?php if (!empty($a['media_type'])): ?>(<?php echo htmlspecialchars($a['media_type']); ?>)<?php endif; ?>
-                                <?php if (!empty($a['series_name']) && $a['series_name'] === ($anime['series_name'] ?? '')): ?>★<?php endif; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <small class="form-text text-muted"><?php echo htmlspecialchars(t('edit_anime.hint.next_in_series'), ENT_QUOTES, 'UTF-8'); ?></small>
-                </div>
-            </div>
+            <?php // 1.1.40 - "Siradaki Anime" kutusu burada DURUYORDU. Izleme
+                  // sirasi artik asagidaki Iliskiler panelinde "Devami" /
+                  // "Oncesi" turuyle kurulur (anime_relations, `sequel`). ?>
 
             </div><!-- /tab-series -->
 
@@ -1372,15 +1354,19 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
               // 1.1.38 - ILISKILER PANELI
               //
               // Ana formun DISINDA durur (ic ice form olamaz) ve kendi
-              // uclariyla yazar. Buradaki her tur SIRASIZDIR: iki kaydin
-              // ilgili oldugunu soyler, hangisinin once izlenecegini
-              // soylemez - o soruyu hala yukaridaki "Siradaki Anime" alani
-              // cevaplar. Bu yuzden `sequel` bu listede YOKTUR (KARARLAR_4
-              // sec.94): iki kaynak ayni cift hakkinda celisemesin.
+              // uclariyla yazar.
+              //
+              // 1.1.40 - izleme SIRASI da buradan kurulur: "Devami" /
+              // "Oncesi" secenekleri `sequel` kenarini yazar ve seri
+              // kronolojisi ile spoiler kapisi o kenari yurur. Oteki bes
+              // tur SIRASIZDIR - iki kaydin ilgili oldugunu soyler,
+              // hangisinin once izlenecegini soylemez. Bir cift en cok bir
+              // iliski tasidigi icin ayni cift hem sirali hem sirasiz olamaz
+              // (KARARLAR_4 sec.94, sec.96).
               //
               // Formun tek sorusu: "sectigin anime, BU animenin ___'idir".
-              // Iki tur iki yonlu oldugu icin listede iki kez gecer (yan
-              // hikaye / ana hikaye, ozet / tam hikaye).
+              // Uc tur iki yonlu oldugu icin listede iki kez gecer (devami /
+              // oncesi, yan hikaye / ana hikaye, ozet / tam hikaye).
               // ============================================================
         ?>
         <div class="relation-panel" id="relations">
@@ -1423,21 +1409,21 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                     <input type="hidden" name="anime_id" value="<?php echo (int)$id; ?>">
                     <div class="relation-form-row">
                         <label for="other_anime_id"><?php echo htmlspecialchars(t('relation.form.target'), ENT_QUOTES, 'UTF-8'); ?></label>
-                        <?php // Secenekler SUNUCUDA BASILMAZ: bu liste, yukaridaki
-                              // "Siradaki Anime" kutusunun BIREBIR AYNISI olurdu
-                              // (ayni $allAnimes, ayni siralama, ayni yildiz
-                              // isareti) ve katalog buyudukce sayfayi ikiye
-                              // katlardi - 8000 kayitlik yerel katalogda olculdu:
-                              // 1,9 MB -> 3,9 MB. anime_link_search.php'nin kendi
-                              // yorumu bu tuzagi zaten adiyla anmisti ("shipping a
-                              // SECOND full copy ... would grow the page with the
-                              // catalog"). Onun yerine js/anime_form.js secenekleri
-                              // ilk kutudan KLONLAR. Sayfa zaten baska alanlar icin
-                              // (tur secimi, etiketler, alternatif isim satirlari)
-                              // JS gerektiriyor, yani yeni bir bagimlilik degil. ?>
-                        <select name="other_anime_id" id="other_anime_id" required
-                                data-clone-options-from="next_in_series">
+                        <?php // 1.1.40 - liste artik SUNUCUDA basilir. 1.1.38'de
+                              // bu kutu bos geliyor ve js/anime_form.js secenekleri
+                              // "Siradaki Anime" kutusundan klonluyordu (ayni liste
+                              // iki kez basilsaydi sayfa 1,9 -> 3,9 MB olurdu). O
+                              // kutu emekli olunca sayfadaki TEK liste bu oldu -
+                              // klon da, klonlayan JS de kalkti. ?>
+                        <select name="other_anime_id" id="other_anime_id" required>
                             <option value=""><?php echo htmlspecialchars(t('add_anime.option.choose'), ENT_QUOTES, 'UTF-8'); ?></option>
+                            <?php foreach ($allAnimes as $a): ?>
+                                <option value="<?php echo (int)$a['id']; ?>">
+                                    <?php echo htmlspecialchars($a['title'], ENT_QUOTES, 'UTF-8'); ?>
+                                    <?php if (!empty($a['media_type'])): ?>(<?php echo htmlspecialchars($a['media_type']); ?>)<?php endif; ?>
+                                    <?php if (!empty($a['series_name']) && $a['series_name'] === ($anime['series_name'] ?? '')): ?>★<?php endif; ?>
+                                </option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="relation-form-row">

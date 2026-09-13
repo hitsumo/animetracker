@@ -111,7 +111,7 @@ lang_init($pdo);
         <?php echo t('help.st.chains.text'); ?>
     </p>
     <!-- =============================================================== -->
-    <?php /* 1.1.33: konu spoiler kapisi. Kural zincire (next_in_series)
+    <?php /* 1.1.33: konu spoiler kapisi. Kural zincire (`sequel` yuruyusu)
        dayandigi icin burada, seri bolumunun icinde anlatilir; Kisisel
        Tercihler sayfasi yalnizca buraya isaret eder. */ ?>
     <h2 id="spoiler"><?php echo htmlspecialchars(t('help.spoiler.h2'), ENT_QUOTES, 'UTF-8'); ?></h2>

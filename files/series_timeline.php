@@ -6,7 +6,7 @@
  * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
- * Displays the full series watch order by following the next_in_series
+ * Displays the full series watch order by following the `sequel`
  * chain. Given any anime ID in the series, it finds the chain start
  * (the anime nobody points to) and walks forward to the end.
  *
@@ -20,7 +20,7 @@
  * 1.1.23: iki sekme. "Zincir Sirasi" yukaridaki yuruyusun kendisi;
  * "Yayin Tarihi" ise ayni series_name'i tasiyan HER kaydi ilk gosterim
  * tarihine gore dizer - zincire hic bagimli degildir, bu yuzden eksik
- * bir next_in_series halkasi ya da katalogdan baglanmadan gelen bir
+ * bir sira halkasi (`sequel`) ya da katalogdan baglanmadan gelen bir
  * kayit bu gorunumu bolemez. Ic ice gecen yayin donemleri (ayni anda
  * yayinda iki dizi) tarih araliklariyla oldugu gibi gorunur.
  *

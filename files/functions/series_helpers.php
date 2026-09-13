@@ -242,7 +242,8 @@ function chain_name_norm($v)
 /**
  * 1.1.36 - ZINCIRIN TEK KURALI.
  *
- * Iki kayit ayni zincirde mi? next_in_series bagi YALNIZCA iki ucun
+ * Iki kayit ayni zincirde mi? Sira bagi (1.1.40'a kadar next_in_series
+ * kolonu, artik anime_relations'taki `sequel` kenari) YALNIZCA iki ucun
  * zincir adi ayni oldugunda izlenir (ikisi de adsizsa yine ayni sayilir).
  *
  * Neden tek bir kural: 1.1.36 oncesinde zincir tamamen yuruyusten
@@ -286,7 +287,8 @@ function getAllSeriesNames($pdo) {
 // Series timeline view modes (1.1.23)
 // =====================================================================
 // series_timeline.php iki sekmeyle acilir:
-//   'chain'   - next_in_series baglantili listesinin yuruyusu (ilk gorunum).
+//   'chain'   - `sequel` kenarlarinin yuruyusu (ilk gorunum; 1.1.40'a kadar
+//               next_in_series kolonuydu).
 //   'airdate' - ayni series_name'i tasiyan HER kayit, ilk gosterim tarihine
 //               gore. Elle kurulan zincire hic bagimli degildir; katalogdan
 //               ice aktarilmis (baglanmamis) anime de listede yerini alir.
@@ -353,25 +355,111 @@ function getSeriesAnimesByAirDate($pdo, $series_name) {
 //
 // Zincir yuruyusu (geri/ileri) 1.1.25'te series_timeline.php'den buraya
 // tasindi: hem sayfa hem de kesif ayni yuruyusu kullansin, iki ayri
-// kopya birbirinden ayrisamasin diye. Yuruyus next_in_series'i seri
-// adina bakmadan izler - 1.1.24 oncesi davranisla birebir aynidir.
+// kopya birbirinden ayrisamasin diye. Yuruyus sira bagini seri adina
+// bakmadan izler - 1.1.24 oncesi davranisla birebir aynidir.
+//
+// 1.1.40 - SIRA BAGI ARTIK TABLODA. next_in_series kolonu emekli oldu;
+// "A'dan sonra B gelir" cumlesi anime_relations'ta (from = B, to = A,
+// 'sequel') satiridir: "B, A'nin devamidir". KARARLAR_4 sec.94'un ucuncu
+// adimi. Iki sonucu var:
+//
+//   (1) Yuruyus tek bir yerden okur: seriesChainNeighbours(). Geri yon
+//       "bu animeyi DEVAMI olarak isaret edenler" yerine "bu animenin
+//       ONCULLERI" (from = X olan satirlarin to ucu), ileri yon "bu
+//       animenin DEVAMLARI" (to = X olan satirlarin from ucu). Uc yuruyus
+//       (basa donus, ileri, spoiler kapisi) ayni sorguyu kullanir.
+//
+//   (2) Bir kaydin BIRDEN COK devami olabilir (kolon tekildi, tablo
+//       degil). Birden cok onculu 1.1.25'ten beri zaten olabiliyordu ve
+//       kural buydu: ayni adli ILK komsu (id sirasi). Ileri yon icin de
+//       ayni kural uygulanir - yeni bir kural yazilmadi, olan iki yone
+//       uygulandi. Dallanmada hangi hattin cizilecegine PROGRAM degil
+//       KURATOR karar verir: zincir adi (sec.94). Izlenmeyen dal, adi
+//       varsa seriesChainAppendUnlinked() ile yine listeye girer.
 
 /**
- * Walk backwards via next_in_series until nobody points at the current
+ * 1.1.40 - Bir animenin zincir komsulari, `sequel` kenarindan.
+ *
+ * $direction:
+ *   'prev' - bu animeden ONCE gelenler: X'in devami oldugu kayitlar
+ *            (from_anime_id = X olan satirlarin to ucu).
+ *   'next' - bu animeden SONRA gelenler: X'i devami olan kayitlar
+ *            (to_anime_id = X olan satirlarin from ucu).
+ *
+ * Sonuc id sirasindadir; cagiran taraf chain_same() ile ayni hattaki ILK
+ * komsuyu secer (seriesChainStep). Satir, spoiler kapisinin ve detay
+ * sayfasindaki "Siradaki" kartinin ihtiyac duydugu kolonlari da tasir
+ * (baslik, +18, kisisel izleme durumu) - uc cagiran icin tek sorgu.
+ *
+ * $direction ic bir enum'dur, ham kullanici girdisi degil; SQL parcasi
+ * sabit iki dizeden secilir.
+ *
+ * @param PDO    $pdo
+ * @param int    $anime_id
+ * @param string $direction 'prev' | 'next'
+ * @return array Satirlar: id, chain_name, title, alternative_titles,
+ *               media_type, image_path, is_adult, watch_status.
+ */
+function seriesChainNeighbours($pdo, $anime_id, $direction) {
+    if ($direction === 'next') {
+        $join = "JOIN anime_relations r ON r.from_anime_id = a.id AND r.to_anime_id = ?";
+    } else {
+        $join = "JOIN anime_relations r ON r.to_anime_id = a.id AND r.from_anime_id = ?";
+    }
+    $stmt = $pdo->prepare("
+        SELECT a.id, a.chain_name, a.title, a.alternative_titles,
+               a.media_type, a.image_path, a.is_adult,
+               ua.watch_status
+        FROM animes a
+        $join
+        LEFT JOIN user_anime ua
+               ON ua.anime_id = a.id AND ua.user_id = ?
+        WHERE r.relation_type = 'sequel'
+        ORDER BY a.id ASC
+    ");
+    $stmt->execute([(int)$anime_id, current_user_id()]);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $stmt->closeCursor();
+    return $rows;
+}
+
+/**
+ * 1.1.40 - Zincirde bir adim: ayni adli ILK komsu (id sirasi), yoksa null.
+ *
+ * Kural 1.1.36'nin kuralidir ve burada CAGRILIR, tekrar yazilmaz: bag
+ * yalnizca iki ucun zincir adi ayniysa izlenir (chain_same). $chain_name,
+ * yuruyusun BASLANGIC kaydinin adidir - her adimda yeniden okunmaz, yoksa
+ * adi degisen bir halka zinciri sessizce baska bir hatta kaydirirdi.
+ *
+ * @param PDO    $pdo
+ * @param int    $anime_id
+ * @param string $direction 'prev' | 'next'
+ * @param mixed  $chain_name
+ * @return array|null seriesChainNeighbours() satiri.
+ */
+function seriesChainStep($pdo, $anime_id, $direction, $chain_name) {
+    foreach (seriesChainNeighbours($pdo, $anime_id, $direction) as $row) {
+        if (chain_same($row['chain_name'], $chain_name)) {
+            return $row;
+        }
+    }
+    return null;
+}
+
+/**
+ * Walk backwards along `sequel` edges until nobody precedes the current
  * anime; that anime is the chain's start. Visited-set guards a cycle.
  *
  * 1.1.36: yuruyus ZINCIR ADI SINIRINDA DURUR (chain_same). Farkli adli
- * bir kayit bu animeyi isaret ediyorsa o baska bir hattir ve zincirin
- * basi burasidir. Adsiz veride her karsilastirma true dondugu icin
- * davranis 1.1.35 ile birebir aynidir.
+ * bir kayit bu animenin onculuyse o baska bir hattir ve zincirin basi
+ * burasidir. Adsiz veride her karsilastirma true dondugu icin davranis
+ * 1.1.35 ile birebir aynidir.
  */
 function seriesChainStartId($pdo, $anime_id) {
     $current = (int)$anime_id;
     $visited = [];
 
-    // Yuruyusun tasidigi ad: BASLANGIC kaydinin adi. Her adimda yeniden
-    // okunmaz - yoksa adi degisen bir halka zinciri sessizce baska bir
-    // hatta kaydirirdi.
+    // Yuruyusun tasidigi ad: BASLANGIC kaydinin adi (bkz. seriesChainStep).
     $nameStmt = $pdo->prepare("SELECT chain_name FROM animes WHERE id = ?");
     $nameStmt->execute([$current]);
     $chainName = $nameStmt->fetchColumn();
@@ -383,23 +471,9 @@ function seriesChainStartId($pdo, $anime_id) {
     while (true) {
         if (isset($visited[$current])) break; // circular guard
         $visited[$current] = true;
-        $stmt = $pdo->prepare(
-            "SELECT id, chain_name FROM animes WHERE next_in_series = ? ORDER BY id ASC"
-        );
-        $stmt->execute([$current]);
-        $prev = null;
-        // Birden cok kayit ayni animeyi isaret edebilir (kolon tekil DEGIL,
-        // yalnizca hedefi tekil). Ayni adli ILK onculu al - id sirasi
-        // seriesUnwatchedPredecessors ile ayni secimi yapar.
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            if (chain_same($row['chain_name'], $chainName)) {
-                $prev = (int)$row['id'];
-                break;
-            }
-        }
-        $stmt->closeCursor();
+        $prev = seriesChainStep($pdo, $current, 'prev', $chainName);
         if (!$prev) break;
-        $current = $prev;
+        $current = (int)$prev['id'];
     }
     return $current;
 }
@@ -409,31 +483,28 @@ function seriesChainStartId($pdo, $anime_id) {
  * getSeriesChains() where the full display row would be wasted work.
  *
  * 1.1.36: yuruyus ZINCIR ADI SINIRINDA DURUR - baslangicin adindan farkli
- * adli bir halkaya gecilmez.
+ * adli bir halkaya gecilmez. 1.1.40: ileri yon de tablodan okunur; birden
+ * cok devam varsa ayni adli ilki izlenir (seriesChainStep).
  */
 function seriesChainIds($pdo, $start_id) {
     $ids = [];
     $current = (int)$start_id;
     $visited = [];
-    $chainName = null;
-    $first = true;
+
+    $nameStmt = $pdo->prepare("SELECT chain_name FROM animes WHERE id = ?");
+    $nameStmt->execute([$current]);
+    $chainName = $nameStmt->fetchColumn();
+    $nameStmt->closeCursor();
+    if ($chainName === false) {
+        return []; // baslangic satiri yok
+    }
 
     while ($current) {
         if (isset($visited[$current])) break; // circular guard
         $visited[$current] = true;
-        $stmt = $pdo->prepare("SELECT id, next_in_series, chain_name FROM animes WHERE id = ?");
-        $stmt->execute([$current]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        $stmt->closeCursor();
-        if (!$row) break;
-        if ($first) {
-            $chainName = $row['chain_name'];
-            $first = false;
-        } elseif (!chain_same($row['chain_name'], $chainName)) {
-            break; // baska bir hatta gecis - zincir burada biter
-        }
-        $ids[] = (int)$row['id'];
-        $current = $row['next_in_series'] ? (int)$row['next_in_series'] : null;
+        $ids[] = $current;
+        $next = seriesChainStep($pdo, $current, 'next', $chainName);
+        $current = $next ? (int)$next['id'] : 0;
     }
     return $ids;
 }
@@ -441,7 +512,7 @@ function seriesChainIds($pdo, $start_id) {
 /**
  * 1.1.36 - ADLI bir zincirin, yuruyusun ULASAMADIGI uyelerini ekle.
  *
- * Ad UYELIGI belirler, next_in_series SIRAYI belirler. Bu ikisi ayri
+ * Ad UYELIGI belirler, sira bagi (`sequel`) SIRAYI belirler. Bu ikisi ayri
  * oldugu icin bir uye adi tasiyip da hicbir baga sahip olmayabilir: ya
  * hentestir ya da aradaki bir bag girilmeyi unutulmustur. Boyle bir uyeyi
  * listeden dusurmek, adin YALAN soylemesi demek olurdu ("bu hatta 5 kayit
@@ -521,7 +592,7 @@ function seriesRowsByIds($pdo, array $ids)
                a.status, a.image_path,
                a.release_date, a.release_date_precision,
                a.end_date, a.end_date_precision,
-               a.is_adult, a.next_in_series, a.series_name, a.chain_name
+               a.is_adult, a.series_name, a.chain_name
         FROM animes a
         LEFT JOIN user_anime ua
                ON ua.anime_id = a.id AND ua.user_id = ?
@@ -575,7 +646,8 @@ function getSeriesChainRows($pdo, $start_id) {
 }
 
 /**
- * Discover every distinct next_in_series chain inside a series_name group.
+ * Discover every distinct watch chain (`sequel` walk) inside a series_name
+ * group.
  *
  * Grup uyeleri ilk gosterim tarihine gore taranir, her uye icin zincirin
  * basi bulunur ve zincir bir kez yuruyulur; ayni zincirin diger uyeleri
@@ -641,30 +713,6 @@ function getSeriesChains($pdo, $series_name, $min_length = 2) {
     return $chains;
 }
 
-/**
- * Validate that setting next_in_series does not create a direct
- * circular reference (A -> B -> A). Does NOT check transitive
- * cycles (A -> B -> C -> A) — that would require a recursive
- * walk and is overkill for a single-user app.
- *
- * Returns true if the link is safe, false if it would create a
- * direct loop.
- */
-function validateNextInSeries($pdo, $anime_id, $target_id) {
-    if (empty($target_id) || $target_id == $anime_id) {
-        // Pointing to yourself is always invalid
-        return $target_id != $anime_id;
-    }
-    // Check if the target already points back to us
-    $stmt = $pdo->prepare("SELECT next_in_series FROM animes WHERE id = ?");
-    $stmt->execute([(int)$target_id]);
-    $targetNext = $stmt->fetchColumn();
-    if ($targetNext !== false && (int)$targetNext === (int)$anime_id) {
-        return false; // direct circular: A -> B -> A
-    }
-    return true;
-}
-
 // =====================================================================
 // Konu spoiler kapisi (1.1.33)
 // =====================================================================
@@ -673,7 +721,7 @@ function validateNextInSeries($pdo, $anime_id, $target_id) {
 // baslayan bir ozet, o animeyi henuz izlememis kisiye sifir bilgi verir
 // ama bir onceki sezonu bastan sona spoiler'lar.
 //
-// Kural: zincirde (next_in_series) bu animeden ONCE gelen kayitlardan
+// Kural: zincirde (`sequel` yuruyusu) bu animeden ONCE gelen kayitlardan
 // biri bile izlenmemisse konu dogrudan basilmaz, "okumak istiyorum"
 // dugmesinin arkasina alinir. Onceki halkalarin HEPSI izlendiyse ortada
 // dugme de yoktur - sayfa 1.1.32'deki gibi gorunur.
@@ -718,18 +766,18 @@ function spoiler_guard_enabled($pdo) {
 /**
  * Zincirde bu animeden once gelen ve HENUZ IZLENMEMIS kayitlar.
  *
- * next_in_series geriye dogru yurunur (bu animeyi isaret eden kayit, onu
- * isaret eden kayit, ...). Yalnizca watch_status'u 'Watched' OLMAYAN
- * halkalar doner; en yakini listenin basindadir.
+ * `sequel` kenari geriye dogru yurunur (bu animenin onculu, onun onculu,
+ * ...). Yalnizca watch_status'u 'Watched' OLMAYAN halkalar doner; en
+ * yakini listenin basindadir.
  *
  * "Izleniyor" izlenmis SAYILMAZ: yarim birakilmis bir sezonun sonunu ele
  * veren ozet de spoiler'dir.
  *
- * seriesChainStartId() ile ayni yuruyus ve ayni dongu korumasi (visited
- * kumesi); fark, bu yuruyusun her adimda kisisel izleme durumunu da
- * okumasi ve zincirin basini degil izlenmemis halkalari toplamasidir.
- * Ayni kaydi iki kayit birden isaret ediyorsa (veri bunu engellemez) en
- * kucuk id secilir - seriesChainStartId() de oyle yapar.
+ * seriesChainStartId() ile ayni yuruyus (seriesChainStep) ve ayni dongu
+ * korumasi (visited kumesi); fark, bu yuruyusun her adimda kisisel izleme
+ * durumunu da okumasi ve zincirin basini degil izlenmemis halkalari
+ * toplamasidir. Birden cok oncul varsa en kucuk id secilir -
+ * seriesChainStartId() de oyle yapar.
  *
  * @param PDO $pdo
  * @param int $anime_id  Zincirde durdugumuz kayit.
@@ -763,29 +811,10 @@ function seriesUnwatchedPredecessors($pdo, $anime_id, $limit = 25) {
         return [];
     }
 
-    $stmt = $pdo->prepare("
-        SELECT a.id, a.title, a.alternative_titles, a.is_adult, a.chain_name,
-               ua.watch_status
-        FROM animes a
-        LEFT JOIN user_anime ua
-               ON ua.anime_id = a.id AND ua.user_id = ?
-        WHERE a.next_in_series = ?
-        ORDER BY a.id ASC
-    ");
-
     while (count($unwatched) < $limit) {
-        $stmt->execute([current_user_id(), $current]);
         // Ayni adli ILK onculu al (id sirasi) - seriesChainStartId() ile
-        // ayni secim. Kolon tekil olmadigi icin birden cok kayit ayni
-        // animeyi isaret edebilir.
-        $prev = null;
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            if (chain_same($row['chain_name'], $chainName)) {
-                $prev = $row;
-                break;
-            }
-        }
-        $stmt->closeCursor();
+        // ayni secim; satir izleme durumunu zaten tasir.
+        $prev = seriesChainStep($pdo, $current, 'prev', $chainName);
         if (!$prev) {
             break;                        // zincirin basina gelindi
         }
