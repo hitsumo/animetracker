@@ -452,6 +452,117 @@ function seo_anime_has_content($pdo, array $row) {
     }
 }
 
+// =====================================================================
+// 1.1.39 - "Bu ADRES indekslenmeye deger mi?" LISTE KOPYALARI
+// =====================================================================
+//
+// 1.1.37 "bu KAYIT indekslenmeye deger mi" sorusunu cevapladi. Geriye
+// ayni sorunun ikinci yarisi kaldi: ayni kayitlari GOSTEREN kac tane
+// adres var?
+//
+// SORUN. Liste sayfasindaki her dugme adrese bir parametre ekler: harf
+// filtresi, siralama sutunu, yon, sayfa numarasi, sayfa boyu, sekme.
+// Bir tarayici bunlarin hepsine tiklar ve her kombinasyonu AYRI bir
+// sayfa sanar. Uc olcum (8 Eylul 2026, Search Console):
+//
+//   - 1.568 farkli (harf, sayfa) cifti x 10 siralama kombinasyonu
+//     ~ 15.700 adres; per_page'in alti degeri bunu ~94.000'e cikarir.
+//   - Google'in dizininde 5.463 adres vardi; sitemap'in tarif ettigi
+//     sayfa sayisi 564.
+//   - 1.000 adreslik ornekte dagilim: %65 ince stub, %29 liste kopyasi,
+//     %5 gercek icerik.
+//
+// Yani tarama butcesinin 20'de 1'i indekslenmesini istedigimiz sayfalara
+// gidiyordu. Kopyalar yeni bir giris kapisi ACMAZ - hicbiri bir arama
+// sorgusunun cevabi degildir ("H harfi, izleme durumuna gore azalan,
+// sayfa 43" diye kimse aramaz) - ama var olan kapinin onunde sira
+// beklerler.
+//
+// KURAL. Ciplak index.php indekslenir; asagidaki parametrelerden
+// herhangi biri DOLU gelirse sayfa 'noindex, follow' tasir.
+//
+// NEDEN 'follow'. 1.1.37'deki ile ayni gerekce: sayfa dizine girmez ama
+// BAGLANTILARI izlenir. Katalogun tamamina giden tek ic yol sayfalama
+// oldugu icin bu sart - 'nofollow' deseydik dolu kayitlarin kesfi
+// yalnizca sitemap'e kalirdi.
+//
+// NEDEN robots.txt DEGIL. "Disallow: /*?sort=" gibi bir kural adresi
+// TARAMAYA kapatir; kapali bir adresteki noindex OKUNAMAZ, yani halen
+// dizinde duran binlerce kopya orada KALIRDI ("indexed, though blocked").
+// Once okunmali, sonra dusmeli. robots.php'ye bu surumde Disallow
+// EKLENMEDI ve bu bilinclidir.
+//
+// NEDEN canonical YETMEDI. Sayfalar 1.1.30'dan beri dogru canonical
+// tasiyor (hepsi index.php'yi gosteriyor), ama canonical bir TAVSIYEDIR;
+// olcum Google'in onu yok sayip kopyalari yine de indeksledigini
+// gosterdi. Yandex ayni bilgiyi Clean-param olarak alir ve ona uyar -
+// o satir asagidaki listeden uretilir.
+//
+// NEDEN TEK YERDE. Liste iki yer tarafindan kullaniliyor: bu kural ve
+// robots.php'nin Clean-param satiri. 1.1.37'nin gerekcesi aynen gecerli:
+// iki kopya, biri degistigi ilk gun birbirinden ayrilir.
+
+/**
+ * index.php'nin liste gorunumunu bicimlendiren GET parametreleri.
+ *
+ * Sirasi robots.txt ciktisindaki Clean-param sirasini korur.
+ *
+ * @return string[]
+ */
+function seo_list_shaping_params() {
+    return [
+        'sort', 'order', 'genre_filter', 'watch_status_filter',
+        'broadcast_status_filter', 'letter_filter', 'q', 'country_filter',
+        'year_filter', 'emotion_filter', 'per_page', 'page', 'view',
+        'catalog_push',
+    ];
+}
+
+/**
+ * Istenen adres, ciplak listenin bicimlendirilmis bir kopyasi mi?
+ *
+ * BOS deger yok sayilir: form bazi alanlari secilmemisken de gonderir
+ * ('?q=&letter_filter='), ve o adres ciplak listenin AYNISINI basar -
+ * indekslenmesinde bir sakinca yoktur. year_filter dizi olarak gelir,
+ * o yuzden dizi de gezilir.
+ *
+ * Varsayilanina esit bir deger de (ornegin '?sort=title&order=asc' ya da
+ * '?page=1') "bicimlendirilmis" sayilir. Cikti ciplak sayfayla ayni olur
+ * ama adres farklidir; indekslenmesini istedigimiz TEK adres ciplak
+ * olandir. Sitenin kendi baglantilari boyle bir adres uretmez -
+ * buildPaginationUrl() 1. sayfada 'page'i zaten dusurur - yani bu kural
+ * yalnizca disaridan gelen adresleri yakalar.
+ *
+ * @param array|null $query Denenecek parametreler; null ise $_GET.
+ * @return bool
+ */
+function seo_list_is_shaped($query = null) {
+    if ($query === null) {
+        $query = $_GET;
+    }
+    if (!is_array($query)) {
+        return false;
+    }
+    foreach (seo_list_shaping_params() as $name) {
+        if (!isset($query[$name])) {
+            continue;
+        }
+        $value = $query[$name];
+        if (is_array($value)) {
+            foreach ($value as $one) {
+                if (!is_array($one) && trim((string)$one) !== '') {
+                    return true;
+                }
+            }
+            continue;
+        }
+        if (trim((string)$value) !== '') {
+            return true;
+        }
+    }
+    return false;
+}
+
 /**
  * How many catalog rows the sitemap covers.
  *

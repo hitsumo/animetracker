@@ -171,12 +171,23 @@ function seriesMediaIcon($type) {
     // lists. Without a series name there is no group, so the page is its
     // own canonical. ?mode= and ?chain= are dropped: they re-sort and
     // re-tab the same content.
+    //
+    // 1.1.39 - index.php ile ayni kusur, ayni cozum. Canonical dogruydu
+    // ama TAVSIYEDIR; bir seride N uye varsa N adres ayni cizelgeyi
+    // basiyor ve ?mode= / ?chain= bunu bir kat daha cogaltiyor. Adres
+    // canonical'in kendisi DEGILSE 'noindex, follow': dizinde tek bir
+    // adres kalir, baglantilar izlenmeye devam eder. Canonical adresin
+    // kendisi - sitemap'in listeledigi id - eskisi gibi indekslenir.
     $seoCanonicalId = seo_series_head_id($pdo, $reqAnime['series_name'] ?? '', $id);
+    $seoIsCanonicalUrl = ((int)$seoCanonicalId === (int)$id)
+        && trim((string)($_GET['mode']  ?? '')) === ''
+        && trim((string)($_GET['chain'] ?? '')) === '';
     echo seo_head([
         'title'       => $seriesName . ' - ' . t('series_timeline.title_suffix'),
         'description' => sprintf(t('seo.series.description_fmt'), $seriesName),
         'canonical'   => 'series_timeline.php?id=' . (int)$seoCanonicalId,
         'type'        => 'article',
+        'noindex'     => !$seoIsCanonicalUrl,
     ]);
     ?>
     <?php echo asset_styles(); ?>

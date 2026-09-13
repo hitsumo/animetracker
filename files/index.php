@@ -683,10 +683,19 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
     // same catalog at a different address, and every one of those
     // addresses should credit index.php. (Yandex is told the same thing
     // as Clean-param in robots.php.)
+    //
+    // 1.1.39 - canonical yetmedi. Olcum, Google'in onu yok sayip
+    // kopyalari yine de indeksledigini gosterdi (dizindeki adreslerin
+    // ucte biri liste kopyasiydi), o yuzden bicimlendirilmis her adres
+    // artik 'noindex, follow' de tasiyor: sayfa dizine girmez, ama
+    // uzerindeki anime baglantilari izlenmeye devam eder - katalogun
+    // tamamina giden tek ic yol sayfalamadir. Kural tek yerde:
+    // seo_list_is_shaped(), bkz. functions/seo_helpers.php.
     echo seo_head([
         'title'       => t('index.page_title'),
         'description' => t('seo.index.description'),
         'canonical'   => 'index.php',
+        'noindex'     => seo_list_is_shaped(),
     ]);
     ?>
     <?php echo asset_styles(); ?>

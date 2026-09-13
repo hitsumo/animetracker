@@ -1,0 +1,164 @@
+-- Anime Tracker - Migration 1.1.39
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- =====================================================================
+-- 1.1.39 - SEMA DEGISIKLIGI YOKTUR
+-- =====================================================================
+--
+-- Bu dosya bilerek BOSTUR. Runner yorumlari temizler, calistiracak ifade
+-- bulamaz ve yalnizca settings.version'i 1.1.39'a tasir. Klasorun var
+-- olmasi gerekiyor: surum atlanirsa MigrationManager sirayi kaybeder.
+-- (Ayni kalip 1.1.25 / 1.1.30 / 1.1.33 / 1.1.34 / 1.1.37'de kullanildi.)
+--
+-- SURUM NUMARASI NOTU: 1.1.38'in yol haritasi 1.1.39'a "sequel/prequel
+-- tabloya, next_in_series emekli" adimini yazmisti. O is DURUYOR, yalnizca
+-- BIR SURUM KAYDI (1.1.40). Sebep, sirasi degil aciliyeti: asagidaki olcum
+-- 1.1.38 canliya gittikten SONRA yapildi ve her gecen gun dizine yeni kopya
+-- giriyor. Geriye donuk numara verilemedigi icin (1.1.22 dersi) siradaki
+-- numara neyi tasiyorsa odur.
+--
+-- ---------------------------------------------------------------------
+-- Bu surumde ne var: TEK IS - liste kopyalari indekslenmiyor
+-- ---------------------------------------------------------------------
+--
+-- 1.1.37 "bu KAYIT indekslenmeye deger mi" sorusunu cevapladi. Bu surum
+-- ayni sorunun ikinci yarisini cevapliyor: ayni kayitlari GOSTEREN kac
+-- tane ADRES var?
+--
+-- OLCUM (8 Eylul 2026, Search Console "Coverage-Valid" disa aktarimi;
+-- 5.463 indekslenmis adresin 1.000'lik ornegi):
+--
+--     %65   ince stub detay sayfasi   (1.1.37 bunlari zaten kapatti,
+--                                      dusmeleri yeniden taramaya bagli)
+--     %29   LISTE KOPYASI             <- bu surumun konusu
+--      %5   gercek icerikli sayfa
+--      %1   kronoloji / seri / yardim
+--
+-- Ayni gun canlidan okunan iki sayi: sitemap 564 adres tarif ediyor,
+-- Google'in dizininde 5.463 adres var. Yani dizindekinin %90'indan
+-- fazlasi bizim gostermek istemedigimiz seyler.
+--
+-- SORUN. Liste sayfasindaki her dugme adrese bir parametre ekler: harf
+-- filtresi, siralama sutunu, yon, sayfa numarasi, sayfa boyu, sekme.
+-- Tarayici hepsine tiklar ve her kombinasyonu AYRI bir sayfa sanar.
+-- Canli katalogla olculdu: 1.568 farkli (harf, sayfa) cifti x 10 siralama
+-- kombinasyonu = ~15.700 adres; per_page'in alti degeri bunu ~94.000'e
+-- cikarir. Ornekteki 291 liste adresinin hicbiri bozuk degildi - hepsi
+-- ayni katalogun baska bir dilimiydi.
+--
+-- Kopyalar yeni bir giris kapisi ACMAZ: hicbiri bir arama sorgusunun
+-- cevabi degildir ("H harfi, izleme durumuna gore azalan, sayfa 43" diye
+-- kimse aramaz). Ama var olan kapinin onunde SIRA BEKLERLER - tarama
+-- butcesi sabittir ve olcum, butcenin 20'de 1'inin indekslenmesini
+-- istedigimiz sayfalara gittigini gosterdi.
+--
+-- CANONICAL NEDEN YETMEDI. Sayfalar 1.1.30'dan beri dogru canonical
+-- tasiyor (hepsi index.php'yi gosteriyor). Ama canonical bir TAVSIYEDIR;
+-- olcum Google'in onu yok sayip kopyalari yine de indeksledigini
+-- gosterdi. Yandex ayni bilgiyi Clean-param olarak alir ve ona UYAR.
+--
+-- KURAL (functions/seo_helpers.php, seo_list_is_shaped()): ciplak
+-- index.php indekslenir; bicimlendirici parametrelerden herhangi biri
+-- DOLU gelirse sayfa 'noindex, follow' tasir. Bos deger yok sayilir
+-- ('?q=&letter_filter=' ciplak sayfanin aynisini basar).
+--
+-- NEDEN 'follow'. 1.1.37'deki ile ayni gerekce: sayfa dizine girmez ama
+-- BAGLANTILARI izlenir. Katalogun tamamina giden tek ic yol sayfalamadir
+-- - 'nofollow' deseydik dolu kayitlarin kesfi yalnizca sitemap'e kalirdi.
+--
+-- NEDEN robots.txt'e Disallow EKLENMEDI. "Disallow: /*?sort=" gibi bir
+-- kural adresi TARAMAYA kapatir; kapali bir adresteki noindex OKUNAMAZ,
+-- yani halen dizinde duran binlerce kopya orada KALIRDI ("indexed, though
+-- blocked"). Once okunmali, sonra dusmeli. Bu, hizli gorunen ama sonucu
+-- ters olan secenekti ve bilerek alinmadi.
+--
+-- IKINCI YUZEY: series_timeline.php. Ayni kusurun kucuk hali. Sayfa bir
+-- serinin TUM uyeleri icin ayni cizelgeyi cizer, yani N uyeli seride N
+-- adres ayni sayfadir; ?mode= ve ?chain= bunu bir kat daha cogaltir.
+-- Canonical 1.1.30'dan beri dogru (en kucuk id) ama yine yalnizca
+-- tavsiye. Adres canonical'in KENDISI degilse artik 'noindex, follow'.
+-- Sitemap'in listeledigi adres - yani canonical - eskisi gibi
+-- indekslenir; sitemap ciktisi bu surumde DEGISMEZ.
+--
+-- KAPSAM DISI (bilincli):
+--
+--   * Sayfa numarasi hala SINIRSIZ. '?page=780' 404 vermez, index.php
+--     numarayi son sayfaya kirpar ve icerik dondurur (bkz. index.php,
+--     "Toplam sayiyi sakla, sayfa bazli kesim yap" blogu). Bu davranis
+--     kullanici icin DOGRU - elle adres duzenleyen biri bos ekran degil
+--     liste gorur. Arama motoru tarafindaki zarari zaten noindex kapatti;
+--     404'e cevirmek gercek ziyaretcinin deneyimini bozardi.
+--
+--   * chronology.php'ye dokunulmadi: tek parametresi ?id ve o zaten
+--     canonical.
+--
+--   * recent / statistics / recommendations zaten noindex (1.1.30).
+--
+-- SITE ICINDE HICBIR SEY DEGISMEZ. Filtreler, siralama, sayfalama,
+-- sekmeler aynen calisir; degisen tek sey bu adreslerin arama motoruna
+-- ne dedigi. Ziyaretcinin gordugu tek fark yoktur.
+--
+-- ---------------------------------------------------------------------
+-- DEGISEN DOSYALAR (4 + bu klasor)
+-- ---------------------------------------------------------------------
+--
+--   files/functions/seo_helpers.php   KURAL (seo_list_shaping_params,
+--                                     seo_list_is_shaped) - TEK YER
+--   files/index.php                   seo_head'e 'noindex' kosulu
+--   files/series_timeline.php         canonical olmayan adrese noindex
+--   files/robots.php                  Clean-param listesi artik
+--                                     seo_helpers'tan okunuyor
+--   files/version.txt                 1.1.39
+--   files/migration/1.1.39/           bu dosya (yeni klasor)
+--
+-- YENI DOSYA: yalnizca bu migration klasoru. Yeni dil anahtari YOK
+-- (arayuzde gorunen hicbir metin degismedi), yeni CSS/JS YOK, yani
+-- 1.1.24'un damga kurali bu surumde islemez.
+--
+-- ---------------------------------------------------------------------
+-- YARIM YUKLEME RISKI - DIKKAT
+-- ---------------------------------------------------------------------
+--
+-- files/functions/seo_helpers.php UC dosyanin cagirdigi iki yeni
+-- fonksiyonu tasiyor. Eski kopyasi sunucuda kalirsa:
+--
+--   index.php    -> "undefined function seo_list_is_shaped"     ANA SAYFA COKER
+--   robots.php   -> "undefined function seo_list_shaping_params" robots.txt COKER
+--
+-- Yani seo_helpers.php ile index.php ve robots.php BIRLIKTE gitmelidir.
+-- series_timeline.php yeni fonksiyon cagirmaz (kendi ?mode/?chain
+-- kontrolunu yapar), tek basina yuklenebilir.
+--
+-- Ters sira guvenlidir: once seo_helpers.php, sonra otekiler. Yeni
+-- yardimci dosya eski sayfalarla da calisir (fonksiyonlar EKLENDI, hicbir
+-- imza degismedi).
+--
+-- ---------------------------------------------------------------------
+-- Dagitim
+-- ---------------------------------------------------------------------
+--
+-- Merkez katalog sunucusunda yapilacak bir sey YOK: katalog telinde yeni
+-- alan yok, elle ALTER gerekmiyor, catalog_server/ altinda degisen dosya
+-- yok.
+--
+-- SELF-HOST etkilenmez: o modda zaten her sayfa noindex (1.1.30) ve
+-- sitemap kapali; bu surumun tamami yalnizca online modda gorunur.
+-- seo_head() once seo_indexing_allowed()'a bakar, yani self-host'ta
+-- 'noindex, nofollow' hala kazanir.
+--
+-- ---------------------------------------------------------------------
+-- YUKLEME SONRASI - NE BEKLENMELI
+-- ---------------------------------------------------------------------
+--
+-- Kopyalarin dizinden dusmesi ANINDA OLMAZ ve olcusu haftalardir: Google
+-- once o adresi yeniden taramali, noindex'i gormeli, sonra dusurmeli.
+-- Search Console'da beklenen egri: "Dizine eklenmedi" sayisi ONCE ARTAR
+-- (dusen her sayfa oraya gecer, "noindex etiketiyle haric tutuldu"
+-- nedeniyle), "Dizine eklenen" sayisi duser. Bu BASARIDIR, hata degil.
+--
+-- Dogru olculecek sey sayfa SAYISI degil, Performans raporundaki GOSTERIM
+-- ve TIKLAMA. Dusen adreslerin gosterimi zaten sifira yakindi; toplam
+-- gosterimin dusmemesi beklenir.
+-- =====================================================================

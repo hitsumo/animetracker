@@ -116,12 +116,13 @@ $disallow = [
 // "canonical"> on the page itself; Yandex understands the same thing
 // declared here as Clean-param, which is cheaper for it than fetching
 // every combination first.
-$cleanParams = [
-    'sort', 'order', 'genre_filter', 'watch_status_filter',
-    'broadcast_status_filter', 'letter_filter', 'q', 'country_filter',
-    'year_filter', 'emotion_filter', 'per_page', 'page', 'view',
-    'catalog_push',
-];
+//
+// 1.1.39: bu liste artik seo_helpers.php'de tanimli - ayni parametreler
+// index.php'nin 'noindex' kuralini da besliyor (seo_list_is_shaped) ve
+// iki kopya, biri degistigi ilk gun birbirinden ayrilirdi. Buraya
+// Disallow EKLENMEDI ve bu bilincli: taramaya kapatilan bir adresteki
+// noindex okunamaz, yani halen dizinde duran kopyalar orada kalirdi.
+$cleanParams = seo_list_shaping_params();
 
 /**
  * Print one robots.txt group.
