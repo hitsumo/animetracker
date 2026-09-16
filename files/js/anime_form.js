@@ -402,6 +402,15 @@ function fetchAnimeScheduleData() {
     const malInput = document.querySelector('[name="mal_link"]');
     formData.append('mal_link', malInput ? (malInput.value || '').trim() : '');
 
+    // 1.1.41 - paylasimli kimlik kutulari da gider. Isaretliyse uc bolum
+    // sayilarini (toplam / yayinlanan) DOLDURMAZ: kaynagin sayisi butunun
+    // sayisidir, bu parcanin degil. Uc bunu 'shared_notice' ile bildirir,
+    // rapora asagida tek satir eklenir.
+    ['mal_shared', 'anidb_shared'].forEach(function (name) {
+        const box = document.querySelector('[name="' + name + '"]');
+        if (box && box.checked) formData.append(name, '1');
+    });
+
     fetch('fetch_animeschedule.php', {
         method: 'POST',
         body: formData,
@@ -554,6 +563,12 @@ function fetchAnimeScheduleData() {
             });
             statusDiv.style.color = '#27ae60';
             statusDiv.textContent = LANG.fields_filled_prefix + ' ' + names.length + ': ' + names.join(', ') + '.';
+        }
+        // 1.1.41 - paylasimli kimlikte dusurulen bolum sayilari. Yedekli
+        // okuma (LANG anahtari eski form dosyasinda olmayabilir - 1.1.22
+        // dersi); anahtar yoksa satir basilmaz, rapor yine dogrudur.
+        if (data.shared_notice && LANG.shared_episodes_skipped) {
+            statusDiv.textContent += ' ' + LANG.shared_episodes_skipped;
         }
     })
     .catch(err => {

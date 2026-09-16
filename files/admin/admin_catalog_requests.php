@@ -91,14 +91,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // (mal_id -> anidb_id -> catalog_uuid -> title). Used for the host
             // (when the row already existed) and for each marker's related
             // anime in the second pass.
-            $findByMal   = $pdo->prepare("SELECT id FROM animes WHERE mal_id = ? LIMIT 1");
-            $findByAnidb = $pdo->prepare("SELECT id FROM animes WHERE anidb_id = ? LIMIT 1");
+            // 1.1.41: a shared id resolves to the requested PART; the queue
+            // itself knows no parts (one id = one request), so the host
+            // resolves to part 1 and a carried marker may name its part.
+            $findByMal   = $pdo->prepare("SELECT id FROM animes WHERE mal_id = ? AND mal_part = ? LIMIT 1");
+            $findByAnidb = $pdo->prepare("SELECT id FROM animes WHERE anidb_id = ? AND anidb_part = ? LIMIT 1");
             $findByUuid  = $pdo->prepare("SELECT id FROM animes WHERE catalog_uuid = ? LIMIT 1");
             $findByTitle = $pdo->prepare("SELECT id FROM animes WHERE title = ? LIMIT 1");
-            $resolveId = function ($mal, $anidb, $uuid, $title) use ($findByMal, $findByAnidb, $findByUuid, $findByTitle) {
+            $resolveId = function ($mal, $anidb, $uuid, $title, $malPart = 1, $anidbPart = 1) use ($findByMal, $findByAnidb, $findByUuid, $findByTitle) {
                 $id = 0;
-                if (!empty($mal))           { $findByMal->execute([(int)$mal]);    $id = (int)$findByMal->fetchColumn(); }
-                if (!$id && !empty($anidb)) { $findByAnidb->execute([(int)$anidb]); $id = (int)$findByAnidb->fetchColumn(); }
+                if (!empty($mal))           { $findByMal->execute([(int)$mal, max(1, (int)$malPart)]);       $id = (int)$findByMal->fetchColumn(); }
+                if (!$id && !empty($anidb)) { $findByAnidb->execute([(int)$anidb, max(1, (int)$anidbPart)]); $id = (int)$findByAnidb->fetchColumn(); }
                 if (!$id && !empty($uuid))  { $findByUuid->execute([$uuid]);        $id = (int)$findByUuid->fetchColumn(); }
                 if (!$id && !empty($title)) { $findByTitle->execute([$title]);      $id = (int)$findByTitle->fetchColumn(); }
                 return $id;
@@ -178,6 +181,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 'anidb' => $mk['related_anidb_id']     ?? null,
                                 'uuid'  => $mk['related_catalog_uuid'] ?? null,
                                 'title' => $mk['related_title']        ?? null,
+                                // 1.1.41: parca; eski oneride yok -> 1.
+                                'mal_part'   => $mk['related_mal_part']   ?? 1,
+                                'anidb_part' => $mk['related_anidb_part'] ?? 1,
                             ];
                         }
                     }
@@ -199,7 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                      VALUES (?, ?, ?, ?, ?, 'catalog')"
                 );
                 foreach ($pendingMarkers as $pm) {
-                    $relId = $resolveId($pm['mal'], $pm['anidb'], $pm['uuid'], $pm['title']);
+                    $relId = $resolveId($pm['mal'], $pm['anidb'], $pm['uuid'], $pm['title'], $pm['mal_part'] ?? 1, $pm['anidb_part'] ?? 1);
                     if ($relId <= 0 || $relId === $pm['host']) { $markersSkipped++; continue; }
                     try {
                         $markerIns->execute([$pm['host'], $pm['after'], $pm['story'] ?? null, $relId, $pm['note']]);

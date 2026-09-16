@@ -176,9 +176,13 @@
 
         function choose(item) {
             var label = safeLabel(item.title);
+            // 1.1.41: 'ref' is "2994" or, for a shared MAL id, "2994/2" -
+            // the server decides. Older endpoint (no ref): fall back to
+            // the bare id, which is what the code always carried.
+            var ref = item.ref || String(item.mal_id);
             var code = label !== ''
-                ? '[[anime:' + item.mal_id + '|' + label + ']]'
-                : '[[anime:' + item.mal_id + ']]';
+                ? '[[anime:' + ref + '|' + label + ']]'
+                : '[[anime:' + ref + ']]';
             insertAtCaret(ta, code);
             close();
         }
@@ -207,7 +211,9 @@
                 var bits = [];
                 if (item.year) bits.push(item.year);
                 if (item.media_type) bits.push(item.media_type);
-                bits.push('MAL ' + item.mal_id);
+                // 1.1.41: "MAL 2994 - 2/2" when the id is shared, so two
+                // rows with the same MAL number can be told apart.
+                bits.push('MAL ' + item.mal_id + (item.part_badge ? ' \u00b7 ' + item.part_badge : ''));
 
                 var meta = document.createElement('span');
                 meta.className = 'synlink-result-meta';

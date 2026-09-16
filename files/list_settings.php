@@ -225,7 +225,9 @@ if (isset($_POST['export'])) {
     $exportMarkerStmt = $pdo->prepare(
         "SELECT cm.after_episode, cm.story_after_episode, cm.note, cm.source,
                 r.mal_id       AS related_mal_id,
+                r.mal_part     AS related_mal_part,
                 r.anidb_id     AS related_anidb_id,
+                r.anidb_part   AS related_anidb_part,
                 r.catalog_uuid AS related_catalog_uuid,
                 r.title        AS related_title
            FROM chronology_markers cm
@@ -236,7 +238,10 @@ if (isset($_POST['export'])) {
     // 1.1.38 - tipli iliskiler. Marker'larla ayni tasima kurali: karsi uc
     // YEREL id ile degil KIMLIK DORTLUSUYLE yazilir (mal_id / anidb_id /
     // catalog_uuid / baslik), cunku her kurulum satirlarini farkli
-    // numaralandirir. Boylece iliskiler yedek-al/geri-yukle turunda
+    // numaralandirir. 1.1.41: dortlu artik PARCA numaralarini da tasir
+    // (mal_part / anidb_part) - paylasimli bir kimlikte "hangi parca"
+    // sorusunun cevabi yoksa geri yukleme hep 1. parcaya baglanirdi.
+    // Eski yedekte alan yok -> 1 (o gunku her satir 1. parcaydi). Boylece iliskiler yedek-al/geri-yukle turunda
     // kaybolmaz - next_in_series'in 1.1.40'a kadar dustugu tuzak buydu;
     // sira artik `sequel` kenari olarak ayni yoldan tasinir.
     //
@@ -248,7 +253,9 @@ if (isset($_POST['export'])) {
     $exportRelationStmt = $pdo->prepare(
         "SELECT r.relation_type,
                 o.mal_id       AS other_mal_id,
+                o.mal_part     AS other_mal_part,
                 o.anidb_id     AS other_anidb_id,
+                o.anidb_part   AS other_anidb_part,
                 o.catalog_uuid AS other_catalog_uuid,
                 o.title        AS other_title
            FROM anime_relations r
@@ -323,8 +330,9 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
             // ===== ONLINE: anime EKLEME; esle veya oneri olarak kaydet =====
             $uid = current_user_id();
 
-            $byMal   = $pdo->prepare("SELECT id FROM animes WHERE mal_id = ? LIMIT 1");
-            $byAnidb = $pdo->prepare("SELECT id FROM animes WHERE anidb_id = ? LIMIT 1");
+            // 1.1.41: parca duyarli esleme (dosyada parca yoksa 1).
+            $byMal   = $pdo->prepare("SELECT id FROM animes WHERE mal_id = ? AND mal_part = ? LIMIT 1");
+            $byAnidb = $pdo->prepare("SELECT id FROM animes WHERE anidb_id = ? AND anidb_part = ? LIMIT 1");
 
             // Dedup: ayni kullanicidan ayni anime icin bekleyen oneri var mi
             $suggExists = $pdo->prepare(
@@ -356,10 +364,12 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
 
                 $mal   = !empty($anime['mal_id'])   ? (int)$anime['mal_id']   : null;
                 $anidb = !empty($anime['anidb_id']) ? (int)$anime['anidb_id'] : null;
+                $malPart   = max(1, (int)($anime['mal_part']   ?? 1));
+                $anidbPart = max(1, (int)($anime['anidb_part'] ?? 1));
 
                 $aid = null;
-                if ($mal !== null)            { $byMal->execute([$mal]);     $aid = $byMal->fetchColumn(); }
-                if (!$aid && $anidb !== null) { $byAnidb->execute([$anidb]); $aid = $byAnidb->fetchColumn(); }
+                if ($mal !== null)            { $byMal->execute([$mal, $malPart]);     $aid = $byMal->fetchColumn(); }
+                if (!$aid && $anidb !== null) { $byAnidb->execute([$anidb, $anidbPart]); $aid = $byAnidb->fetchColumn(); }
 
                 if ($aid) {
                     // Katalogda VAR: kisisel izleme durumunu yaz
@@ -415,6 +425,9 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                         'related_anidb_id'     => !empty($mk['related_anidb_id'])     ? (int)$mk['related_anidb_id'] : null,
                         'related_catalog_uuid' => !empty($mk['related_catalog_uuid']) ? $mk['related_catalog_uuid']  : null,
                         'related_title'        => $mk['related_title'] ?? null,
+                        // 1.1.41: parca da tasinir; onay (admin_catalog_requests) okur.
+                        'related_mal_part'     => max(1, (int)($mk['related_mal_part']   ?? 1)),
+                        'related_anidb_part'   => max(1, (int)($mk['related_anidb_part'] ?? 1)),
                     ];
                 }
                 $markersJson = !empty($mkPayload)
@@ -475,8 +488,9 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
             // animes with the same mal_id/anidb_id/catalog_uuid, so a blind
             // INSERT would hit the UNIQUE keys and every row would be skipped.
             // Resolve an existing row first; only INSERT when there is no match.
-            $matchMal   = $pdo->prepare("SELECT id FROM animes WHERE mal_id = ? LIMIT 1");
-            $matchAnidb = $pdo->prepare("SELECT id FROM animes WHERE anidb_id = ? LIMIT 1");
+            // 1.1.41: parca duyarli (dosyada parca yoksa 1 - eski yedek).
+            $matchMal   = $pdo->prepare("SELECT id FROM animes WHERE mal_id = ? AND mal_part = ? LIMIT 1");
+            $matchAnidb = $pdo->prepare("SELECT id FROM animes WHERE anidb_id = ? AND anidb_part = ? LIMIT 1");
             $matchUuid  = $pdo->prepare("SELECT id FROM animes WHERE catalog_uuid = ? LIMIT 1");
             // 1.1.38: baslik esleyicisi de burada hazirlanir. 1.1.35'te
             // marker turunun ICINDE duruyordu; iliskiler turu de ayni
@@ -495,10 +509,10 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                     release_date, release_date_precision,
                     end_date, end_date_precision,
                     series_name, chain_name, media_type, country,
-                    mal_id, anidb_id, catalog_uuid, source, filler_tracking
+                    mal_id, mal_part, anidb_id, anidb_part, catalog_uuid, source, filler_tracking
                 ) VALUES (
                     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
                 )");
 
             foreach ($animes as $anime) {
@@ -514,10 +528,13 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                     $mal   = !empty($anime['mal_id'])       ? (int)$anime['mal_id']   : null;
                     $anidb = !empty($anime['anidb_id'])     ? (int)$anime['anidb_id'] : null;
                     $uuid  = !empty($anime['catalog_uuid']) ? $anime['catalog_uuid']  : null;
+                    // 1.1.41: parca. 1.1.41 oncesi yedekte alan yok -> 1.
+                    $malPart   = max(1, (int)($anime['mal_part']   ?? 1));
+                    $anidbPart = max(1, (int)($anime['anidb_part'] ?? 1));
 
                     $animeId = 0;
-                    if ($mal !== null)                { $matchMal->execute([$mal]);     $animeId = (int)$matchMal->fetchColumn(); }
-                    if (!$animeId && $anidb !== null) { $matchAnidb->execute([$anidb]); $animeId = (int)$matchAnidb->fetchColumn(); }
+                    if ($mal !== null)                { $matchMal->execute([$mal, $malPart]);     $animeId = (int)$matchMal->fetchColumn(); }
+                    if (!$animeId && $anidb !== null) { $matchAnidb->execute([$anidb, $anidbPart]); $animeId = (int)$matchAnidb->fetchColumn(); }
                     if (!$animeId && $uuid !== null)  { $matchUuid->execute([$uuid]);   $animeId = (int)$matchUuid->fetchColumn(); }
 
                     if (!$animeId) {
@@ -561,7 +578,9 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                         // kaybolurdu. 1.1.17 oncesi yedeklerde alan yok -> NULL.
                         $anime['country']             ?? null,
                         $anime['mal_id']              ?? null,
+                        $malPart,
                         $anime['anidb_id']            ?? null,
+                        $anidbPart,
                         $anime['catalog_uuid']        ?? null,
                         $anime['source']              ?? 'local',
                         !empty($anime['filler_tracking']) ? 1 : 0
@@ -611,6 +630,9 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                                 'anidb'  => !empty($mk['related_anidb_id'])     ? (int)$mk['related_anidb_id'] : null,
                                 'uuid'   => !empty($mk['related_catalog_uuid']) ? $mk['related_catalog_uuid']  : null,
                                 'title'  => $mk['related_title'] ?? null,
+                                // 1.1.41: parca (eski yedekte yok -> 1).
+                                'mal_part'   => max(1, (int)($mk['related_mal_part']   ?? 1)),
+                                'anidb_part' => max(1, (int)($mk['related_anidb_part'] ?? 1)),
                             ];
                         }
 
@@ -638,6 +660,8 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                                 'anidb' => !empty($rl['other_anidb_id'])     ? (int)$rl['other_anidb_id'] : null,
                                 'uuid'  => !empty($rl['other_catalog_uuid']) ? $rl['other_catalog_uuid']  : null,
                                 'title' => $rl['other_title'] ?? null,
+                                'mal_part'   => max(1, (int)($rl['other_mal_part']   ?? 1)),
+                                'anidb_part' => max(1, (int)($rl['other_anidb_part'] ?? 1)),
                             ];
                         }
                     }
@@ -663,8 +687,8 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                 );
                 foreach ($pendingMarkers as $pm) {
                     $relId = 0;
-                    if ($pm['mal'] !== null)              { $matchMal->execute([$pm['mal']]);     $relId = (int)$matchMal->fetchColumn(); }
-                    if (!$relId && $pm['anidb'] !== null) { $matchAnidb->execute([$pm['anidb']]); $relId = (int)$matchAnidb->fetchColumn(); }
+                    if ($pm['mal'] !== null)              { $matchMal->execute([$pm['mal'], $pm['mal_part']]);     $relId = (int)$matchMal->fetchColumn(); }
+                    if (!$relId && $pm['anidb'] !== null) { $matchAnidb->execute([$pm['anidb'], $pm['anidb_part']]); $relId = (int)$matchAnidb->fetchColumn(); }
                     if (!$relId && $pm['uuid'] !== null)  { $matchUuid->execute([$pm['uuid']]);   $relId = (int)$matchUuid->fetchColumn(); }
                     if (!$relId && !empty($pm['title']))  { $matchTitle->execute([$pm['title']]); $relId = (int)$matchTitle->fetchColumn(); }
 
@@ -701,8 +725,8 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                 );
                 foreach ($pendingRelations as $pr) {
                     $otherId = 0;
-                    if ($pr['mal'] !== null)                { $matchMal->execute([$pr['mal']]);     $otherId = (int)$matchMal->fetchColumn(); }
-                    if (!$otherId && $pr['anidb'] !== null) { $matchAnidb->execute([$pr['anidb']]); $otherId = (int)$matchAnidb->fetchColumn(); }
+                    if ($pr['mal'] !== null)                { $matchMal->execute([$pr['mal'], $pr['mal_part']]);     $otherId = (int)$matchMal->fetchColumn(); }
+                    if (!$otherId && $pr['anidb'] !== null) { $matchAnidb->execute([$pr['anidb'], $pr['anidb_part']]); $otherId = (int)$matchAnidb->fetchColumn(); }
                     if (!$otherId && $pr['uuid'] !== null)  { $matchUuid->execute([$pr['uuid']]);   $otherId = (int)$matchUuid->fetchColumn(); }
                     if (!$otherId && !empty($pr['title']))  { $matchTitle->execute([$pr['title']]); $otherId = (int)$matchTitle->fetchColumn(); }
 
@@ -800,7 +824,10 @@ if (isset($_POST['mal_preview'])) {
                 // already (in catalog AND already in the user's list, skipped
                 // by default), or unmatched (not in catalog).
                 $uid    = current_user_id();
-                $byMal  = $pdo->prepare("SELECT id FROM animes WHERE mal_id = ? LIMIT 1");
+                // 1.1.41: bir MAL kimligi birden cok parca olabilir; onizleme
+                // ILK parcayla kovalar (bugunku davranis), yazan taraf
+                // parcalarin hepsini dolasir (asagida, identity_parts).
+                $byMal  = $pdo->prepare("SELECT id FROM animes WHERE mal_id = ? ORDER BY mal_part LIMIT 1");
                 $hasRow = $pdo->prepare(
                     "SELECT 1 FROM user_anime WHERE user_id = ? AND anime_id = ? LIMIT 1"
                 );
@@ -885,11 +912,39 @@ if (isset($_POST['mal_commit'])) {
         $uid = current_user_id();
         $written = 0; $skipped = 0; $requested = 0;
         $blocked = 0; // 1.1.35 - kara liste yuzunden atlananlar
+        $sharedTouched = 0; // 1.1.41 - paylasimli kimlige yazilan girdiler
 
-        $byMal  = $pdo->prepare("SELECT id FROM animes WHERE mal_id = ? LIMIT 1");
+        // (1.1.41: eslesme artik identity_parts() ile - tek kimlik, butun
+        // parcalar; ayri bir $byMal ifadesi kalmadi.)
         $hasRow = $pdo->prepare(
             "SELECT 1 FROM user_anime WHERE user_id = ? AND anime_id = ? LIMIT 1"
         );
+
+        // 1.1.41 - PAYLASIMLI kimlik yazici. Listeden bir MAL kimligi icin
+        // TEK satir gelir (durum + izlenen bolum); yerelde N parca olabilir.
+        // Kural ("Kural 2 + istisna", identity_shared_ua_payload): durum
+        // her parcaya, bolum sayisina dokunulmaz - 0/N ise 0, "Izlendi" ise
+        // parcanin kendi toplami. Tek parcali kimlikte davranis 1.1.1'den
+        // beri ne idiyse odur (yardimci uygulanmaz). Doner: true = en az bir
+        // parcaya yazildi, false = hepsi atlandi (zaten listede, ustune
+        // yazma kapali).
+        $writeParts = function (array $parts, array $payload) use ($pdo, $uid, $hasRow, $overwrite, &$sharedTouched) {
+            $shared   = count($parts) > 1;
+            $wroteAny = false;
+            foreach ($parts as $part) {
+                $hasRow->execute([$uid, (int)$part['id']]);
+                if ($hasRow->fetchColumn() && !$overwrite) {
+                    continue;
+                }
+                ua_set_state($pdo, $uid, (int)$part['id'],
+                    $shared ? identity_shared_ua_payload($payload, $part) : $payload);
+                $wroteAny = true;
+            }
+            if ($wroteAny && $shared) {
+                $sharedTouched++;
+            }
+            return $wroteAny;
+        };
 
         if (defined('MULTI_USER_MODE') && MULTI_USER_MODE) {
             // ONLINE: matched -> user_anime; unmatched -> catalog_requests
@@ -910,20 +965,16 @@ if (isset($_POST['mal_commit'])) {
                     continue;
                 }
 
-                $aid = $e['anime_id'] ?? null;
-                if (!$aid && $e['mal_id'] !== null) {
-                    $byMal->execute([$e['mal_id']]);
-                    $aid = (int)$byMal->fetchColumn();
+                // 1.1.41: kimligin BUTUN parcalari (cogunlukla tek). Oturumdaki
+                // kuru kosu yalnizca ilk parcayi bilir; yazan taraf tabloya
+                // kendisi sorar.
+                $parts = ($e['mal_id'] !== null) ? identity_parts($pdo, 'mal', $e['mal_id']) : [];
+                if (empty($parts) && !empty($e['anime_id'])) {
+                    $parts = [['id' => (int)$e['anime_id'], 'total_episodes' => null]];
                 }
 
-                if ($aid) {
-                    $hasRow->execute([$uid, $aid]);
-                    if ($hasRow->fetchColumn() && !$overwrite) {
-                        $skipped++;
-                        continue;
-                    }
-                    ua_set_state($pdo, $uid, (int)$aid, mal_ua_payload($e));
-                    $written++;
+                if (!empty($parts)) {
+                    if ($writeParts($parts, mal_ua_payload($e))) { $written++; } else { $skipped++; }
                     continue;
                 }
 
@@ -961,20 +1012,13 @@ if (isset($_POST['mal_commit'])) {
                     continue;
                 }
 
-                $aid = $e['anime_id'] ?? null;
-                if (!$aid && $e['mal_id'] !== null) {
-                    $byMal->execute([$e['mal_id']]);
-                    $aid = (int)$byMal->fetchColumn();
+                $parts = ($e['mal_id'] !== null) ? identity_parts($pdo, 'mal', $e['mal_id']) : [];
+                if (empty($parts) && !empty($e['anime_id'])) {
+                    $parts = [['id' => (int)$e['anime_id'], 'total_episodes' => null]];
                 }
 
-                if ($aid) {
-                    $hasRow->execute([$uid, $aid]);
-                    if ($hasRow->fetchColumn() && !$overwrite) {
-                        $skipped++;
-                        continue;
-                    }
-                    ua_set_state($pdo, $uid, (int)$aid, mal_ua_payload($e));
-                    $written++;
+                if (!empty($parts)) {
+                    if ($writeParts($parts, mal_ua_payload($e))) { $written++; } else { $skipped++; }
                     continue;
                 }
 
@@ -1005,6 +1049,11 @@ if (isset($_POST['mal_commit'])) {
         // beri ayni duran mesaji kirardi; sifirken hicbir sey yazilmaz.
         if ($blocked > 0) {
             $success_message .= ' ' . sprintf(t('list_settings.import.blocked_result'), $blocked);
+        }
+        // 1.1.41: paylasimli kimlige yazilanlar da ayri bir cumle - kullanici
+        // bolum sayilarina nereden bakacagini gorsun (Kural 2'nin 4. maddesi).
+        if ($sharedTouched > 0) {
+            $success_message .= ' ' . sprintf(t('identity.import.shared_result'), $sharedTouched);
         }
     }
 }
@@ -1075,7 +1124,8 @@ if (isset($_POST['anilist_preview'])) {
         // Match each entry against the catalog by mal_id and bucket it -
         // identical to the MAL preview (matched / already / unmatched).
         $uid    = current_user_id();
-        $byMal  = $pdo->prepare("SELECT id FROM animes WHERE mal_id = ? LIMIT 1");
+        // 1.1.41: ilk parcayla kovalama (MAL onizlemesindeki not).
+        $byMal  = $pdo->prepare("SELECT id FROM animes WHERE mal_id = ? ORDER BY mal_part LIMIT 1");
         $hasRow = $pdo->prepare(
             "SELECT 1 FROM user_anime WHERE user_id = ? AND anime_id = ? LIMIT 1"
         );
@@ -1180,11 +1230,32 @@ if (isset($_POST['anilist_commit'])) {
         $written = 0; $skipped = 0; $requested = 0; // list-mode tallies
         $catNew = 0; $catHave = 0;                   // content-mode tallies
         $blocked = 0;                                // 1.1.35 - kara liste
+        $sharedTouched = 0;                          // 1.1.41 - paylasimli kimlik
 
-        $byMal  = $pdo->prepare("SELECT id FROM animes WHERE mal_id = ? LIMIT 1");
+        // (1.1.41: eslesme identity_parts() ile; $byMal kalmadi.)
         $hasRow = $pdo->prepare(
             "SELECT 1 FROM user_anime WHERE user_id = ? AND anime_id = ? LIMIT 1"
         );
+
+        // 1.1.41 - paylasimli kimlik yazici; MAL tarafindakinin ikizi
+        // (gerekce orada).
+        $writeParts = function (array $parts, array $payload) use ($pdo, $uid, $hasRow, $overwrite, &$sharedTouched) {
+            $shared   = count($parts) > 1;
+            $wroteAny = false;
+            foreach ($parts as $part) {
+                $hasRow->execute([$uid, (int)$part['id']]);
+                if ($hasRow->fetchColumn() && !$overwrite) {
+                    continue;
+                }
+                ua_set_state($pdo, $uid, (int)$part['id'],
+                    $shared ? identity_shared_ua_payload($payload, $part) : $payload);
+                $wroteAny = true;
+            }
+            if ($wroteAny && $shared) {
+                $sharedTouched++;
+            }
+            return $wroteAny;
+        };
 
         if (defined('MULTI_USER_MODE') && MULTI_USER_MODE) {
             // ONLINE: matched -> user_anime (list mode only); unmatched ->
@@ -1216,26 +1287,20 @@ if (isset($_POST['anilist_commit'])) {
                     continue;
                 }
 
-                $aid = $e['anime_id'] ?? null;
-                if (!$aid && $e['mal_id'] !== null) {
-                    $byMal->execute([$e['mal_id']]);
-                    $aid = (int)$byMal->fetchColumn();
+                // 1.1.41: kimligin butun parcalari (MAL tarafindaki not).
+                $parts = ($e['mal_id'] !== null) ? identity_parts($pdo, 'mal', $e['mal_id']) : [];
+                if (empty($parts) && !empty($e['anime_id'])) {
+                    $parts = [['id' => (int)$e['anime_id'], 'total_episodes' => null]];
                 }
 
-                if ($aid) {
+                if (!empty($parts)) {
                     // Already in the catalog. Content mode stops here (no personal
                     // state); list mode writes it into the user's list.
                     if ($contentOnly) {
                         $catHave++;
                         continue;
                     }
-                    $hasRow->execute([$uid, $aid]);
-                    if ($hasRow->fetchColumn() && !$overwrite) {
-                        $skipped++;
-                        continue;
-                    }
-                    ua_set_state($pdo, $uid, (int)$aid, anilist_ua_payload($e));
-                    $written++;
+                    if ($writeParts($parts, anilist_ua_payload($e))) { $written++; } else { $skipped++; }
                     continue;
                 }
 
@@ -1281,24 +1346,17 @@ if (isset($_POST['anilist_commit'])) {
                     continue;
                 }
 
-                $aid = $e['anime_id'] ?? null;
-                if (!$aid && $e['mal_id'] !== null) {
-                    $byMal->execute([$e['mal_id']]);
-                    $aid = (int)$byMal->fetchColumn();
+                $parts = ($e['mal_id'] !== null) ? identity_parts($pdo, 'mal', $e['mal_id']) : [];
+                if (empty($parts) && !empty($e['anime_id'])) {
+                    $parts = [['id' => (int)$e['anime_id'], 'total_episodes' => null]];
                 }
 
-                if ($aid) {
+                if (!empty($parts)) {
                     if ($contentOnly) {
                         $catHave++;
                         continue;
                     }
-                    $hasRow->execute([$uid, $aid]);
-                    if ($hasRow->fetchColumn() && !$overwrite) {
-                        $skipped++;
-                        continue;
-                    }
-                    ua_set_state($pdo, $uid, (int)$aid, anilist_ua_payload($e));
-                    $written++;
+                    if ($writeParts($parts, anilist_ua_payload($e))) { $written++; } else { $skipped++; }
                     continue;
                 }
 
@@ -1346,6 +1404,10 @@ if (isset($_POST['anilist_commit'])) {
         // Iki bicim dizesinin de arg sayisi degismeden kalir.
         if ($blocked > 0) {
             $success_message .= ' ' . sprintf(t('list_settings.import.blocked_result'), $blocked);
+        }
+        // 1.1.41: paylasimli kimlige yazilanlar (MAL tarafindaki not).
+        if ($sharedTouched > 0) {
+            $success_message .= ' ' . sprintf(t('identity.import.shared_result'), $sharedTouched);
         }
     }
 }

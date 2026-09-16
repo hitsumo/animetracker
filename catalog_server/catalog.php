@@ -126,7 +126,9 @@ try {
             media_type,
             country,
             mal_id,
+            mal_part,
             anidb_id,
+            anidb_part,
             catalog_uuid,
             is_adult,
             CASE

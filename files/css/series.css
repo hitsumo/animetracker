@@ -855,3 +855,20 @@
 .relation-add-btn:hover {
     background-color: #7d3c98;
 }
+
+/* ======================================================================
+   1.1.41 — Ayni kaynak kaydi (paylasimli MAL / AniDB kimligi)
+   anime_details.php'deki "Ayni Kaynak Kaydi" bolumu. Iliskili Animeler
+   bolumunun gorunumunu (.relation-section) oldugu gibi alir; tek ayirici
+   turkuaz sol serit - bu bolum bir ILISKI degil, bir KIMLIK bilgisidir
+   ("bu iki kayit ayni MAL numarasini paylasiyor"), morla karismamali.
+   ====================================================================== */
+.relation-section.identity-section {
+    border-left-color: #17a2b8;
+}
+
+.identity-section-hint {
+    margin: -6px 0 12px;
+    font-size: 12px;
+    color: #6c757d;
+}

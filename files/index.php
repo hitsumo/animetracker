@@ -142,11 +142,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
     //
     // blacklist_add() self-host modda ve tablo yoksa sessizce hicbir sey
     // yapmaz - defter tutmak, silmeyi bozacak bir sey degildir.
+    //
+    // 1.1.41 - PAYLASIMLI kimlik: bir kimlik ancak SON parcasi silinince
+    // deftere girer. Kara liste "bu MAL / AniDB kaydi kataloga ait degil"
+    // demektir; 2994'un 2. parcasi silinirken 1. parcasi hala katalogda
+    // duruyorsa o cumle yanlis olurdu - ve deftere yazilsaydi 1. parca da
+    // (bir gun silinip yeniden onerildiginde degil, admin sayfasinda "hala
+    // katalogda" uyarisiyla) yaniltici gorunurdu. Satir zaten silindi, yani
+    // "baska tasiyan var mi" sorusu artik dogrudan sayimdir; tasiyan varsa
+    // o kimlik deftere NULL gider (yalniz baslik kalir = silme kaydi).
     if ($deleted_row !== false) {
         blacklist_add(
             $pdo,
-            $deleted_row['mal_id'],
-            $deleted_row['anidb_id'],
+            identity_part_count($pdo, 'mal',   $deleted_row['mal_id'])   > 0 ? null : $deleted_row['mal_id'],
+            identity_part_count($pdo, 'anidb', $deleted_row['anidb_id']) > 0 ? null : $deleted_row['anidb_id'],
             (string)$deleted_row['title'],
             'deleted'
         );

@@ -112,12 +112,17 @@ $like = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $q) . '%';
 // resolves to nothing. alternative_titles is searched too, because the
 // curator will often type the name they SEE (Baslik Dili preference, 1.1.21)
 // rather than the romaji title stored in `title`.
-$sql = "SELECT id, mal_id, title, alternative_titles, media_type, release_date
+// 1.1.41: mal_part and the number of parts sharing the id travel too, so
+// the picker can write [[anime:2994/2]] for a shared id and show "2/2"
+// next to the MAL number. The correlated COUNT is cheap: idx_mal_id
+// covers it and the result set is capped at ANIME_LINK_SEARCH_LIMIT.
+$sql = "SELECT id, mal_id, mal_part, title, alternative_titles, media_type, release_date,
+               (SELECT COUNT(*) FROM animes x WHERE x.mal_id = animes.mal_id) AS mal_parts
         FROM animes
         WHERE mal_id IS NOT NULL AND mal_id <> 0
           AND (title LIKE :q1 OR alternative_titles LIKE :q2)"
      . adult_filter_where('animes') . "
-        ORDER BY (title LIKE :q3) DESC, title ASC
+        ORDER BY (title LIKE :q3) DESC, title ASC, mal_part ASC
         LIMIT " . (int)ANIME_LINK_SEARCH_LIMIT;
 
 $stmt = $pdo->prepare($sql);
@@ -130,6 +135,11 @@ $results = [];
 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
     $results[] = [
         'mal_id'     => (int)$row['mal_id'],
+        // 1.1.41: what the shortcode carries ("2994" or "2994/2") and the
+        // badge the list shows ("" or "2/2"). Built server-side so the
+        // client never has to know the sharing rule.
+        'ref'        => identity_shortcode_ref($row['mal_id'], $row['mal_part'] ?? 1, $row['mal_parts'] ?? 1),
+        'part_badge' => identity_part_badge($row['mal_part'] ?? 1, $row['mal_parts'] ?? 1),
         // display_title() honors the Baslik Dili preference, so the label
         // the curator picks is the one they were reading. It becomes the
         // shortcode's label text on the client side.

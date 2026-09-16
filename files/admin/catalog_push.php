@@ -130,7 +130,7 @@ if (!function_exists('catalog_push_to_server')) {
                        anidb_link, mal_link, anime_schedule_link,
                        episode_interval, broadcast_day, broadcast_time, broadcast_timezone,
                        series_name, media_type, country, is_adult,
-                       mal_id, anidb_id, catalog_uuid,
+                       mal_id, mal_part, anidb_id, anidb_part, catalog_uuid,
                        image_path
                 FROM animes
                 WHERE source = 'catalog'";
@@ -367,7 +367,9 @@ if (!function_exists('catalog_push_to_server')) {
                     $idMap[] = [
                         'id'           => (int)$a['id'],
                         'mal_id'       => $a['mal_id'],
+                        'mal_part'     => $a['mal_part'],     // 1.1.41
                         'anidb_id'     => $a['anidb_id'],
+                        'anidb_part'   => $a['anidb_part'],   // 1.1.41
                         'catalog_uuid' => $a['catalog_uuid'],
                     ];
                 }

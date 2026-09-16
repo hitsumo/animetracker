@@ -233,8 +233,15 @@ try {
     // The admin's local ID (which comes in the payload as 'id') has no meaning
     // on the server; server has its own auto-incrementing IDs. We use it only
     // as a lookup key to translate chronology references.
-    $findByMal = $pdo->prepare("SELECT id FROM animes WHERE mal_id = ? LIMIT 1");
-    $findByAnidb = $pdo->prepare("SELECT id FROM animes WHERE anidb_id = ? LIMIT 1");
+    //
+    // 1.1.41: an id may be SHARED by several rows (animes.mal_part /
+    // anidb_part, DEFAULT 1); the lookup is by (id, part). A payload that
+    // carries no part (an older client) means part 1. The two columns and
+    // the composite UNIQUE keys must be ADDED TO THIS SERVER'S animes TABLE
+    // BY HAND before this file is deployed - see migration/1.1.41/upgrade.sql
+    // in the app for the exact statements and the order of operations.
+    $findByMal = $pdo->prepare("SELECT id FROM animes WHERE mal_id = ? AND mal_part = ? LIMIT 1");
+    $findByAnidb = $pdo->prepare("SELECT id FROM animes WHERE anidb_id = ? AND anidb_part = ? LIMIT 1");
     $findByUuid = $pdo->prepare("SELECT id FROM animes WHERE catalog_uuid = ? LIMIT 1");
 
     // Catalog-only fields. Personal data (watched, status, notes, image) is
@@ -271,7 +278,9 @@ try {
             media_type = :media_type,
             country = :country,
             mal_id = :mal_id,
+            mal_part = :mal_part,
             anidb_id = :anidb_id,
+            anidb_part = :anidb_part,
             catalog_uuid = :catalog_uuid,
             image_path = :image_path,
             is_adult = :is_adult,
@@ -292,7 +301,7 @@ try {
             synopsis_tr, synopsis_en, translation_status,
             release_date, release_date_precision, end_date, end_date_precision,
             series_name, media_type, country,
-            mal_id, anidb_id, catalog_uuid, source, is_adult
+            mal_id, mal_part, anidb_id, anidb_part, catalog_uuid, source, is_adult
         ) VALUES (
             :title, :alternative_titles, :status, :total_episodes, :aired_episodes,
             0, NULL, :image_path,
@@ -302,7 +311,7 @@ try {
             :synopsis_tr, :synopsis_en, :translation_status,
             :release_date, :release_date_precision, :end_date, :end_date_precision,
             :series_name, :media_type, :country,
-            :mal_id, :anidb_id, :catalog_uuid, 'catalog', :is_adult
+            :mal_id, :mal_part, :anidb_id, :anidb_part, :catalog_uuid, 'catalog', :is_adult
         )
     ";
     $insertStmt = $pdo->prepare($insertSql);
@@ -312,13 +321,16 @@ try {
         $matchId = null;
 
         // Try each identity field until one matches
+        // 1.1.41: part-aware identity match (absent part = 1).
+        $aMalPart   = max(1, (int)($a['mal_part']   ?? 1));
+        $aAnidbPart = max(1, (int)($a['anidb_part'] ?? 1));
         if (!empty($a['mal_id'])) {
-            $findByMal->execute([(int)$a['mal_id']]);
+            $findByMal->execute([(int)$a['mal_id'], $aMalPart]);
             $matchId = $findByMal->fetchColumn() ?: null;
             $findByMal->closeCursor();
         }
         if ($matchId === null && !empty($a['anidb_id'])) {
-            $findByAnidb->execute([(int)$a['anidb_id']]);
+            $findByAnidb->execute([(int)$a['anidb_id'], $aAnidbPart]);
             $matchId = $findByAnidb->fetchColumn() ?: null;
             $findByAnidb->closeCursor();
         }
@@ -364,7 +376,9 @@ try {
             // migration calistirmaz. Kolon yoksa bu push HATA verir.
             ':country'             => $a['country']             ?? null,
             ':mal_id'              => !empty($a['mal_id'])      ? (int)$a['mal_id']   : null,
+            ':mal_part'            => $aMalPart,
             ':anidb_id'            => !empty($a['anidb_id'])    ? (int)$a['anidb_id'] : null,
+            ':anidb_part'          => $aAnidbPart,
             ':catalog_uuid'        => $a['catalog_uuid']        ?? null,
             ':image_path'          => $a['image_path']          ?? null,
             ':is_adult'            => !empty($a['is_adult'])     ? 1 : 0,
@@ -399,12 +413,12 @@ try {
             }
             $sid = null;
             if (!empty($entry['mal_id'])) {
-                $findByMal->execute([(int)$entry['mal_id']]);
+                $findByMal->execute([(int)$entry['mal_id'], max(1, (int)($entry['mal_part'] ?? 1))]);
                 $sid = $findByMal->fetchColumn() ?: null;
                 $findByMal->closeCursor();
             }
             if ($sid === null && !empty($entry['anidb_id'])) {
-                $findByAnidb->execute([(int)$entry['anidb_id']]);
+                $findByAnidb->execute([(int)$entry['anidb_id'], max(1, (int)($entry['anidb_part'] ?? 1))]);
                 $sid = $findByAnidb->fetchColumn() ?: null;
                 $findByAnidb->closeCursor();
             }

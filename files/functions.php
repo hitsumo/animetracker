@@ -52,3 +52,4 @@ require_once __DIR__ . '/functions/asset_helpers.php';
 require_once __DIR__ . '/functions/seo_helpers.php';
 require_once __DIR__ . '/functions/indexnow_helpers.php';
 require_once __DIR__ . '/functions/blacklist_helpers.php';
+require_once __DIR__ . '/functions/identity_helpers.php';

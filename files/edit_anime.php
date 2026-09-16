@@ -205,6 +205,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $anidb_link = $_POST['anidb_link'] ?? '';
     $mal_link = $_POST['mal_link'] ?? '';
     $anime_schedule_link = $_POST['anime_schedule_link'] ?? '';
+    // 1.1.41 - paylasimli kimlik beyani (checkbox); add_anime.php ile ayni.
+    $mal_shared   = isset($_POST['mal_shared']);
+    $anidb_shared = isset($_POST['anidb_shared']);
 
     // MAL ve AniDB linkleri zorunlu - katalog senkronizasyonunda local
     // ile sunucu arasindaki eslesmeyi saglayan kimlik alanlari bunlardan
@@ -226,6 +229,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $validation_errors[] = t('add_anime.error.anidb_link_required');
     } elseif (!preg_match('#^https?://anidb\.net/#i', $anidb_link)) {
         $validation_errors[] = t('add_anime.error.anidb_link_invalid');
+    }
+
+    // 1.1.41 - parca numaralari. Kutu isaretliyse: kimlik degismediyse
+    // parca korunur, degistiyse yeni kimlik icin siradaki bos parca.
+    // Kutu isaretsizken kimligi BASKA kayitlar da tasiyorsa kayit
+    // REDDEDILIR: bu satir "tek parca"ya geri donemez (1 ya zaten
+    // kendisidir ya da bir kardestedir); kurator once oteki parcalari
+    // ayirmali. Kimse tasimiyorsa parca 1'e iner (yalniz kalan 2. parca
+    // boylece kendiliginden duzelir). Kurallar: identity_helpers.php.
+    $identityParts = identity_resolve_parts($pdo, $mal_id, $anidb_id, $mal_shared, $anidb_shared, $anime);
+    $mal_part      = $identityParts['mal_part'];
+    $anidb_part    = $identityParts['anidb_part'];
+    if (in_array('mal', $identityParts['errors'], true)) {
+        $validation_errors[] = t('identity.error.unshare_blocked_mal');
+    }
+    if (in_array('anidb', $identityParts['errors'], true)) {
+        $validation_errors[] = t('identity.error.unshare_blocked_anidb');
     }
 
     if (!empty($validation_errors)) {
@@ -470,7 +490,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             media_type = ?,
             country = ?,
             mal_id = ?,
+            mal_part = ?,
             anidb_id = ?,
+            anidb_part = ?,
             filler_tracking = ?,
             is_adult = ?
             WHERE id = ?";
@@ -514,7 +536,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $media_type,
             $country,
             $mal_id,
+            $mal_part,
             $anidb_id,
+            $anidb_part,
             $filler_tracking,
             $is_adult,
             $id
@@ -576,7 +600,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // ON edit, mevcut animenin kendi MAL ID'si conflict olamaz
             // cunku WHERE id = ? var; conflict baska bir kayittan geliyor.
             // Sirf netlik icin yine de farkli ID donduren WHERE ekledim.
-            $look = $pdo->prepare("SELECT id, title FROM animes WHERE mal_id = ? AND id != ? LIMIT 1");
+            // 1.1.41: birden cok parca varsa ilkini goster (ORDER BY).
+            $look = $pdo->prepare("SELECT id, title FROM animes WHERE mal_id = ? AND id != ? ORDER BY mal_part LIMIT 1");
             $look->execute([$mal_id, $id]);
             $row = $look->fetch(PDO::FETCH_ASSOC);
             if ($row) {
@@ -586,7 +611,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         } elseif ($indexName === 'idx_anidb_id' && !empty($anidb_id)) {
             $fieldLabel = t('add_anime.duplicate.field_anidb_id');
             $duplicateValue = (string)$anidb_id;
-            $look = $pdo->prepare("SELECT id, title FROM animes WHERE anidb_id = ? AND id != ? LIMIT 1");
+            $look = $pdo->prepare("SELECT id, title FROM animes WHERE anidb_id = ? AND id != ? ORDER BY anidb_part LIMIT 1");
             $look->execute([$anidb_id, $id]);
             $row = $look->fetch(PDO::FETCH_ASSOC);
             if ($row) {
@@ -608,6 +633,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if ($existingId !== null && $existingTitle !== null) {
             $detailMsg .= ' ' . htmlspecialchars(t('edit_anime.duplicate.conflicting_record_prefix'), ENT_QUOTES, 'UTF-8')
                 . ' <strong>' . htmlspecialchars($existingTitle, ENT_QUOTES, 'UTF-8') . '</strong>';
+        }
+        // 1.1.41: bilerek paylasmak isteyen kuratore yolu goster (add_anime ile ayni).
+        if ($indexName === 'idx_mal_id' || $indexName === 'idx_anidb_id') {
+            $detailMsg .= '<br><em>' . htmlspecialchars(t('identity.duplicate.share_hint'), ENT_QUOTES, 'UTF-8') . '</em>';
         }
 
         $existingLink = '';
@@ -1260,10 +1289,22 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                 </div>
             </div>
 
+            <?php // 1.1.41 - paylasimli kimlik. Kutunun durumu SAKLANMAZ,
+                  // veriden turer: ayni numarayi tasiyan baska kayit varsa
+                  // isaretli gelir. Yanina "2/2" gibi mevcut parca yazilir.
+                  $malSharedNow   = identity_other_parts_exist($pdo, 'mal',   $anime['mal_id']   ?? null, $anime['id']);
+                  $anidbSharedNow = identity_other_parts_exist($pdo, 'anidb', $anime['anidb_id'] ?? null, $anime['id']);
+                  $malBadge   = $malSharedNow   ? identity_part_badge($anime['mal_part']   ?? 1, identity_part_count($pdo, 'mal',   $anime['mal_id']))   : '';
+                  $anidbBadge = $anidbSharedNow ? identity_part_badge($anime['anidb_part'] ?? 1, identity_part_count($pdo, 'anidb', $anime['anidb_id'])) : '';
+            ?>
             <div class="form-group">
                 <label for="anidb_link"><?php echo htmlspecialchars(t('add_anime.label.anidb_link'), ENT_QUOTES, 'UTF-8'); ?> <span style="color:#d32f2f;">*</span></label>
                 <div class="input-area">
                     <input type="url" name="anidb_link" required placeholder="<?php echo htmlspecialchars(t('add_anime.ph.anidb_link'), ENT_QUOTES, 'UTF-8'); ?>" value="<?php echo htmlspecialchars($anime['anidb_link'] ?? ''); ?>">
+                    <label class="filler-toggle" style="margin-top:6px;">
+                        <input type="checkbox" name="anidb_shared" id="anidb_shared_chk" value="1"<?php echo $anidbSharedNow ? ' checked' : ''; ?>>
+                        <span class="filler-toggle-hint"><?php echo htmlspecialchars(t('identity.label.anidb_shared'), ENT_QUOTES, 'UTF-8'); ?><?php if ($anidbBadge !== ''): ?> <strong><?php echo htmlspecialchars(sprintf(t('identity.form.current_part_fmt'), $anidbBadge), ENT_QUOTES, 'UTF-8'); ?></strong><?php endif; ?></span>
+                    </label>
                 </div>
             </div>
 
@@ -1271,6 +1312,11 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                 <label for="mal_link"><?php echo htmlspecialchars(t('add_anime.label.mal_link'), ENT_QUOTES, 'UTF-8'); ?> <span style="color:#d32f2f;">*</span></label>
                 <div class="input-area">
                     <input type="url" name="mal_link" required placeholder="<?php echo htmlspecialchars(t('add_anime.ph.mal_link'), ENT_QUOTES, 'UTF-8'); ?>" value="<?php echo htmlspecialchars($anime['mal_link'] ?? ''); ?>">
+                    <label class="filler-toggle" style="margin-top:6px;">
+                        <input type="checkbox" name="mal_shared" id="mal_shared_chk" value="1"<?php echo $malSharedNow ? ' checked' : ''; ?>>
+                        <span class="filler-toggle-hint"><?php echo htmlspecialchars(t('identity.label.mal_shared'), ENT_QUOTES, 'UTF-8'); ?><?php if ($malBadge !== ''): ?> <strong><?php echo htmlspecialchars(sprintf(t('identity.form.current_part_fmt'), $malBadge), ENT_QUOTES, 'UTF-8'); ?></strong><?php endif; ?></span>
+                    </label>
+                    <small style="display:block;margin-top:4px;color:#666;"><?php echo htmlspecialchars(t('identity.hint.shared'), ENT_QUOTES, 'UTF-8'); ?></small>
                 </div>
             </div>
             <div class="form-group">
@@ -1473,6 +1519,7 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
             'field_value_rejected_suffix'   => t('add_anime.js.field_value_rejected_suffix'),
             'no_empty_fields'               => t('add_anime.js.no_empty_fields'),
             'fields_filled_prefix'          => t('add_anime.js.fields_filled_prefix'),
+            'shared_episodes_skipped'       => t('identity.js.shared_episodes_skipped'),
             'request_failed_prefix'         => t('add_anime.js.request_failed_prefix'),
             'aired_sync_fetching'           => t('edit_anime.js.aired_sync.fetching'),
             'aired_sync_this_week'          => t('edit_anime.js.aired_sync.this_week'),

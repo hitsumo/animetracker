@@ -291,6 +291,26 @@ return [
     'relation.error.exists'  => 'These two animes already have a relation. Delete the existing one first if you want a different type.',
     'relation.error.failed'  => 'Something went wrong while saving the relation.',
 
+    // -----------------------------------------------------------------
+    // 1.1.41 - Shared MAL / AniDB identity (part number). One source
+    // record (e.g. MAL 2994) may be several catalog entries; the form
+    // checkbox declares it and the entry takes the next part number.
+    // functions/identity_helpers.php.
+    // -----------------------------------------------------------------
+    'identity.label.mal_shared'          => 'This MAL record corresponds to more than one anime',
+    'identity.label.anidb_shared'        => 'This AniDB record corresponds to more than one anime',
+    'identity.hint.shared'               => 'When checked, the same number may be used by another entry; this entry takes the next part number (e.g. 2/2) automatically. Unchecked, a second entry with the same number is refused.',
+    'identity.form.current_part_fmt'     => '(currently part %s)',
+    'identity.duplicate.share_hint'      => 'If you mean to split one source record into several anime on purpose, tick the "corresponds to more than one anime" box on the form.',
+    'identity.error.unshare_blocked_mal'   => 'Other entries carry this MAL number too. Keep the box ticked to stay shared; to stop sharing, separate the other parts first.',
+    'identity.error.unshare_blocked_anidb' => 'Other entries carry this AniDB number too. Keep the box ticked to stay shared; to stop sharing, separate the other parts first.',
+    'identity.js.shared_episodes_skipped' => 'Shared identity: episode counts were not filled (the source counts the whole, not this part) - enter them by hand.',
+    'identity.import.shared_result'      => '%d entries share a MAL identity with other entries; check their episode counts by hand.',
+    'identity.badge.title'               => 'This entry is one of several parts sharing the same source number (part/total).',
+    'anime_details.section.shared_identity'   => 'Same Source Record',
+    'anime_details.shared_identity.hint'      => 'These entries point at the same MAL / AniDB number: the source counts them as one record, the catalog keeps them apart.',
+    'anime_details.shared_identity.part_fmt'  => 'Part %d',
+
     'anime_details.js.operation_failed'  => 'Operation failed.',
     'anime_details.js.connection_error'  => 'Connection error. Please try again.',
 

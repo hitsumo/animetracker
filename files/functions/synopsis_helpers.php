@@ -22,11 +22,19 @@
  * WHY MAL ID AND NOT THE LOCAL animes.id: animes is the CENTRAL CATALOG.
  * The same synopsis text is served to every instance, but animes.id is
  * assigned per-instance (AUTO_INCREMENT), so a raw local id would point at
- * a different (or missing) row elsewhere. mal_id is globally stable and
- * UNIQUE, so render_synopsis() resolves it to THIS instance's local id at
- * display time. If no local row carries that mal_id (the referenced anime
- * is not in this catalog), the link degrades to the author's plain-text
- * label so the sentence still reads.
+ * a different (or missing) row elsewhere. mal_id is globally stable, so
+ * render_synopsis() resolves it to THIS instance's local id at display
+ * time. If no local row carries that mal_id (the referenced anime is not
+ * in this catalog), the link degrades to the author's plain-text label so
+ * the sentence still reads.
+ *
+ * 1.1.41 - SHARED MAL IDS. A MAL id may now belong to several rows
+ * (animes.mal_part, see functions/identity_helpers.php). The shortcode
+ * grew an optional part: [[anime:2994/2|label]] means part 2 of MAL 2994.
+ * A plain [[anime:2994]] keeps meaning what every existing synopsis meant
+ * when it was written - the first part. The picker (anime_link_search.php
+ * + js/synopsis_link.js) writes the "/n" form only when the id is shared,
+ * so codes for unshared anime look exactly as before.
  *
  * Loaded via the functions.php loader. Rendering surfaces:
  *   - anime_details.php: render_synopsis() (full text, clickable links)
@@ -34,12 +42,15 @@
  */
 
 /**
- * Shortcode grammar: [[anime:<mal_id>]] or [[anime:<mal_id>|label]].
- * mal_id is digits; label is any run without a closing bracket. The
- * pattern is applied to htmlspecialchars-escaped text, which is safe
- * because none of the delimiters ([ ] : |) are altered by escaping.
+ * Shortcode grammar: [[anime:<mal_id>]], [[anime:<mal_id>/<part>]], each
+ * optionally followed by |label. mal_id and part are digits; label is any
+ * run without a closing bracket. The pattern is applied to
+ * htmlspecialchars-escaped text, which is safe because none of the
+ * delimiters ([ ] : / |) are altered by escaping.
+ *
+ * Groups: 1 = mal_id, 2 = part (1.1.41, optional, empty = part 1), 3 = label.
  */
-const SYNOPSIS_ANIME_SHORTCODE = '/\[\[anime:(\d+)(?:\|([^\]]*))?\]\]/';
+const SYNOPSIS_ANIME_SHORTCODE = '/\[\[anime:(\d+)(?:\/(\d+))?(?:\|([^\]]*))?\]\]/';
 
 /**
  * Render a synopsis as safe HTML, turning [[anime:<mal_id>|label]]
@@ -69,21 +80,25 @@ function render_synopsis($pdo, $text) {
     if (preg_match_all(SYNOPSIS_ANIME_SHORTCODE, $escaped, $ms) && !empty($ms[1])) {
         $malIds = array_values(array_unique(array_map('intval', $ms[1])));
         $placeholders = implode(',', array_fill(0, count($malIds), '?'));
+        // 1.1.41: every part of every referenced id is fetched; the map is
+        // keyed "mal/part" so [[anime:2994/2]] finds its own row and a
+        // part-less code finds part 1.
         $stmt = $pdo->prepare(
-            "SELECT id, mal_id, title, alternative_titles FROM animes WHERE mal_id IN ($placeholders)"
+            "SELECT id, mal_id, mal_part, title, alternative_titles FROM animes WHERE mal_id IN ($placeholders)"
         );
         $stmt->execute($malIds);
         $byMalId = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $byMalId[(int) $row['mal_id']] = $row;
+            $byMalId[(int) $row['mal_id'] . '/' . (int) ($row['mal_part'] ?? 1)] = $row;
         }
 
         $escaped = preg_replace_callback(
             SYNOPSIS_ANIME_SHORTCODE,
             function ($m) use ($byMalId) {
                 $malId = (int) $m[1];
-                $label = isset($m[2]) ? trim($m[2]) : '';   // already escaped
-                $row   = $byMalId[$malId] ?? null;
+                $part  = (isset($m[2]) && $m[2] !== '') ? (int) $m[2] : 1;
+                $label = isset($m[3]) ? trim($m[3]) : '';   // already escaped
+                $row   = $byMalId[$malId . '/' . $part] ?? null;
 
                 if ($row) {
                     if ($label === '') {
@@ -128,7 +143,7 @@ function synopsis_plain($text) {
     return preg_replace_callback(
         SYNOPSIS_ANIME_SHORTCODE,
         function ($m) {
-            return isset($m[2]) ? trim($m[2]) : '';
+            return isset($m[3]) ? trim($m[3]) : '';
         },
         $text
     );

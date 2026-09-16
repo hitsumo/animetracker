@@ -251,6 +251,24 @@ if ($aniListId !== null || $malId !== null) {
     }
 }
 
+// 1.1.41 - PAYLASIMLI kimlik: bolum sayilari tasinmaz. Formdaki kutu
+// ("bu MAL / AniDB kaydi birden cok animeye karsilik geliyor") isaretliyse
+// kaynagin verdigi bolum sayisi BUTUNUN sayisidir, bu parcanin degil
+// (Death Note: Rewrite MAL'de 2 bolum, katalogda 1+1). Uydurma bir sayi
+// yazmaktansa alan bos birakilir ve kullaniciya soylenir; obur alanlar
+// (durum, yayin gunu/saati, tarihler) butun icin de parca icin de
+// aynidir, onlar yine dolar. Kutu formdan gelir cunku paylasim kayit
+// edilmeden once de (Anime Ekle) bilinir - tabloya bakmak yetmezdi.
+$sharedNotice = false;
+if (!empty($_POST['mal_shared']) || !empty($_POST['anidb_shared'])) {
+    foreach (['total_episodes', 'aired_episodes'] as $epField) {
+        if (array_key_exists($epField, $fields)) {
+            unset($fields[$epField]);
+            $sharedNotice = true;
+        }
+    }
+}
+
 if (empty($fields)) {
     // The API returned 200 but nothing we recognise. Could be a brand
     // new anime with no schedule yet, or an unexpected payload shape.
@@ -261,6 +279,9 @@ if (empty($fields)) {
 }
 
 as_respond([
-    'success' => true,
-    'fields'  => $fields,
+    'success'       => true,
+    'fields'        => $fields,
+    // true yalnizca gercekten bir bolum alani dusuruldugunde; istemci
+    // buna gore rapora tek satir ekler.
+    'shared_notice' => $sharedNotice,
 ]);

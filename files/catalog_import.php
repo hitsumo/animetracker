@@ -20,9 +20,14 @@
  *     upload ("user customisation wins").
  *
  * Matching order (first hit wins):
- *   1. mal_id     (MyAnimeList ID)
- *   2. anidb_id   (AniDB ID)
+ *   1. mal_id   + mal_part    (MyAnimeList ID, part number since 1.1.41)
+ *   2. anidb_id + anidb_part  (AniDB ID, part number since 1.1.41)
  *   3. catalog_uuid (server-assigned UUID, fallback)
+ *
+ * 1.1.41: an id may be SHARED by several rows (functions/identity_helpers.php),
+ * so the identity key is "id/part". A wire that carries no part fields (an
+ * older server) reads as part 1 everywhere - which is what every row was
+ * before 1.1.41 - so the match is byte-for-byte the old one for old data.
  *
  * Chronology markers are replaced wholesale: all existing rows are
  * deleted and the catalog markers are re-inserted. The catalog's
@@ -226,18 +231,18 @@ if (!is_writable($uploadsDir)) {
 // We pull only the identity columns + source, so the memory footprint is
 // minimal even with thousands of rows.
 $localMap = [
-    'mal'    => [], // mal_id    -> local id
-    'anidb'  => [], // anidb_id  -> local id
+    'mal'    => [], // "mal_id/mal_part"     -> local id   (1.1.41: part-keyed)
+    'anidb'  => [], // "anidb_id/anidb_part" -> local id
     'uuid'   => [], // catalog_uuid -> local id
     'byId'   => [], // local id  -> [mal_id, anidb_id, catalog_uuid, source]
 ];
 
-$rows = $pdo->query("SELECT id, mal_id, anidb_id, catalog_uuid, source FROM animes")
+$rows = $pdo->query("SELECT id, mal_id, mal_part, anidb_id, anidb_part, catalog_uuid, source FROM animes")
             ->fetchAll(PDO::FETCH_ASSOC);
 foreach ($rows as $r) {
     $localMap['byId'][(int)$r['id']] = $r;
-    if (!empty($r['mal_id']))       $localMap['mal'][(int)$r['mal_id']]       = (int)$r['id'];
-    if (!empty($r['anidb_id']))     $localMap['anidb'][(int)$r['anidb_id']]   = (int)$r['id'];
+    if (!empty($r['mal_id']))       $localMap['mal'][(int)$r['mal_id'] . '/' . (int)($r['mal_part'] ?? 1)]       = (int)$r['id'];
+    if (!empty($r['anidb_id']))     $localMap['anidb'][(int)$r['anidb_id'] . '/' . (int)($r['anidb_part'] ?? 1)] = (int)$r['id'];
     if (!empty($r['catalog_uuid'])) $localMap['uuid'][$r['catalog_uuid']]     = (int)$r['id'];
 }
 
@@ -277,7 +282,9 @@ $updateSql = "
         country = :country,
         is_adult = :is_adult,
         mal_id = :mal_id,
+        mal_part = :mal_part,
         anidb_id = :anidb_id,
+        anidb_part = :anidb_part,
         catalog_uuid = :catalog_uuid,
         source = 'catalog'
     WHERE id = :id
@@ -323,7 +330,7 @@ $insertSql = "
         synopsis_tr, synopsis_en, translation_status,
         release_date, release_date_precision, end_date, end_date_precision,
         series_name, media_type, country,
-        mal_id, anidb_id, catalog_uuid, source, is_adult
+        mal_id, mal_part, anidb_id, anidb_part, catalog_uuid, source, is_adult
     ) VALUES (
         :title, :alternative_titles, :status, :total_episodes, :aired_episodes,
         :image_path,
@@ -333,7 +340,7 @@ $insertSql = "
         :synopsis_tr, :synopsis_en, :translation_status,
         :release_date, :release_date_precision, :end_date, :end_date_precision,
         :series_name, :media_type, :country,
-        :mal_id, :anidb_id, :catalog_uuid, 'catalog', :is_adult
+        :mal_id, :mal_part, :anidb_id, :anidb_part, :catalog_uuid, 'catalog', :is_adult
     )
 ";
 $insertStmt = $pdo->prepare($insertSql);
@@ -379,11 +386,15 @@ try {
     foreach ($catalogAnimes as $ca) {
         $matchId = null;
 
-        // Matching order: mal_id -> anidb_id -> catalog_uuid
-        if (!empty($ca['mal_id']) && isset($localMap['mal'][(int)$ca['mal_id']])) {
-            $matchId = $localMap['mal'][(int)$ca['mal_id']];
-        } elseif (!empty($ca['anidb_id']) && isset($localMap['anidb'][(int)$ca['anidb_id']])) {
-            $matchId = $localMap['anidb'][(int)$ca['anidb_id']];
+        // Matching order: mal_id/part -> anidb_id/part -> catalog_uuid.
+        // 1.1.41: the wire may lack the part fields (older server) - then
+        // part 1, which every pre-1.1.41 row is.
+        $caMalPart   = max(1, (int)($ca['mal_part']   ?? 1));
+        $caAnidbPart = max(1, (int)($ca['anidb_part'] ?? 1));
+        if (!empty($ca['mal_id']) && isset($localMap['mal'][(int)$ca['mal_id'] . '/' . $caMalPart])) {
+            $matchId = $localMap['mal'][(int)$ca['mal_id'] . '/' . $caMalPart];
+        } elseif (!empty($ca['anidb_id']) && isset($localMap['anidb'][(int)$ca['anidb_id'] . '/' . $caAnidbPart])) {
+            $matchId = $localMap['anidb'][(int)$ca['anidb_id'] . '/' . $caAnidbPart];
         } elseif (!empty($ca['catalog_uuid']) && isset($localMap['uuid'][$ca['catalog_uuid']])) {
             $matchId = $localMap['uuid'][$ca['catalog_uuid']];
         }
@@ -433,7 +444,9 @@ try {
             // tasimayabilir; eksikse 0 (yetiskin degil) - geriye uyumlu.
             ':is_adult'            => !empty($ca['is_adult']) ? 1 : 0,
             ':mal_id'              => !empty($ca['mal_id'])      ? (int)$ca['mal_id']   : null,
+            ':mal_part'            => $caMalPart,
             ':anidb_id'            => !empty($ca['anidb_id'])    ? (int)$ca['anidb_id'] : null,
+            ':anidb_part'          => $caAnidbPart,
             ':catalog_uuid'        => $ca['catalog_uuid']        ?? null,
         ];
 

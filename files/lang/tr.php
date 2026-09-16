@@ -322,6 +322,26 @@ return [
     'relation.error.exists'  => 'Bu iki anime arasında zaten bir ilişki var. Yerine başkasını kurmak için önce mevcut olanı silin.',
     'relation.error.failed'  => 'İlişki kaydedilirken bir hata oluştu.',
 
+    // -----------------------------------------------------------------
+    // 1.1.41 - Paylaşımlı MAL / AniDB kimliği (parça numarası).
+    // Bir kaynak kaydı (örn. MAL 2994) katalogda birden çok anime olabilir;
+    // formdaki kutu bunu beyan eder, kayıt sıradaki parça numarasını alır.
+    // functions/identity_helpers.php.
+    // -----------------------------------------------------------------
+    'identity.label.mal_shared'          => 'Bu MAL kaydı birden çok animeye karşılık geliyor',
+    'identity.label.anidb_shared'        => 'Bu AniDB kaydı birden çok animeye karşılık geliyor',
+    'identity.hint.shared'               => 'İşaretlenirse aynı numara başka bir kayıtta da kullanılabilir; bu kayıt sıradaki parça numarasını (örn. 2/2) kendiliğinden alır. İşaretsizken aynı numarayla ikinci kayıt reddedilir.',
+    'identity.form.current_part_fmt'     => '(şu an parça %s)',
+    'identity.duplicate.share_hint'      => 'Aynı kaynak kaydını bilerek birden çok animeye bölmek istiyorsanız formdaki "birden çok animeye karşılık geliyor" kutusunu işaretleyin.',
+    'identity.error.unshare_blocked_mal'   => 'Bu MAL numarasını başka kayıt(lar) da taşıyor. Paylaşımı sürdürmek için kutuyu işaretli bırakın; kaldırmak için önce diğer parçaları ayırın.',
+    'identity.error.unshare_blocked_anidb' => 'Bu AniDB numarasını başka kayıt(lar) da taşıyor. Paylaşımı sürdürmek için kutuyu işaretli bırakın; kaldırmak için önce diğer parçaları ayırın.',
+    'identity.js.shared_episodes_skipped' => 'Paylaşımlı kimlik: bölüm sayıları doldurulmadı (kaynağın sayısı bütünün sayısıdır, bu parçanın değil) - elle girin.',
+    'identity.import.shared_result'      => '%d kayıt paylaşımlı MAL kimliği taşıyor; bölüm sayıları elle kontrol edilmeli.',
+    'identity.badge.title'               => 'Bu kayıt, aynı kaynak numarasını paylaşan parçalardan biri (parça/toplam).',
+    'anime_details.section.shared_identity'   => 'Aynı Kaynak Kaydı',
+    'anime_details.shared_identity.hint'      => 'Bu kayıtlar aynı MAL / AniDB numarasına bağlı: kaynak onları tek kayıt sayar, katalog ayrı ayrı tutar.',
+    'anime_details.shared_identity.part_fmt'  => 'Parça %d',
+
     // JS alerts on the emotion toolbar
     'anime_details.js.operation_failed'  => 'İşlem başarısız oldu.',
     'anime_details.js.connection_error'  => 'Bağlantı hatası. Lütfen tekrar deneyin.',

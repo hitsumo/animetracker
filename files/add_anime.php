@@ -105,6 +105,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $anidb_link = $_POST['anidb_link'] ?? '';
     $mal_link = $_POST['mal_link'] ?? '';
 	$anime_schedule_link = $_POST['anime_schedule_link'] ?? '';
+    // 1.1.41 - paylasimli kimlik beyani (checkbox). Isaretliyse bu kayit,
+    // ayni MAL / AniDB numarasini tasiyan baska kayitlarin yanina SIRADAKI
+    // parca numarasiyla girer; isaretli degilse ayni numara ikinci kez
+    // reddedilir (kazara cift kayit hala engellenir). Kutu saklanmaz,
+    // parca numarasi saklanir - bkz. functions/identity_helpers.php.
+    $mal_shared   = isset($_POST['mal_shared']);
+    $anidb_shared = isset($_POST['anidb_shared']);
 
     // MAL ve AniDB linkleri zorunlu - katalog senkronizasyonunda local
     // ile sunucu arasindaki eslesmeyi saglayan kimlik alanlari bunlardan
@@ -302,7 +309,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // approval), so the historical default is preserved.
     $source = (MULTI_USER_MODE && can($pdo, 'moderate')) ? 'catalog' : 'local';
 
-    $sql = "INSERT INTO animes (title, alternative_titles, status, total_episodes, aired_episodes, image_path, next_episode_date, anidb_link, mal_link, anime_schedule_link, episode_interval, broadcast_day, broadcast_time, broadcast_timezone, synopsis_tr, synopsis_en, translation_status, release_date, release_date_precision, end_date, end_date_precision, series_name, chain_name, media_type, country, mal_id, anidb_id, filler_tracking, is_adult, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    // 1.1.41 - parca numaralari. Kutu isaretliyse o kimlik icin siradaki
+    // bos parca (MAX + 1), degilse 1. Yeni kayitta "kutu isaretsiz ama
+    // kimlik dolu" durumu burada reddedilmez: parca 1 ile INSERT bilesik
+    // UNIQUE'e takilir ve asagidaki 1062 sayfasi ("zaten kayitli, iste
+    // kayit") gosterilir - kazara cift kayda dogru cevap odur.
+    $identityParts = identity_resolve_parts($pdo, $mal_id, $anidb_id, $mal_shared, $anidb_shared, null);
+    $mal_part      = $identityParts['mal_part'];
+    $anidb_part    = $identityParts['anidb_part'];
+
+    $sql = "INSERT INTO animes (title, alternative_titles, status, total_episodes, aired_episodes, image_path, next_episode_date, anidb_link, mal_link, anime_schedule_link, episode_interval, broadcast_day, broadcast_time, broadcast_timezone, synopsis_tr, synopsis_en, translation_status, release_date, release_date_precision, end_date, end_date_precision, series_name, chain_name, media_type, country, mal_id, mal_part, anidb_id, anidb_part, filler_tracking, is_adult, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     $stmt = $pdo->prepare($sql);
 
@@ -338,7 +354,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $media_type,
             $country,
             $mal_id,
+            $mal_part,
             $anidb_id,
+            $anidb_part,
             $filler_tracking,
             $is_adult,
             $source
@@ -382,7 +400,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if ($indexName === 'idx_mal_id' && !empty($mal_id)) {
             $fieldLabel = t('add_anime.duplicate.field_mal_id');
             $duplicateValue = (string)$mal_id;
-            $look = $pdo->prepare("SELECT id, title FROM animes WHERE mal_id = ? LIMIT 1");
+            // 1.1.41: birden cok parca varsa ilkini goster (ORDER BY).
+            $look = $pdo->prepare("SELECT id, title FROM animes WHERE mal_id = ? ORDER BY mal_part LIMIT 1");
             $look->execute([$mal_id]);
             $row = $look->fetch(PDO::FETCH_ASSOC);
             if ($row) {
@@ -392,7 +411,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         } elseif ($indexName === 'idx_anidb_id' && !empty($anidb_id)) {
             $fieldLabel = t('add_anime.duplicate.field_anidb_id');
             $duplicateValue = (string)$anidb_id;
-            $look = $pdo->prepare("SELECT id, title FROM animes WHERE anidb_id = ? LIMIT 1");
+            $look = $pdo->prepare("SELECT id, title FROM animes WHERE anidb_id = ? ORDER BY anidb_part LIMIT 1");
             $look->execute([$anidb_id]);
             $row = $look->fetch(PDO::FETCH_ASSOC);
             if ($row) {
@@ -417,6 +436,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 . ' <strong>'
                 . htmlspecialchars($existingTitle, ENT_QUOTES, 'UTF-8')
                 . '</strong>';
+        }
+        // 1.1.41: ayni kaynak kaydini BILEREK iki animeye bolmek isteyen
+        // kuratore yolu goster. Yalnizca MAL / AniDB catismasinda - UUID
+        // catismasi paylasimla cozulmez.
+        if ($indexName === 'idx_mal_id' || $indexName === 'idx_anidb_id') {
+            $detailMsg .= '<br><em>' . htmlspecialchars(t('identity.duplicate.share_hint'), ENT_QUOTES, 'UTF-8') . '</em>';
         }
 
         $existingLink = '';
@@ -909,6 +934,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <label for="anidb_link"><?php echo htmlspecialchars(t('add_anime.label.anidb_link'), ENT_QUOTES, 'UTF-8'); ?> <span style="color:#d32f2f;">*</span></label>
             <div class="input-area">
                 <input type="url" name="anidb_link" required placeholder="<?php echo htmlspecialchars(t('add_anime.ph.anidb_link'), ENT_QUOTES, 'UTF-8'); ?>">
+                <?php // 1.1.41 - paylasimli kimlik beyani. Isaretli: ayni
+                      // AniDB numarasi baska bir kayitta da kullanilabilir,
+                      // bu kayit siradaki parca numarasini kendisi alir.
+                      // Isaretsiz: ayni numara ikinci kez reddedilir. ?>
+                <label class="filler-toggle" style="margin-top:6px;">
+                    <input type="checkbox" name="anidb_shared" id="anidb_shared_chk" value="1">
+                    <span class="filler-toggle-hint"><?php echo htmlspecialchars(t('identity.label.anidb_shared'), ENT_QUOTES, 'UTF-8'); ?></span>
+                </label>
             </div>
         </div>
 
@@ -916,6 +949,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <label for="mal_link"><?php echo htmlspecialchars(t('add_anime.label.mal_link'), ENT_QUOTES, 'UTF-8'); ?> <span style="color:#d32f2f;">*</span></label>
             <div class="input-area">
                 <input type="url" name="mal_link" required placeholder="<?php echo htmlspecialchars(t('add_anime.ph.mal_link'), ENT_QUOTES, 'UTF-8'); ?>">
+                <label class="filler-toggle" style="margin-top:6px;">
+                    <input type="checkbox" name="mal_shared" id="mal_shared_chk" value="1">
+                    <span class="filler-toggle-hint"><?php echo htmlspecialchars(t('identity.label.mal_shared'), ENT_QUOTES, 'UTF-8'); ?></span>
+                </label>
+                <small style="display:block;margin-top:4px;color:#666;"><?php echo htmlspecialchars(t('identity.hint.shared'), ENT_QUOTES, 'UTF-8'); ?></small>
             </div>
         </div>
 		<div class="form-group">
@@ -1024,6 +1062,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         'no_empty_fields'              => t('add_anime.js.no_empty_fields'),
         'fields_filled_prefix'         => t('add_anime.js.fields_filled_prefix'),
         'request_failed_prefix'        => t('add_anime.js.request_failed_prefix'),
+        'shared_episodes_skipped'      => t('identity.js.shared_episodes_skipped'),
         'synlink_btn'                  => t('add_anime.js.synlink.btn'),
         'synlink_hint'                 => t('add_anime.js.synlink.hint'),
         'synlink_search_ph'            => t('add_anime.js.synlink.search_ph'),

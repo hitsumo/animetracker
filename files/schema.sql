@@ -159,12 +159,30 @@ SET time_zone = "+00:00";
 --
 -- Catalog identity fields (for future sync with remote catalog API):
 --   mal_id          - Numeric MyAnimeList ID parsed from mal_link. Primary
---                     cross-install identifier. UNIQUE so the same anime
---                     cannot be added twice. NULL if the MAL link is
---                     missing or unparseable.
+--                     cross-install identifier. UNIQUE together with
+--                     mal_part (below) so the same anime cannot be added
+--                     twice by accident. NULL if the MAL link is missing
+--                     or unparseable.
+--   mal_part        - 1.1.41. Part number under a SHARED MAL id. The
+--                     sources disagree about what "one anime" is (MAL keeps
+--                     Death Note: Rewrite as one two-episode record, AniDB
+--                     as two one-episode records); when the catalog follows
+--                     the finer split, every row still points at the same
+--                     MAL id and this column tells them apart: 2994/1,
+--                     2994/2. DEFAULT 1, so every pre-1.1.41 row is "the
+--                     only part" and the composite key behaves exactly like
+--                     the old single-column one. Assigned by the form
+--                     (next free number, MAX+1) when the curator ticks
+--                     "this MAL record corresponds to more than one anime";
+--                     never typed. Carried by the catalog wire, the JSON
+--                     backup and the synopsis shortcode ([[anime:2994/2]]).
+--                     See functions/identity_helpers.php.
 --   anidb_id        - Numeric AniDB ID parsed from anidb_link. Secondary
 --                     cross-install identifier (some niche / older titles
---                     only have AniDB entries). UNIQUE.
+--                     only have AniDB entries). UNIQUE together with
+--                     anidb_part.
+--   anidb_part      - 1.1.41. Same as mal_part, for the AniDB id (the
+--                     mirror case: AniDB single record, MAL split).
 --   catalog_uuid    - Fallback identifier assigned by the remote catalog
 --                     when neither mal_id nor anidb_id exists. UNIQUE.
 --   source          - 'catalog' for rows that came from the remote catalog
@@ -221,7 +239,9 @@ CREATE TABLE IF NOT EXISTS `animes` (
   `media_type` enum('TV','Film','OVA','Special','ONA') DEFAULT NULL,
   `country` char(2) DEFAULT NULL,
   `mal_id` int(11) DEFAULT NULL,
+  `mal_part` tinyint unsigned NOT NULL DEFAULT 1,
   `anidb_id` int(11) DEFAULT NULL,
+  `anidb_part` tinyint unsigned NOT NULL DEFAULT 1,
   `catalog_uuid` varchar(36) DEFAULT NULL,
   `source` enum('catalog','local') NOT NULL DEFAULT 'local',
   `filler_tracking` tinyint(1) NOT NULL DEFAULT 0,
@@ -231,8 +251,8 @@ CREATE TABLE IF NOT EXISTS `animes` (
   PRIMARY KEY (`id`),
   KEY `idx_series_name` (`series_name`),
   KEY `idx_chain_name` (`series_name`, `chain_name`),
-  UNIQUE KEY `idx_mal_id` (`mal_id`),
-  UNIQUE KEY `idx_anidb_id` (`anidb_id`),
+  UNIQUE KEY `idx_mal_id` (`mal_id`, `mal_part`),
+  UNIQUE KEY `idx_anidb_id` (`anidb_id`, `anidb_part`),
   UNIQUE KEY `idx_catalog_uuid` (`catalog_uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -822,6 +842,16 @@ CREATE TABLE IF NOT EXISTS `invite_requests` (
 --   suggestion_status: 'pending' awaiting review; 'approved' promoted to
 --     animes (row kept for audit); 'rejected' declined.
 --   suggested_by / reviewed_by: users.id (set NULL if the user is deleted).
+--
+-- title_english (1.1.41 NOTE): RETIRED in 1.1.21, yet DEFINED here on
+--   purpose - the same replay rule as the personal columns on animes (see
+--   the NOTE above that table). A fresh install starts at version '0.5' and
+--   replays every migration: 1.0.6 creates this table with IF NOT EXISTS
+--   (skipped, the table already exists), so the column was never born, and
+--   1.1.20 then failed on `WHERE title_english IS NOT NULL` (1054) - every
+--   fresh install since 1.1.21 stalled at 1.1.19. With the column here,
+--   1.1.20 reads it and 1.1.21 drops it, exactly as on animes. Do not write
+--   new code against it; the live table does not carry it.
 -- --------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS `catalog_requests` (
@@ -829,6 +859,7 @@ CREATE TABLE IF NOT EXISTS `catalog_requests` (
   `mal_id`              int(11) DEFAULT NULL,
   `anidb_id`            int(11) DEFAULT NULL,
   `title`               varchar(255) NOT NULL,
+  `title_english`       varchar(255) DEFAULT NULL,
   `alternative_titles`  text DEFAULT NULL,
   `status`              enum('Yayın Tamamlandı','Yayın Devam Ediyor','Yayın Başlamadı','Seçim Yapılmadı','Yayın İptal Edildi') DEFAULT NULL,
   `is_adult`            tinyint(1) NOT NULL DEFAULT 0,

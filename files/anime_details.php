@@ -121,6 +121,18 @@ $relatedAnimes = getRelatedAnimes($pdo, $anime['series_name'] ?? null, $anime['i
 // asagidaki "Siradaki" karti ile "Seri Kronolojisi" dugmesini besler.
 $animeRelationRows = getAnimeRelations($pdo, $anime['id']);
 $animeRelations    = anime_relations_grouped($animeRelationRows);
+
+// 1.1.41 - paylasimli MAL / AniDB kimligi. Ayni kaynak kaydini tasiyan
+// oteki kayitlar ("kardesler") VERIDEN turer, iliski satiri gerekmez;
+// "Dis Siteler" dugmesinin yanina "2/2" rozeti, asagiya "Ayni kaynak
+// kaydi" bolumu. Rozet sayilari yalnizca kardes VARSA sorulur - tek
+// parcali (yani neredeyse her) animede iki ek sorgu yerine sifir.
+$identitySiblings = identity_siblings($pdo, $anime);
+$malPartBadge = $anidbPartBadge = '';
+if (!empty($identitySiblings)) {
+    $malPartBadge   = identity_part_badge($anime['mal_part']   ?? 1, identity_part_count($pdo, 'mal',   $anime['mal_id']   ?? null));
+    $anidbPartBadge = identity_part_badge($anime['anidb_part'] ?? 1, identity_part_count($pdo, 'anidb', $anime['anidb_id'] ?? null));
+}
 $chronologyMarkers = getChronologyMarkers($pdo, $anime['id']);
 $chronologyAlert = getActiveChronologyAlert($pdo, $anime['id'], $anime['watched_episodes']);
 
@@ -722,17 +734,19 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
                 <a href="<?php echo $anidb_safe; ?>"
                    target="_blank"
                    rel="noopener noreferrer"
-                   class="site-link anidb-link">
-                    <i class="fas fa-database"></i> AniDB
+                   class="site-link anidb-link"<?php if ($anidbPartBadge !== ''): ?> title="<?php echo htmlspecialchars(t('identity.badge.title'), ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>>
+                    <i class="fas fa-database"></i> AniDB<?php if ($anidbPartBadge !== ''): ?> &middot; <?php echo htmlspecialchars($anidbPartBadge, ENT_QUOTES, 'UTF-8'); ?><?php endif; ?>
                 </a>
                 <?php endif; ?>
 
+                <?php // 1.1.41: paylasimli kimlikte "MyAnimeList · 2/2" -
+                      // bu kayit o MAL numarasinin kacinci parcasi. ?>
                 <?php if ($mal_safe): ?>
                 <a href="<?php echo $mal_safe; ?>"
                    target="_blank"
                    rel="noopener noreferrer"
-                   class="site-link mal-link">
-                    <i class="fas fa-list"></i> MyAnimeList
+                   class="site-link mal-link"<?php if ($malPartBadge !== ''): ?> title="<?php echo htmlspecialchars(t('identity.badge.title'), ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>>
+                    <i class="fas fa-list"></i> MyAnimeList<?php if ($malPartBadge !== ''): ?> &middot; <?php echo htmlspecialchars($malPartBadge, ENT_QUOTES, 'UTF-8'); ?><?php endif; ?>
                 </a>
                 <?php endif; ?>
 
@@ -835,6 +849,55 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
                             </a>
                             <span class="relation-row-status ws-<?php echo watch_status_css_class($rel['watch_status']); ?>">
                                 <?php echo htmlspecialchars(watch_status_label($rel['watch_status']), ENT_QUOTES, 'UTF-8'); ?>
+                            </span>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <?php // ============================================================
+                  // SECTION: Ayni Kaynak Kaydi (1.1.41)
+                  // Ayni MAL / AniDB numarasini tasiyan oteki kayitlar. Veriden
+                  // turer (animes.mal_part / anidb_part); iliski satiri
+                  // gerekmez. Gorunum Iliskili Animeler bolumunun ayni
+                  // (.relation-section), baslik altinda "MAL 2994" / "AniDB
+                  // 8147" gruplari; her satirda parca numarasi.
+                  // ============================================================
+            ?>
+            <?php if (!empty($identitySiblings)): ?>
+            <?php
+                $identityGroups = [];
+                foreach ($identitySiblings as $sib) {
+                    if ($sib['shares']['mal']) {
+                        $identityGroups['MAL ' . (int)$anime['mal_id']][] = ['row' => $sib, 'part' => (int)$sib['mal_part']];
+                    }
+                    if ($sib['shares']['anidb']) {
+                        $identityGroups['AniDB ' . (int)$anime['anidb_id']][] = ['row' => $sib, 'part' => (int)$sib['anidb_part']];
+                    }
+                }
+            ?>
+            <div class="relation-section identity-section">
+                <h3><i class="fas fa-clone"></i> <?php echo htmlspecialchars(t('anime_details.section.shared_identity'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                <p class="identity-section-hint"><?php echo htmlspecialchars(t('anime_details.shared_identity.hint'), ENT_QUOTES, 'UTF-8'); ?></p>
+                <div class="relation-section-list">
+                    <?php foreach ($identityGroups as $groupLabel => $entries): ?>
+                    <div class="relation-group">
+                        <h4><?php echo htmlspecialchars($groupLabel, ENT_QUOTES, 'UTF-8'); ?></h4>
+                        <?php foreach ($entries as $entry): $sib = $entry['row']; ?>
+                        <div class="relation-row">
+                            <a href="anime_details.php?id=<?php echo (int)$sib['id']; ?>" class="relation-row-link">
+                                <?php echo htmlspecialchars(sprintf(t('anime_details.shared_identity.part_fmt'), $entry['part']), ENT_QUOTES, 'UTF-8'); ?>
+                                &middot;
+                                <?php echo htmlspecialchars(display_title($sib), ENT_QUOTES, 'UTF-8'); ?>
+                                <?php if (!empty($sib['media_type'])): ?>
+                                    (<?php echo htmlspecialchars($sib['media_type'], ENT_QUOTES, 'UTF-8'); ?>)
+                                <?php endif; ?>
+                            </a>
+                            <span class="relation-row-status ws-<?php echo watch_status_css_class($sib['watch_status']); ?>">
+                                <?php echo htmlspecialchars(watch_status_label($sib['watch_status']), ENT_QUOTES, 'UTF-8'); ?>
                             </span>
                         </div>
                         <?php endforeach; ?>
