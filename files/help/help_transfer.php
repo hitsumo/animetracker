@@ -134,6 +134,23 @@ lang_init($pdo);
         <?php echo t('help.transfer.anilist.box_body'); ?>
     </div>
     <!-- =============================================================== -->
+    <?php /* 1.1.42: ice aktarma kara listesi (1.1.35). Yalniz cok
+       kullanicili modda etkindir; metin bunu ilk cumlede soyler. */ ?>
+    <h2 id="kara-liste"><?php echo htmlspecialchars(t('help.blacklist.h2'), ENT_QUOTES, 'UTF-8'); ?></h2>
+
+    <p>
+        <?php echo t('help.blacklist.intro'); ?>
+    </p>
+
+    <h3><?php echo htmlspecialchars(t('help.blacklist.how.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
+    <ul>
+        <?php echo t('help.blacklist.how.list'); ?>
+    </ul>
+
+    <p>
+        <?php echo t('help.blacklist.where'); ?>
+    </p>
+    <!-- =============================================================== -->
     <h2 id="temizle"><?php echo htmlspecialchars(t('help.transfer.clear.h2'), ENT_QUOTES, 'UTF-8'); ?></h2>
 
     <p>

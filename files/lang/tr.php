@@ -635,7 +635,10 @@ return [
     'help.toc.filler'                        => 'Dolgu ve Canon Bölümler',
     'help.toc.statistics'                    => 'İstatistikler',
     'help.toc.title_lang'                    => 'Başlık Dili (İngilizce / Romaji)',
+    'help.toc.form_tabs'                     => 'Ekleme / Düzenleme Formu — Sekmeler',           // 1.1.42
+    'help.toc.shared_identity'               => 'Paylaşımlı MAL / AniDB Kaydı',                  // 1.1.42
     'help.toc.translation'                   => 'Çeviri durumu',
+    'help.toc.synopsis_link'                 => 'Konuda Başka Bir Animeye Bağlantı',              // 1.1.42
     'help.toc.recommendations'               => 'Ne İzlesem? — Öneri Sistemi',
     'help.toc.chronology'                    => 'Seriler ve Kronoloji',
     'help.toc.deletion'                      => 'Silme Uyarıları',
@@ -644,7 +647,7 @@ return [
 
     // Section: Anime fields (catalog vs personal)
     'help.fields.h2'                         => 'Anime Alanları — Hangisi Ne Yapar?',
-    'help.fields.intro'                      => 'Anime ekleme ve düzenleme ekranındaki alanlar iki gruba ayrılır: <strong>katalog alanları</strong> (sunucudan gelir, sync ile güncellenir) ve <strong>kişisel alanlar</strong> (size özel, hiçbir zaman sunucuya gitmez).',
+    'help.fields.intro'                      => 'Anime ekleme ve düzenleme formu beş sekmeye bölünmüştür (<a href="#sekmeler">sekmeler aşağıda</a>). Hangi sekmede durduğundan bağımsız olarak alanlar iki gruba ayrılır: <strong>katalog alanları</strong> (sunucudan gelir, sync ile güncellenir) ve <strong>kişisel alanlar</strong> (size özel, hiçbir zaman sunucuya gitmez).',
     'help.fields.catalog.h3'                 => '<i class="fas fa-cloud icon-inline"></i> Katalog Alanları (sync edilir)',
     'help.fields.catalog.list' => '<li><strong>Anime İsmi, Alternatif İsimler</strong></li>
         <li><strong>Konu</strong> — Animenin resmi özeti</li>
@@ -653,9 +656,9 @@ return [
         <li><strong>Yayın durumu, bölüm sayısı, yayın gün/saati</strong></li>
         <li><strong>Yayın Tarihi / Yayın Bitiş Tarihi</strong> — tarihin yalnızca bilinen kısmı girilebilir; bilinmeyen gün ya da ay <code>??</code> olarak görünür (<code>??.04.1979</code>, <code>??.??.1979</code>, <code>??.??.????</code>)</li>
         <li><strong>Ülke</strong> — yapımın ülkesi; listede ülkeye göre filtrelemeyi besler</li>
-        <li><strong>MAL / AniDB / AnimeSchedule linkleri</strong></li>
-        <li><strong>Seri bilgileri</strong> (seri adı, medya türü, sonraki seri)</li>',
-    'help.fields.catalog.note'               => 'Bu alanları elle değiştirirseniz, bir sonraki sync\'te <strong>üzerine yazılır</strong> (sunucunun dediği geçer).',
+        <li><strong>MAL / AniDB / AnimeSchedule linkleri</strong> — bir kaynak kaydının birden çok animeye karşılık geldiği durum için <a href="#paylasimli-kimlik">paylaşımlı kayıt kutusu</a></li>
+        <li><strong>Seri adı</strong> — bkz. <a href="help_series.php#kronoloji">Seriler ve Kronoloji</a></li>',
+    'help.fields.catalog.note'               => 'Bu alanları elle değiştirirseniz, bir sonraki sync\'te <strong>üzerine yazılır</strong> (sunucunun dediği geçer).<br><br>Üç şey bu iki gruba da girmez: <strong>zincir adı</strong>, <strong>ilişkiler</strong> ve kendi eklediğiniz <strong>kronoloji notları</strong>. Sunucudan gelmezler ama kişiye özel de değildirler — bu kurulumun küratör verisidir; sync onlara dokunmaz, JSON yedeğe girerler. Ayrıntı: <a href="help_series.php#iliskiler">İlişkili Animeler</a>.',
     'help.fields.personal.h3'                => '<i class="fas fa-user icon-inline"></i> Kişisel Alanlar (sync edilmez)',
     'help.fields.personal.list' => '<li><strong>İzlenen Bölüm sayısı</strong></li>
         <li><strong>İzleme Durumu</strong> (İzlendi / İzleniyor / İzlenme Planlandı / İzleme Ertelendi / İzleme Bırakıldı) — listedeki <a href="help_basics.php#hizli-butonlar"><code>+/-</code> butonlarıyla otomatik değişebilir</a></li>
@@ -665,6 +668,16 @@ return [
         <li><strong>Poster (kendi yüklediyseniz)</strong></li>
         <li><strong>Sonraki bölüm tarihi</strong> (lokal hesap)</li>',
     'help.fields.personal.note'              => 'Bu alanlara sunucu <strong>dokunmaz</strong>. İstediğiniz kadar yazabilir, değiştirebilirsiniz.',
+
+    // 1.1.42 - Form sekmeleri (form 1.1.38'de bese bolundu, yardim tek formmus gibi yaziyordu)
+    'help.tabs.h2'                           => 'Ekleme / Düzenleme Formu — Sekmeler',
+    'help.tabs.intro'                        => 'Form beş sekmeden oluşur. Sekmeler yalnızca düzeni böler: hepsi tek formdur, <strong>kaydetmek hepsini birden kaydeder</strong>. Zorunlu bir alan başka bir sekmede boş kaldıysa form sizi o sekmeye götürür ve alanı gösterir. Son açık bıraktığınız sekme tarayıcı oturumu boyunca hatırlanır.',
+    'help.tabs.list' => '<li><strong>Künye</strong> — isim ve alternatif isimler, medya türü, ülke, yayın durumu, bölüm sayısı (yayın sürüyorsa yayınlanan bölüm de), yayın başlangıç / bitiş tarihi, yetişkin işareti, dolgu takibi, poster.</li>
+        <li><strong>Konu ve Türler</strong> — resmî konu (Türkçe / İngilizce), kişisel konu, türler ve cümleler (etiketler).</li>
+        <li><strong>Seri</strong> (düzenlemede <strong>Seri ve İlişkiler</strong>) — seri adı ve zincir adı; düzenlemede ayrıca <strong>İlişkiler</strong> paneli. Panel ekleme formunda yoktur, çünkü bir ilişki iki <em>var olan</em> kaydı bağlar: önce kaydedin, sonra bağlayın — kaydettikten sonra zaten düzenleme sayfasına geçersiniz.</li>
+        <li><strong>Yayın ve Kaynaklar</strong> — yayın günü / saati / saat dilimi, bölüm aralığı; MAL, AniDB ve AnimeSchedule bağlantıları ile <a href="#paylasimli-kimlik">paylaşımlı kayıt kutuları</a>. <strong>"Otomatik Doldur"</strong> düğmesi buradadır ve AnimeSchedule bağlantısından beslenir.</li>
+        <li><strong>Kişisel</strong> — izleme durumu, izlenen bölüm, izlemeye başlama / bitirme tarihleri, notlar. Yalnızca size aittir, sync\'e girmez.</li>',
+    'help.tabs.note'                         => 'Çevrimiçi sitede ekleme formunu her üye görür; düzenleme formunu (ve dolayısıyla İlişkiler panelini) <strong>moderatör ve üstü</strong>. Kendi kurulumunuzda ikisi de sizindir.',
 
     // Section: Watch statuses
     'help.statuses.h2'                       => 'İzleme Durumları',
@@ -755,6 +768,15 @@ return [
     'help.personal.warning_title'            => '<i class="fas fa-exclamation-triangle"></i> Dikkat:',
     'help.personal.warning_body'             => 'Kişisel Konu\'yu silerseniz <strong>sync ile geri gelmez</strong>. Aynı şekilde Notlar alanını silerseniz o da geri gelmez. Bu iki alan size özel ve kalıcı olarak sizin kontrolünüzde.',
 
+    // 1.1.42 - konu icindeki [[anime:...]] kisa kodu + baglanti secici (1.1.19 / 1.1.26; yardimda yoktu)
+    'help.synlink.h2'                        => 'Konuda Başka Bir Animeye Bağlantı',
+    'help.synlink.intro'                     => 'Konu metninin içinde başka bir animeye tıklanabilir bağlantı verebilirsiniz — "bu film, <em>Death Note</em>\'un yeniden kurgusudur" cümlesindeki adın o animenin sayfasına gitmesi gibi. Bunun için metne küçük bir kod yazılır: <code>[[anime:2994|Death Note]]</code>. Sayı animenin MAL numarasıdır, dikey çizgiden sonrası görünen etikettir; etiket yazılmazsa (<code>[[anime:2994]]</code>) hedef animenin kendi adı basılır. Detay sayfasında kod bağlantıya dönüşür; öneri kartı gibi kısa özetlerde yalnız etiket görünür.',
+    'help.synlink.why'                       => 'Neden düz bağlantı değil de kod? Konu metni katalogla her kuruluma gider ve kayıt numaraları her kurulumda farklıdır; MAL numarası ise her yerde aynıdır ve her kurulum onu kendi kaydına çevirir. Hedef anime o kurulumun kataloğunda yoksa bağlantı sessizce düz metne düşer, cümle bozulmaz. Ham HTML de aynı sebeple kabul edilmez: metin her üyeye ulaşır, içine dış adres ya da betik giremez.',
+    'help.synlink.picker.h3'                 => 'Bağlantı Seçici',
+    'help.synlink.picker.text'               => 'Numarayı ezberlemeniz gerekmez. Ekleme / düzenleme formunda, "Konu ve Türler" sekmesindeki her konu kutusunun altında <strong>"Anime bağlantısı ekle"</strong> düğmesi vardır. Basınca bir arama kutusu açılır; yazdıkça <strong>bu kataloğun</strong> içinde arar (MAL\'da değil — katalogda olmayan anime listede çıkmaz). Bir sonucu seçince kod, imlecin durduğu yere kendiliğinden yazılır; etiket Başlık Dili tercihinize göre gelir. Paylaşımlı bir kaynak kaydının parçasını seçtiyseniz kod parçayı da taşır (<code>[[anime:2994/2|...]]</code>; listede "MAL 2994 · 2/3" rozeti — bkz. <a href="#paylasimli-kimlik">Paylaşımlı Kayıt</a>). Kişisel konunuzda da aynı düğme ve aynı kod çalışır.',
+    'help.synlink.box_title'                 => '<i class="fas fa-info-circle"></i> Elle yazarken:',
+    'help.synlink.box_body'                  => 'Etikette <code>[</code>, <code>]</code> ve <code>|</code> kullanmayın — seçici bunları kendiliğinden ayıklar; elle yazarken kod erken kapanır. Yalnızca MAL numarası olan animeler hedef olabilir. Seçici açılmıyorsa (JavaScript kapalıysa) kod elle yazılabilir, kutular her zamanki gibi çalışır.',
+
     // Section: Emotions
     'help.emotions.h2'                       => 'Duygular — Animeye Tepki Ver',
     'help.emotions.intro'                    => 'Bir animenin detay sayfasında, o anime size ne hissettirdiyse işaretleyebilirsiniz. Dokuz duygu seçeneği var:',
@@ -798,6 +820,23 @@ return [
     'help.title_lang.box_title'              => '<i class="fas fa-info-circle"></i> Arayüz dilinden bağımsız:',
     'help.title_lang.box_body'               => 'Bu tercih size özeldir ve sitenin dilinden (Türkçe/İngilizce) bağımsız çalışır — arayüzü Türkçe kullanıp başlıkları Japonca görmeyi tercih edebilirsiniz. Seçtiğiniz dilde başlığı olmayan animeler Romaji başlığıyla kalır, yani boş bir dil seçmek zararsızdır. Başlıkların dili, anime ekleme/düzenleme formunda alternatif isimlerin yanındaki dil kutusundan işaretlenir.',
 
+    // 1.1.42 - Paylasimli MAL / AniDB kaydi (1.1.41'in ozelligi, yardimda yoktu)
+    'help.identity.h2'                       => 'Paylaşımlı MAL / AniDB Kaydı',
+    'help.identity.intro'                    => 'Kaynak siteler ile katalog her zaman aynı şeyi "bir anime" saymaz. MyAnimeList kimi zaman iki kuru, bir dizi ile devam filmini ya da birkaç kısa OVA\'yı <strong>tek kayıtta</strong> toplar; katalog ise bunları ayrı ayrı tutmak isteyebilir. Normalde aynı MAL ya da AniDB numarası ikinci bir kayda verilemez — kazara oluşan kopyaları önlemek için. Paylaşımlı kayıt kutusu bu kuralın <strong>bilinçli</strong> istisnasıdır: "bu kaynak kaydı bizde birden çok animedir" beyanı.',
+    'help.identity.howto.h3'                 => 'Nasıl Kullanılır?',
+    'help.identity.howto.list' => '<li>Formun <strong>"Yayın ve Kaynaklar"</strong> sekmesinde MAL ve AniDB bağlantılarının altında birer kutu vardır: <em>"Bu MAL kaydı birden çok animeye karşılık geliyor"</em>. İkinci kaydı eklerken aynı bağlantıyı girip kutuyu işaretleyin; kayıt sıradaki <strong>parça numarasını</strong> (2/2, 3/3...) kendiliğinden alır. Numara elle yazılmaz.</li>
+        <li>Kutu işaretsizken aynı numarayla ikinci kayıt <strong>reddedilir</strong> ve size var olan kayıt gösterilir — çoğu zaman istediğiniz zaten odur.</li>
+        <li>Düzenlemede kutunun durumu veriden okunur: başka kayıtlar da aynı numarayı taşıyorsa kutu işaretli gelir, yanında "(şu an parça 2/3)" yazar. Başkaları hâlâ taşırken işareti <strong>kaldıramazsınız</strong>; önce öteki parçaları ayırın (numaralarını değiştirin ya da silin). Numara tek kayıtta kaldığında kutu kendiliğinden boşalır.</li>
+        <li>Kutu saklanmaz; "paylaşımlı mı" sorusunun cevabı hep tablodan türetilir. Form ile veri birbiriyle çelişemez.</li>',
+    'help.identity.where.h3'                 => 'Nerede Görünür?',
+    'help.identity.where.text'               => 'Detay sayfasında "Anime Siteleri" bölümünde bağlantının yanında <strong>"MyAnimeList · 2/3"</strong> gibi bir rozet çıkar — yalnızca numara gerçekten paylaşılıyorsa. Hemen altındaki <strong>"Aynı Kaynak Kaydı"</strong> bölümü aynı numarayı taşıyan öteki parçaları parça numarası ve sizin izleme durumunuzla listeler. Bu bölüm bir ilişki değildir, veriden türer; parçalar arasında ayrıca bir sıra ("Devamı") kurmak isterseniz onu <a href="help_series.php#iliskiler">İlişkiler panelinden</a> yaparsınız.',
+    'help.identity.effects.h3'               => 'Nelere Etkisi Var?',
+    'help.identity.effects.list' => '<li><strong>MAL / AniList içe aktarma:</strong> kaynaktaki tek satır bütün parçalara uygulanır. İzleme durumu hepsine yazılır; <strong>bölüm sayısına dokunulmaz</strong> — kaynağın sayısı bütünün sayısıdır, parçanın değil. Durum "İzlendi" ise parçanın kendi toplamı yazılır, 0 ise 0. İşlem sonunda kaç kaydın paylaşımlı olduğu söylenir; o kayıtların bölüm sayılarını elle kontrol edin.</li>
+        <li><strong>Otomatik Doldur:</strong> kutu işaretliyse bölüm sayıları doldurulmaz ve rapor bunu söyler; öteki alanlar dolar.</li>
+        <li><strong>Konu bağlantısı:</strong> konu metnindeki <code>[[anime:2994]]</code> yazımı ilk parçaya gider; belirli bir parça için <code>[[anime:2994/2]]</code> yazılır. Konu alanındaki bağlantı seçici bunu sizin yerinize yazar.</li>
+        <li><strong>Silme:</strong> bir parçayı silmek numarayı içe aktarma kara listesine <strong>almaz</strong>; numara ancak son parçası da silinince engellenir.</li>
+        <li><strong>Yedek ve katalog:</strong> parça numarası JSON yedeğe ve merkez kataloğa gider. Eski bir yedekte ya da sunucuda alan yoksa her kayıt 1. parça sayılır — eski dünya yeni kuralın özel hâlidir.</li>',
+
     // Section: Recommendation system
     'help.translation.h2'                    => 'Çeviri Durumu',
     'help.translation.intro'                 => 'Bu sitedeki anime konuları aslen site küratörü tarafından Türkçe yazılır. İngilizce sürümler harici araçlarla AI çevirisi yapılıp elle eklenir. Konunun altında "Auto-translated from Turkish" etiketiyle gösterilir.',
@@ -817,17 +856,27 @@ return [
 
     // Section: Series and Chronology
     'help.chrono.h2'                         => 'Seriler ve Kronoloji',
-    'help.chrono.intro'                      => 'Birbirine bağlı animeler için iki tür ilişki sistemi var:',
+    'help.chrono.intro'                      => 'Birbirine bağlı animeler üç katmanda tarif edilir ve her katman başka bir soruya cevap verir: <strong>seri adı</strong> ("hangi aileden?"), <strong>ilişkiler</strong> ("iki kayıt birbirinin nesi?" — izleme sırası da bunlardan biridir) ve <strong>kronoloji notları</strong> ("dizinin kaçıncı bölümünden sonra hangi film?"). Aşağıda sırayla; ilişkilerin ayrıntısı <a href="#iliskiler">kendi bölümünde</a>.',
     'help.chrono.series.h3'                  => 'Seri Bilgisi',
-    'help.chrono.series.text'                => 'Bir anime\'nin hangi seriye ait olduğu <strong>seri adı</strong> ve <strong>medya türü</strong> (TV / Film / OVA / Special / ONA) ile belirlenir. Aynı seri adını paylaşan animeler anime detayında "Bağlı Animeler" bölümünde gözükür.',
+    'help.chrono.series.text'                => 'Bir animenin hangi seriye ait olduğu <strong>seri adı</strong> ile belirlenir (formun "Seri" sekmesi; yazarken var olan adlar önerilir, yazım farkı ayrı seri demektir). Aynı seri adını paylaşan kayıtlar detay sayfasında <strong>"Bağlantılı Animeler"</strong> bölümünde medya türüne (TV / Film / OVA / Special / ONA) göre gruplanır. Seri adı iki şeyi daha besler: kronoloji notu eklerken "İzlenecek anime" listesinde yalnızca aynı serinin kayıtları çıkar ve Seri Kronolojisi sayfasının "Yayın Tarihi" sekmesi aynı adı taşıyan her kaydı gösterir. Seri adı bir <strong>aile</strong> tarifidir, sıra söylemez — sırayı ilişkiler kurar.',
     'help.chrono.next.h3'                    => 'İzleme Sırası (Devamı / Öncesi)',
-    'help.chrono.next.text'                  => 'Bir animeyi bitirince hangi animeyi izlemeniz gerektiği. Düzenleme ekranındaki <strong>İlişkiler</strong> panelinde kurulur: karşı animeyi seçip "Devamı" (ya da öteki uçtan "Öncesi") türünü işaretlersiniz. Detay sayfasında "Sırada" kutusunda gözükür; seri kronolojisinin zincir sekmesi ve konu spoiler koruması bu bağı izler.',
-    'help.chrono.markers.h3'                 => 'Kronoloji İşaretleri',
-    'help.chrono.markers.text'               => 'Detective Conan gibi seriler için: "54. bölümden sonra 1. filmi izle" gibi bölüm seviyesinde işaretler tutulur. Detay sayfasında aktif uyarı olarak görülür, ayrı bir "Kronoloji" sayfasında da timeline halinde listelenir.',
+    'help.chrono.next.text'                  => 'Bir animeyi bitirince hangi animeyi izlemeniz gerektiği. Düzenleme ekranındaki <strong>İlişkiler</strong> panelinde kurulur: karşı animeyi seçip "Devamı" (ya da öteki uçtan "Öncesi") türünü işaretlersiniz. Detay sayfasında "Sırada" kutusunda gözükür; seri kronolojisinin zincir sekmesi ve konu spoiler koruması bu bağı izler. Bağ ancak iki uç aynı <strong>zincir adını</strong> taşıyorsa (ya da ikisi de adsızsa) izlenir. Sıra, ilişki türlerinden yalnızca biridir; hepsi için bkz. <a href="#iliskiler">İlişkili Animeler</a>.',
+    'help.chrono.markers.h3'                 => 'Kronoloji Notları (İşaretler)',
+    'help.chrono.markers.text'               => 'Detective Conan gibi uzun dizilerde filmler ve OVA\'lar dizinin belirli bir noktasına oturur: "54. bölümden sonra 1. filmi izle". Kronoloji notu (işaret) tam bunu tutar: izlediğiniz <strong>dizinin</strong> bir bölüm numarası + o noktada izlenecek <strong>hedef kayıt</strong> (film, OVA, özel bölüm ya da başka bir dizi) + isteğe bağlı bir açıklama. Not dizinin kaydına bağlıdır, hedef ayrı bir kayıttır; hedefin aynı seri adını taşıması gerekir. Üç yerde görünür: detay sayfasındaki <strong>"Kronoloji Notları"</strong> bölümünde liste olarak; izlediğiniz bölüm bir notun yayın noktasını geçtiyse ve hedefi henüz "İzlendi" değilse detayın üstünde <strong>aktif uyarı</strong> olarak; ve <strong>"Kronoloji"</strong> düğmesiyle açılan ayrı sayfada, dizinin bölüm aralıkları ile araya giren kayıtlar tek çizgide, izleme durumlarıyla.',
     'help.chrono.story.h3'                   => 'Yayın Sırası ve Hikaye Sırası',
     'help.chrono.story.text'                 => 'Bir işaretin iki ekleme noktası olabilir: <strong>yayın sırası</strong> (içeriğin gerçekte çıktığı bölüm) ve <strong>hikaye sırası</strong> (izlenmesi önerilen bölüm). Örnek: Card Captor Sakura ilk filmi 46. bölümden sonra çıktı ama 35. bölümden sonra izlenmesi önerilir. Hikaye noktası boş bırakılırsa yayın noktasıyla aynı sayılır — yalnızca ayrışan işaretlere ikinci sayıyı girersiniz. Detay sayfasındaki ve kronoloji sayfasındaki tek düğme görünümü sırayla değiştirir: yayın → hikaye → ikisi. Varsayılanı Liste Ayarları\'ndan seçebilirsiniz.',
+    // 1.1.42 - notlarin NASIL kullanildigi (eskiden yalniz NE OLDUGU yaziliydi)
+    'help.chrono.howto.h3'                   => 'Kronoloji Notu Ekleme, Düzenleme, Silme',
+    'help.chrono.howto.text'                 => 'Notlar kataloğun ortak yapısıdır, kişisel veri değildir. Bu yüzden çevrimiçi sitede yalnızca <strong>moderatör ve üstü</strong> ekleyip silebilir; kendi kurulumunuzda siz her zaman yetkilisiniz. Liste herkese görünür. Ekleme formu detay sayfasının "Kronoloji Notları" bölümünün altındadır ve yalnızca animenin bir seri adı ve o seride başka kayıtlar varsa çıkar — hedef seçilecek liste yoksa form da yoktur.',
+    'help.chrono.howto.list' => '<li><strong>Yayın sırasında (bölümden sonra)</strong> — zorunlu. Hedefin gerçekte çıktığı nokta: bu bölüm bitince hedef araya girer.</li>
+        <li><strong>Hikaye sırasında</strong> — isteğe bağlı. Yalnızca önerilen izleme noktası yayın noktasından farklıysa doldurun; boşsa yayınla aynı sayılır.</li>
+        <li><strong>İzlenecek anime</strong> — aynı seri adını taşıyan kayıtlar arasından seçilir.</li>
+        <li><strong>Not</strong> — isteğe bağlı kısa açıklama ("Kanonik kronoloji", "manga 12. cilt sonrası"); listede parantez içinde görünür.</li>',
+    'help.chrono.howto.edit'                 => '<strong>Düzenleme</strong> listede yerinde yapılır: satırın yanındaki kutuya bölüm numarasını yazıp ✓ düğmesine basarsınız. Kutu hangi listede duruyorsa o noktayı düzenler — "Yayın Sırası" listesindeki kutu yayın noktasını, "Hikaye Sırası" listesindeki kutu hikaye noktasını; hikaye kutusunu boşaltıp kaydetmek onu yeniden "yayınla aynı" yapar. Hedef kaydı ya da açıklamayı değiştirmek için notu silip yeniden eklersiniz. <strong>Silme</strong> satırın sonundaki × düğmesidir ve onay ister.',
+    'help.chrono.pages.h3'                   => '"Kronoloji" ile "Seri Kronolojisi" Aynı Şey mi?',
+    'help.chrono.pages.text'                 => 'Hayır; iki sayfa iki ayrı ölçekte çalışır. <strong>Kronoloji</strong> (detaydaki düğme; yalnızca notu olan animede çıkar) <strong>tek bir dizinin içine</strong> bakar: bölüm aralıkları ve aralarına giren filmler / OVA\'lar, sizin ilerlemenizle işaretli. <strong>Seri Kronolojisi</strong> ise <strong>serinin tamamına</strong> bakar: sezonlar, filmler ve yan diziler birer kayıt olarak, zincir sırasıyla ya da yayın tarihiyle. Birincisi "bu dizinin 54. bölümünden sonra ne var?", ikincisi "bu serinin kaçıncı halkasındayım?" sorusuna cevap verir; ayrıntı <a href="#seri-kronolojisi">aşağıda</a>.',
     'help.chrono.warning_title'              => '<i class="fas fa-exclamation-triangle"></i> Dikkat:',
-    'help.chrono.warning_body'               => 'Kronoloji işaretleri de sync\'te katalog otoritedir. Kendiniz marker eklediyseniz sync sonrası kaybolur.',
+    'help.chrono.warning_body'               => 'Katalogdan gelen notlarda sync\'te katalog otoritedir: merkezde silinen not sizde de silinir, değişen not güncellenir. <strong>Kendi eklediğiniz notlar silinmez</strong> — kataloğa gönderilene kadar "katalogla senkronize olmayan not" sayılır ve Liste Ayarları bunu bir uyarıyla hatırlatır. Çevrimiçi sitede yöneticinin kataloğa göndermesiyle not kataloğun malı olur ve bundan sonra katalog kuralına tabidir.',
 
     // Section: Deletion warnings
     'help.delete.h2'                         => 'Silme Uyarıları',
@@ -900,12 +949,14 @@ return [
     'help.toc.mal'                           => 'MyAnimeList Listesini Aktar',
     'help.toc.anilist'                       => 'AniList Listesini Aktar',
     'help.toc.clear'                         => 'Listeyi Temizle',
+    'help.toc.blacklist'                     => 'İçe Aktarma Kara Listesi',                       // 1.1.42
     'help.toc.membership'                    => 'Giriş, Kayıt ve Hesap',
     'help.toc.roles'                         => 'Roller — Kim Ne Yapabilir?',
     'help.toc.add_anime'                     => 'Anime Ekleme ve Onay',
     'help.toc.suggest'                       => 'Düzeltme Önerme',
     'help.toc.series_timeline'               => 'Seri Kronolojisi Sayfası',
     'help.toc.spoiler'                       => 'Spoiler Koruması',
+    'help.toc.relations'                     => 'İlişkili Animeler — Devamı, Alternatif Versiyon, Yan Hikâye',   // 1.1.42
     'help.toc.broadcast'                     => 'Yayın Bilgileri ve Geri Sayım',
 
     // -----------------------------------------------------------------
@@ -1010,6 +1061,17 @@ return [
         <li><strong>Sadece içeriği aktar</strong> — kişisel izleme durumları alınmaz; yalnızca katalogda olmayan animeler öneri/kayıt olarak eklenir. Katalogu büyütmek için kullanışlıdır.</li>',
     'help.transfer.anilist.box_title'        => '<i class="fas fa-info-circle"></i> Bilinmesi gerekenler:',
     'help.transfer.anilist.box_body'         => 'Liste <strong>herkese açık</strong> olmalıdır; gizli listeler AniList tarafından verilmez. AniList istek sınırına takılırsanız birkaç dakika sonra tekrar deneyin. Ayrıca <strong>farklı AniList hesabı sayısı sınırlıdır</strong> — daha önce aktardığınız hesapları istediğiniz kadar yeniden senkronize edebilirsiniz, ama sürekli yeni hesap ekleyemezsiniz.',
+
+    // 1.1.42 - ice aktarma kara listesi (1.1.35; yardimda yoktu). Yalniz cok kullanicili modda.
+    'help.blacklist.h2'                      => 'İçe Aktarma Kara Listesi',
+    'help.blacklist.intro'                   => 'Yalnızca çok kullanıcılı sitede vardır; kişisel kurulumda paylaşılan bir katalog olmadığı için hiç devreye girmez. Çözdüğü sorun: bir moderatör katalogdan bir animeyi silince, o anime bir üyenin sonraki MAL / AniList içe aktarımında "katalogda yok" kovasına düşüyor ve yeniden katalog önerisi olarak açılıyordu — silmek onu taze aday yapıyordu. Reddedilen öneriler de her içe aktarımda yeniden geliyordu.',
+    'help.blacklist.how.h3'                  => 'Nasıl Çalışır?',
+    'help.blacklist.how.list' => '<li>Katalogdan bir anime silindiğinde MAL ve AniDB kimliği <strong>kendiliğinden</strong> kara listeye yazılır; yönetici sayfasından elle de eklenebilir (en az bir kimlik gerekir).</li>
+        <li>MAL ve AniList içe aktarımı, <strong>katalogda eşleşmeyen</strong> bir kaydın kimliği kara listedeyse o kayıt için öneri açmaz. Önizleme "bunlardan N tanesi yönetici kara listesinde" der, sonuç kaç kaydın atlandığını söyler.</li>
+        <li>Eşleşme yalnızca kimlikle yapılır, başlıkla asla — aynı adlı ilgisiz yapımlar birbirini engellemez. Kimliği olmayan silme kaydı listede durur ama "Engellemez" diye işaretlidir.</li>
+        <li>Kara liste, katalogda <strong>gerçekten duran</strong> bir animeyi engellemez: kayıt sonradan yeniden eklendiyse üyeler onu listelerine alabilir; yönetici sayfası böyle satırları "Katalogda var" diye gösterir. Elle ekleme de hiçbir zaman engellenmez.</li>
+        <li>Paylaşımlı kaynak kaydında kimlik ancak <strong>son parçası</strong> da silinince listeye girer.</li>',
+    'help.blacklist.where'                   => 'Liste, yönetim panosundaki <strong>"İçe Aktarma Kara Listesi"</strong> sayfasındadır (moderatör ve üstü): başlık ya da kimlikle arama, <strong>"Listeden çıkar"</strong> ile geri alma. Engellenen bir animenin içe aktarımla yeniden önerilebilmesini istiyorsanız kaydı buradan çıkarın. Liste merkez kataloğa gitmez ve JSON yedeğe <strong>girmez</strong> — yalnızca veritabanı yedeğinde yaşar.',
     'help.transfer.anilist.overwrite'        => '"Üzerine yaz" seçeneği yalnızca "durumlarıyla aktar" türünde çalışır; "sadece içerik" türünde yok sayılır.',
 
     'help.transfer.clear.h2'                 => 'Listeyi Temizle',
@@ -1050,11 +1112,33 @@ return [
     // -----------------------------------------------------------------
     'help.st.h2'                             => 'Seri Kronolojisi Sayfası',
     'help.st.intro'                          => 'Bir seriye ait animelerden birinin detay sayfasındaki <strong>"Seri Kronolojisi"</strong> düğmesi, o serinin tamamını tek bir zaman çizgisinde gösterir. Sayfa iki sekmeyle açılır:',
-    'help.st.tabs.list' => '<li><strong>Zincir Sırası</strong> — "sonraki seri" bağlantılarıyla kurulmuş izleme sırası: birinci sezon, ikinci sezon, devam filmi... Sıra elle kurulur, yani küratörün önerdiği yoldur.</li>
+    'help.st.tabs.list' => '<li><strong>Zincir Sırası</strong> — "Devamı" / "Öncesi" bağlarıyla kurulmuş izleme sırası: birinci sezon, ikinci sezon, devam filmi... Sıra elle kurulur, yani küratörün önerdiği yoldur; nasıl kurulduğu <a href="#iliskiler">İlişkili Animeler</a> bölümünde.</li>
         <li><strong>Yayın Tarihi</strong> — aynı seri adını taşıyan <strong>her</strong> kayıt, ilk gösterim tarihine göre. Zincire hiç bağlanmamış kayıtlar (bağımsız filmler, özel bölümler) da burada görünür.</li>',
     'help.st.tabs.text'                      => 'İki sekme aynı seriyi iki farklı soruyla okur: "hangi sırayla izlemeliyim" ve "ne zaman çıktı". Sayfanın hangi sekmeyle açılacağını Liste Ayarları → Genel Ayarlar → <strong>"Seri Kronolojisi Görünümü"</strong> belirler; sekmeye tıklamak bu varsayılanı bozmaz.',
     'help.st.chains.h3'                      => 'Diğer Zincirler',
     'help.st.chains.text'                    => 'Bir seri adı altında birden çok bağımsız zincir olabilir — örneğin sinema filmleri bir sıra, televizyon dizileri bambaşka bir sıra izleyebilir; ya da aynı hikâye iki kez anlatılmış olabilir (1990’ların Sailor Moon’u ile 2014 Crystal gibi). Her hatta bir <strong>zincir adı</strong> verebilirsiniz (düzenleme ekranındaki “Zincir Adı” alanı); adı paylaşan kayıtlar tek zincir sayılır ve sekme o adla görünür. Ad vermezseniz sekme eskisi gibi <strong>"Diğer Zincir 1..N"</strong> diye adlandırılır; numaralandırma en eski tarihli zincirden başlar.<br><br>Adı olan bir hat, içinde <strong>tek bir kayıt</strong> olsa bile kendi sekmesini alır — çünkü ad vermek bilinçli bir beyandır: “bu kayıt kendi hattıdır”. Adı olmayan ve hiçbir yere bağlanmamış tek kayıtlar ise zincir sayılmaz, onlar "Yayın Tarihi" sekmesinde durur.<br><br>Zincir adı aynı zamanda <strong>konu spoiler kapısını</strong> da sınırlar: kapı yalnızca aynı hattaki önceki halkalara bakar, başka bir hattaki kayıtları “önce izlenmesi gereken” saymaz.',
+
+    // 1.1.42 - Iliskili animeler (1.1.38 + 1.1.40; yardimda HIC yoktu)
+    'help.rel.h2'                            => 'İlişkili Animeler',
+    'help.rel.intro'                         => 'İki kayıt arasındaki bağın <strong>türü</strong> de veridir: "Sailor Moon R, Sailor Moon\'un devamıdır", "Space Adventure Cobra filmi, TV dizisinin alternatif versiyonudur". Bu bağlar detay sayfasında <strong>"İlişkili Animeler"</strong> bölümünde türe göre gruplanmış görünür; her satırda karşı kaydın adı, medya türü ve sizin izleme durumunuz vardır. Bağ, düzenleme formunun <strong>"Seri ve İlişkiler"</strong> sekmesindeki <strong>İlişkiler</strong> panelinden kurulur ve silinir; çevrimiçi sitede bu formu moderatör ve üstü görür, kendi kurulumunuzda siz.',
+    'help.rel.types.h3'                      => 'İlişki Türleri',
+    'help.rel.types.list' => '<li><strong>Devamı / Öncesi</strong> — <strong>sıra belirten tek tür.</strong> "A, B\'nin devamıdır" demek B bitince A izlenir demektir. Detaydaki "Sırada" kutusu, Seri Kronolojisi\'nin zincir sekmesi ve spoiler koruması yalnızca bu bağı izler.</li>
+        <li><strong>Alternatif Versiyon</strong> — aynı hikâyenin başka bir anlatımı: yeniden yapım, uzun bir dizinin sinema uyarlaması, aynı eserin başka bir stüdyodan çekimi (Sailor Moon ↔ Sailor Moon Crystal; Cobra TV dizisi ↔ Cobra filmi).</li>
+        <li><strong>Alternatif Kurgu</strong> — aynı karakterler, başka bir evren ya da bambaşka bir öncül: "ya öyle olsaydı" hikâyeleri, okul hayatı yeniden kurguları.</li>
+        <li><strong>Yan Hikâye / Ana Hikâye</strong> — ana hattın kenarında geçen daha küçük bir iş: bir OVA, bir karakterin kendi mini dizisi. Yan hikâye ana hikâyeyi bilmeden anlaşılmaz ama sırayı değiştirmez.</li>
+        <li><strong>Özet / Tam Hikâye</strong> — bir dizinin toplama filmi ya da özet OVA\'sı. Özeti izlemek tam hikâyeyi izlemiş saymaz (tersi de öyle); bu yüzden sıraya girmez.</li>
+        <li><strong>Diğer İlişki</strong> — yukarıdakilere sığmayan ama ilgili olduğu belli bağlar: ortak evren, konuk karakter, aynı yaratıcının bağlantılı işi.</li>',
+    'help.rel.direction.h3'                  => 'Yön: Form Tek Soru Sorar',
+    'help.rel.direction.text'                => 'Panelde önce karşı kaydı seçer, sonra türü işaretlersiniz. Formun sorusu hep aynıdır: <strong>"Seçtiğiniz anime, düzenlediğiniz animenin ___\'idir."</strong> Sailor Moon\'u düzenlerken Sailor Moon R\'yi seçip "Devamı" demek doğrudur; Sailor Moon R\'yi düzenlerken Sailor Moon\'u seçip "Öncesi" demek de aynı bağı öteki uçtan kurar. İkisini birden yapmanız gerekmez — kayıt tektir ve iki sayfada iki ayrı etiketle görünür ("Devamı: Sailor Moon R" / "Öncesi: Sailor Moon"). Bu yüzden yönü olan üç tür listede iki kez geçer: Devamı / Öncesi, Yan Hikâye / Ana Hikâye, Özet / Tam Hikâye. Öteki üç tür (Alternatif Versiyon, Alternatif Kurgu, Diğer) iki uçtan da aynı cümledir; onlarda hangi uçtan kurduğunuzun önemi yoktur. Listede ★ işareti aynı seri adını taşıyan kayıtları gösterir; ilişki için seri adının aynı olması <strong>gerekmez</strong>.',
+    'help.rel.rules.h3'                      => 'Kurallar',
+    'help.rel.rules.list' => '<li>İki kayıt arasında <strong>en çok bir</strong> ilişki olur. Türü değiştirmek için önce mevcut olanı × ile silin, sonra yenisini ekleyin — form üst üste yazmaz, sizi uyarır.</li>
+        <li>Bir kayıt kendisiyle ilişkilendirilemez.</li>
+        <li>Sıra (Devamı / Öncesi) zincir sekmesinde ancak iki uç aynı <strong>zincir adını</strong> taşıyorsa (ya da ikisi de adsızsa) izlenir. Zincir adı hangi hattı gösterdiğinizi seçer, bağ ise hattı kurar.</li>
+        <li>İlişkiler kayıtların bulunduğu kurulumda durur: merkez katalog sunucusuna gitmez, "Katalogdan İçe Aktar" onlara dokunmaz. JSON yedeğe girer ve geri yüklemede geri gelir.</li>',
+    'help.rel.chain.h3'                      => 'Bağ mı, İlişki mi? — Zincir Nasıl Kurulur',
+    'help.rel.chain.text'                    => 'Bir seriyi kurarken iki araç birlikte kullanılır: <strong>Devamı / Öncesi bağları</strong> hattı kurar, <strong>zincir adı</strong> (Seri sekmesi) hatları birbirinden ayırır.<br><br>1. Sezonları izlenme sırasıyla "Devamı" ile birbirine bağlayın: birinci sezon → ikinci sezon → devam filmi.<br>2. Seri içinde <em>başka bir hat</em> varsa — filmler ayrı bir sıra izliyorsa ya da aynı hikâye ikinci kez anlatılmışsa — o hattı ana hatta <strong>bağlamayın</strong>. Ona bir <strong>ilişki</strong> tanımlayın ("Alternatif Versiyon") ve kendi <strong>zincir adını</strong> verin ("Crystal", "Filmler").<br>3. Hiçbir zincire girmeyen kayıtlar (bağımsız özel bölüm, yan OVA) "Yan Hikâye" ya da "Diğer" ile bağlanır; Seri Kronolojisi\'nin "Yayın Tarihi" sekmesinde tarihiyle görünürler.<br><br>Ölçüt basittir: <strong>bağ, "bunu bitirince şunu izle" demektir.</strong> Cümle doğru değilse bağ kurmayın, ilişki tanımlayın. Sailor Moon Crystal 90\'lar dizisinin devamı değildir; ona "devamı" demek zaman çizgisini bozar ve spoiler korumasını, izlemediğiniz sekiz ilgisiz sezon yüzünden kapatır. Doğrusu: Alternatif Versiyon ilişkisi + "Crystal" zincir adı.',
+    'help.rel.box_title'                     => '<i class="fas fa-info-circle"></i> "Sıradaki Anime" kutusu nerede?',
+    'help.rel.box_body'                      => 'Düzenleme formunda ayrı bir "Sıradaki Anime" kutusu artık yok: sıra da bir ilişkidir ve İlişkiler panelindeki "Devamı" / "Öncesi" seçeneğiyle kurulur. Eski sürümlerde kurulmuş sıra bağları kendiliğinden bu türe çevrilmiştir.',
 
     'help.spoiler.h2'                        => 'Spoiler Koruması',
     'help.spoiler.intro'                     => 'Bir serinin ikinci ve sonraki halkalarının konusu, çoğu zaman kendinden öncekinin sonunu anlatır. Bu yüzden zincirde <strong>önce gelen halkalardan biri bile izlenmemişse</strong> konu doğrudan gösterilmez; <strong>"Yine de okumak istiyorum"</strong> düğmesinin arkasında bekler. Düğmeye basınca konu yerinde açılır.',

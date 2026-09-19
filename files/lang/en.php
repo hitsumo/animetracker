@@ -603,7 +603,10 @@ return [
     'help.toc.filler'                        => 'Filler and Canon Episodes',
     'help.toc.statistics'                    => 'Statistics',
     'help.toc.title_lang'                    => 'Title Language (English / Romaji)',
+    'help.toc.form_tabs'                     => 'The Add / Edit Form — Tabs',                 // 1.1.42
+    'help.toc.shared_identity'               => 'Shared MAL / AniDB Record',                   // 1.1.42
     'help.toc.translation'                   => 'Translation status',
+    'help.toc.synopsis_link'                 => 'Linking Another Anime in a Synopsis',            // 1.1.42
     'help.toc.recommendations'               => 'What Should I Watch? — Recommendation System',
     'help.toc.chronology'                    => 'Series and Chronology',
     'help.toc.deletion'                      => 'Deletion Warnings',
@@ -612,7 +615,7 @@ return [
 
     // Section: Anime fields (catalog vs personal)
     'help.fields.h2'                         => 'Anime Fields — What Does Each One Do?',
-    'help.fields.intro'                      => 'The fields on the add/edit anime screens fall into two groups: <strong>catalog fields</strong> (come from the server, updated by sync) and <strong>personal fields</strong> (yours alone, never sent to the server).',
+    'help.fields.intro'                      => 'The add / edit form is split into five tabs (<a href="#sekmeler">the tabs are described below</a>). Whichever tab a field sits on, fields fall into two groups: <strong>catalog fields</strong> (come from the server, updated by sync) and <strong>personal fields</strong> (yours alone, never sent to the server).',
     'help.fields.catalog.h3'                 => '<i class="fas fa-cloud icon-inline"></i> Catalog Fields (synced)',
     'help.fields.catalog.list' => '<li><strong>Anime Title, Alternative Titles</strong></li>
         <li><strong>Synopsis</strong> — The official summary of the anime</li>
@@ -621,9 +624,9 @@ return [
         <li><strong>Broadcast status, episode count, broadcast day/time</strong></li>
         <li><strong>Release Date / End Date</strong> — you can enter only the part you know; an unknown day or month shows as <code>??</code> (<code>??.04.1979</code>, <code>??.??.1979</code>, <code>??.??.????</code>)</li>
         <li><strong>Country</strong> — country of production; this is what the country filter on the list uses</li>
-        <li><strong>MAL / AniDB / AnimeSchedule links</strong></li>
-        <li><strong>Series info</strong> (series name, media type, next in series)</li>',
-    'help.fields.catalog.note'               => 'If you edit these fields manually, the next sync will <strong>overwrite</strong> them (the server has the last word).',
+        <li><strong>MAL / AniDB / AnimeSchedule links</strong> — plus the <a href="#paylasimli-kimlik">shared-record checkbox</a> for the case where one source record corresponds to several anime</li>
+        <li><strong>Series name</strong> — see <a href="help_series.php#kronoloji">Series and Chronology</a></li>',
+    'help.fields.catalog.note'               => 'If you edit these fields manually, the next sync will <strong>overwrite</strong> them (the server has the last word).<br><br>Three things belong to neither group: the <strong>chain name</strong>, <strong>relations</strong> and the <strong>chronology markers you added yourself</strong>. They do not come from the server, but they are not personal either — they are this installation\'s curation data; sync leaves them alone and they go into the JSON backup. Details: <a href="help_series.php#iliskiler">Relations</a>.',
     'help.fields.personal.h3'                => '<i class="fas fa-user icon-inline"></i> Personal Fields (not synced)',
     'help.fields.personal.list' => '<li><strong>Watched Episodes count</strong></li>
         <li><strong>Watch Status</strong> (Watched / Watching / Plan to Watch / On Hold / Dropped) — can change automatically via <a href="help_basics.php#hizli-butonlar">the <code>+/-</code> buttons in the list</a></li>
@@ -633,6 +636,16 @@ return [
         <li><strong>Poster (if you uploaded one yourself)</strong></li>
         <li><strong>Next episode date</strong> (locally calculated)</li>',
     'help.fields.personal.note'              => 'The server <strong>never touches</strong> these. Write and edit them as much as you like.',
+
+    // 1.1.42 - Form tabs (the form was split into five in 1.1.38; help still read as one long form)
+    'help.tabs.h2'                           => 'The Add / Edit Form — Tabs',
+    'help.tabs.intro'                        => 'The form has five tabs. The tabs only divide the layout: it is still one form and <strong>saving saves all of it at once</strong>. If a required field was left empty on another tab, the form switches to that tab and shows the field. The tab you last had open is remembered for the browser session.',
+    'help.tabs.list' => '<li><strong>Basics</strong> — title and alternative titles, media type, country, broadcast status, episode count (plus aired episodes while airing), release / end date, adult flag, filler tracking, poster.</li>
+        <li><strong>Synopsis &amp; Genres</strong> — the official synopsis (Turkish / English), your personal synopsis, genres and sentences (tags).</li>
+        <li><strong>Series</strong> (<strong>Series &amp; Relations</strong> when editing) — series name and chain name; when editing, also the <strong>Relations</strong> panel. The panel is absent from the add form because a relation links two <em>existing</em> records: save first, then link — after saving you land on the edit page anyway.</li>
+        <li><strong>Broadcast &amp; Sources</strong> — broadcast day / time / time zone, episode interval; the MAL, AniDB and AnimeSchedule links with the <a href="#paylasimli-kimlik">shared-record checkboxes</a>. The <strong>"Auto-fill"</strong> button lives here and reads from the AnimeSchedule link.</li>
+        <li><strong>Personal</strong> — watch status, watched episodes, start / finish dates, notes. Yours alone; never synced.</li>',
+    'help.tabs.note'                         => 'On the online site every member sees the add form; the edit form (and with it the Relations panel) is for <strong>moderators and above</strong>. On your own installation both are yours.',
 
     // Section: Watch statuses
     'help.statuses.h2'                       => 'Watch Statuses',
@@ -723,6 +736,15 @@ return [
     'help.personal.warning_title'            => '<i class="fas fa-exclamation-triangle"></i> Heads up:',
     'help.personal.warning_body'             => 'If you delete the Personal Synopsis, <strong>sync will not bring it back</strong>. Likewise if you clear the Notes field, that does not come back either. These two fields are yours and permanently under your control.',
 
+    // 1.1.42 - the [[anime:...]] shortcode in a synopsis + the link picker (1.1.19 / 1.1.26; missing from help)
+    'help.synlink.h2'                        => 'Linking Another Anime in a Synopsis',
+    'help.synlink.intro'                     => 'A synopsis can carry a clickable link to another anime — so that the name in "this film is a re-imagining of <em>Death Note</em>" leads to that anime\'s page. You do it with a small code in the text: <code>[[anime:2994|Death Note]]</code>. The number is the anime\'s MAL id, what follows the vertical bar is the visible label; with no label (<code>[[anime:2994]]</code>) the target\'s own title is printed. On the detail page the code becomes a link; in short teasers such as the recommendation card only the label shows.',
+    'help.synlink.why'                       => 'Why a code and not a plain link? The synopsis text travels with the catalog to every installation, and record numbers differ from one installation to the next; a MAL id is the same everywhere, and each installation resolves it to its own record. If the target anime is not in that installation\'s catalog, the link quietly falls back to plain text and the sentence still reads. Raw HTML is refused for the same reason: the text reaches every member, so no outside address or script may ride inside it.',
+    'help.synlink.picker.h3'                 => 'The Link Picker',
+    'help.synlink.picker.text'               => 'You do not have to remember the number. On the add / edit form, under every synopsis box on the "Synopsis &amp; Genres" tab, there is an <strong>"Add anime link"</strong> button. It opens a search box; as you type it searches <strong>this catalog</strong> (not MAL — an anime missing from the catalog does not appear). Picking a result writes the code at the cursor position by itself; the label follows your Title Language preference. If you pick a part of a shared source record the code carries the part too (<code>[[anime:2994/2|...]]</code>; the list shows a "MAL 2994 · 2/3" badge — see <a href="#paylasimli-kimlik">Shared Record</a>). The same button and the same code work in your personal synopsis.',
+    'help.synlink.box_title'                 => '<i class="fas fa-info-circle"></i> When typing it by hand:',
+    'help.synlink.box_body'                  => 'Do not use <code>[</code>, <code>]</code> or <code>|</code> in the label — the picker strips them by itself; typed by hand they close the code early. Only anime with a MAL id can be a target. If the picker does not open (JavaScript off) the code can be typed by hand and the boxes work as usual.',
+
     // Section: Emotions
     'help.emotions.h2'                       => 'Emotions — React to an Anime',
     'help.emotions.intro'                    => 'On an anime\'s detail page you can mark how it made you feel. There are nine emotion options:',
@@ -766,6 +788,23 @@ return [
     'help.title_lang.box_title'              => '<i class="fas fa-info-circle"></i> Independent of the interface language:',
     'help.title_lang.box_body'               => 'This preference is yours alone and works independently of the site language (Turkish/English) — you can use a Turkish interface while preferring Japanese titles. Anime with no title in the language you picked stay in Romaji, so choosing an empty language is harmless. A title\'s language is marked in the add/edit form, in the box next to each alternative title.',
 
+    // 1.1.42 - Shared MAL / AniDB record (the 1.1.41 feature, missing from help)
+    'help.identity.h2'                       => 'Shared MAL / AniDB Record',
+    'help.identity.intro'                    => 'The source sites and the catalog do not always agree on what counts as "one anime". MyAnimeList sometimes bundles two cours, a series and its sequel film, or a handful of short OVAs into <strong>one record</strong>; the catalog may want to keep them apart. Normally the same MAL or AniDB number cannot be given to a second record — that is what stops accidental duplicates. The shared-record checkbox is the <strong>deliberate</strong> exception to that rule: the statement "this source record is several anime here".',
+    'help.identity.howto.h3'                 => 'How to Use It',
+    'help.identity.howto.list' => '<li>On the form\'s <strong>"Broadcast &amp; Sources"</strong> tab there is a checkbox under each of the MAL and AniDB links: <em>"This MAL record corresponds to more than one anime"</em>. When adding the second record, enter the same link and tick the box; the record takes the next <strong>part number</strong> (2/2, 3/3...) by itself. You never type the number.</li>
+        <li>With the box unticked a second record with the same number is <strong>refused</strong> and you are shown the existing one — usually that is what you wanted anyway.</li>
+        <li>When editing, the box reflects the data: if other records carry the same number it comes pre-ticked with "(currently part 2/3)" next to it. You <strong>cannot untick</strong> it while others still carry the number; separate the other parts first (change their number or delete them). Once the number is down to one record the box clears by itself.</li>
+        <li>The box is not stored; whether a record is shared is always derived from the table. The form and the data cannot disagree.</li>',
+    'help.identity.where.h3'                 => 'Where It Shows',
+    'help.identity.where.text'               => 'On the detail page, next to the link under "Anime Sites", a badge like <strong>"MyAnimeList · 2/3"</strong> appears — only when the number really is shared. Right below, the <strong>"Same Source Record"</strong> section lists the other parts carrying the same number, with their part number and your watch status. That section is not a relation; it is derived from the data. If you also want an order between the parts ("Sequel"), you set that in the <a href="help_series.php#iliskiler">Relations panel</a>.',
+    'help.identity.effects.h3'               => 'What It Affects',
+    'help.identity.effects.list' => '<li><strong>MAL / AniList import:</strong> the single source row is applied to every part. The watch status is written to all of them; <strong>episode counts are left alone</strong> — the source counts the whole, not the part. If the status is "Watched" the part\'s own total is written, 0 stays 0. At the end the import tells you how many records were shared; check their episode counts by hand.</li>
+        <li><strong>Auto-fill:</strong> with the box ticked, episode counts are not filled and the report says so; the other fields are.</li>
+        <li><strong>Synopsis links:</strong> <code>[[anime:2994]]</code> in a synopsis points at the first part; a specific part is written as <code>[[anime:2994/2]]</code>. The link picker on the synopsis field writes this for you.</li>
+        <li><strong>Deletion:</strong> deleting one part does <strong>not</strong> put the number on the import blacklist; the number is only blocked once its last part is deleted too.</li>
+        <li><strong>Backup and catalog:</strong> the part number travels in the JSON backup and to the central catalog. When an older backup or server has no such field, every record reads as part 1 — the old world is a special case of the new rule.</li>',
+
     // Section: Recommendation system
     'help.translation.h2'                    => 'Translation Status',
     'help.translation.intro'                 => 'Anime descriptions on this site are originally written in Turkish by the site curator. English versions are produced by AI translation using external tools and pasted in manually. They are labelled "Auto-translated from Turkish" below the synopsis.',
@@ -785,17 +824,27 @@ return [
 
     // Section: Series and Chronology
     'help.chrono.h2'                         => 'Series and Chronology',
-    'help.chrono.intro'                      => 'There are two relationship systems for related anime:',
+    'help.chrono.intro'                      => 'Anime that belong together are described on three layers, each answering a different question: the <strong>series name</strong> ("which family?"), <strong>relations</strong> ("what is one record to the other?" — the watch order is one of these) and <strong>chronology markers</strong> ("after which episode of the series comes which film?"). They follow in that order; relations have <a href="#iliskiler">a section of their own</a>.',
     'help.chrono.series.h3'                  => 'Series Info',
-    'help.chrono.series.text'                => 'Which series an anime belongs to is determined by its <strong>series name</strong> and <strong>media type</strong> (TV / Film / OVA / Special / ONA). Anime sharing the same series name appear under "Related Anime" on the anime detail page.',
+    'help.chrono.series.text'                => 'Which series an anime belongs to is set by its <strong>series name</strong> (the "Series" tab of the form; existing names are suggested as you type, and a spelling difference means a different series). Records sharing a series name appear on the detail page under <strong>"Related Anime"</strong>, grouped by media type (TV / Film / OVA / Special / ONA). The series name feeds two more things: when adding a chronology marker, the "Anime to watch" list offers only records of the same series, and the "Air Date" tab of the Series Chronology page shows every record carrying the name. A series name describes a <strong>family</strong>; it says nothing about order — order is set by relations.',
     'help.chrono.next.h3'                    => 'Watch Order (Sequel / Prequel)',
-    'help.chrono.next.text'                  => 'Which anime to watch after finishing the current one. It is set in the <strong>Relations</strong> panel of the edit screen: pick the other anime and choose "Sequel" (or "Prequel" from the other end). It appears in the "Next Up" box on the detail page; the chain tab of the series timeline and the synopsis spoiler guard follow this link.',
-    'help.chrono.markers.h3'                 => 'Chronology Markers',
-    'help.chrono.markers.text'               => 'For series like Detective Conan: episode-level markers such as "after episode 54, watch the first movie" are stored. They appear as active alerts on the detail page and are listed as a timeline on a separate "Chronology" page.',
+    'help.chrono.next.text'                  => 'Which anime to watch after finishing the current one. It is set in the <strong>Relations</strong> panel of the edit screen: pick the other anime and choose "Sequel" (or "Prequel" from the other end). It appears in the "Next Up" box on the detail page; the chain tab of the series timeline and the synopsis spoiler guard follow this link. The link is followed only when both ends carry the same <strong>chain name</strong> (or neither has one). Order is just one of the relation types; for all of them see <a href="#iliskiler">Relations</a>.',
+    'help.chrono.markers.h3'                 => 'Chronology Notes (Markers)',
+    'help.chrono.markers.text'               => 'In long series like Detective Conan the films and OVAs slot into a specific point of the series: "after episode 54, watch the first film". A chronology marker (a "chronology note" in the interface) stores exactly that: an episode number of the <strong>series you are watching</strong> + the <strong>target record</strong> to watch at that point (a film, OVA, special or another series) + an optional comment. The marker belongs to the series\' record; the target is a separate record and must carry the same series name. It shows in three places: as a list in the <strong>"Chronology Notes"</strong> section of the detail page; as an <strong>active alert</strong> at the top of the detail page once your watched episode has passed a marker\'s release point and its target is not yet "Watched"; and on the separate page behind the <strong>"Chronology"</strong> button, where the series\' episode ranges and the records slotted between them form one line, each with its watch status.',
     'help.chrono.story.h3'                   => 'Release Order and Story Order',
     'help.chrono.story.text'                 => 'A marker can carry two insertion points: the <strong>release order</strong> point (where the content actually aired) and the <strong>story order</strong> point (where it is best watched). Example: the first Card Captor Sakura film aired after episode 46 but is recommended after episode 35. Leaving the story point empty means "same as release" - you only fill the second number for markers that diverge. A single button on the detail page and the chronology page cycles the view: release → story → both. You can pick the default in List Settings.',
+    // 1.1.42 - HOW markers are used (only WHAT they are was written before)
+    'help.chrono.howto.h3'                   => 'Adding, Editing and Deleting a Chronology Note',
+    'help.chrono.howto.text'                 => 'Notes are shared catalog structure, not personal data. So on the online site only <strong>moderators and above</strong> can add or delete them; on your own installation you always can. The list is visible to everyone. The add form sits at the bottom of the detail page\'s "Chronology Notes" section and only appears when the anime has a series name and that series has other records — with nothing to pick as a target there is no form.',
+    'help.chrono.howto.list' => '<li><strong>In release order (after episode)</strong> — required. The point where the target actually came out: once this episode is done, the target slots in.</li>
+        <li><strong>In story order</strong> — optional. Fill it only when the recommended watching point differs from the release point; empty means "same as release".</li>
+        <li><strong>Anime to watch</strong> — picked from the records sharing the series name.</li>
+        <li><strong>Note</strong> — an optional short comment ("Canon chronology", "after manga vol. 12"); shown in brackets in the list.</li>',
+    'help.chrono.howto.edit'                 => '<strong>Editing</strong> happens in place: type the episode number into the box next to the row and press ✓. The box edits the point of the list it sits in — the box in the "Release Order" list edits the release point, the one in the "Story Order" list edits the story point; clearing the story box and saving makes it "same as release" again. To change the target record or the comment, delete the note and add it again. <strong>Deleting</strong> is the × at the end of the row; it asks for confirmation.',
+    'help.chrono.pages.h3'                   => 'Are "Chronology" and "Series Chronology" the Same Thing?',
+    'help.chrono.pages.text'                 => 'No; the two pages work at two different scales. <strong>Chronology</strong> (the button on the detail page; only shown when the anime has notes) looks <strong>inside one series</strong>: episode ranges and the films / OVAs slotted between them, marked with your progress. <strong>Series Chronology</strong> looks at <strong>the whole franchise</strong>: seasons, films and spin-offs as records, in chain order or by air date. The first answers "what comes after episode 54 of this series?", the second "which link of this franchise am I on?"; details <a href="#seri-kronolojisi">below</a>.',
     'help.chrono.warning_title'              => '<i class="fas fa-exclamation-triangle"></i> Heads up:',
-    'help.chrono.warning_body'               => 'Chronology markers also follow the sync\'s catalog-is-authoritative rule. If you added markers yourself, they are lost after the next sync.',
+    'help.chrono.warning_body'               => 'For markers that came from the catalog, sync treats the catalog as authoritative: a marker deleted centrally is deleted here, a changed one is updated. <strong>Markers you added yourself are not deleted</strong> — until they are pushed to the catalog they count as "not in sync with the catalog", and List Settings reminds you with a warning. On the online site, once the administrator pushes them to the catalog they become the catalog\'s and follow the catalog rule from then on.',
 
     // Section: Deletion warnings
     'help.delete.h2'                         => 'Deletion Warnings',
@@ -868,12 +917,14 @@ return [
     'help.toc.mal'                           => 'Import a MyAnimeList List',
     'help.toc.anilist'                       => 'Import an AniList List',
     'help.toc.clear'                         => 'Clear the List',
+    'help.toc.blacklist'                     => 'Import Blacklist',                               // 1.1.42
     'help.toc.membership'                    => 'Signing In, Registering, Account',
     'help.toc.roles'                         => 'Roles — Who Can Do What?',
     'help.toc.add_anime'                     => 'Adding an Anime and Approval',
     'help.toc.suggest'                       => 'Suggesting a Correction',
     'help.toc.series_timeline'               => 'The Series Chronology Page',
     'help.toc.spoiler'                       => 'Spoiler Guard',
+    'help.toc.relations'                     => 'Relations — Sequel, Alternative Version, Side Story',   // 1.1.42
     'help.toc.broadcast'                     => 'Broadcast Info and Countdown',
 
     // -----------------------------------------------------------------
@@ -978,6 +1029,17 @@ return [
         <li><strong>Import content only</strong> — no personal watch state is taken; only anime missing from the catalog are added as records/suggestions. Useful for growing the catalog.</li>',
     'help.transfer.anilist.box_title'        => '<i class="fas fa-info-circle"></i> Things to know:',
     'help.transfer.anilist.box_body'         => 'The list must be <strong>public</strong>; AniList does not serve private lists. If you hit AniList\'s rate limit, wait a few minutes and try again. Also, the <strong>number of distinct AniList accounts is limited</strong> — you can re-sync accounts you have already imported as often as you like, but you cannot keep adding new ones.',
+
+    // 1.1.42 - import blacklist (1.1.35; missing from help). Multi-user mode only.
+    'help.blacklist.h2'                      => 'Import Blacklist',
+    'help.blacklist.intro'                   => 'This exists only on the multi-user site; a personal installation has no shared catalog, so it never comes into play. The problem it solves: when a moderator deleted an anime from the catalog, that anime fell into the "not in catalog" bucket of a member\'s next MAL / AniList import and was opened again as a catalog suggestion — deleting it made it a fresh candidate. Rejected suggestions came back with every import too.',
+    'help.blacklist.how.h3'                  => 'How It Works',
+    'help.blacklist.how.list' => '<li>When an anime is deleted from the catalog, its MAL and AniDB ids are written to the blacklist <strong>automatically</strong>; entries can also be added by hand on the admin page (at least one id is required).</li>
+        <li>The MAL and AniList imports open no suggestion for a record that <strong>does not match the catalog</strong> when its id is blacklisted. The preview says "N of these are on the admin blacklist", the result says how many were skipped.</li>
+        <li>Matching is by id only, never by title — unrelated works with the same name do not block each other. A deletion record without an id stays on the list but is marked "Cannot block".</li>
+        <li>The blacklist never blocks an anime that is <strong>actually in the catalog</strong>: if the record was added again later, members can put it on their lists; the admin page marks such rows "In catalog". Adding by hand is never blocked either.</li>
+        <li>For a shared source record the id enters the list only once its <strong>last part</strong> is deleted too.</li>',
+    'help.blacklist.where'                   => 'The list lives on the <strong>"Import Blacklist"</strong> page of the admin panel (moderators and above): search by title or id, undo with <strong>"Remove from list"</strong>. If you want a blocked anime to be suggested by imports again, remove its entry here. The list does not travel to the central catalog and is <strong>not</strong> part of the JSON backup — it lives only in the database backup.',
     'help.transfer.anilist.overwrite'        => 'The "overwrite" option only applies to the "with watch statuses" mode; in "content only" mode it is ignored.',
 
     'help.transfer.clear.h2'                 => 'Clear the List',
@@ -1018,11 +1080,33 @@ return [
     // -----------------------------------------------------------------
     'help.st.h2'                             => 'The Series Chronology Page',
     'help.st.intro'                          => 'The <strong>"Series Chronology"</strong> button on the detail page of any anime in a series shows that whole series on a single timeline. The page opens with two tabs:',
-    'help.st.tabs.list' => '<li><strong>Chain Order</strong> — the watch order built from the "next in series" links: first season, second season, sequel film... The chain is built by hand, so it is the order the curator recommends.</li>
+    'help.st.tabs.list' => '<li><strong>Chain Order</strong> — the watch order built from the "Sequel" / "Prequel" links: first season, second season, sequel film... The chain is built by hand, so it is the order the curator recommends; how it is built is in <a href="#iliskiler">Relations</a>.</li>
         <li><strong>Air Date</strong> — <strong>every</strong> record sharing the same series name, by first air date. Entries never linked into a chain (stand-alone films, specials) show up here too.</li>',
     'help.st.tabs.text'                      => 'The two tabs read the same series with two different questions: "in what order should I watch this" and "when did it come out". Which tab the page opens on is set by List Settings → General Settings → <strong>"Series Chronology View"</strong>; clicking a tab does not change that default.',
     'help.st.chains.h3'                      => 'Other Chains',
     'help.st.chains.text'                    => 'One series name can hold more than one independent chain — the films may follow one order while the TV series follow a completely different one, or the same story may have been told twice (the 1990s Sailor Moon and the 2014 Crystal run). You can give each track a <strong>chain name</strong> (the “Chain name” field on the edit screen); entries sharing a name count as one chain and the tab carries that name. Without a name the tab keeps the old <strong>"Other Chain 1..N"</strong> label, numbered from the oldest chain.<br><br>A named track gets its own tab even when it holds <strong>a single record</strong> — naming it is a deliberate statement: “this entry is its own track”. An unnamed record linked to nothing does not count as a chain; those live on the "Air Date" tab.<br><br>The chain name also bounds the <strong>synopsis spoiler gate</strong>: it only looks at earlier entries on the same track, and never treats a record from another track as something you should have watched first.',
+
+    // 1.1.42 - Related anime (1.1.38 + 1.1.40; entirely missing from help)
+    'help.rel.h2'                            => 'Relations',
+    'help.rel.intro'                         => 'The <strong>type</strong> of link between two records is data too: "Sailor Moon R is the sequel of Sailor Moon", "the Space Adventure Cobra film is an alternative version of the TV series". These links show on the detail page under <strong>"Relations"</strong>, grouped by type; each row carries the other record\'s title, media type and your watch status. Links are created and deleted in the <strong>Relations</strong> panel on the edit form\'s <strong>"Series &amp; Relations"</strong> tab; on the online site that form is for moderators and above, on your own installation it is yours.',
+    'help.rel.types.h3'                      => 'Relation Types',
+    'help.rel.types.list' => '<li><strong>Sequel / Prequel</strong> — <strong>the only type that states an order.</strong> "A is the sequel of B" means A is watched once B is done. The "Next Up" box on the detail page, the chain tab of the Series Chronology and the spoiler guard follow this link and nothing else.</li>
+        <li><strong>Alternative Version</strong> — another telling of the same story: a remake, a film cut of a long series, the same work by another studio (Sailor Moon ↔ Sailor Moon Crystal; the Cobra TV series ↔ the Cobra film).</li>
+        <li><strong>Alternative Setting</strong> — the same characters in another world or under a completely different premise: "what if" stories, school-life re-imaginings.</li>
+        <li><strong>Side Story / Parent Story</strong> — a smaller work at the edge of the main line: an OVA, one character\'s own mini-series. A side story makes no sense without the parent story, yet it does not change the order.</li>
+        <li><strong>Summary / Full Story</strong> — a recap film or digest OVA of a series. Watching the summary does not count as having watched the full story (nor the other way round); that is why it stays out of the order.</li>
+        <li><strong>Other Relation</strong> — links that fit none of the above but are clearly related: a shared universe, a guest character, a connected work by the same creator.</li>',
+    'help.rel.direction.h3'                  => 'Direction: the Form Asks One Question',
+    'help.rel.direction.text'                => 'In the panel you first pick the other record, then the type. The form\'s question is always the same: <strong>"The anime you picked is the ___ of the anime you are editing."</strong> Editing Sailor Moon, picking Sailor Moon R and choosing "Sequel" is right; editing Sailor Moon R, picking Sailor Moon and choosing "Prequel" creates the same link from the other end. You never need both — the record is one and it shows on the two pages with two different labels ("Sequel: Sailor Moon R" / "Prequel: Sailor Moon"). That is why the three directional types appear twice in the list: Sequel / Prequel, Side Story / Parent Story, Summary / Full Story. The other three (Alternative Version, Alternative Setting, Other) read the same from either end; for them it does not matter which side you start from. The ★ in the list marks records sharing the series name; a relation does <strong>not</strong> require the same series name.',
+    'help.rel.rules.h3'                      => 'Rules',
+    'help.rel.rules.list' => '<li>Two records carry <strong>at most one</strong> relation. To change the type, delete the existing one with × first, then add the new one — the form does not stack them, it warns you.</li>
+        <li>A record cannot be related to itself.</li>
+        <li>Order (Sequel / Prequel) is followed on the chain tab only when both ends carry the same <strong>chain name</strong> (or neither has one). The chain name picks which track you are showing; the link builds the track.</li>
+        <li>Relations stay on the installation that holds the records: they do not travel to the central catalog server and "Import from Catalog" leaves them alone. They go into the JSON backup and come back on restore.</li>',
+    'help.rel.chain.h3'                      => 'Link or Relation? — How a Chain Is Built',
+    'help.rel.chain.text'                    => 'Building a series uses two tools together: <strong>Sequel / Prequel links</strong> build the track, the <strong>chain name</strong> (Series tab) keeps tracks apart.<br><br>1. Link the seasons in watching order with "Sequel": first season → second season → sequel film.<br>2. If the series holds <em>another track</em> — the films follow their own order, or the same story was told a second time — do <strong>not</strong> link that track into the main one. Give it a <strong>relation</strong> ("Alternative Version") and its own <strong>chain name</strong> ("Crystal", "Films").<br>3. Records that join no chain at all (a stand-alone special, a side OVA) get "Side Story" or "Other"; they show with their date on the "Air Date" tab of the Series Chronology.<br><br>The test is simple: <strong>a link means "when you finish this, watch that".</strong> If the sentence is not true, do not link — relate. Sailor Moon Crystal is not the sequel of the 90s series; calling it one breaks the timeline and closes the spoiler guard over eight unrelated seasons you have not watched. The right answer: an Alternative Version relation + the chain name "Crystal".',
+    'help.rel.box_title'                     => '<i class="fas fa-info-circle"></i> Where did the "Next Anime" box go?',
+    'help.rel.box_body'                      => 'The edit form no longer has a separate "Next Anime" box: order is a relation too, set with the "Sequel" / "Prequel" choice in the Relations panel. Order links made in older versions were converted to this type automatically.',
 
     'help.spoiler.h2'                        => 'Spoiler Guard',
     'help.spoiler.intro'                     => 'The synopsis of a second (or later) entry in a series usually describes how the previous one ended. So when <strong>any earlier entry in the chain is unwatched</strong>, the synopsis is not shown directly; it waits behind a <strong>"Let me read it anyway"</strong> button. Pressing it expands the synopsis in place.',

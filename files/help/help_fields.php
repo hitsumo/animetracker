@@ -80,6 +80,23 @@ lang_init($pdo);
         <?php echo t('help.fields.personal.note'); ?>
     </p>
     <!-- =============================================================== -->
+    <?php /* 1.1.42: form sekmeleri. Form 1.1.38'de bese bolundu; bu sayfa
+       hala tek uzun formmus gibi yaziyordu. Iliskiler panelinin neden yalniz
+       duzenlemede oldugu da burada. */ ?>
+    <h2 id="sekmeler"><?php echo htmlspecialchars(t('help.tabs.h2'), ENT_QUOTES, 'UTF-8'); ?></h2>
+
+    <p>
+        <?php echo t('help.tabs.intro'); ?>
+    </p>
+
+    <ul>
+        <?php echo t('help.tabs.list'); ?>
+    </ul>
+
+    <p>
+        <?php echo t('help.tabs.note'); ?>
+    </p>
+    <!-- =============================================================== -->
     <h2 id="kisisel-alanlar"><?php echo htmlspecialchars(t('help.personal.h2'), ENT_QUOTES, 'UTF-8'); ?></h2>
 
     <p>
@@ -117,6 +134,27 @@ lang_init($pdo);
         <?php echo t('help.personal.warning_body'); ?>
     </div>
     <!-- =============================================================== -->
+    <?php /* 1.1.42: konu icindeki [[anime:...]] kisa kodu (1.1.19) ve
+       baglanti secici (1.1.26). Ikisi de yardimda hic yoktu. */ ?>
+    <h2 id="konu-baglantisi"><?php echo htmlspecialchars(t('help.synlink.h2'), ENT_QUOTES, 'UTF-8'); ?></h2>
+
+    <p>
+        <?php echo t('help.synlink.intro'); ?>
+    </p>
+    <p>
+        <?php echo t('help.synlink.why'); ?>
+    </p>
+
+    <h3><?php echo htmlspecialchars(t('help.synlink.picker.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
+    <p>
+        <?php echo t('help.synlink.picker.text'); ?>
+    </p>
+
+    <div class="box info">
+        <strong><?php echo t('help.synlink.box_title'); ?></strong>
+        <?php echo t('help.synlink.box_body'); ?>
+    </div>
+    <!-- =============================================================== -->
     <h2 id="baslik-dili"><?php echo htmlspecialchars(t('help.title_lang.h2'), ENT_QUOTES, 'UTF-8'); ?></h2>
 
     <p>
@@ -127,6 +165,30 @@ lang_init($pdo);
         <strong><?php echo t('help.title_lang.box_title'); ?></strong>
         <?php echo t('help.title_lang.box_body'); ?>
     </div>
+    <!-- =============================================================== -->
+    <?php /* 1.1.42: paylasimli MAL / AniDB kaydi (1.1.41). Kutu, parca
+       numarasi, detaydaki rozet + "Ayni Kaynak Kaydi" bolumu ve ice
+       aktarma / Otomatik Doldur / konu baglantisi / silme etkileri. */ ?>
+    <h2 id="paylasimli-kimlik"><?php echo htmlspecialchars(t('help.identity.h2'), ENT_QUOTES, 'UTF-8'); ?></h2>
+
+    <p>
+        <?php echo t('help.identity.intro'); ?>
+    </p>
+
+    <h3><?php echo htmlspecialchars(t('help.identity.howto.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
+    <ul>
+        <?php echo t('help.identity.howto.list'); ?>
+    </ul>
+
+    <h3><?php echo htmlspecialchars(t('help.identity.where.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
+    <p>
+        <?php echo t('help.identity.where.text'); ?>
+    </p>
+
+    <h3><?php echo htmlspecialchars(t('help.identity.effects.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
+    <ul>
+        <?php echo t('help.identity.effects.list'); ?>
+    </ul>
 
     <p style="margin-top: 40px; color: #888; font-size: 0.9em;">
         <?php echo t('help.footer'); ?>

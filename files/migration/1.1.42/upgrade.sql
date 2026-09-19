@@ -1,0 +1,120 @@
+-- Anime Tracker - Migration 1.1.42
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- =====================================================================
+-- 1.1.42 - SEMA DEGISIKLIGI YOKTUR
+-- =====================================================================
+--
+-- Bu dosya bilerek BOSTUR. Runner yorumlari temizler, calistiracak ifade
+-- bulamaz ve yalnizca settings.version'i 1.1.42'ye tasir. Klasorun var
+-- olmasi gerekiyor: surum atlanirsa MigrationManager sirayi kaybeder.
+-- (Ayni kalip 1.1.25 / 1.1.30 / 1.1.33 / 1.1.34 / 1.1.37 / 1.1.39'da
+-- kullanildi.)
+--
+-- ---------------------------------------------------------------------
+-- Bu surumde ne var: TEK IS - yardim kapsami, ikinci tur
+-- ---------------------------------------------------------------------
+--
+-- 1.1.33 yardimi dort yeni grupla genisletmisti (KARARLAR_4 sec.89).
+-- Sonraki surumler uc buyuk ozellik ekledi ve yardim onlari IZLEMEDI:
+--
+--   1.1.38  tipli iliskiler (anime_relations) + form 5 sekmeye bolundu
+--   1.1.40  sira bir iliskidir (sequel/prequel; "Siradaki Anime" kutusu
+--           emekli)
+--   1.1.41  paylasimli MAL / AniDB kaydi (parca numarasi)
+--
+-- 8 Eylul 2026'da 316 help.* anahtarinin tamami tarandi (proje_durumu_90);
+-- uc seviye cikti: seri kronolojisi kucuk eksikli, kronoloji notlari "ne
+-- oldugu var, nasil kullanildigi yok", iliskiler HIC yok, form sekmeleri
+-- hic yok. 13 Eylul'de 1.1.41'in kutusu ve "Ayni Kaynak Kaydi" bolumu de
+-- listeye girdi.
+--
+-- YAZILANLAR (help_series.php):
+--   * Giris: uc katman (seri adi / iliskiler / kronoloji notlari).
+--   * Seri Bilgisi: "Bagli Animeler" -> "Baglantili Animeler" (gercek
+--     baslik); seri adinin neyi besledigi (not formu, Yayin Tarihi sekmesi).
+--   * Izleme Sirasi: zincir adi kurali (iki uc ayni adi tasimali).
+--   * Kronoloji Notlari: ne oldugu genisletildi (dizinin kaydina bagli,
+--     hedef ayri kayit, uc gorunum yeri) + YENI "Ekleme, Duzenleme, Silme"
+--     (kim, nerede, dort alan, yerinde duzenleme, silme) + YENI "Kronoloji
+--     ile Seri Kronolojisi ayni sey mi?".
+--   * UYARI DUZELTILDI: eski metin "kendi eklediginiz marker sync sonrasi
+--     kaybolur" diyordu. YANLISTI - 14 Nisan 2026'daki marker-kaybi
+--     duzeltmesinden beri catalog_import yalnizca source='catalog'
+--     satirlarini siler, source='user' satirlar korunur (list_settings'in
+--     unpushed uyarisi da tam bunu soyluyor). Yardim kodun eski halini
+--     anlatiyordu.
+--   * YENI H2 "Iliskili Animeler" (#iliskiler): alti tur ve tanimlari,
+--     yon (formun tek sorusu, uc turun iki yuzu, simetrik ucun yonsuzlugu),
+--     kurallar (cift basina bir iliski, kendine iliski yok, zincir adi,
+--     yerel-only + yedek), "Bag mi iliski mi - zincir nasil kurulur"
+--     (Sailor Moon Crystal ornegiyle uc adim), "Siradaki Anime kutusu
+--     nerede" kutusu.
+--   * Seri Kronolojisi: zincir sekmesi "Devami/Oncesi baglariyla" +
+--     #iliskiler'e baglanti.
+--
+-- YAZILANLAR (help_fields.php):
+--   * Giris: bes sekme.
+--   * Katalog listesi: "sonraki seri" kalkti (1.1.40'ta emekli), paylasimli
+--     kutu baglantisi eklendi; not: zincir adi / iliskiler / kendi notlar
+--     iki gruba da girmez (kurulumun kurator verisi).
+--   * YENI H2 "Ekleme / Duzenleme Formu - Sekmeler" (#sekmeler): bes
+--     sekmenin icerigi, tek form / tek kayit, gecersiz alanin sekmesine
+--     atlama, sekmenin hatirlanmasi, Iliskiler panelinin neden yalniz
+--     duzenlemede oldugu, kim gorur.
+--   * YENI H2 "Paylasimli MAL / AniDB Kaydi" (#paylasimli-kimlik): neden,
+--     nasil (kutu, parca numarasi, red, duzenlemede tureyen durum, kutunun
+--     saklanmamasi), nerede gorunur (rozet + Ayni Kaynak Kaydi), etkiler
+--     (ice aktarma Kural 2, Otomatik Doldur, [[anime:2994/2]], silme /
+--     kara liste, yedek / katalog).
+--
+-- IKINCI TUR ICINDE EKLENEN (kullanici "ekle" dedi, surum bolunmedi):
+--   * help_fields.php YENI H2 "Konuda Baska Bir Animeye Baglanti"
+--     (#konu-baglantisi): [[anime:2994|etiket]] kodu (1.1.19), neden kod,
+--     baglanti secici dugmesi (1.1.26), paylasimli parca, elle yazma
+--     kurallari.
+--   * help_transfer.php YENI H2 "Ice Aktarma Kara Listesi" (#kara-liste,
+--     1.1.35): yalniz cok kullanicili mod; nasil calisir (5 madde),
+--     yonetici sayfasi, yedege girmez.
+--
+-- help.php: bes yeni icindekiler satiri (#sekmeler, #konu-baglantisi,
+-- #paylasimli-kimlik, #iliskiler, #kara-liste).
+--
+-- DIL: 47 yeni anahtar + 10 degisen, TR ve EN birlikte. Parite 1098 = 1098.
+--
+-- ---------------------------------------------------------------------
+-- DEGISEN DOSYALAR (6 + bu klasor)
+-- ---------------------------------------------------------------------
+--
+--   files/help.php                    icindekiler (+5 satir)
+--   files/help/help_series.php        +2 h3 + yeni h2 #iliskiler
+--   files/help/help_fields.php        yeni h2 #sekmeler + #konu-baglantisi
+--                                     + #paylasimli-kimlik
+--   files/help/help_transfer.php      yeni h2 #kara-liste
+--   files/lang/tr.php                 47 yeni + 10 degisen anahtar
+--   files/lang/en.php                 ayni
+--   files/version.txt                 1.1.42
+--   files/migration/1.1.42/           bu dosya (yeni klasor)
+--
+-- Yeni CSS/JS YOK; 1.1.24'un damga kurali islemez. Sema, katalog teli,
+-- catalog_server/ DEGISMEDI.
+--
+-- ---------------------------------------------------------------------
+-- YARIM YUKLEME RISKI
+-- ---------------------------------------------------------------------
+--
+-- Yardim sayfalari lang/*.php'deki anahtarlari basar. Sayfa yeni gidip
+-- dil dosyasi eski kalirsa t() anahtar ADINI basar ("help.rel.h2" gibi) -
+-- sayfa cokmez, cirkin gorunur. Ters yonde (dil yeni, sayfa eski) hicbir
+-- sey olmaz: fazla anahtar zararsizdir. Yani lang/tr.php + lang/en.php
+-- once ya da birlikte gitmeli; dort yardim dosyasi sonra gelebilir.
+--
+-- ---------------------------------------------------------------------
+-- Dagitim
+-- ---------------------------------------------------------------------
+--
+-- Merkez katalog sunucusunda yapilacak bir sey YOK. Self-host ile online
+-- ayni metni gorur (rol cumleleri iki modu da anlatir).
+-- =====================================================================

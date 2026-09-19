@@ -84,9 +84,62 @@ lang_init($pdo);
         <?php echo t('help.chrono.story.text'); ?>
     </p>
 
+    <?php /* 1.1.42: notlarin NASIL kullanildigi. Ustteki iki bolum NE
+       oldugunu anlatiyordu; ekleme/duzenleme/silme, alanlar, kim yapabilir
+       ve iki kronoloji sayfasinin farki yazili degildi. */ ?>
+    <h3><?php echo htmlspecialchars(t('help.chrono.howto.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
+    <p>
+        <?php echo t('help.chrono.howto.text'); ?>
+    </p>
+    <ul>
+        <?php echo t('help.chrono.howto.list'); ?>
+    </ul>
+    <p>
+        <?php echo t('help.chrono.howto.edit'); ?>
+    </p>
+
+    <h3><?php echo htmlspecialchars(t('help.chrono.pages.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
+    <p>
+        <?php echo t('help.chrono.pages.text'); ?>
+    </p>
+
     <div class="box warning">
         <strong><?php echo t('help.chrono.warning_title'); ?></strong>
         <?php echo t('help.chrono.warning_body'); ?>
+    </div>
+    <!-- =============================================================== -->
+    <?php /* 1.1.42: iliskili animeler (1.1.38 tipli iliskiler + 1.1.40 sira
+       bir iliskidir). Yardimda hic yoktu. Seri Kronolojisi bolumunden ONCE
+       durur: o sayfanin zincir sekmesi burada kurulan baglari cizer. */ ?>
+    <h2 id="iliskiler"><?php echo htmlspecialchars(t('help.rel.h2'), ENT_QUOTES, 'UTF-8'); ?></h2>
+
+    <p>
+        <?php echo t('help.rel.intro'); ?>
+    </p>
+
+    <h3><?php echo htmlspecialchars(t('help.rel.types.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
+    <ul>
+        <?php echo t('help.rel.types.list'); ?>
+    </ul>
+
+    <h3><?php echo htmlspecialchars(t('help.rel.direction.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
+    <p>
+        <?php echo t('help.rel.direction.text'); ?>
+    </p>
+
+    <h3><?php echo htmlspecialchars(t('help.rel.rules.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
+    <ul>
+        <?php echo t('help.rel.rules.list'); ?>
+    </ul>
+
+    <h3><?php echo htmlspecialchars(t('help.rel.chain.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
+    <p>
+        <?php echo t('help.rel.chain.text'); ?>
+    </p>
+
+    <div class="box info">
+        <strong><?php echo t('help.rel.box_title'); ?></strong>
+        <?php echo t('help.rel.box_body'); ?>
     </div>
     <!-- =============================================================== -->
     <?php /* 1.1.33: seri kronolojisi SAYFASI (series_timeline.php). Yukaridaki

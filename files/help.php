@@ -93,8 +93,12 @@ lang_init($pdo);
             <strong><a href="help/help_fields.php"><?php echo htmlspecialchars(t('help.group.fields.heading'), ENT_QUOTES, 'UTF-8'); ?></a></strong>
             <ul>
                 <li><a href="help/help_fields.php#alanlar"><?php echo htmlspecialchars(t('help.toc.fields'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+                <?php /* 1.1.42: form sekmeleri + paylasimli kaynak kaydi. */ ?>
+                <li><a href="help/help_fields.php#sekmeler"><?php echo htmlspecialchars(t('help.toc.form_tabs'), ENT_QUOTES, 'UTF-8'); ?></a></li>
                 <li><a href="help/help_fields.php#kisisel-alanlar"><?php echo htmlspecialchars(t('help.toc.personal'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+                <li><a href="help/help_fields.php#konu-baglantisi"><?php echo htmlspecialchars(t('help.toc.synopsis_link'), ENT_QUOTES, 'UTF-8'); ?></a></li>
                 <li><a href="help/help_fields.php#baslik-dili"><?php echo htmlspecialchars(t('help.toc.title_lang'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+                <li><a href="help/help_fields.php#paylasimli-kimlik"><?php echo htmlspecialchars(t('help.toc.shared_identity'), ENT_QUOTES, 'UTF-8'); ?></a></li>
             </ul>
         </div>
 
@@ -133,6 +137,8 @@ lang_init($pdo);
             <strong><a href="help/help_series.php"><?php echo htmlspecialchars(t('help.group.series.heading'), ENT_QUOTES, 'UTF-8'); ?></a></strong>
             <ul>
                 <li><a href="help/help_series.php#kronoloji"><?php echo htmlspecialchars(t('help.toc.chronology'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+                <?php /* 1.1.42: iliskili animeler - yardimda hic yoktu. */ ?>
+                <li><a href="help/help_series.php#iliskiler"><?php echo htmlspecialchars(t('help.toc.relations'), ENT_QUOTES, 'UTF-8'); ?></a></li>
                 <li><a href="help/help_series.php#seri-kronolojisi"><?php echo htmlspecialchars(t('help.toc.series_timeline'), ENT_QUOTES, 'UTF-8'); ?></a></li>
                 <li><a href="help/help_series.php#spoiler"><?php echo htmlspecialchars(t('help.toc.spoiler'), ENT_QUOTES, 'UTF-8'); ?></a></li>
                 <li><a href="help/help_series.php#dolgu"><?php echo htmlspecialchars(t('help.toc.filler'), ENT_QUOTES, 'UTF-8'); ?></a></li>
@@ -149,6 +155,8 @@ lang_init($pdo);
                 <li><a href="help/help_transfer.php#ice-aktar"><?php echo htmlspecialchars(t('help.toc.import'), ENT_QUOTES, 'UTF-8'); ?></a></li>
                 <li><a href="help/help_transfer.php#mal"><?php echo htmlspecialchars(t('help.toc.mal'), ENT_QUOTES, 'UTF-8'); ?></a></li>
                 <li><a href="help/help_transfer.php#anilist"><?php echo htmlspecialchars(t('help.toc.anilist'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+                <?php /* 1.1.42: kara liste (yalniz cok kullanicili modda). */ ?>
+                <li><a href="help/help_transfer.php#kara-liste"><?php echo htmlspecialchars(t('help.toc.blacklist'), ENT_QUOTES, 'UTF-8'); ?></a></li>
                 <li><a href="help/help_transfer.php#temizle"><?php echo htmlspecialchars(t('help.toc.clear'), ENT_QUOTES, 'UTF-8'); ?></a></li>
             </ul>
         </div>
