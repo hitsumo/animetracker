@@ -457,6 +457,65 @@ if (MULTI_USER_MODE && $catalogRequestsAvailable) {
                     <?php endif; ?>
                 </div>
 
+                <!-- 1.1.43: Kurulum Sayaci (kurulum basina tek ping). Sayilar projenin sayac ucundan
+                     (INSTALL_PING_URL?stats=1) tarayicida cekilir: sunucu
+                     tarafinda cekmek admin sayfasini uzak sunucuya bagimli
+                     kilardi (3 sn zaman asimi = 3 sn bekleyen sayfa). Uc
+                     CORS-acik ve yalniz toplam sayi doner; kimlik yok. -->
+                <div class="tool-card" id="install-counter-card">
+                    <h3><i class="fas fa-chart-bar"></i> <?php echo htmlspecialchars(t('admin.tool.installs.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                    <p>
+                        <?php echo t('admin.tool.installs.desc'); ?>
+                    </p>
+                    <div class="tool-status" id="install-counter-body" style="line-height: 1.7;">
+                        <i class="fas fa-spinner fa-spin"></i> <?php echo htmlspecialchars(t('admin.tool.installs.loading'), ENT_QUOTES, 'UTF-8'); ?>
+                    </div>
+                    <?php if (!install_ping_enabled()): ?>
+                        <div class="tool-status status-missing" style="margin-top: 8px;">
+                            <i class="fas fa-info-circle"></i> <?php echo t('admin.tool.installs.disabled_here'); ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                <script>
+                (function () {
+                    var box = document.getElementById('install-counter-body');
+                    if (!box) return;
+                    var L = <?php echo json_encode([
+                        'total'    => t('admin.tool.installs.total'),
+                        'single'   => t('admin.tool.installs.mode_single'),
+                        'multi'    => t('admin.tool.installs.mode_multi'),
+                        'versions' => t('admin.tool.installs.versions'),
+                        'error'    => t('admin.tool.installs.error'),
+                    ], JSON_UNESCAPED_UNICODE); ?>;
+                    function esc(s) {
+                        return String(s).replace(/[&<>"']/g, function (c) {
+                            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                        });
+                    }
+                    fetch(<?php echo json_encode(INSTALL_PING_URL . '?stats=1'); ?>, { cache: 'no-store' })
+                        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                        .then(function (d) {
+                            if (!d || !d.ok) throw new Error('bad payload');
+                            var html = '<strong style="font-size: 1.4em;">' + esc(d.total) + '</strong> ' + esc(L.total) + '<br>'
+                                     + esc(d.by_mode.single) + ' ' + esc(L.single) + ' &middot; '
+                                     + esc(d.by_mode.multi) + ' ' + esc(L.multi);
+                            var keys = Object.keys(d.by_version || {});
+                            if (keys.length) {
+                                html += '<br><span style="color: #666;">' + esc(L.versions) + ' ';
+                                html += keys.map(function (k) {
+                                    return esc(k) + ' (' + esc(d.by_version[k]) + ')';
+                                }).join(', ') + '</span>';
+                            }
+                            box.className = 'tool-status status-ok';
+                            box.innerHTML = html;
+                        })
+                        .catch(function () {
+                            box.className = 'tool-status status-missing';
+                            box.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + esc(L.error);
+                        });
+                })();
+                </script>
+
                 <!--
                   Future tools go here. Example skeleton:
 

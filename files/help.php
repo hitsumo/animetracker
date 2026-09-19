@@ -120,6 +120,8 @@ lang_init($pdo);
                 <li><a href="help/help_sync.php#sync"><?php echo htmlspecialchars(t('help.toc.sync'), ENT_QUOTES, 'UTF-8'); ?></a></li>
                 <li><a href="help/help_sync.php#silme-uyarilari"><?php echo htmlspecialchars(t('help.toc.deletion'), ENT_QUOTES, 'UTF-8'); ?></a></li>
                 <li><a href="help/help_sync.php#guncelleme"><?php echo htmlspecialchars(t('help.toc.updates'), ENT_QUOTES, 'UTF-8'); ?></a></li>
+                <?php /* 1.1.43: kurulum sayaci - ne gider, nasil kapanir. */ ?>
+                <li><a href="help/help_sync.php#kurulum-sayaci"><?php echo htmlspecialchars(t('help.toc.counter'), ENT_QUOTES, 'UTF-8'); ?></a></li>
             </ul>
         </div>
 

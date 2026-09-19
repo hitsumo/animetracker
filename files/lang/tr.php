@@ -643,6 +643,7 @@ return [
     'help.toc.chronology'                    => 'Seriler ve Kronoloji',
     'help.toc.deletion'                      => 'Silme Uyarıları',
     'help.toc.updates'                       => 'Güncelleme Sistemi',
+    'help.toc.counter'                       => 'Kurulum Sayacı',
     'help.toc.timezone'                      => 'Saat Dilimi (TZ)',
 
     // Section: Anime fields (catalog vs personal)
@@ -900,6 +901,19 @@ return [
         <li>Sayfa yenilenir, yeni sürüm aktif</li>',
     'help.update.safe_title'                 => '<i class="fas fa-shield-alt"></i> Güncelleme Sırasında Kaybolmaz:',
     'help.update.safe_body'                  => 'Animeleriniz, izleme verileriniz, notlarınız, poster\'leriniz, DB kimlik bilgileriniz — hiçbiri etkilenmez.',
+
+    // 1.1.43: kurulum sayaci - ne gonderilir, ne gonderilmez, nasil kapatilir.
+    'help.counter.h2'                        => 'Kurulum Sayacı',
+    'help.counter.intro'                     => 'Anime Tracker açık kaynaktır ve herkes kendi sunucusuna kurabilir. Bu yüzden projenin, dünyada kaç kurulum olduğunu bilmesinin başka yolu yoktur: kişisel bir kurulum merkez katalogla hiç konuşmak zorunda değildir, güncelleme kontrolü de yalnızca düğmesine basıldığında çalışır. Kurulum sayacı bu boşluğu <strong>yalnızca bir sayı</strong> ile doldurur: "kaç kurulum var".',
+    'help.counter.what_intro'                => 'Kurulumunuz, <strong>yalnızca bir kez</strong> — ana sayfanın ilk açılışından sonra — projenin sayacına tek ve küçük bir istek gönderir. Sayaç sunucusuna o an ulaşılamazsa ertesi gün bir kez daha dener; başardığı anda bir daha hiç göndermez. İçinde üç şey vardır:',
+    'help.counter.what_list' => '<li><strong>Rastgele bir kurulum kimliği.</strong> İlk gönderimde üretilir ve <code>settings</code> tablosuna yazılır. Sitenizin adresinden, veritabanınızdan ya da sizden türetilmez; tek işi sayacın bir tekrarı (yeniden deneme, geri yüklenen yedek) yeni kurulum saymamasıdır.</li>
+        <li><strong>Kurulu sürüm</strong> (örn. 1.1.43).</li>
+        <li><strong>Mod:</strong> kişisel mi, çok kullanıcılı mı.</li>',
+    'help.counter.not_sent_title'            => '<i class="fas fa-shield-alt"></i> Gönderilmeyenler:',
+    'help.counter.not_sent_body'             => 'Sitenizin adresi, üye sayınız, animeleriniz, izleme verileriniz, notlarınız, sunucunuzun adı — hiçbiri. Sayaç IP adresini de saklamaz. Toplamlar herkese açıktır ama içinde kimlik yoktur; yönetici panelindeki "Kurulum Sayacı" kartı aynı toplamları gösterir.',
+    'help.counter.off_title'                 => '<i class="fas fa-toggle-off"></i> Kapatmak:',
+    'help.counter.off_body'                  => '<code>config.php</code> dosyasına <code>define(\'INSTALL_PING\', false);</code> satırını ekleyin (yeni kurulumlarda satır zaten vardır, <code>true</code> yazar). Bundan sonra hiçbir istek gitmez; uygulamanın geri kalanı etkilenmez. Kurulum kimliğini sıfırlamak isterseniz <code>settings</code> tablosundaki <code>install_id</code> ve <code>install_ping_done</code> satırlarını silmeniz yeter — kurulumunuz sayaçta yeni bir kurulum olarak görünür.',
+    'help.counter.why'                       => 'Neden var? Kimsenin bize söylemediği bir şeyi bilmek için: projeye harcanan emeğin kaç kişiye ulaştığını. Sayı kabaca doğrudur, kanıt değildir — sayacı kapatan kurulumlar görünmez, kimliğini sıfırlayan iki kez sayılır.',
 
     // Section: Timezone
     'help.tz.h2'                             => 'Saat Dilimi — Yayın Saati Nasıl Gösterilir?',
@@ -1625,7 +1639,10 @@ Hemen guncellemek ister misiniz?',
     'seo.index.description'             => 'Anime izleme listeni bölüm bölüm takip et: izleme sırası (kronoloji), dolgu bölüm listesi ve duygu işaretleri. Türkçe, açık kaynak anime takip uygulaması.',
     'seo.anime.description_fmt'         => '%s - bölüm takibi, izleme sırası, dolgu bölümleri ve yayın bilgileri.',
     'seo.chronology.description_fmt'    => '%s izleme sırası: hangi bölümden sonra hangi film, OVA ya da özel bölüm izlenir - sırayla.',
-    'seo.series.description_fmt'        => '%s serisinin kronolojisi: sezonlar, filmler ve özel bölümler yayın ve hikâye sırasıyla.',
+    'seo.series.description_fmt'        => '%s izleme sırası: sezonlar, filmler ve özel bölümler yayın ve hikâye sırasıyla; hangi film hangi bölümden sonra izlenir.',
+    // 1.1.43: <title> icin. Turk kullanici "izleme sirasi" ariyor, sayfanin
+    // adi "Seri Kronolojisi" - ikisi de baslikta olsun (arayuz adi degismedi).
+    'seo.series.title_fmt'              => '%s İzleme Sırası - Seri Kronolojisi',
     'seo.about.description'             => 'Anime Tracker nedir, ne işe yarar ve hangi lisansla dağıtılır.',
     'seo.help.description'              => 'Anime Tracker yardım sayfaları: alanlar, izleme durumları, katalog senkronu, seriler ve saat dilimi.',
     'seo.help.group.description_fmt'    => 'Anime Tracker yardımı - %s.',

@@ -1132,9 +1132,17 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
             <?php endif; ?>
 
             <div class="button-group">
+                <?php /* 1.1.43: "Duzenle" yalniz duzenleyebilene. edit_anime.php
+                   require_role('moderator') ile kapali; anonim ziyaretciye
+                   dugmeyi basmak login'e 302 demekti ve Search Console bu
+                   yuzden 1.034 "yonlendirmeli sayfa" biriktirdi. index.php
+                   ayni dugmeyi zaten $canModerate ile gizliyor; self-host'ta
+                   can() sahibe true doner, davranis degismez. */ ?>
+                <?php if ($canModerate): ?>
                 <a href="edit_anime.php?id=<?php echo (int)$anime['id']; ?>" class="edit-button">
                     <i class="fas fa-edit"></i> <?php echo htmlspecialchars(t('anime_details.btn.edit'), ENT_QUOTES, 'UTF-8'); ?>
                 </a>
+                <?php endif; ?>
                 <a href="index.php" class="back-button">
                     <i class="fas fa-arrow-left"></i> <?php echo htmlspecialchars(t('anime_details.btn.back'), ENT_QUOTES, 'UTF-8'); ?>
                 </a>

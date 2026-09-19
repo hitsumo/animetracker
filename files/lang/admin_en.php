@@ -52,6 +52,15 @@ return [
     'admin.tool.suggestions.h3'              => 'Correction Suggestions',
     'admin.tool.suggestions.desc'            => 'Review correction suggestions from users; mark accepted/rejected. Meaningful in multi-user mode.',
     'admin.tool.suggestions.link.open'       => 'Review suggestions',
+    'admin.tool.installs.h3'                => 'Install Counter',
+    'admin.tool.installs.desc'              => 'A rough count of how many Anime Tracker installations exist. Each install sends <strong>one</strong> anonymous request to the project counter on first use (random id + version + mode); the counter returns totals only, never ids. To switch off: <code>INSTALL_PING</code> in <code>config.php</code>.',
+    'admin.tool.installs.loading'           => 'Fetching numbers…',
+    'admin.tool.installs.total'             => 'installs (total)',
+    'admin.tool.installs.mode_single'       => 'personal',
+    'admin.tool.installs.mode_multi'        => 'multi-user',
+    'admin.tool.installs.versions'          => 'Installed with version:',
+    'admin.tool.installs.error'             => 'Could not reach the counter server.',
+    'admin.tool.installs.disabled_here'     => 'The counter is <strong>off</strong> on this install (<code>INSTALL_PING = false</code>); this install is not counted.',
     'admin.back_to_home'                     => 'Back to home',
 
     // -----------------------------------------------------------------

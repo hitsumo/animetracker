@@ -611,6 +611,7 @@ return [
     'help.toc.chronology'                    => 'Series and Chronology',
     'help.toc.deletion'                      => 'Deletion Warnings',
     'help.toc.updates'                       => 'Update System',
+    'help.toc.counter'                       => 'Install Counter',
     'help.toc.timezone'                      => 'Timezone (TZ)',
 
     // Section: Anime fields (catalog vs personal)
@@ -868,6 +869,19 @@ return [
         <li>The page reloads; the new version is active</li>',
     'help.update.safe_title'                 => '<i class="fas fa-shield-alt"></i> Not lost during update:',
     'help.update.safe_body'                  => 'Your anime entries, watch data, notes, posters, and DB credentials — none of these are affected.',
+
+    // 1.1.43: install counter - what is sent, what is not, how to switch it off.
+    'help.counter.h2'                        => 'Install Counter',
+    'help.counter.intro'                     => 'Anime Tracker is open source and anyone can run it on their own server. That leaves the project no other way of knowing how many installations exist: a personal install never has to talk to the central catalog, and the update check only runs when its button is pressed. The install counter fills that gap with <strong>a number, nothing more</strong>: "how many installs".',
+    'help.counter.what_intro'                => 'Your install sends one small request to the project counter <strong>once only</strong> — after the first time the home page is opened. If the counter server cannot be reached at that moment it tries once more the next day; as soon as it succeeds it never sends again. The request carries three things:',
+    'help.counter.what_list' => '<li><strong>A random install id.</strong> Generated on the first send and stored in the <code>settings</code> table. It is not derived from your address, your database or you; its only job is to let the counter recognise a repeat (a retry, a restored backup) instead of counting it as a new install.</li>
+        <li><strong>The installed version</strong> (e.g. 1.1.43).</li>
+        <li><strong>The mode:</strong> personal or multi-user.</li>',
+    'help.counter.not_sent_title'            => '<i class="fas fa-shield-alt"></i> Not sent:',
+    'help.counter.not_sent_body'             => 'Your site address, your member count, your anime, your watch data, your notes, your server name — none of it. The counter does not store the IP address either. The totals are public but contain no ids; the "Install Counter" card in the admin dashboard shows the same totals.',
+    'help.counter.off_title'                 => '<i class="fas fa-toggle-off"></i> Switching it off:',
+    'help.counter.off_body'                  => 'Add <code>define(\'INSTALL_PING\', false);</code> to <code>config.php</code> (new installs already have the line, set to <code>true</code>). From then on no request is sent; the rest of the application is unaffected. To reset, delete the <code>install_id</code> and <code>install_ping_done</code> rows from the <code>settings</code> table — your install then appears on the counter as a new one.',
+    'help.counter.why'                       => 'Why does it exist? To know something nobody tells us: how many people the work put into the project actually reaches. The number is roughly right, not proof — installs that switch the counter off are invisible, one that resets its id is counted twice.',
 
     // Section: Timezone
     'help.tz.h2'                             => 'Timezone — How Are Broadcast Times Shown?',
@@ -1590,7 +1604,10 @@ Update now?',
     'seo.index.description'             => 'Track your anime episode by episode: watch order (chronology), filler episode lists and emotion markers. Open-source anime tracking application.',
     'seo.anime.description_fmt'         => '%s - episode tracking, watch order, filler episodes and broadcast info.',
     'seo.chronology.description_fmt'    => '%s watch order: which movie, OVA or special comes after which episode - in order.',
-    'seo.series.description_fmt'        => '%s series chronology: seasons, movies and specials in broadcast and story order.',
+    'seo.series.description_fmt'        => '%s watch order: seasons, movies and specials in broadcast and story order; which movie to watch after which episode.',
+    // 1.1.43: for <title>. People search "watch order"; the page is called
+    // "Series Chronology" - both go in the title (UI name unchanged).
+    'seo.series.title_fmt'              => '%s Watch Order - Series Chronology',
     'seo.about.description'             => 'What Anime Tracker is, what it does and the licence it is distributed under.',
     'seo.help.description'              => 'Anime Tracker help pages: fields, watch statuses, catalog sync, series and time zones.',
     'seo.help.group.description_fmt'    => 'Anime Tracker help - %s.',

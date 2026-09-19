@@ -120,6 +120,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 '// true = online / multi-user (login required). Chosen at setup.',
                 'define(' . var_export('MULTI_USER_MODE', true) . ', ' . var_export($install_type === 'multi', true) . ');',
                 '',
+                '// Install counter (1.1.43). Once per install, one anonymous request to',
+                '// the project counter: random install id + version + mode. Set to false',
+                '// to switch it off. Details: config_example.php / help -> Update System.',
+                'define(' . var_export('INSTALL_PING', true) . ', true);',
+                '',
             ];
             $contents = implode("\n", $lines);
 

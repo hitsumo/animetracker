@@ -1489,5 +1489,20 @@ if ($anime['status'] == 'Yayın Tamamlandı') {
     })();
     </script>
     <script src="<?php echo asset_url('js/select_enhance.js'); ?>" defer></script>
+    <?php if (install_ping_due($pdo)): ?>
+    <script>
+    // 1.1.43: kurulum sayaci. Kurulum basina BIR kez (basarana kadar gunde
+    // en fazla bir deneme), sayfa yuklendikten sonra yerel install_ping.php'ye
+    // tek bir POST; disari giden istegi o uc yapar, bu sayfa beklemez. Ne
+    // gonderildigi ve nasil kapatildigi: functions/install_ping_helpers.php.
+    // Bu blok yalniz ping henuz basarmamissa basilir (install_ping_due).
+    fetch('install_ping.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'csrf_token=' + encodeURIComponent(CSRF_TOKEN),
+        keepalive: true
+    }).catch(function () {});
+    </script>
+    <?php endif; ?>
 </body>
 </html>

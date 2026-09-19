@@ -34,6 +34,50 @@ Security model:
 - File-based rate limit: roughly one request per 5 seconds per IP.
 - HTTPS is assumed (enforced via the host's web-server config / `.htaccess`).
 
+### `ping.php` - install counter (1.1.43)
+A `GET`, JSON endpoint with two jobs:
+
+- `ping.php?id=<32 hex>&v=<version>&m=single|multi` - records "this install
+  exists". Every client install that has not switched the counter off sends this
+  **once**, on first use (`files/functions/install_ping_helpers.php`; retried at
+  most once a day until it succeeds, then never again). One row per install id
+  (`INSERT IGNORE`); stores the three values plus first-seen. The IP address is
+  **not** stored. Per-IP throttle: one accepted ping per 10 s (zero-byte files
+  under `private/rate_limit/`, keyed by IP hash).
+- `ping.php?stats=1` - public totals, numbers only (total, by mode, by starting
+  version). CORS-open, so the "Install Counter" card in any install's admin
+  dashboard reads it straight from the browser.
+
+It **writes**, so it loads `../private/admin_push_config.php` (the same DB
+credentials `admin_push.php` uses), not the read-only `anime_api_config.php`.
+Only the `DB_*` constants are used.
+
+Table - create by hand on the catalog host, once:
+
+```sql
+CREATE TABLE IF NOT EXISTS installs (
+  install_id  CHAR(32)     NOT NULL,
+  first_seen  DATETIME     NOT NULL,
+  version     VARCHAR(20)  NOT NULL DEFAULT '',
+  mode        ENUM('single','multi') NOT NULL DEFAULT 'single',
+  PRIMARY KEY (install_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+```
+
+Order does not matter: until the table and file exist, clients get a 404/500,
+log it, and try again the next day (once a day, until the first success).
+Nothing on their pages waits for it.
+
+**If the host uses a default-deny `.htaccess`** (every `.php` blocked unless
+whitelisted - the production catalog host does), add the endpoint next to the
+`catalog.php` rule, or every ping gets a 403 before PHP runs:
+
+```apache
+<Files "ping.php">
+    Require all granted
+</Files>
+```
+
 ### `private/` - secrets and runtime state (must stay outside the web root)
 Holds the real configuration and runtime files:
 - `admin_push_config.php` - shared HMAC secret + database credentials.
@@ -48,7 +92,8 @@ fill in the secret and DB credentials).
 
 1. Serve **this folder** as its own document root on the catalog host - e.g. point
    the catalog subdomain/vhost at `catalog_server/` so that requests reach
-   `https://animetracker.sicakcikolata.com/catalog.php` and `/admin_push.php`.
+   `https://animetracker.sicakcikolata.com/catalog.php`, `/admin_push.php` and
+   `/ping.php`.
 2. Keep `private/` **one level above** that document root. The scripts load their
    config via `__DIR__ . '/../private/...'`, which resolves to the parent of the
    served folder. This keeps secrets unreachable over HTTP.

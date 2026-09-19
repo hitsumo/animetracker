@@ -89,3 +89,17 @@ define('MULTI_USER_MODE', false);
 // Without this constant nothing is queued and nothing is sent; the rest of
 // the application is unaffected.
 // define('INDEXNOW_KEY', '');
+
+// Install counter (1.1.43).
+// ONCE per installation the application sends one small request to the
+// project's counter (https://animetracker.sicakcikolata.com/ping.php) so
+// the project can see roughly how many installations exist. Three values
+// go out: a random id generated on this install (settings.install_id - not
+// derived from your address, database or anything else), the installed
+// version, and the mode ('single' / 'multi'). Nothing about your site,
+// your users or your anime is sent, and the counter does not store the IP
+// address. After the first successful send nothing is sent again.
+// Public totals only: ping.php?stats=1
+//
+// Set to false to switch it off entirely. A missing constant means on.
+define('INSTALL_PING', true);

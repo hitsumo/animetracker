@@ -162,7 +162,10 @@ function seriesMediaIcon($type) {
 <html lang="<?php echo current_lang(); ?>">
 <head>
     <meta charset="UTF-8">
-    <title><?php echo htmlspecialchars($seriesName); ?> - <?php echo htmlspecialchars(t('series_timeline.title_suffix'), ENT_QUOTES, 'UTF-8'); ?></title>
+    <?php /* 1.1.43: baslik "X Izleme Sirasi - Seri Kronolojisi". Search Console
+       "tensei shitara slime izleme sirasi" sorgusunda bu sayfayi degil filmin
+       detayini gosterdi; baslikta aranan kelime yoktu. Arayuzdeki ad ayni. */ ?>
+    <title><?php echo htmlspecialchars(sprintf(t('seo.series.title_fmt'), $seriesName), ENT_QUOTES, 'UTF-8'); ?></title>
     <?php
     // 1.1.30 - SEO meta. This page draws the SAME timeline for every
     // member of a series: ?id=12 and ?id=13 of one series are one page at
@@ -183,7 +186,7 @@ function seriesMediaIcon($type) {
         && trim((string)($_GET['mode']  ?? '')) === ''
         && trim((string)($_GET['chain'] ?? '')) === '';
     echo seo_head([
-        'title'       => $seriesName . ' - ' . t('series_timeline.title_suffix'),
+        'title'       => sprintf(t('seo.series.title_fmt'), $seriesName),
         'description' => sprintf(t('seo.series.description_fmt'), $seriesName),
         'canonical'   => 'series_timeline.php?id=' . (int)$seoCanonicalId,
         'type'        => 'article',

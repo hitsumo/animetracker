@@ -90,6 +90,7 @@ $disallow = [
     '/install_en.php',
     '/update.php',
     '/check_update.php',
+    '/install_ping.php',
     '/update_watched.php',
     '/update_emotion.php',
     '/update_filler.php',

@@ -126,6 +126,35 @@ lang_init($pdo);
         <strong><?php echo t('help.update.safe_title'); ?></strong>
         <?php echo t('help.update.safe_body'); ?>
     </div>
+    <!-- =============================================================== -->
+    <?php /* 1.1.43: kurulum sayaci. Uygulama disari ne gonderiyorsa yardim
+       onu da soyler - acik kaynak bir projede "sessiz" bir sayac olmaz. */ ?>
+    <h2 id="kurulum-sayaci"><?php echo htmlspecialchars(t('help.counter.h2'), ENT_QUOTES, 'UTF-8'); ?></h2>
+
+    <p>
+        <?php echo t('help.counter.intro'); ?>
+    </p>
+
+    <p>
+        <?php echo t('help.counter.what_intro'); ?>
+    </p>
+    <ul>
+        <?php echo t('help.counter.what_list'); ?>
+    </ul>
+
+    <div class="box safe">
+        <strong><?php echo t('help.counter.not_sent_title'); ?></strong>
+        <?php echo t('help.counter.not_sent_body'); ?>
+    </div>
+
+    <div class="box info">
+        <strong><?php echo t('help.counter.off_title'); ?></strong>
+        <?php echo t('help.counter.off_body'); ?>
+    </div>
+
+    <p>
+        <?php echo t('help.counter.why'); ?>
+    </p>
 
     <p style="margin-top: 40px; color: #888; font-size: 0.9em;">
         <?php echo t('help.footer'); ?>

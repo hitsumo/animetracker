@@ -63,6 +63,15 @@ return [
     'admin.tool.suggestions.h3'              => 'Düzeltme Önerileri',
     'admin.tool.suggestions.desc'            => 'Kullanıcılardan gelen düzeltme önerilerini incele; kabul/ret işaretle. Çok kullanıcılı modda anlamlıdır.',
     'admin.tool.suggestions.link.open'       => 'Önerileri incele',
+    'admin.tool.installs.h3'                => 'Kurulum Sayacı',
+    'admin.tool.installs.desc'              => 'Dünyada kaç Anime Tracker kurulumu olduğunun kaba sayısı. Her kurulum <strong>bir kez</strong>, ilk kullanımda projenin sayacına anonim tek istek atar (rastgele kimlik + sürüm + mod); sayaç kimlik değil, yalnızca toplam döner. Kapatmak: <code>config.php</code> içinde <code>INSTALL_PING</code>.',
+    'admin.tool.installs.loading'           => 'Sayılar alınıyor…',
+    'admin.tool.installs.total'             => 'kurulum (toplam)',
+    'admin.tool.installs.mode_single'       => 'kişisel',
+    'admin.tool.installs.mode_multi'        => 'çok kullanıcılı',
+    'admin.tool.installs.versions'          => 'Kurulduğu sürüm:',
+    'admin.tool.installs.error'             => 'Sayaç sunucusuna ulaşılamadı.',
+    'admin.tool.installs.disabled_here'     => 'Bu kurulumda sayaç <strong>kapalı</strong> (<code>INSTALL_PING = false</code>); bu kurulum sayıma girmez.',
     'admin.back_to_home'                     => 'Ana sayfaya dön',
 
     // -----------------------------------------------------------------

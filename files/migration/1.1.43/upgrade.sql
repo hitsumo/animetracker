@@ -1,0 +1,58 @@
+-- Anime Tracker - Migration 1.1.43
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- =====================================================================
+-- 1.1.43 - SEMA DEGISIKLIGI YOKTUR
+-- =====================================================================
+--
+-- Bu dosya bilerek BOSTUR. Runner yorumlari temizler, calistiracak ifade
+-- bulamaz ve yalnizca settings.version'i 1.1.43'e tasir. Klasorun var
+-- olmasi gerekiyor: surum atlanirsa MigrationManager sirayi kaybeder.
+-- (Ayni kalip 1.1.25 / 1.1.30 / 1.1.33 / 1.1.34 / 1.1.37 / 1.1.39 /
+-- 1.1.42'de kullanildi.)
+--
+-- ---------------------------------------------------------------------
+-- Bu surumde ne var: KURULUM SAYACI
+-- ---------------------------------------------------------------------
+--
+-- Proje acik kaynak ve self-host; kac kurulum oldugunu kimse bilmiyordu.
+-- Kisisel kurulum merkez katalogla hic konusmak zorunda degil, guncelleme
+-- kontrolu yalniz dugmeyle calisiyor - yani otomatik bir temas noktasi
+-- YOKTU. Bu surum KURULUM BASINA BIR KEZ, anasayfa acildiktan sonra,
+-- projenin sayacina tek bir GET atar: rastgele kurulum kimligi + surum +
+-- mod. Baska hicbir sey gitmez, IP saklanmaz. Basarana kadar gunde en
+-- fazla bir deneme, basarinca bir daha asla. config.php'de
+-- define('INSTALL_PING', false) ile kapanir. (Ilk taslak gunluk ping'di;
+-- kullanici "sadece kurulumda 1 kez, gerekirse genisletiriz" dedi.)
+--
+-- Yeni settings satirlari (calisma aninda olusur, migration YAZMAZ):
+--   install_id         32 hex, bin2hex(random_bytes(16)); ilk ping'de
+--                      install_id_get_or_create() yazar. PHP tarafinda
+--                      uretildigi icin bu migration sema/seed degistirmez
+--                      ve taze kurulum replay'i (1.1.41 dersi) etkilenmez.
+--   last_install_ping  UTC 'Y-m-d'; gunde en fazla tek deneme.
+--   install_ping_done  basarili gonderimin UTC zamani; varsa bir daha
+--                      hic gonderilmez.
+--
+-- Yeni dosyalar:
+--   files/functions/install_ping_helpers.php   mantik + INSTALL_PING_URL
+--   files/install_ping.php                      yerel AJAX ucu (POST+CSRF)
+--   catalog_server/ping.php                     MERKEZ uc: kayit + ?stats=1
+--
+-- MERKEZ KATALOG SUNUCUSUNDA ELLE YAPILACAK (bir kez):
+--   CREATE TABLE IF NOT EXISTS installs (
+--     install_id  CHAR(32)     NOT NULL,
+--     first_seen  DATETIME     NOT NULL,
+--     version     VARCHAR(20)  NOT NULL DEFAULT '',
+--     mode        ENUM('single','multi') NOT NULL DEFAULT 'single',
+--     PRIMARY KEY (install_id)
+--   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+--   + catalog_server/ping.php dosyasini yayimla (admin_push_config.php'nin
+--   DB bilgilerini kullanir; yazma yetkili kullanici).
+--
+-- Sira onemli DEGIL: tablo/uc yoksa istemci ping'i 404/500 alir, gunluge
+-- yazar, ertesi gun yine dener (basarana kadar gunde bir). Sayfa
+-- etkilenmez (1.1.31'in 503 kazasi burada tekrarlanamaz cunku ping sayfa
+-- renderinin disinda kosar).

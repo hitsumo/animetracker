@@ -2,10 +2,10 @@
   <img src="docs/screenshots/logo.png" alt="Anime Tracker" width="96">
 </p>
 
-<h2 align="center">
+<h1 align="center">
   Anime Tracker<br>
   <img src="docs/screenshots/slogan.png" alt="Animenin hissedildiği yer. / Where anime is felt." width="290">
-</h2>
+</h1>
 
 <p align="center">
   Türkçe-öncelikli, açık kaynak anime takip uygulaması —
@@ -127,6 +127,17 @@ geri gönderilir (imzalı, sunucudan sunucuya) ve diğer kurulumlar bir sonraki
 güncellemede alır. Kişisel veriler (izleme durumu, notlar, duygular) asla katalogla
 paylaşılmaz — yalnızca liste dışa/içe aktarmayla taşınır.
 
+### Kurulum sayacı
+
+Proje açık kaynak ve self-host olduğu için kaç kurulum olduğunu bilmenin başka
+yolu yok. Bu yüzden her kurulum **yalnızca bir kez**, ilk kullanımda projenin
+sayacına anonim tek bir istek atar: rastgele bir kurulum kimliği (o an üretilir,
+adresinizden veya veritabanınızdan türetilmez), kurulu sürüm ve mod (kişisel /
+çok kullanıcılı). Başarılı gönderimden sonra bir daha hiçbir şey gönderilmez.
+Site adresi, üye sayısı, anime ya da izleme verisi **gönderilmez**; sayaç IP
+adresini saklamaz. Toplamlar herkese açıktır (`ping.php?stats=1`) ve yönetici
+panelinde görünür. Kapatmak için `config.php`'de `define('INSTALL_PING', false);`.
+
 ### Yeni dil ekleme
 
 Arayüz şu an Türkçe ve İngilizce. Yeni bir dil eklemek için üç adım:
@@ -241,6 +252,18 @@ approves a pending anime, the record is automatically pushed back to the central
 server (signed, server-to-server) and other installs receive it on their next
 update. Personal data (watch status, notes, emotions) is never shared with the
 catalog — it only moves via list export/import.
+
+### Install counter
+
+Being open source and self-hostable, the project has no other way of knowing how
+many installations exist. So each install sends **one anonymous request, once**,
+on first use, to the project counter: a random install id (generated at that
+moment, not derived from your address or database), the installed version, and
+the mode (personal / multi-user). After the first successful send nothing is ever
+sent again. Your site address, member count, anime and watch data are **not**
+sent; the counter does not store the IP address. Totals are public
+(`ping.php?stats=1`) and shown in the admin dashboard. To switch it off:
+`define('INSTALL_PING', false);` in `config.php`.
 
 ### Adding a language
 

@@ -34,6 +34,10 @@ define('DB_PASS', '${DB_PASS:-root}');
 // Multi-user mode. false = tek kullanici / self-host (giris yok);
 // true = online / cok kullanici (giris zorunlu). MULTI_USER_MODE env'inden.
 define('MULTI_USER_MODE', ${MU_LITERAL});
+
+// Kurulum sayaci (1.1.43). Kurulumda bir kez projenin sayacina anonim tek
+// istek: rastgele kurulum kimligi + surum + mod. Kapatmak icin false.
+define('INSTALL_PING', true);
 PHPEOF
 
     echo "[anime_tracker] config.php olusturuldu (MULTI_USER_MODE=${MU_LITERAL})."
