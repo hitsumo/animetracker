@@ -218,3 +218,113 @@ function emotion_import_set(PDO $pdo, $userId, $animeId, $emotions)
     }
     return $added;
 }
+
+/**
+ * 1.1.45 - Toplu duygu dagilimi: bir animeye TUM uyelerin koydugu
+ * isaretlerin sayimi. Detay sayfasindaki "N kisi isaretledi: ..." satiri
+ * ve update_emotion.php'nin cevabi buradan beslenir.
+ *
+ * Yalniz cevrimici (MULTI_USER_MODE) modda anlamli: tek kullanicili
+ * kurulumda dagilim = kullanicinin kendi isaretleri, ayni satirin
+ * ustundeki dugmeler zaten onu gosterir. Cagiran taraf modu kontrol
+ * eder; bu fonksiyon veriyi sayar, karar vermez.
+ *
+ * Sayimlar anonimdir - kim ne isaretledi buradan cikmaz; yalniz
+ * isaret basina toplam ve kac farkli kisinin isaretledigi. Siralama:
+ * en cok isaretlenen once, esitlikte emotion_options() sirasi (kararli
+ * cikti; iki kisi ayni sayfayi ayni sirada gorur).
+ *
+ * @param PDO $pdo
+ * @param int $animeId
+ * @return array{voters:int, marks:int, items:array<int,array{emotion:string,count:int}>}
+ */
+function emotion_distribution(PDO $pdo, $animeId)
+{
+    $out = ['voters' => 0, 'marks' => 0, 'items' => []];
+    $animeId = (int)$animeId;
+    if ($animeId <= 0) {
+        return $out;
+    }
+
+    try {
+        // idx_anime her iki sorguyu da tasir.
+        $stmt = $pdo->prepare(
+            "SELECT emotion, COUNT(*) AS cnt
+               FROM user_anime_emotion
+              WHERE anime_id = ?
+           GROUP BY emotion"
+        );
+        $stmt->execute([$animeId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_KEY_PAIR); // emotion => cnt
+
+        $stmt = $pdo->prepare(
+            "SELECT COUNT(DISTINCT user_id) FROM user_anime_emotion WHERE anime_id = ?"
+        );
+        $stmt->execute([$animeId]);
+        $out['voters'] = (int)$stmt->fetchColumn();
+    } catch (PDOException $e) {
+        error_log('[anime_tracker] emotion_distribution: ' . $e->getMessage());
+        return $out;
+    }
+
+    // Kanonik sirayla gez: DB'de kalmis olabilecek tanimsiz bir deger
+    // dagilima girmez (emotion_label onu ham gosterirdi).
+    $order = 0;
+    foreach (array_keys(emotion_options()) as $emotion) {
+        if (empty($rows[$emotion])) {
+            continue;
+        }
+        $out['items'][] = [
+            'emotion' => $emotion,
+            'count'   => (int)$rows[$emotion],
+            '_order'  => $order++,
+        ];
+        $out['marks'] += (int)$rows[$emotion];
+    }
+    usort($out['items'], function ($a, $b) {
+        if ($a['count'] !== $b['count']) {
+            return $b['count'] - $a['count'];
+        }
+        return $a['_order'] - $b['_order'];
+    });
+    foreach ($out['items'] as &$item) {
+        unset($item['_order']);
+    }
+    unset($item);
+
+    return $out;
+}
+
+/**
+ * 1.1.45 - emotion_distribution() ciktisini detay sayfasindaki satirin
+ * IC HTML'ine cevirir. Tek cizim noktasi: sayfa ilk yuklenirken PHP,
+ * bir isaret degisince update_emotion.php'nin cevabi ('distribution_html')
+ * ayni fonksiyonu kullanir; JS yalnizca innerHTML degistirir, kendi
+ * kopyasini cizmez (etiket cevirisi ve renk siniflari tek yerde kalir).
+ *
+ * Hic isaret yoksa bos dize doner; cagiran taraf kapsayiciyi bos birakir
+ * (gizli). Iki uyeli bir kurulumda sayfalarin cogu 0'dir; "henuz kimse
+ * isaretlemedi" satiri her sayfada gurultu olurdu.
+ *
+ * Cipler 0.6.1'in .emotion-badge-* siniflari (salt-okunur; o gunden beri
+ * "detay sayfasi ozeti" icin ayrilmis, ilk kullanimi bu).
+ *
+ * @param array $dist emotion_distribution() ciktisi
+ * @return string HTML (guvenli; tum metinler kacirilmis)
+ */
+function emotion_distribution_html(array $dist)
+{
+    if (empty($dist['items']) || (int)$dist['voters'] <= 0) {
+        return '';
+    }
+    $voters = (int)$dist['voters'];
+    $lead   = sprintf(t($voters === 1 ? 'anime_details.emotion.dist_one' : 'anime_details.emotion.dist_many'), $voters);
+
+    $html = '<span class="emotion-dist-lead">' . htmlspecialchars($lead, ENT_QUOTES, 'UTF-8') . '</span> ';
+    foreach ($dist['items'] as $item) {
+        $html .= '<span class="emotion-badge emotion-badge-' . emotion_css_class($item['emotion']) . '">'
+               . htmlspecialchars(emotion_label($item['emotion']), ENT_QUOTES, 'UTF-8')
+               . ' <b>' . (int)$item['count'] . '</b></span>';
+    }
+    return $html;
+}

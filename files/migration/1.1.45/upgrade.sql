@@ -1,0 +1,43 @@
+-- Anime Tracker - Migration 1.1.45
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- =====================================================================
+-- 1.1.45 - SEMA DEGISIKLIGI YOKTUR
+-- =====================================================================
+--
+-- Bu dosya bilerek BOSTUR. Runner yorumlari temizler, calistiracak ifade
+-- bulamaz ve yalnizca settings.version'i 1.1.45'e tasir. Klasorun var
+-- olmasi gerekiyor: surum atlanirsa MigrationManager sirayi kaybeder.
+-- (Ayni kalip 1.1.25 / 1.1.30 / 1.1.33 / 1.1.34 / 1.1.37 / 1.1.39 /
+-- 1.1.42 / 1.1.43'te kullanildi.)
+--
+-- ---------------------------------------------------------------------
+-- Bu surumde ne var: TOPLU DUYGU DAGILIMI (detay sayfasi)
+-- ---------------------------------------------------------------------
+--
+-- Duygu isaretleri 0.6.1'den beri kisiseldir: her uye bir animeye en cok
+-- 3 duygu koyar, kendi isaretini gorur. Cevrimici (MULTI_USER_MODE)
+-- kurulumda ayni animeye baska uyelerin ne koydugu hicbir yerde
+-- gorunmuyordu. Bu surum detay sayfasindaki duygu dugmelerinin altina
+-- bir satir ekler:
+--
+--   "3 kisi isaretledi: Heyecanlandirdi 2 - Dusundurdu 2 - Sikti 1"
+--
+-- Sitenin "puan" yerine verdigi cevap budur: sayi degil, duygu dagilimi.
+-- Sayimlar anonimdir (kim ne isaretledi cikmaz), konuklar da gorur,
+-- kimse isaretlememisse satir hic cikmaz. Self-host'ta (tek kullanici)
+-- satir yoktur - dagilim ustteki dugmelerin kendisi olurdu.
+--
+-- Veri user_anime_emotion tablosunun oldugu gibi kullanimidir:
+--   SELECT emotion, COUNT(*) ... WHERE anime_id = ? GROUP BY emotion
+--   SELECT COUNT(DISTINCT user_id) ...  WHERE anime_id = ?
+-- Ikisini de mevcut idx_anime tasir. Yeni tablo, kolon, indeks YOK.
+--
+-- Cizim tek yerde (emotion_distribution_html); update_emotion.php ayni
+-- HTML'i cevabina koyar, sayfa isaret degisince satiri yeniden cizmeden
+-- degistirir.
+--
+-- MERKEZ KATALOG: is yok. Duygu verisi kurulum-yereldir, tele girmez.
+-- =====================================================================

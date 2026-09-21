@@ -107,8 +107,6 @@ return [
     'country.cn'                    => 'Çin',
     'country.kr'                    => 'Güney Kore',
     'country.tw'                    => 'Tayvan',
-    'country.us'                    => 'Amerika Birleşik Devletleri',
-    'country.fr'                    => 'Fransa',
 
     // 1.1.20: alternatif isim dilleri. animes.alternative_titles her ismin
     // önüne isteğe bağlı bir [xx] etiketi koyar ([en]My Neighbor Totoro);
@@ -202,6 +200,10 @@ return [
     'anime_details.label.genres'         => 'Türler:',
     'anime_details.label.watch_status'   => 'İzleme Durumu:',
     'anime_details.label.emotion'        => 'Duygu:',
+    // 1.1.45: toplu duygu dagilimi (yalniz cevrimici mod). %d = kac farkli
+    // uye isaretledi; ardindan cipler gelir. TR'de tekil/cogul ayni.
+    'anime_details.emotion.dist_one'     => '%d kişi işaretledi:',
+    'anime_details.emotion.dist_many'    => '%d kişi işaretledi:',
     'anime_details.label.broadcast_day'  => 'Yayın Günü:',
     'anime_details.label.broadcast_time' => 'Yayın Saati:',
     'anime_details.label.next_episode'   => 'Sonraki Bölüm:',
@@ -793,6 +795,7 @@ return [
     'help.emotions.cap_title'                => '<i class="fas fa-info-circle"></i> Anime başına en fazla 3:',
     'help.emotions.cap_body'                 => 'Bir animede aynı anda en çok 3 duygu işaretli olabilir; böylece işaretler anlamlı kalır. Bir duyguya tekrar basmak işareti kaldırır (aç/kapa). İşaret kaldırmak her zaman serbesttir, 3 sınırına takılmaz.',
     'help.emotions.stats'                    => 'Duygu işaretleriniz kişiseldir ve İstatistikler sayfasında "Duygulara Göre" dağılım olarak özetlenir — en çok hangi duyguyu işaretlediğinizi orada görebilirsiniz.',
+    'help.emotions.community'                => 'Çevrimiçi (çok kullanıcılı) kurulumda detay sayfasındaki duygu düğmelerinin altında bir satır daha görünür: <em>"3 kişi işaretledi: Heyecanlandırdı 2 · Düşündürdü 2 · Sıktı 1"</em>. Bu, o animeye tüm üyelerin koyduğu işaretlerin toplamıdır — bu sitenin "puan" yerine verdiği cevap. Sayılar anonimdir; kimin ne işaretlediği görünmez. Kimse işaretlememişse satır çıkmaz. Kendi bilgisayarınızdaki tek kullanıcılı kurulumda bu satır yoktur (dağılım zaten kendi işaretleriniz olurdu).',
 
     // Section: Filler / canon episodes
     'help.filler.h2'                         => 'Dolgu ve Canon Bölümler',
@@ -807,11 +810,9 @@ return [
 
     // Section: Statistics
     'help.stats.h2'                          => 'İstatistikler',
-    'help.stats.intro'                       => 'İstatistikler sayfası listenizi özetleyen sayılar sunar; üç sekmeye ayrılır:',
+    'help.stats.intro'                       => 'İstatistikler sayfası listenizi özetleyen sayılar sunar; iki sekmeye ayrılır:',
     'help.stats.user.h3'                     => 'Kullanıcı İstatistiği',
     'help.stats.user.text'                   => 'Size özel özet: toplam anime, toplam izlediğiniz bölüm, toplam bölüm; medya türüne göre dağılım (TV / Film / OVA vb.), yayın durumuna göre, izleme durumuna göre (İzleniyor / İzlendi / Planlandı / Ertelendi / Bırakıldı / Seçim Yapılmamış) ve duygulara göre dağılım.',
-    'help.stats.recent.h3'                   => 'Son İzlenenler',
-    'help.stats.recent.text'                 => 'En son izleme işlemi yaptığınız animeler, en yeni en üstte olacak şekilde listelenir. "Neredeydim" diye bakmak için pratiktir.',
     'help.stats.global.h3'                   => 'Global İstatistik',
     'help.stats.global.text'                 => 'Kişisel listenizden bağımsız olarak, kataloğun genel dağılımını gösterir (kaç anime, hangi medya türleri vb.). Sizin izleme durumunuzu değil, kataloğun bütününü yansıtır.',
 
@@ -1006,9 +1007,9 @@ return [
     'help.list.filters.sort.text'            => 'Tablo başlıklarındaki küçük <code>↑</code> ve <code>↓</code> okları sıralamayı değiştirir. Dört sütunda sıralama yapılabilir: <strong>Anime</strong> (isim), <strong>Durum</strong>, <strong>İzlenen Bölüm</strong> ve <strong>Sonraki Bölüm</strong>. Durum sıralaması arayüz dilindeki etiket alfabesine göre yapılır.',
 
     'help.list.recent.h2'                    => 'Son Güncellenenler',
-    'help.list.recent.text'                  => 'Menüdeki <strong>"Son Güncellenenler"</strong> sayfasının iki sekmesi vardır. <strong>Bölüm Güncellenenler</strong>, yayınlanan bölüm sayısı en son değişen beş animeyi gösterir: günlük yayın senkronu bir bölüm daha saydığında, düzenleme formunda bölüm sayısını değiştirdiğinizde ya da katalog içe aktarımı yeni sayı getirdiğinde anime buraya çıkar. <strong>İçerik Güncellenenler</strong> ise kataloğa en son eklenen ya da bilgisi (konu, tarih, bağlantı, poster...) düzenlenen beş animeyi gösterir; bölüm sayısı artışı bu sekmeyi oynatmaz. Sayfanın hangi sekmeyle açılacağı Liste Ayarları bölümünden seçilir (ön tanımlı: bölüm).',
-    'help.list.recent.box_title'             => '<i class="fas fa-info-circle"></i> "Son İzlenenler" ile karıştırmayın:',
-    'help.list.recent.box_body'              => 'İstatistikler sayfasındaki <strong>Son İzlenenler</strong> sekmesi <strong>sizin</strong> en son izleme hareketinizi gösterir. Buradaki <strong>Son Güncellenenler</strong> ise <strong>katalogun</strong> son değişikliklerini gösterir; siz bir bölüm işaretlediğinizde bu sayfa değişmez.',
+    'help.list.recent.text'                  => 'Menüdeki <strong>"Son Güncellenenler"</strong> sayfasının iki sekmesi vardır. <strong>Bölüm Güncellenenler</strong>, yayınlanan bölüm sayısı en son değişen beş animeyi gösterir: günlük yayın senkronu bir bölüm daha saydığında, düzenleme formunda bölüm sayısını değiştirdiğinizde ya da katalog içe aktarımı yeni sayı getirdiğinde anime buraya çıkar. <strong>İçerik Güncellenenler</strong> ise kataloğa en son eklenen ya da bilgisi (konu, tarih, bağlantı, poster...) düzenlenen beş animeyi gösterir; bölüm sayısı artışı bu sekmeyi oynatmaz. Üçüncü sekme <strong>Son İzlenenler</strong> kişiseldir: izleme ilerlemenizi en son değiştirdiğiniz on animeyi, en yenisi üstte listeler — "neredeydim" diye bakmak için. Sayfanın hangi sekmeyle açılacağı Liste Ayarları bölümünden seçilir (ön tanımlı: bölüm).',
+    'help.list.recent.box_title'             => '<i class="fas fa-info-circle"></i> Katalog sekmeleri ile kişisel sekmeyi karıştırmayın:',
+    'help.list.recent.box_body'              => '<strong>Bölüm</strong> ve <strong>İçerik Güncellenenler</strong> <strong>kataloğun</strong> son değişikliklerini gösterir; siz bir bölüm işaretlediğinizde o iki liste değişmez. <strong>Son İzlenenler</strong> ise yalnız <strong>sizin</strong> hareketlerinizi gösterir; başka üyeler onu görmez, katalog düzenlemeleri de onu oynatmaz.',
 
     // -----------------------------------------------------------------
     // help/help_prefs.php - kisisel tercihler
@@ -1179,7 +1180,6 @@ return [
     'statistics.heading'                     => 'İstatistikler',
     'statistics.tab.user'                    => 'Kullanıcı İstatistiği',
     'statistics.tab.global'                  => 'Global İstatistik',
-    'statistics.tab.recent_watched'          => 'Son İzlenenler',
     'statistics.label.total_anime'           => 'Toplam Anime',
     'statistics.label.total_watched'         => 'Toplam İzlenen Bölüm',
     'statistics.label.total_episodes'        => 'Toplam Bölüm',
@@ -1189,7 +1189,6 @@ return [
     'statistics.col.type'                    => 'Tür',
     'statistics.col.status'                  => 'Durum',
     'statistics.col.count'                   => 'Adet',
-    'statistics.col.last_watched'            => 'Son İzleme',
     'statistics.value.unspecified'           => 'Belirtilmemiş',
     'statistics.section.by_emotion'          => 'Duygulara Göre',
     'statistics.col.emotion'                 => 'Duygu',
@@ -1198,7 +1197,6 @@ return [
     'statistics.emotion.empty_global'        => 'Henüz hiçbir animeye duygu işareti konmamış.',
     // 1.1.5: kisisel duygu rozetine tiklama ipucu (o duygudaki animeleri listeler)
     'statistics.emotion.filter_hint'         => 'Bu duyguyla işaretlediğin animeleri listele',
-    'statistics.recent_watched.empty'        => 'Henüz izleme aktiviten yok. Bir animenin bölümünü izlediğinde burada görünür.',
 
     // -----------------------------------------------------------------
     // recent.php - son duzenlenen 5 anime
@@ -1218,6 +1216,11 @@ return [
     'recent.tab.content.hint'                => 'Kataloğa en son eklenen ya da bilgisi düzenlenen beş anime. Bölüm sayısı artışı bu sekmeyi etkilemez.',
     'recent.latest_episode'                  => 'Son bölüm: %d',
     'recent.empty_state.episodes'            => 'Henüz kayıtlı bölüm güncellemesi yok. Bu liste ilk yayın senkronundan sonra dolar.',
+    // 1.1.45: ucuncu sekme - kisisel "Son Izlenenler" (istatistiklerden tasindi)
+    'recent.tab.watched'                     => 'Son İzlenenler',
+    'recent.tab.watched.hint'                => 'İzleme ilerlemenizi en son değiştirdiğiniz on anime — "neredeydim" listesi. Yalnız sizin hareketleriniz; kataloğu oynatmaz.',
+    'recent.empty_state.watched'             => 'Henüz izleme aktiviteniz yok. Bir animenin bölümünü izlendi olarak işaretlediğinizde burada görünür.',
+    'recent.empty_state.watched_guest'       => 'Bu sekme kişiseldir; kendi izleme hareketlerinizi görmek için giriş yapın.',
 
     // -----------------------------------------------------------------
     // recommendations.php - 'Ne Izlesem?' oneri sayfasi
@@ -1414,7 +1417,7 @@ return [
     'list_settings.st_mode.save'             => 'Kaydet',
     // 1.1.44 - Son Güncellenenler varsayılan sekmesi
     'list_settings.section.recent_tab'       => 'Son Güncellenenler Sekmesi',
-    'list_settings.section.recent_tab.desc'  => 'Son Güncellenenler sayfası hangi sekmeyle açılsın: bölüm güncellenenler (yayınlanan bölüm sayısı en son değişen animeler) ya da içerik güncellenenler (en son eklenen / bilgisi düzenlenen animeler). Sayfadaki sekmelerle geçici olarak değiştirebilirsiniz. Bu tercih yalnızca sizi etkiler.',
+    'list_settings.section.recent_tab.desc'  => 'Son Güncellenenler sayfası hangi sekmeyle açılsın: bölüm güncellenenler (yayınlanan bölüm sayısı en son değişen animeler) içerik güncellenenler (en son eklenen / bilgisi düzenlenen animeler) ya da son izlenenler (sizin en son izleme hareketleriniz). Sayfadaki sekmelerle geçici olarak değiştirebilirsiniz. Bu tercih yalnızca sizi etkiler.',
     'list_settings.recent_tab.save'          => 'Kaydet',
 
     // 1.1.2 - yetiskin (+18) icerik gorunurluk toggle (list_settings)

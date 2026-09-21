@@ -5,18 +5,16 @@
  * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
- * Toplam anime sayisi, medya turu dagilimi, yayin/izleme durumu istatistikleri
+ * Toplam anime sayisi, medya turu dagilimi, yayin/izleme durumu istatistikleri.
+ * Iki sekme: kisisel ozet + global dagilim. "Son Izlenenler" listesi 1.1.1'den
+ * 1.1.44'e kadar buradaydi; 1.1.45'te Son Guncellenenler sayfasinin ucuncu
+ * sekmesi oldu (recent.php?tab=watched) - bu sayfa yalniz sayilara dondu.
  */
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
 
 // Sayfa dilini baslat
 lang_init($pdo);
-// Baslik dili tercihi - display_title() bunu okur. 1.1.18'de "Son Izlenenler"
-// hucresi display_title()'a gecirildi ama BU CAGRI UNUTULMUSTU: onbellek
-// varsayilani "Romaji" oldugu icin tablo, kullanicinin tercihi ne olursa olsun
-// daima Romaji basiyordu. 1.1.21'de fark edilip eklendi.
-title_pref_init($pdo);
 
 // Toplam anime sayisi
 $total = $pdo->query("SELECT COUNT(*) FROM animes")->fetchColumn();
@@ -77,23 +75,8 @@ $total_watched_stmt = $pdo->prepare(
 $total_watched_stmt->execute([':uid' => current_user_id()]);
 $total_watched = (int)$total_watched_stmt->fetchColumn();
 
-// Son izlenenler: kullanicinin izleme ilerlemesini en son guncelledigi
-// animeler (watched_episodes > 0), ua.updated_at'e gore yeniden eskiye.
-// Bu, "+1 izlenen bolum" gibi kisisel izleme aktivitesinin yeridir; recent.php
-// artik yalniz katalog duzenlemelerini gosterdigi icin bu gorunum buraya tasindi.
-// watch_status / watched_episodes / ua.updated_at hepsi user_anime'da (1.0.1),
-// current_user_id() ile kapsanir (self-host=1, online=oturum kullanicisi).
-$recent_watched_stmt = $pdo->prepare("
-    SELECT a.id, a.title, a.alternative_titles, a.image_path, a.total_episodes, a.aired_episodes,
-           ua.watch_status, ua.watched_episodes, ua.updated_at
-    FROM user_anime ua
-    JOIN animes a ON a.id = ua.anime_id
-    WHERE ua.user_id = :uid AND ua.watched_episodes > 0
-    ORDER BY ua.updated_at DESC
-    LIMIT 10
-");
-$recent_watched_stmt->execute([':uid' => current_user_id()]);
-$recent_watched = $recent_watched_stmt->fetchAll(PDO::FETCH_ASSOC);
+// Son Izlenenler 1.1.45'te recent.php'ye tasindi (ucuncu sekme, 'watched').
+// Bu sayfa artik yalniz sayilar: kisisel ozet + global dagilim.
 
 // Emotion distribution (0.6.1 user_anime_emotion table). Scoped to the
 // current user via current_user_id() (1.0.x data model). The table is
@@ -178,21 +161,6 @@ $emotion_anime_count_global = (int)$pdo->query(
         .stats-emotion-summary { color: #4a5568; margin: 0 0 12px; }
         .stats-emotion-empty { color: #4a5568; margin: 6px 0; }
         table.stats-table td .emotion-badge { font-size: 0.95em; }
-        /* Son Izlenenler: her anime IKI satir kaplar - ustte poster + durum
-           bilgileri, altta anime adi colspan=4 ile TUM TABLO GENISLIGINDE. Ad
-           dar Anime sutununa (110px) sigdirilinca uzun basliklar 5-6 satira
-           sariyordu; tam genislikte 1-2 satira duser. Poster kutusu 2:3 (poster
-           orani) oldugu icin object-fit:cover bozmadan kirpar; postersiz satirda
-           poster_src() dile duyarli placeholder'i verir (1.1.9). */
-        table.stats-table td.stats-anime-cell { width: 110px; vertical-align: top; }
-        table.stats-table tr.stats-anime-row td { border-bottom: none; padding-bottom: 4px; }
-        .stats-anime-link { display: block; }
-        .stats-anime-link img { display: block; width: 80px; height: 120px; object-fit: cover; border-radius: 4px; }
-        /* colspan hucresi ayni zamanda td:last-child oldugu icin yukaridaki
-           "son sutun saga yasli + kalin" kuralini devralir - burada geri alinir. */
-        table.stats-table td.stats-anime-name-cell { text-align: left; font-weight: normal; padding-top: 0; }
-        .stats-anime-name-cell a { color: #2b6cb0; text-decoration: none; font-size: 0.95em; line-height: 1.35; }
-        .stats-anime-name-cell a:hover { text-decoration: underline; }
         .stats-tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid #cbd5e0; }
         .stats-tab-btn { appearance: none; background: transparent; border: none; border-bottom: 3px solid transparent; padding: 10px 18px; font-size: 1.05em; color: #4a5568; cursor: pointer; margin-bottom: -2px; }
         .stats-tab-btn:hover { color: #2b6cb0; }
@@ -208,7 +176,6 @@ $emotion_anime_count_global = (int)$pdo->query(
 
     <div class="stats-tabs">
         <button type="button" class="stats-tab-btn active" data-tab="user"><?php echo htmlspecialchars(t('statistics.tab.user'), ENT_QUOTES, 'UTF-8'); ?></button>
-        <button type="button" class="stats-tab-btn" data-tab="recent"><?php echo htmlspecialchars(t('statistics.tab.recent_watched'), ENT_QUOTES, 'UTF-8'); ?></button>
         <button type="button" class="stats-tab-btn" data-tab="global"><?php echo htmlspecialchars(t('statistics.tab.global'), ENT_QUOTES, 'UTF-8'); ?></button>
     </div>
 
@@ -250,69 +217,6 @@ $emotion_anime_count_global = (int)$pdo->query(
                 </table>
             <?php endif; ?>
         </div>
-        </div>
-    </div>
-
-    <!-- Son izlenenler: kullanicinin izleme ilerlemesini en son guncelledigi animeler (kisisel) -->
-    <div class="stats-tab-panel" id="stats-panel-recent">
-        <div class="stats-card">
-            <h2><?php echo htmlspecialchars(t('statistics.tab.recent_watched'), ENT_QUOTES, 'UTF-8'); ?></h2>
-            <?php if (empty($recent_watched)): ?>
-                <p class="stats-emotion-empty"><?php echo htmlspecialchars(t('statistics.recent_watched.empty'), ENT_QUOTES, 'UTF-8'); ?></p>
-            <?php else: ?>
-            <table class="stats-table">
-                <tr>
-                    <th><?php echo htmlspecialchars(t('index.col.anime'), ENT_QUOTES, 'UTF-8'); ?></th>
-                    <th><?php echo htmlspecialchars(t('statistics.col.status'), ENT_QUOTES, 'UTF-8'); ?></th>
-                    <th><?php echo htmlspecialchars(t('index.col.watched_episodes'), ENT_QUOTES, 'UTF-8'); ?></th>
-                    <th><?php echo htmlspecialchars(t('statistics.col.last_watched'), ENT_QUOTES, 'UTF-8'); ?></th>
-                </tr>
-                <?php foreach ($recent_watched as $row): ?>
-                    <?php
-                        // Bolum gosterimi: izlenen/toplam, yoksa izlenen/yayinlanan (yayinda), yoksa izlenen/?
-                        $rw_ep = (int)$row['watched_episodes'];
-                        if ($row['total_episodes']) {
-                            $rw_epDisplay = $rw_ep . '/' . $row['total_episodes'];
-                        } elseif ($row['aired_episodes']) {
-                            $rw_epDisplay = $rw_ep . '/' . $row['aired_episodes'] . ' ' . t('index.row.ep_aired_badge');
-                        } else {
-                            $rw_epDisplay = $rw_ep . '/?';
-                        }
-                        // Gecen sure (recent.php ile ayni esikler, ayni lang anahtarlari)
-                        $rw_diff = time() - strtotime($row['updated_at']);
-                        if ($rw_diff < 60) {
-                            $rw_timeAgo = t('recent.time.now');
-                        } elseif ($rw_diff < 3600) {
-                            $rw_timeAgo = sprintf(t('recent.time.minutes_ago'), floor($rw_diff / 60));
-                        } elseif ($rw_diff < 86400) {
-                            $rw_timeAgo = sprintf(t('recent.time.hours_ago'), floor($rw_diff / 3600));
-                        } else {
-                            $rw_timeAgo = sprintf(t('recent.time.days_ago'), floor($rw_diff / 86400));
-                        }
-                    ?>
-                    <?php
-                        $rw_title = display_title($row);
-                        $rw_href  = 'anime_details.php?id=' . (int)$row['id'];
-                    ?>
-                    <tr class="stats-anime-row">
-                        <td class="stats-anime-cell">
-                            <a class="stats-anime-link" href="<?php echo $rw_href; ?>">
-                                <img src="<?php echo htmlspecialchars(poster_src($row['image_path'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
-                                     alt="<?php echo htmlspecialchars($rw_title, ENT_QUOTES, 'UTF-8'); ?>">
-                            </a>
-                        </td>
-                        <td><?php echo htmlspecialchars(watch_status_label($row['watch_status'] ?? '')); ?></td>
-                        <td><?php echo htmlspecialchars($rw_epDisplay); ?></td>
-                        <td><?php echo htmlspecialchars($rw_timeAgo); ?></td>
-                    </tr>
-                    <tr class="stats-anime-name-row">
-                        <td class="stats-anime-name-cell" colspan="4">
-                            <a href="<?php echo $rw_href; ?>"><?php echo htmlspecialchars($rw_title, ENT_QUOTES, 'UTF-8'); ?></a>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </table>
-            <?php endif; ?>
         </div>
     </div>
 
@@ -378,7 +282,6 @@ $emotion_anime_count_global = (int)$pdo->query(
     var buttons = document.querySelectorAll('.stats-tab-btn');
     var panels = {
         user: document.getElementById('stats-panel-user'),
-        recent: document.getElementById('stats-panel-recent'),
         global: document.getElementById('stats-panel-global')
     };
     buttons.forEach(function (btn) {

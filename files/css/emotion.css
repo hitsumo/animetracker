@@ -110,6 +110,31 @@
 .emotion-btn-motiveetti             { color: #d35400; }
 .emotion-btn-motiveetti.is-active   { background: #d35400; border-color: #d35400; }
 
+/* --- Community distribution line (1.1.45, online mode only) --------- */
+/* Sits under the toggle toolbar on anime_details.php: "3 people marked:"
+   followed by .emotion-badge chips, each carrying its count in <b>. The
+   container is ALWAYS rendered in online mode so the toggle script can
+   fill it after the first mark; :empty hides it until then (no "nobody
+   yet" text - most pages on a small install are empty). Content comes
+   from emotion_distribution_html() - the same function feeds the
+   update_emotion.php reply, so there is no second drawing in JS. */
+.emotion-dist {
+    margin: -4px 0 12px;
+    font-size: 12px;
+    line-height: 1.8;
+}
+.emotion-dist:empty {
+    display: none;
+}
+.emotion-dist-lead {
+    color: #6c757d;
+    margin-right: 4px;
+}
+.emotion-dist .emotion-badge b {
+    font-weight: 700;
+    margin-left: 2px;
+}
+
 /* --- Read-only badge (inline chip) ----------------------------------- */
 /* Smaller and softer than the toggle button - meant for compact display
    in lists or summary sections. Each badge carries a tinted background

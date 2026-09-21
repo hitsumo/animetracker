@@ -1946,6 +1946,7 @@ if (isset($_POST['clear'])) {
                     <select name="tab" onchange="this.form.submit()" aria-label="<?php echo htmlspecialchars(t('list_settings.section.recent_tab'), ENT_QUOTES, 'UTF-8'); ?>">
                         <option value="episodes"<?php echo $recentTabDefault === 'episodes' ? ' selected' : ''; ?>><?php echo htmlspecialchars(t('recent.tab.episodes'), ENT_QUOTES, 'UTF-8'); ?></option>
                         <option value="content"<?php echo $recentTabDefault === 'content' ? ' selected' : ''; ?>><?php echo htmlspecialchars(t('recent.tab.content'), ENT_QUOTES, 'UTF-8'); ?></option>
+                        <option value="watched"<?php echo $recentTabDefault === 'watched' ? ' selected' : ''; ?>><?php echo htmlspecialchars(t('recent.tab.watched'), ENT_QUOTES, 'UTF-8'); ?></option>
                     </select>
                     <noscript>
                         <button type="submit" class="settings-button"><?php echo htmlspecialchars(t('list_settings.recent_tab.save'), ENT_QUOTES, 'UTF-8'); ?></button>

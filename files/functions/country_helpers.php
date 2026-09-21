@@ -63,7 +63,16 @@ function country_label($code) {
  *
  * Kept deliberately short: these are the production countries that
  * actually appear in the catalog. A full 250-entry ISO list would bury
- * the five that matter inside a dropdown nobody wants to scroll.
+ * the four that matter inside a dropdown nobody wants to scroll.
+ *
+ * 1.1.45: US and FR removed. Neither had a single row in the live
+ * catalog after 7.800+ entries; the site tracks anime and the Western
+ * co-productions that would carry those codes are not what it lists.
+ * A row that still arrives with an unlisted code (AniList
+ * countryOfOrigin, catalog import) is not lost: the code stays in the
+ * column, country_label() renders it as '' and the filter dropdown -
+ * which is built from the DATA, not this map - simply does not offer
+ * it. Re-adding is one line here plus the two lang keys.
  *
  * @return array Associative array: ISO code => i18n key.
  */
@@ -73,8 +82,6 @@ function country_codes() {
         'CN' => 'country.cn',
         'KR' => 'country.kr',
         'TW' => 'country.tw',
-        'US' => 'country.us',
-        'FR' => 'country.fr',
     ];
 }
 
@@ -124,9 +131,8 @@ function country_sort_key($s) {
  * Return the country options for a <select>, sorted by LOCALIZED name.
  *
  * Sorting is done on the translated label, not on the code, so the
- * Turkish UI reads Amerika Birleşik Devletleri / Çin / Fransa / Güney
- * Kore / Japonya / Tayvan and the English UI reads China / France /
- * Japan / South Korea / Taiwan / United States - each in its own
+ * Turkish UI reads Çin / Güney Kore / Japonya / Tayvan and the English
+ * UI reads China / Japan / South Korea / Taiwan - each in its own
  * alphabet. See country_sort_key() for why this is not a plain asort().
  *
  * Use as:

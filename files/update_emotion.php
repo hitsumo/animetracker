@@ -103,6 +103,13 @@ header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
 
+// 1.1.45 - dil sozlugunu kur. Bu uc artik cevabinda KULLANICIYA GOSTERILEN
+// metin tasir: distribution_html icindeki "N kisi isaretledi" ve duygu
+// etiketleri t()/emotion_label() ile cevrilir. lang_init olmadan t()
+// anahtari ham dondurur ("anime_details.emotion.dist_many") - CLI
+// provasinda tam boyle cikti. update_watched.php'nin 1.1.27 kalibi.
+lang_init($pdo);
+
 function ue_respond($data) {
     echo json_encode($data, JSON_UNESCAPED_UNICODE);
     exit;
@@ -264,4 +271,10 @@ ue_respond([
     'current_emotions' => $current,
     'count'            => count($current),
     'at_max'           => (count($current) >= 3),
+    // 1.1.45 - toplu dagilim, hazir HTML. Cizim anime_details.php ile
+    // AYNI fonksiyon; istemci yalnizca innerHTML degistirir. Self-host'ta
+    // satir yok, bos dize gider (istemcide de kapsayici yoktur).
+    'distribution_html' => MULTI_USER_MODE
+        ? emotion_distribution_html(emotion_distribution($pdo, $animeId))
+        : '',
 ]);

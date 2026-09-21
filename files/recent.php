@@ -1,12 +1,12 @@
 <?php
 
 /**
- * Anime Tracker - Son Duzenlenen Animeler
+ * Anime Tracker - Son Guncellenenler
  * https://www.sicakcikolata.com
  * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
- * Two tabs since 1.1.44, five anime each, both catalog-level:
+ * Three tabs. The first two (1.1.44) are catalog-level, five anime each:
  *
  *   episodes  the anime whose AIRED EPISODE COUNT changed most recently
  *             (daily AnimeSchedule sync, the edit form, a catalog
@@ -23,10 +23,21 @@
  * updated_at (updated_at = updated_at), so the two questions no longer
  * share a column - see migration/1.1.44/upgrade.sql.
  *
- * Personal watch progress belongs on NEITHER tab: a "+1 watched" writes
- * only user_anime (update_watched.php) and must not move anything here.
- * The user_anime JOIN below is for the personal badge only, never for
- * ordering.
+ * The third tab (1.1.45) is PERSONAL:
+ *
+ *   watched   the anime whose watch progress THIS USER changed most
+ *             recently - a "+1 watched", a status change - ordered by
+ *             user_anime.updated_at, ten rows. "Where was I?" It lived
+ *             on the statistics page ("Son Izlenenler") from 1.1.1 to
+ *             1.1.44; the user asked for it here, next to the other two
+ *             "what happened lately" lists, and statistics went back to
+ *             being numbers only.
+ *
+ * The personal tab is the ONLY one ordered by user_anime: on the two
+ * catalog tabs the user_anime JOIN is for the badge only, never for
+ * ordering - a "+1 watched" must not move anything there. In online mode
+ * a guest has no user_anime rows, so the watched tab shows its empty
+ * state with a sign-in hint instead of a list.
  *
  * Which tab opens first: ?tab= in the URL wins; otherwise the per-user
  * default from list settings (user_pref 'recent_default_tab', shipped
@@ -38,6 +49,9 @@ require_once __DIR__ . '/functions.php';
 
 // Sayfa dilini baslat
 lang_init($pdo);
+// 1.1.45 - baslik dili tercihi: kartlar display_title() ile basilir (1.1.21
+// dersi: bu cagri unutulursa onbellek Romaji'de kalir).
+title_pref_init($pdo);
 
 // Active tab: explicit ?tab= > saved per-user default > 'episodes'.
 // Unknown values fall back rather than 404 - a stale link still shows
@@ -56,9 +70,29 @@ if (!in_array($tab, recent_tabs(), true)) {
 // Episode tab: rows never stamped (NULL) are left out - on an upgraded
 // install the column fills as the daily sync runs, and the empty state
 // says so. Content tab: every row has updated_at, so no filter.
-if ($tab === 'episodes') {
+//
+// Watched tab (1.1.45): the one place user_anime DOES order. Only rows
+// with progress (watched_episodes > 0) - a status-only row ("planned")
+// is not a watch event. Ten rows, as the statistics page showed.
+// current_user_id() is NULL for a guest in online mode; the query then
+// matches nothing and the empty state explains.
+if ($tab === 'watched') {
     $stmt = $pdo->prepare("
-        SELECT a.id, a.title, a.image_path,
+        SELECT a.id, a.title, a.alternative_titles, a.image_path,
+               ua.watch_status,
+               a.status,
+               ua.watched_episodes,
+               a.total_episodes, a.aired_episodes,
+               ua.updated_at AS updated_at
+        FROM user_anime ua
+        JOIN animes a ON a.id = ua.anime_id
+        WHERE ua.user_id = :uid AND ua.watched_episodes > 0
+        ORDER BY ua.updated_at DESC
+        LIMIT 10
+    ");
+} elseif ($tab === 'episodes') {
+    $stmt = $pdo->prepare("
+        SELECT a.id, a.title, a.alternative_titles, a.image_path,
                ua.watch_status,
                a.status,
                COALESCE(ua.watched_episodes, 0) AS watched_episodes,
@@ -73,7 +107,7 @@ if ($tab === 'episodes') {
     ");
 } else {
     $stmt = $pdo->prepare("
-        SELECT a.id, a.title, a.image_path,
+        SELECT a.id, a.title, a.alternative_titles, a.image_path,
                ua.watch_status,
                a.status,
                COALESCE(ua.watched_episodes, 0) AS watched_episodes,
@@ -86,8 +120,18 @@ if ($tab === 'episodes') {
         LIMIT 5
     ");
 }
+// Guest in online mode: current_user_id() is NULL. PDO binds NULL fine
+// (matches no row on the watched tab, no badge on the others).
 $stmt->execute([':uid' => current_user_id()]);
 $recent = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Per-tab texts (hint under the tabs, empty-state message). One map so
+// adding a tab is one line here plus the lang keys.
+$tabText = [
+    'episodes' => ['hint' => 'recent.tab.episodes.hint', 'empty' => 'recent.empty_state.episodes'],
+    'content'  => ['hint' => 'recent.tab.content.hint',  'empty' => 'recent.empty_state'],
+    'watched'  => ['hint' => 'recent.tab.watched.hint',  'empty' => (MULTI_USER_MODE && !is_logged_in()) ? 'recent.empty_state.watched_guest' : 'recent.empty_state.watched'],
+];
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo current_lang(); ?>">
@@ -227,7 +271,7 @@ $recent = $stmt->fetchAll(PDO::FETCH_ASSOC);
             background: #fff;
             border-radius: 10px;
         }
-        /* Tabs (1.1.44) - bolum / icerik. series_timeline.php'nin
+        /* Tabs (1.1.44) - bolum / icerik; 1.1.45 + izlenen. series_timeline.php'nin
            .st-tabs kalibi: pill, aktif dolu, digerleri beyaz. */
         .recent-tabs {
             display: flex;
@@ -281,13 +325,15 @@ $recent = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <div class="recent-tabs">
         <a href="recent.php?tab=episodes" class="<?php echo $tab === 'episodes' ? 'active' : ''; ?>"><i class="fas fa-tv"></i> <?php echo htmlspecialchars(t('recent.tab.episodes'), ENT_QUOTES, 'UTF-8'); ?></a>
         <a href="recent.php?tab=content" class="<?php echo $tab === 'content' ? 'active' : ''; ?>"><i class="fas fa-pen"></i> <?php echo htmlspecialchars(t('recent.tab.content'), ENT_QUOTES, 'UTF-8'); ?></a>
+        <?php // 1.1.45 - kisisel sekme: istatistiklerden tasinan "Son Izlenenler". ?>
+        <a href="recent.php?tab=watched" class="<?php echo $tab === 'watched' ? 'active' : ''; ?>"><i class="fas fa-eye"></i> <?php echo htmlspecialchars(t('recent.tab.watched'), ENT_QUOTES, 'UTF-8'); ?></a>
     </div>
-    <p class="recent-tabs-hint"><?php echo htmlspecialchars(t($tab === 'episodes' ? 'recent.tab.episodes.hint' : 'recent.tab.content.hint'), ENT_QUOTES, 'UTF-8'); ?></p>
+    <p class="recent-tabs-hint"><?php echo htmlspecialchars(t($tabText[$tab]['hint']), ENT_QUOTES, 'UTF-8'); ?></p>
 
     <?php if (empty($recent)): ?>
         <div class="empty-state">
             <i class="fas fa-inbox" style="font-size: 2em; margin-bottom: 10px;"></i>
-            <p><?php echo htmlspecialchars(t($tab === 'episodes' ? 'recent.empty_state.episodes' : 'recent.empty_state'), ENT_QUOTES, 'UTF-8'); ?></p>
+            <p><?php echo htmlspecialchars(t($tabText[$tab]['empty']), ENT_QUOTES, 'UTF-8'); ?></p>
         </div>
     <?php else: ?>
         <?php foreach ($recent as $anime): ?>
@@ -322,13 +368,16 @@ $recent = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     $timeAgo = sprintf(t('recent.time.days_ago'), floor($diff / 86400));
                 }
             ?>
+            <?php // 1.1.45 - baslik dili tercihine uyar (istatistiklerdeki
+                  // tablo 1.1.18'den beri uyuyordu, bu sayfa uymuyordu). ?>
+            <?php $cardTitle = display_title($anime); ?>
             <div class="recent-card">
                 <img src="<?php echo htmlspecialchars(poster_src($anime['image_path'] ?? '')); ?>"
-                     alt="<?php echo htmlspecialchars($anime['title']); ?>">
+                     alt="<?php echo htmlspecialchars($cardTitle); ?>">
 
                 <div class="recent-info">
                     <a href="anime_details.php?id=<?php echo (int)$anime['id']; ?>" class="title">
-                        <?php echo htmlspecialchars($anime['title']); ?>
+                        <?php echo htmlspecialchars($cardTitle); ?>
                     </a>
                     <div class="recent-meta">
                         <?php if ($tab === 'episodes'): ?>

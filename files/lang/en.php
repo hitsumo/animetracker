@@ -87,8 +87,6 @@ return [
     'country.cn'                    => 'China',
     'country.kr'                    => 'South Korea',
     'country.tw'                    => 'Taiwan',
-    'country.us'                    => 'United States',
-    'country.fr'                    => 'France',
 
     // 1.1.20: alternative-title languages. animes.alternative_titles gives
     // each name an optional [xx] prefix ([en]My Neighbor Totoro); the user
@@ -176,6 +174,10 @@ return [
     'anime_details.label.genres'         => 'Genres:',
     'anime_details.label.watch_status'   => 'Watch Status:',
     'anime_details.label.emotion'        => 'Emotion:',
+    // 1.1.45: community emotion distribution (online mode only). %d =
+    // number of distinct members who marked; chips follow.
+    'anime_details.emotion.dist_one'     => '%d person marked:',
+    'anime_details.emotion.dist_many'    => '%d people marked:',
     'anime_details.label.broadcast_day'  => 'Broadcast Day:',
     'anime_details.label.broadcast_time' => 'Broadcast Time:',
     'anime_details.label.next_episode'   => 'Next Episode:',
@@ -761,6 +763,7 @@ return [
     'help.emotions.cap_title'                => '<i class="fas fa-info-circle"></i> Up to 3 per anime:',
     'help.emotions.cap_body'                 => 'An anime can have at most 3 emotions marked at once, so the marks stay meaningful. Pressing an emotion again removes it (toggle). Removing a mark is always allowed and is not subject to the 3-mark limit.',
     'help.emotions.stats'                    => 'Your emotion marks are personal and are summarised on the Statistics page as a "By Emotion" distribution — you can see there which emotion you mark the most.',
+    'help.emotions.community'                => 'On an online (multi-user) installation one more line appears under the emotion buttons on the detail page: <em>"3 people marked: Excited 2 · Thought-provoking 2 · Bored 1"</em>. It is the sum of the marks every member put on that anime — the answer this site gives in place of a "score". The numbers are anonymous; who marked what is never shown. When nobody has marked anything the line is absent. A single-user installation on your own computer has no such line (the distribution would just be your own marks).',
 
     // Section: Filler / canon episodes
     'help.filler.h2'                         => 'Filler and Canon Episodes',
@@ -775,11 +778,9 @@ return [
 
     // Section: Statistics
     'help.stats.h2'                          => 'Statistics',
-    'help.stats.intro'                       => 'The Statistics page gives you numbers that summarise your list, split across three tabs:',
+    'help.stats.intro'                       => 'The Statistics page gives you numbers that summarise your list, split across two tabs:',
     'help.stats.user.h3'                     => 'User Statistics',
     'help.stats.user.text'                   => 'Your personal summary: total anime, total episodes you have watched, total episodes; a breakdown by media type (TV / Movie / OVA, etc.), by broadcast status, by watch status (Watching / Watched / Plan to Watch / On Hold / Dropped / Not Selected), and a by-emotion distribution.',
-    'help.stats.recent.h3'                   => 'Recently Watched',
-    'help.stats.recent.text'                 => 'The anime you most recently logged progress on, newest at the top. Handy for checking "where was I".',
     'help.stats.global.h3'                   => 'Global Statistics',
     'help.stats.global.text'                 => 'Independent of your personal list, this shows the catalog\'s overall distribution (how many anime, which media types, etc.). It reflects the whole catalog, not your watch status.',
 
@@ -974,9 +975,9 @@ return [
     'help.list.filters.sort.text'            => 'The small <code>↑</code> and <code>↓</code> arrows in the table headers change the sort order. Four columns can be sorted: <strong>Anime</strong> (title), <strong>Status</strong>, <strong>Watched Episodes</strong> and <strong>Next Episode</strong>. Status sorts alphabetically by the label in the current interface language.',
 
     'help.list.recent.h2'                    => 'Recently Updated',
-    'help.list.recent.text'                  => 'The <strong>"Recently Updated"</strong> page in the menu has two tabs. <strong>Episode Updates</strong> shows the five anime whose aired episode count changed most recently: an anime lands here when the daily broadcast sync counts one more episode, when you change the episode count in the edit form, or when a catalog import brings a new number. <strong>Content Updates</strong> shows the five anime most recently added to the catalog or whose details (synopsis, dates, links, poster...) were edited; an episode count increase does not move this tab. Which tab the page opens in is chosen in List Settings (default: episodes).',
-    'help.list.recent.box_title'             => '<i class="fas fa-info-circle"></i> Not to be confused with "Recently Watched":',
-    'help.list.recent.box_body'              => 'The <strong>Recently Watched</strong> tab on the Statistics page shows <strong>your</strong> latest watching activity. <strong>Recently Updated</strong> shows the latest changes to the <strong>catalog</strong>; marking an episode does not move anything on it.',
+    'help.list.recent.text'                  => 'The <strong>"Recently Updated"</strong> page in the menu has two tabs. <strong>Episode Updates</strong> shows the five anime whose aired episode count changed most recently: an anime lands here when the daily broadcast sync counts one more episode, when you change the episode count in the edit form, or when a catalog import brings a new number. <strong>Content Updates</strong> shows the five anime most recently added to the catalog or whose details (synopsis, dates, links, poster...) were edited; an episode count increase does not move this tab. The third tab, <strong>Recently Watched</strong>, is personal: the ten anime whose watch progress you changed most recently, newest at the top — for checking "where was I". Which tab the page opens in is chosen in List Settings (default: episodes).',
+    'help.list.recent.box_title'             => '<i class="fas fa-info-circle"></i> Do not confuse the catalog tabs with the personal one:',
+    'help.list.recent.box_body'              => '<strong>Episode</strong> and <strong>Content Updates</strong> show the latest changes to the <strong>catalog</strong>; marking an episode does not move those two lists. <strong>Recently Watched</strong> shows only <strong>your</strong> activity; other members do not see it, and catalog edits do not move it.',
 
     // -----------------------------------------------------------------
     // help/help_prefs.php - personal preferences
@@ -1147,7 +1148,6 @@ return [
     'statistics.heading'                     => 'Statistics',
     'statistics.tab.user'                    => 'User Statistics',
     'statistics.tab.global'                  => 'Global Statistics',
-    'statistics.tab.recent_watched'          => 'Recently Watched',
     'statistics.label.total_anime'           => 'Total Anime',
     'statistics.label.total_watched'         => 'Total Watched Episodes',
     'statistics.label.total_episodes'        => 'Total Episodes',
@@ -1157,7 +1157,6 @@ return [
     'statistics.col.type'                    => 'Type',
     'statistics.col.status'                  => 'Status',
     'statistics.col.count'                   => 'Count',
-    'statistics.col.last_watched'            => 'Last Watched',
     'statistics.value.unspecified'           => 'Unspecified',
     'statistics.section.by_emotion'          => 'By Emotion',
     'statistics.col.emotion'                 => 'Emotion',
@@ -1166,7 +1165,6 @@ return [
     'statistics.emotion.empty_global'        => 'No emotion marks have been added to any anime yet.',
     // 1.1.5: tooltip on the clickable personal emotion badge
     'statistics.emotion.filter_hint'         => 'List anime you marked with this emotion',
-    'statistics.recent_watched.empty'        => 'No watch activity yet. Once you watch an episode of an anime it will show up here.',
 
     // -----------------------------------------------------------------
     // recent.php - son duzenlenen 5 anime
@@ -1186,6 +1184,11 @@ return [
     'recent.tab.content.hint'                => 'The five anime most recently added to, or edited in, the catalog. An episode count increase does not affect this tab.',
     'recent.latest_episode'                  => 'Latest episode: %d',
     'recent.empty_state.episodes'            => 'No episode update recorded yet. This list fills after the first broadcast sync.',
+    // 1.1.45: third tab - personal "Recently Watched" (moved from statistics)
+    'recent.tab.watched'                     => 'Recently Watched',
+    'recent.tab.watched.hint'                => 'The ten anime whose watch progress you changed most recently — the "where was I" list. Your own activity only; it does not move the catalog.',
+    'recent.empty_state.watched'             => 'No watch activity yet. Once you mark an episode of an anime as watched it shows up here.',
+    'recent.empty_state.watched_guest'       => 'This tab is personal; sign in to see your own watch activity.',
 
     // -----------------------------------------------------------------
     // recommendations.php - 'Ne Izlesem?' oneri sayfasi
@@ -1381,7 +1384,7 @@ return [
     'list_settings.st_mode.save'             => 'Save',
     // 1.1.44 - Recently Updated default tab
     'list_settings.section.recent_tab'       => 'Recently Updated Tab',
-    'list_settings.section.recent_tab.desc'  => 'Chooses which tab the Recently Updated page opens in: episode updates (anime whose aired episode count changed most recently) or content updates (anime most recently added or edited). You can switch temporarily with the tabs on the page. This preference affects only you.',
+    'list_settings.section.recent_tab.desc'  => 'Chooses which tab the Recently Updated page opens in: episode updates (anime whose aired episode count changed most recently) content updates (anime most recently added or edited) or recently watched (your own latest watch activity). You can switch temporarily with the tabs on the page. This preference affects only you.',
     'list_settings.recent_tab.save'          => 'Save',
 
     // 1.1.2 - adult (18+) content visibility toggle (list_settings)

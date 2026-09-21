@@ -206,6 +206,16 @@ $emoStmt->execute([current_user_id(), (int)$anime['id']]);
 $currentEmotions = $emoStmt->fetchAll(PDO::FETCH_COLUMN, 0);
 $emoStmt->closeCursor();
 
+// 1.1.45 - Toplu duygu dagilimi (yalniz cevrimici mod). Tum uyelerin bu
+// animeye koydugu isaretlerin anonim sayimi; "puan" yerine bu sitenin
+// verdigi cevap. Self-host'ta tek kullanici var, dagilim = ustteki
+// dugmeler, o yuzden sorgu bile atilmaz. Cizim emotion_distribution_html:
+// ayni fonksiyon update_emotion.php cevabinda da calisir, JS satiri
+// yalnizca degistirir.
+$emotionDistHtml = MULTI_USER_MODE
+    ? emotion_distribution_html(emotion_distribution($pdo, (int)$anime['id']))
+    : '';
+
 // 0.7 - Filler bolum izleme (salt-okunur ozet).
 // filler_tracking acik ise bu anime'nin filler kayitlarini yukle ve
 // kompakt ozet uret (filler_summary). Kapali ise hic yukleme yapma -
@@ -581,6 +591,13 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
                                 <span class="emotion-count"><?php echo count($currentEmotions); ?></span>/3
                             </span>
                         </div>
+                        <?php // 1.1.45 - Toplu dagilim satiri. Kapsayici cevrimici
+                              // modda HER ZAMAN basilir (bos olsa da): ilk isaret
+                              // konunca JS doldurabilsin. Bos kapsayici CSS ile
+                              // gizli (:empty). Icerik emotion_distribution_html. ?>
+                        <?php if (MULTI_USER_MODE): ?>
+                        <div class="emotion-dist" id="emotion-distribution"><?php echo $emotionDistHtml; ?></div>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -1283,6 +1300,8 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
         var csrf    = toolbar.dataset.csrf;
         var meta    = toolbar.querySelector('.emotion-count');
         var buttons = toolbar.querySelectorAll('.emotion-btn');
+        // 1.1.45 - toplu dagilim satiri (yalniz cevrimici modda var).
+        var dist    = document.getElementById('emotion-distribution');
 
         function syncFromServer(currentEmotions, atMax) {
             // Aktif/disabled durumlarini sunucudaki gercege gore yeniden
@@ -1325,6 +1344,11 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
             .then(function(data) {
                 if (data.success) {
                     syncFromServer(data.current_emotions || [], !!data.at_max);
+                    // Sunucu dagilimi hazir HTML olarak yollar (ayni PHP
+                    // cizimi); bos dize = kimse isaretlememis, satir gizlenir.
+                    if (dist && typeof data.distribution_html === 'string') {
+                        dist.innerHTML = data.distribution_html;
+                    }
                 } else {
                     // Sunucu reddetti - butonlari onceki haline geri dondur
                     // ve mesaji goster. Sayfayi tekrar render etmek yerine

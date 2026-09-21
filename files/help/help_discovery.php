@@ -107,6 +107,10 @@ lang_init($pdo);
     <p>
         <?php echo t('help.emotions.stats'); ?>
     </p>
+    <p>
+        <?php // 1.1.45 - toplu dagilim (cevrimici mod) ?>
+        <?php echo t('help.emotions.community'); ?>
+    </p>
     <!-- =============================================================== -->
     <h2 id="istatistik"><?php echo htmlspecialchars(t('help.stats.h2'), ENT_QUOTES, 'UTF-8'); ?></h2>
 
@@ -119,11 +123,8 @@ lang_init($pdo);
         <?php echo t('help.stats.user.text'); ?>
     </p>
 
-    <h3><?php echo htmlspecialchars(t('help.stats.recent.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
-    <p>
-        <?php echo t('help.stats.recent.text'); ?>
-    </p>
-
+    <?php // 1.1.45 - "Son Izlenenler" sekmesi Son Guncellenenler sayfasina tasindi;
+          // anlatimi help_list.php'nin ilgili bolumunde. ?>
     <h3><?php echo htmlspecialchars(t('help.stats.global.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
     <p>
         <?php echo t('help.stats.global.text'); ?>
