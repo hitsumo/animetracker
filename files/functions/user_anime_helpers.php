@@ -198,3 +198,33 @@ function set_user_pref($pdo, $userId, $name, $value)
         return false;
     }
 }
+
+// ---------------------------------------------------------------------
+// 1.1.44 - "Recently Updated" default tab (user_pref 'recent_default_tab')
+// ---------------------------------------------------------------------
+// recent.php has two tabs since 1.1.44: 'episodes' (aired episode count
+// changed most recently - animes.episodes_updated_at) and 'content'
+// (added / edited most recently - animes.updated_at). Which one opens
+// first is a per-user preference saved from list settings via
+// set_recent_tab_pref.php; an explicit ?tab= on the page always wins
+// for that view. Shipped default: 'episodes' - the question people ask
+// daily is "did a new episode come out", the content tab is the
+// curator's view. Same shape as series_timeline_modes() /
+// series_timeline_current_mode() (1.1.23), minus the session override:
+// a single page does not need one.
+
+/** Valid recent.php tabs. */
+function recent_tabs()
+{
+    return ['episodes', 'content'];
+}
+
+/**
+ * Saved per-user default tab for recent.php, validated; 'episodes' when
+ * nothing (or something unknown) is stored.
+ */
+function recent_default_tab($pdo)
+{
+    $pref = get_user_pref($pdo, current_user_id(), 'recent_default_tab', 'episodes');
+    return in_array($pref, recent_tabs(), true) ? $pref : 'episodes';
+}

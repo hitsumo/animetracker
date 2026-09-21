@@ -256,13 +256,23 @@ foreach ($rows as $r) {
 // Genres are no longer in this row - they are written to the
 // anime_genres join table by the dedicated genres block below the
 // merge loop, mirroring the tags handler.
+//
+// 1.1.44: aired_episodes is NOT in this statement any more. The catalog
+// row carries two kinds of change - content (title, synopsis, dates...)
+// and episode count - and since 1.1.44 they land on two timestamps:
+// updated_at (content, MySQL ON UPDATE) and episodes_updated_at
+// (episode). One UPDATE cannot tell them apart: an import that brought
+// only a new episode number would still fire ON UPDATE and show the
+// anime under "Content updates". So the episode number goes through its
+// own statement ($updateEpisodesStmt, below), which stamps
+// episodes_updated_at and pins updated_at. This statement stays pure
+// content, and ON UPDATE keeps doing the right thing for it.
 $updateSql = "
     UPDATE animes SET
         title = :title,
         alternative_titles = :alternative_titles,
         status = :status,
         total_episodes = :total_episodes,
-        aired_episodes = :aired_episodes,
         synopsis_tr = :synopsis_tr,
         synopsis_en = :synopsis_en,
         translation_status = :translation_status,
@@ -290,6 +300,21 @@ $updateSql = "
     WHERE id = :id
 ";
 $updateStmt = $pdo->prepare($updateSql);
+
+// 1.1.44: episode-count step of the merge (see the note above). Runs
+// before the content UPDATE for every matched row; the WHERE makes it a
+// no-op when the number is unchanged, so rowCount() means "episode
+// really changed". Two placeholders for one value because native
+// prepares (db.php) do not allow reusing a named parameter.
+$updateEpisodesSql = "
+    UPDATE animes SET
+        aired_episodes = :aired_new,
+        episodes_updated_at = NOW(),
+        updated_at = updated_at
+    WHERE id = :id
+      AND NOT (aired_episodes <=> :aired_cmp)
+";
+$updateEpisodesStmt = $pdo->prepare($updateEpisodesSql);
 
 // 0.7.3 personal-synopsis MOVE support.
 //
@@ -487,9 +512,20 @@ try {
                 }
             }
 
+            // 1.1.44: episode count first, on its own timestamp. The
+            // content UPDATE below no longer carries aired_episodes.
+            $updateEpisodesStmt->execute([
+                ':aired_new' => $params[':aired_episodes'],
+                ':aired_cmp' => $params[':aired_episodes'],
+                ':id'        => $matchId,
+            ]);
+            $episodeChanged = ($updateEpisodesStmt->rowCount() > 0);
+
             // UPDATE existing row - image_path is preserved (not in SQL)
-            $params[':id'] = $matchId;
-            $updateStmt->execute($params);
+            $contentParams = $params;
+            unset($contentParams[':aired_episodes']);
+            $contentParams[':id'] = $matchId;
+            $updateStmt->execute($contentParams);
             $stats['updated']++;
 
             // 1.1.32: yalnizca GERCEKTEN degisen satiri IndexNow kuyruguna
@@ -504,7 +540,9 @@ try {
             // sunucunun animes.updated_at'i tazelemek icin kullandigi
             // olcutun aynisi. Sitemap'in lastmod'u ile ayni gercegi
             // soylemis oluyoruz.
-            if ($updateStmt->rowCount() > 0) {
+            // 1.1.44: an episode-only change still alters the detail
+            // page (aired count), so it is announced too.
+            if ($episodeChanged || $updateStmt->rowCount() > 0) {
                 $indexnowIds[$matchId] = true;
             }
             $seenLocalIds[$matchId] = true;
@@ -572,7 +610,9 @@ try {
     // previously synced from the catalog but are no longer in the catalog.
     foreach ($localMap['byId'] as $localId => $info) {
         if ($info['source'] === 'catalog' && !isset($seenLocalIds[$localId])) {
-            $pdo->prepare("UPDATE animes SET source = 'local' WHERE id = ?")
+            // 1.1.44: updated_at pinned - a source flip is bookkeeping,
+            // not a content edit, and must not surface on recent.php.
+            $pdo->prepare("UPDATE animes SET source = 'local', updated_at = updated_at WHERE id = ?")
                 ->execute([$localId]);
         }
     }

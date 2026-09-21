@@ -75,7 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Only flip rows that are currently 'local' - never accidentally
             // re-flag something that is already catalog or any other state.
             $placeholders = implode(',', array_fill(0, count($clean), '?'));
-            $sql = "UPDATE animes SET source = 'catalog'
+            // 1.1.44: updated_at pinned - a source flip is bookkeeping,
+            // not a content edit; it must not surface on recent.php.
+            $sql = "UPDATE animes SET source = 'catalog', updated_at = updated_at
                     WHERE source = 'local' AND id IN ($placeholders)";
             $stmt = $pdo->prepare($sql);
             $stmt->execute($clean);
@@ -86,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pushAfter = true;
 
         } elseif ($action === 'promote_all') {
-            $stmt = $pdo->query("UPDATE animes SET source = 'catalog' WHERE source = 'local'");
+            $stmt = $pdo->query("UPDATE animes SET source = 'catalog', updated_at = updated_at WHERE source = 'local'");
             $affected = $stmt->rowCount();
             $message = sprintf(t('admin_pending.success.promoted_all'), $affected);
             $messageType = 'success';
@@ -100,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($id <= 0) {
                 throw new Exception(t('admin_pending.error.invalid_id'));
             }
-            $stmt = $pdo->prepare("UPDATE animes SET source = 'local'
+            $stmt = $pdo->prepare("UPDATE animes SET source = 'local', updated_at = updated_at
                                    WHERE source = 'catalog' AND id = ?");
             $stmt->execute([$id]);
             $message = t('admin_pending.success.demoted');

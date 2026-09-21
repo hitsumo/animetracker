@@ -463,7 +463,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Genres no longer live on this row - they are written to the
     // anime_genres join table after the UPDATE via
     // setAnimeGenresByNames(), mirroring the tags handler below.
+    //
+    // 1.1.44: episodes_updated_at is the FIRST assignment on purpose. It
+    // compares the incoming aired value against the OLD column value
+    // (MySQL/MariaDB evaluate SET left to right) and stamps NOW() only
+    // when the episode count really changes; a form save that touches
+    // only the synopsis leaves the episode timestamp alone. updated_at
+    // is NOT pinned here - a form save is a content edit by definition,
+    // so ON UPDATE may bump it as before. Same CASE as
+    // airedEpisodesUpdateSql() in animeschedule_helpers.php.
     $sql = "UPDATE animes SET 
+            episodes_updated_at = CASE WHEN aired_episodes <=> ? THEN episodes_updated_at ELSE NOW() END,
             title = ?,
             alternative_titles = ?,
             status = ?,
@@ -510,6 +520,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // duzeltip tekrar denerse mevcut anime'nin resmi bozulmaz.
     try {
         $stmt->execute([
+            $aired_episodes, // 1.1.44: episodes_updated_at CASE (compare)
             $title,
             $alternative_titles,
             $status,

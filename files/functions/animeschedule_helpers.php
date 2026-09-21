@@ -572,6 +572,44 @@ function findTimetableRowBySlug($timetable, $slug) {
 }
 
 /**
+ * 1.1.44 - Build the UPDATE that records an aired_episodes change as an
+ * EPISODE event, not a content edit.
+ *
+ * Two timestamps live on animes since 1.1.44:
+ *   updated_at           content time - MySQL ON UPDATE, bumped by any
+ *                        write that changes a value. recent.php's
+ *                        "Content updates" tab sorts by it.
+ *   episodes_updated_at  episode time - the moment aired_episodes last
+ *                        CHANGED. recent.php's "Episode updates" tab.
+ *
+ * Before 1.1.44 the daily sync bumped updated_at on every episode
+ * increment, so a show with a new episode looked like a catalog edit
+ * and buried real edits. Every aired write in this file now goes
+ * through this SQL, which does two things at once:
+ *
+ *   - episodes_updated_at = NOW() only when the value really changes.
+ *     The CASE compares against the OLD column value, which works
+ *     because it is assigned BEFORE aired_episodes: MySQL/MariaDB
+ *     evaluate single-table SET assignments left to right. Keep that
+ *     order. (The auto-finish branch writes even when aired is already
+ *     at total; without the guard it would re-stamp finished shows on
+ *     every run.)
+ *   - updated_at = updated_at pins the content timestamp, so ON UPDATE
+ *     does not fire for an episode-only write.
+ *
+ * Positional params, in order: new aired value (compare), new aired value
+ * (write), anime id. $extraSet is appended verbatim (status flips).
+ */
+function airedEpisodesUpdateSql($extraSet = '') {
+    return "UPDATE animes SET"
+         . " episodes_updated_at = CASE WHEN aired_episodes <=> ? THEN episodes_updated_at ELSE NOW() END,"
+         . " aired_episodes = ?,"
+         . " updated_at = updated_at"
+         . ($extraSet !== '' ? ', ' . $extraSet : '')
+         . " WHERE id = ?";
+}
+
+/**
  * Sync aired_episodes for a single anime.
  *
  * Walks the ISO week window backwards (today, last week, the week
@@ -646,13 +684,13 @@ function syncSingleAiredEpisodes($pdo, $animeId, $maxWeeksBack = 3) {
                 $changed      = ($oldValue !== $airedToWrite);
 
                 if ($finished) {
-                    $upd = $pdo->prepare("UPDATE animes SET aired_episodes = ?, status = 'Yayın Tamamlandı' WHERE id = ?");
-                    $upd->execute([$airedToWrite, $animeId]);
+                    $upd = $pdo->prepare(airedEpisodesUpdateSql("status = 'Yayın Tamamlandı'"));
+                    $upd->execute([$airedToWrite, $airedToWrite, $animeId]);
                     error_log('[anime_tracker] auto-finish anime#' . $animeId
                         . ' raw run complete at ep ' . $epNum . '/' . $total);
                 } elseif ($changed) {
-                    $upd = $pdo->prepare("UPDATE animes SET aired_episodes = ? WHERE id = ?");
-                    $upd->execute([$airedToWrite, $animeId]);
+                    $upd = $pdo->prepare(airedEpisodesUpdateSql());
+                    $upd->execute([$airedToWrite, $airedToWrite, $animeId]);
                 }
 
                 return [
@@ -758,16 +796,18 @@ function syncAllOngoingAiredEpisodes($pdo, $maxWeeksBack = 3) {
         return $stats;
     }
 
-    // Update statement reused inside the loop
-    $upd = $pdo->prepare("UPDATE animes SET aired_episodes = ? WHERE id = ?");
+    // Update statement reused inside the loop. 1.1.44: all three go
+    // through airedEpisodesUpdateSql() - episode timestamp, content
+    // timestamp pinned (see the helper's docblock).
+    $upd = $pdo->prepare(airedEpisodesUpdateSql());
 
     // Reused when a show's full raw run has aired (auto-finish): clamp
     // aired to total and flip the broadcast status in one write.
-    $updFin = $pdo->prepare("UPDATE animes SET aired_episodes = ?, status = 'Yayın Tamamlandı' WHERE id = ?");
+    $updFin = $pdo->prepare(airedEpisodesUpdateSql("status = 'Yayın Tamamlandı'"));
 
     // 1.1.10: reused when a 'Yayın Başlamadı' row is confirmed airing:
     // set aired_episodes and promote the status to ongoing in one write.
-    $updStart = $pdo->prepare("UPDATE animes SET aired_episodes = ?, status = 'Yayın Devam Ediyor' WHERE id = ?");
+    $updStart = $pdo->prepare(airedEpisodesUpdateSql("status = 'Yayın Devam Ediyor'"));
 
     // Walk weeks backwards. Once a slug is matched in some week we drop
     // it from the remaining set so older weeks do not overwrite newer
@@ -837,19 +877,19 @@ function syncAllOngoingAiredEpisodes($pdo, $maxWeeksBack = 3) {
 
             try {
                 if ($finished) {
-                    $updFin->execute([$airedToWrite, (int)$anime['id']]);
+                    $updFin->execute([$airedToWrite, $airedToWrite, (int)$anime['id']]);
                     $stats['finished']++;
                     error_log('[anime_tracker] auto-finish anime#'
                         . $anime['id'] . ' raw run complete at ep '
                         . $epNum . '/' . $total);
                 } elseif ($isStarting) {
-                    $updStart->execute([$airedToWrite, (int)$anime['id']]);
+                    $updStart->execute([$airedToWrite, $airedToWrite, (int)$anime['id']]);
                     $stats['started']++;
                     error_log('[anime_tracker] auto-start anime#'
                         . $anime['id'] . ' broadcast began at ep ' . $epNum
                         . ' (Yayın Başlamadı -> Yayın Devam Ediyor)');
                 } elseif ($oldValue !== $airedToWrite) {
-                    $upd->execute([$airedToWrite, (int)$anime['id']]);
+                    $upd->execute([$airedToWrite, $airedToWrite, (int)$anime['id']]);
                     $stats['updated']++;
                 } else {
                     $stats['unchanged']++;

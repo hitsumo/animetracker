@@ -248,6 +248,10 @@ CREATE TABLE IF NOT EXISTS `animes` (
   `is_adult` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  -- 1.1.44: aired_episodes'in son DEGISTIGI an (yayin senkronu / form /
+  -- katalog ice aktarma). updated_at icerik zamanidir, bu bolum zamani -
+  -- recent.php iki sekmeyi bu ikisinden kurar. NULL = hic bolum yazilmadi.
+  `episodes_updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_series_name` (`series_name`),
   KEY `idx_chain_name` (`series_name`, `chain_name`),

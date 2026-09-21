@@ -109,6 +109,7 @@ $disallow = [
     '/set_chrono_mode.php',
     '/set_list_view_pref.php',
     '/set_series_timeline_mode.php',
+    '/set_recent_tab_pref.php',
     '/uploads/',
 ];
 

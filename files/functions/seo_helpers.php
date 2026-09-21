@@ -639,9 +639,12 @@ function seo_sitemap_anime_entries($pdo, $offset = 0, $limit = SEO_SITEMAP_CHUNK
     $entries = [];
 
     try {
+        // 1.1.44: lastmod is the later of the two timestamps. updated_at
+        // is content time only now; an episode-count change (which the
+        // detail page shows) lands on episodes_updated_at.
         $sql = "
             SELECT a.id,
-                   a.updated_at,
+                   GREATEST(a.updated_at, COALESCE(a.episodes_updated_at, a.updated_at)) AS updated_at,
                    a.series_name,
                    EXISTS(SELECT 1 FROM chronology_markers m
                            WHERE m.anime_id = a.id) AS has_markers,

@@ -212,7 +212,10 @@ function updateNextEpisodeDate($pdo, &$anime) {
         // broadcast_day/broadcast_time'dan lokalde hesapla, yaz, don.
         $computed = calculateNextEpisodeDate($anime);
         if ($computed) {
-            $stmt = $pdo->prepare("UPDATE animes SET next_episode_date = ? WHERE id = ?");
+            // 1.1.44: updated_at pinned - this is a derived value written
+            // on page view, not a catalog edit. Without the pin the ON
+            // UPDATE stamp put the anime on top of "Recently Updated".
+            $stmt = $pdo->prepare("UPDATE animes SET next_episode_date = ?, updated_at = updated_at WHERE id = ?");
             $stmt->execute([$computed, $anime['id']]);
             $anime['next_episode_date'] = $computed;
         }
@@ -234,7 +237,8 @@ function updateNextEpisodeDate($pdo, &$anime) {
     // Only update the next broadcast date. aired_episodes is managed
     // manually by the user because automatic counting cannot handle
     // real-world irregularities (broadcast breaks, holidays, specials).
-    $sql = "UPDATE animes SET next_episode_date = ? WHERE id = ?";
+    // 1.1.44: updated_at pinned (derived value, not a catalog edit).
+    $sql = "UPDATE animes SET next_episode_date = ?, updated_at = updated_at WHERE id = ?";
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$newNextEpisodeDate, $anime['id']]);
     $anime['next_episode_date'] = $newNextEpisodeDate;

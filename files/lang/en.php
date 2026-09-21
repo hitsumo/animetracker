@@ -974,7 +974,7 @@ return [
     'help.list.filters.sort.text'            => 'The small <code>↑</code> and <code>↓</code> arrows in the table headers change the sort order. Four columns can be sorted: <strong>Anime</strong> (title), <strong>Status</strong>, <strong>Watched Episodes</strong> and <strong>Next Episode</strong>. Status sorts alphabetically by the label in the current interface language.',
 
     'help.list.recent.h2'                    => 'Recently Updated',
-    'help.list.recent.text'                  => 'The <strong>"Recently Updated"</strong> page in the menu shows the five anime most recently added to, or edited in, the catalog. It answers "what is new, what got refreshed".',
+    'help.list.recent.text'                  => 'The <strong>"Recently Updated"</strong> page in the menu has two tabs. <strong>Episode Updates</strong> shows the five anime whose aired episode count changed most recently: an anime lands here when the daily broadcast sync counts one more episode, when you change the episode count in the edit form, or when a catalog import brings a new number. <strong>Content Updates</strong> shows the five anime most recently added to the catalog or whose details (synopsis, dates, links, poster...) were edited; an episode count increase does not move this tab. Which tab the page opens in is chosen in List Settings (default: episodes).',
     'help.list.recent.box_title'             => '<i class="fas fa-info-circle"></i> Not to be confused with "Recently Watched":',
     'help.list.recent.box_body'              => 'The <strong>Recently Watched</strong> tab on the Statistics page shows <strong>your</strong> latest watching activity. <strong>Recently Updated</strong> shows the latest changes to the <strong>catalog</strong>; marking an episode does not move anything on it.',
 
@@ -1179,6 +1179,13 @@ return [
     'recent.time.minutes_ago'                => '%d min ago',
     'recent.time.hours_ago'                  => '%d hour(s) ago',
     'recent.time.days_ago'                   => '%d day(s) ago',
+    // 1.1.44 - two tabs: episodes / content
+    'recent.tab.episodes'                    => 'Episode Updates',
+    'recent.tab.content'                     => 'Content Updates',
+    'recent.tab.episodes.hint'               => 'The five anime whose aired episode count changed most recently. The broadcast sync, the edit form and a catalog import write here.',
+    'recent.tab.content.hint'                => 'The five anime most recently added to, or edited in, the catalog. An episode count increase does not affect this tab.',
+    'recent.latest_episode'                  => 'Latest episode: %d',
+    'recent.empty_state.episodes'            => 'No episode update recorded yet. This list fills after the first broadcast sync.',
 
     // -----------------------------------------------------------------
     // recommendations.php - 'Ne Izlesem?' oneri sayfasi
@@ -1372,6 +1379,10 @@ return [
     'list_settings.section.st_mode'          => 'Series Chronology View',
     'list_settings.section.st_mode.desc'     => 'Chooses which tab the series chronology page opens in: chain order (follows the Sequel / Prequel links) or air date (lists every anime sharing the series name by first air/release date). You can switch temporarily with the tabs on the page. This preference affects only you.',
     'list_settings.st_mode.save'             => 'Save',
+    // 1.1.44 - Recently Updated default tab
+    'list_settings.section.recent_tab'       => 'Recently Updated Tab',
+    'list_settings.section.recent_tab.desc'  => 'Chooses which tab the Recently Updated page opens in: episode updates (anime whose aired episode count changed most recently) or content updates (anime most recently added or edited). You can switch temporarily with the tabs on the page. This preference affects only you.',
+    'list_settings.recent_tab.save'          => 'Save',
 
     // 1.1.2 - adult (18+) content visibility toggle (list_settings)
     // 1.1.33 - synopsis spoiler guard (user_pref 'spoiler_guard').

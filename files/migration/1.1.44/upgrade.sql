@@ -1,0 +1,56 @@
+-- Anime Tracker - Migration 1.1.44
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- =====================================================================
+-- 1.1.44 - "Son Guncellenenler" iki sekme: icerik / bolum
+-- =====================================================================
+--
+-- SORUN
+--
+-- recent.php "katalogda en son eklenen ya da duzenlenen 5 anime"yi
+-- animes.updated_at'e gore listeliyordu. Ama updated_at MySQL'in
+-- ON UPDATE damgasi: satira dokunan HER yazma onu tazeler. Gunluk yayin
+-- senkronu (AnimeSchedule) aired_episodes'i artirinca anime listenin
+-- tepesine cikiyordu - "icerigi degisti" diye degil, "bir bolum daha
+-- yayinlandi" diye. Iki farkli soru tek listede birbirini eziyordu:
+--   - "Katalogda ne degisti?"  (yeni kayit, duzeltilen konu, tarih...)
+--   - "Hangi animenin yeni bolumu geldi?"
+--
+-- COZUM: IKI ZAMAN DAMGASI, IKI SEKME
+--
+--   animes.updated_at           icerik zamani (oldugu gibi kalir)
+--   animes.episodes_updated_at  YENI - aired_episodes'in son DEGISTIGI an
+--
+-- Bolum sayisini yazan uc yol (yayin senkronu, duzenleme formu, katalog
+-- ice aktarma) yeni kolonu yalnizca deger GERCEKTEN degisince NOW() yapar
+-- (SQL'de `CASE WHEN aired_episodes <=> ? THEN episodes_updated_at ELSE
+-- NOW() END`, atama aired_episodes'tan ONCE yazilir ki eski degerle
+-- karsilastirsin). Yalniz-bolum yazan yollar (senkron, otomatik
+-- next_episode_date hesabi, katalog ice aktarmanin bolum adimi) ayrica
+-- `updated_at = updated_at` der: ON UPDATE damgasi tetiklenmez, icerik
+-- zamani bozulmaz. Sitemap lastmod artik ikisinin buyugudur.
+--
+-- recent.php: "Bolum Guncellenenler" (episodes_updated_at DESC) ve
+-- "Icerik Guncellenenler" (updated_at DESC) sekmeleri; hangisiyle
+-- acilacagi Liste Ayarlari'ndan secilir (user_pref 'recent_default_tab',
+-- calisma aninda olusur, migration YAZMAZ). On tanimli: bolum.
+--
+-- TOHUM YOK. Var olan satirlarda episodes_updated_at NULL kalir; ilk
+-- yayin senkronu (gunde bir, ana sayfa acilisinda) devam eden animeleri
+-- doldurur. updated_at'ten kopyalamak "son dokunus bolum artisiydi"
+-- varsayimi olurdu - ki sorunun kendisi bunun bilinmemesiydi. Bos sekme
+-- bunu soyleyen bir metin gosterir.
+--
+-- MERKEZ KATALOG: ALTER GEREKMEZ. catalog_push.php kolon listesini acik
+-- yazar, catalog.php de oyle; yeni kolon tele girmez, kurulum-yerelidir
+-- (updated_at ile ayni statu).
+--
+-- Runner yorumlari temizler, tek ALTER'i calistirir; kolon zaten varsa
+-- 1060 yok sayilir (yeniden calistirilabilir) ve settings.version
+-- 1.1.44'e tasinir. schema.sql'de de ayni kolon var (taze kurulum).
+-- =====================================================================
+
+ALTER TABLE `animes`
+  ADD COLUMN `episodes_updated_at` datetime DEFAULT NULL AFTER `updated_at`;

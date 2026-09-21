@@ -1006,7 +1006,7 @@ return [
     'help.list.filters.sort.text'            => 'Tablo başlıklarındaki küçük <code>↑</code> ve <code>↓</code> okları sıralamayı değiştirir. Dört sütunda sıralama yapılabilir: <strong>Anime</strong> (isim), <strong>Durum</strong>, <strong>İzlenen Bölüm</strong> ve <strong>Sonraki Bölüm</strong>. Durum sıralaması arayüz dilindeki etiket alfabesine göre yapılır.',
 
     'help.list.recent.h2'                    => 'Son Güncellenenler',
-    'help.list.recent.text'                  => 'Menüdeki <strong>"Son Güncellenenler"</strong> sayfası, katalogda en son eklenen ya da bilgisi düzenlenen beş animeyi gösterir. Yeni ne girdi, hangi kayıt tazelendi diye bakmak içindir.',
+    'help.list.recent.text'                  => 'Menüdeki <strong>"Son Güncellenenler"</strong> sayfasının iki sekmesi vardır. <strong>Bölüm Güncellenenler</strong>, yayınlanan bölüm sayısı en son değişen beş animeyi gösterir: günlük yayın senkronu bir bölüm daha saydığında, düzenleme formunda bölüm sayısını değiştirdiğinizde ya da katalog içe aktarımı yeni sayı getirdiğinde anime buraya çıkar. <strong>İçerik Güncellenenler</strong> ise kataloğa en son eklenen ya da bilgisi (konu, tarih, bağlantı, poster...) düzenlenen beş animeyi gösterir; bölüm sayısı artışı bu sekmeyi oynatmaz. Sayfanın hangi sekmeyle açılacağı Liste Ayarları bölümünden seçilir (ön tanımlı: bölüm).',
     'help.list.recent.box_title'             => '<i class="fas fa-info-circle"></i> "Son İzlenenler" ile karıştırmayın:',
     'help.list.recent.box_body'              => 'İstatistikler sayfasındaki <strong>Son İzlenenler</strong> sekmesi <strong>sizin</strong> en son izleme hareketinizi gösterir. Buradaki <strong>Son Güncellenenler</strong> ise <strong>katalogun</strong> son değişikliklerini gösterir; siz bir bölüm işaretlediğinizde bu sayfa değişmez.',
 
@@ -1211,6 +1211,13 @@ return [
     'recent.time.minutes_ago'                => '%d dk önce',
     'recent.time.hours_ago'                  => '%d saat önce',
     'recent.time.days_ago'                   => '%d gün önce',
+    // 1.1.44 - iki sekme: bölüm / içerik
+    'recent.tab.episodes'                    => 'Bölüm Güncellenenler',
+    'recent.tab.content'                     => 'İçerik Güncellenenler',
+    'recent.tab.episodes.hint'               => 'Yayınlanan bölüm sayısı en son değişen beş anime. Yayın senkronu, düzenleme formu ve katalog içe aktarımı buraya yazar.',
+    'recent.tab.content.hint'                => 'Kataloğa en son eklenen ya da bilgisi düzenlenen beş anime. Bölüm sayısı artışı bu sekmeyi etkilemez.',
+    'recent.latest_episode'                  => 'Son bölüm: %d',
+    'recent.empty_state.episodes'            => 'Henüz kayıtlı bölüm güncellemesi yok. Bu liste ilk yayın senkronundan sonra dolar.',
 
     // -----------------------------------------------------------------
     // recommendations.php - 'Ne Izlesem?' oneri sayfasi
@@ -1405,6 +1412,10 @@ return [
     'list_settings.section.st_mode'          => 'Seri Kronolojisi Görünümü',
     'list_settings.section.st_mode.desc'     => 'Seri kronolojisi sayfası hangi sekmeyle açılsın: zincir sırası (Devamı / Öncesi bağlarını takip eder) ya da yayın tarihi (aynı seri adını taşıyan tüm animeleri ilk gösterim tarihine göre dizer). Sayfadaki sekmelerle geçici olarak değiştirebilirsiniz. Bu tercih yalnızca sizi etkiler.',
     'list_settings.st_mode.save'             => 'Kaydet',
+    // 1.1.44 - Son Güncellenenler varsayılan sekmesi
+    'list_settings.section.recent_tab'       => 'Son Güncellenenler Sekmesi',
+    'list_settings.section.recent_tab.desc'  => 'Son Güncellenenler sayfası hangi sekmeyle açılsın: bölüm güncellenenler (yayınlanan bölüm sayısı en son değişen animeler) ya da içerik güncellenenler (en son eklenen / bilgisi düzenlenen animeler). Sayfadaki sekmelerle geçici olarak değiştirebilirsiniz. Bu tercih yalnızca sizi etkiler.',
+    'list_settings.recent_tab.save'          => 'Kaydet',
 
     // 1.1.2 - yetiskin (+18) icerik gorunurluk toggle (list_settings)
     // 1.1.33 - konu spoiler kapısı (user_pref 'spoiler_guard').

@@ -6,13 +6,31 @@
  * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
- * Shows the 5 most recently ADDED or EDITED anime entries - that is,
- * catalog-level activity only. add_anime inserts an animes row and
- * edit_anime updates one, both bumping animes.updated_at (MySQL ON
- * UPDATE). Personal watch progress does NOT belong here: a quick
- * "+1 watched" writes only user_anime (update_watched.php) and must
- * not push the anime to the top of this list. So the ordering uses
- * animes.updated_at alone, never user_anime.updated_at.
+ * Two tabs since 1.1.44, five anime each, both catalog-level:
+ *
+ *   episodes  the anime whose AIRED EPISODE COUNT changed most recently
+ *             (daily AnimeSchedule sync, the edit form, a catalog
+ *             import). Ordered by animes.episodes_updated_at, which
+ *             only those writes stamp - and only when the number really
+ *             changes. "Which show got a new episode?"
+ *   content   the anime most recently ADDED or EDITED: add_anime inserts
+ *             a row, edit_anime / catalog import rewrite one, both
+ *             bumping animes.updated_at (MySQL ON UPDATE). "What changed
+ *             in the catalog?"
+ *
+ * Before 1.1.44 there was one list on updated_at and the sync's episode
+ * increments buried every real edit. Now the episode-only writers pin
+ * updated_at (updated_at = updated_at), so the two questions no longer
+ * share a column - see migration/1.1.44/upgrade.sql.
+ *
+ * Personal watch progress belongs on NEITHER tab: a "+1 watched" writes
+ * only user_anime (update_watched.php) and must not move anything here.
+ * The user_anime JOIN below is for the personal badge only, never for
+ * ordering.
+ *
+ * Which tab opens first: ?tab= in the URL wins; otherwise the per-user
+ * default from list settings (user_pref 'recent_default_tab', shipped
+ * default 'episodes', saved by set_recent_tab_pref.php).
  */
 
 require_once __DIR__ . '/db.php';
@@ -21,26 +39,53 @@ require_once __DIR__ . '/functions.php';
 // Sayfa dilini baslat
 lang_init($pdo);
 
+// Active tab: explicit ?tab= > saved per-user default > 'episodes'.
+// Unknown values fall back rather than 404 - a stale link still shows
+// something useful.
+$tab = (string)($_GET['tab'] ?? '');
+if (!in_array($tab, recent_tabs(), true)) {
+    $tab = recent_default_tab($pdo);
+}
+
 // watch_status / watched_episodes are personal (user_anime, 1.0.1). The
 // user_anime JOIN below is kept ONLY to display the personal badge and
-// episode count - it is NOT used for ordering. This page means "recently
-// added or edited (catalog)", so a personal "+1 watched" (which bumps
-// user_anime.updated_at, not animes.updated_at) must not move the anime
-// up. Therefore both the selected timestamp and the ORDER BY use
-// a.updated_at alone.
-$stmt = $pdo->prepare("
-    SELECT a.id, a.title, a.image_path,
-           ua.watch_status,
-           a.status,
-           COALESCE(ua.watched_episodes, 0) AS watched_episodes,
-           a.total_episodes, a.aired_episodes,
-           a.updated_at AS updated_at
-    FROM animes a
-    LEFT JOIN user_anime ua
-           ON ua.anime_id = a.id AND ua.user_id = :uid
-    ORDER BY a.updated_at DESC
-    LIMIT 5
-");
+// episode count - it is NOT used for ordering. A personal "+1 watched"
+// (which bumps user_anime.updated_at, not animes.*) must not move the
+// anime up on either tab.
+//
+// Episode tab: rows never stamped (NULL) are left out - on an upgraded
+// install the column fills as the daily sync runs, and the empty state
+// says so. Content tab: every row has updated_at, so no filter.
+if ($tab === 'episodes') {
+    $stmt = $pdo->prepare("
+        SELECT a.id, a.title, a.image_path,
+               ua.watch_status,
+               a.status,
+               COALESCE(ua.watched_episodes, 0) AS watched_episodes,
+               a.total_episodes, a.aired_episodes,
+               a.episodes_updated_at AS updated_at
+        FROM animes a
+        LEFT JOIN user_anime ua
+               ON ua.anime_id = a.id AND ua.user_id = :uid
+        WHERE a.episodes_updated_at IS NOT NULL
+        ORDER BY a.episodes_updated_at DESC
+        LIMIT 5
+    ");
+} else {
+    $stmt = $pdo->prepare("
+        SELECT a.id, a.title, a.image_path,
+               ua.watch_status,
+               a.status,
+               COALESCE(ua.watched_episodes, 0) AS watched_episodes,
+               a.total_episodes, a.aired_episodes,
+               a.updated_at AS updated_at
+        FROM animes a
+        LEFT JOIN user_anime ua
+               ON ua.anime_id = a.id AND ua.user_id = :uid
+        ORDER BY a.updated_at DESC
+        LIMIT 5
+    ");
+}
 $stmt->execute([':uid' => current_user_id()]);
 $recent = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
@@ -54,6 +99,8 @@ $recent = $stmt->fetchAll(PDO::FETCH_ASSOC);
     // visit and answers no search query; what it IS good at is leading a
     // crawler to freshly changed detail pages, which "follow" preserves.
     // Crawl budget belongs to those pages, not to this one.
+    // 1.1.44: canonical stays the bare address for both tabs - ?tab=
+    // re-sorts the same kind of content, and the page is noindex anyway.
     echo seo_head([
         'title'       => t('recent.page_title'),
         'description' => t('seo.recent.description'),
@@ -180,6 +227,46 @@ $recent = $stmt->fetchAll(PDO::FETCH_ASSOC);
             background: #fff;
             border-radius: 10px;
         }
+        /* Tabs (1.1.44) - bolum / icerik. series_timeline.php'nin
+           .st-tabs kalibi: pill, aktif dolu, digerleri beyaz. */
+        .recent-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .recent-tabs a {
+            padding: 7px 18px;
+            border-radius: 18px;
+            background: #fff;
+            color: #666;
+            text-decoration: none;
+            font-size: 0.88em;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            transition: box-shadow 0.2s;
+        }
+        .recent-tabs a.active {
+            background: #3498db;
+            color: #fff;
+        }
+        .recent-tabs a:hover:not(.active) {
+            box-shadow: 0 3px 12px rgba(0,0,0,0.12);
+        }
+        .recent-tabs-hint {
+            font-size: 0.82em;
+            color: #999;
+            margin: 0 0 16px 4px;
+        }
+        /* Episode tab: the number that changed, in front. */
+        .badge-latest-ep {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8em;
+            font-weight: 500;
+            background: #e0f2fe;
+            color: #075985;
+        }
     </style>
 </head>
 <body>
@@ -189,10 +276,18 @@ $recent = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <a href="index.php" class="back-btn"><i class="fas fa-arrow-left"></i> <?php echo htmlspecialchars(t('recent.back_to_list'), ENT_QUOTES, 'UTF-8'); ?></a>
     </div>
 
+    <?php // 1.1.44 - sekmeler. Duz GET baglantilari; ?tab= o gorunum icin
+          // kazanir, kalici varsayilan Liste Ayarlari'ndan (set_recent_tab_pref). ?>
+    <div class="recent-tabs">
+        <a href="recent.php?tab=episodes" class="<?php echo $tab === 'episodes' ? 'active' : ''; ?>"><i class="fas fa-tv"></i> <?php echo htmlspecialchars(t('recent.tab.episodes'), ENT_QUOTES, 'UTF-8'); ?></a>
+        <a href="recent.php?tab=content" class="<?php echo $tab === 'content' ? 'active' : ''; ?>"><i class="fas fa-pen"></i> <?php echo htmlspecialchars(t('recent.tab.content'), ENT_QUOTES, 'UTF-8'); ?></a>
+    </div>
+    <p class="recent-tabs-hint"><?php echo htmlspecialchars(t($tab === 'episodes' ? 'recent.tab.episodes.hint' : 'recent.tab.content.hint'), ENT_QUOTES, 'UTF-8'); ?></p>
+
     <?php if (empty($recent)): ?>
         <div class="empty-state">
             <i class="fas fa-inbox" style="font-size: 2em; margin-bottom: 10px;"></i>
-            <p><?php echo htmlspecialchars(t('recent.empty_state'), ENT_QUOTES, 'UTF-8'); ?></p>
+            <p><?php echo htmlspecialchars(t($tab === 'episodes' ? 'recent.empty_state.episodes' : 'recent.empty_state'), ENT_QUOTES, 'UTF-8'); ?></p>
         </div>
     <?php else: ?>
         <?php foreach ($recent as $anime): ?>
@@ -236,6 +331,12 @@ $recent = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <?php echo htmlspecialchars($anime['title']); ?>
                     </a>
                     <div class="recent-meta">
+                        <?php if ($tab === 'episodes'): ?>
+                            <?php // 1.1.44 - bolum sekmesinde degisen sayi one cikar. ?>
+                            <span class="badge-latest-ep"><i class="fas fa-tv"></i> <?php
+                                echo htmlspecialchars(sprintf(t('recent.latest_episode'), (int)$anime['aired_episodes']), ENT_QUOTES, 'UTF-8');
+                            ?></span>
+                        <?php endif; ?>
                         <span class="badge-status <?php echo $badgeClass; ?>">
                             <?php echo htmlspecialchars(watch_status_label($ws)); ?>
                         </span>

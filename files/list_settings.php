@@ -1930,6 +1930,29 @@ if (isset($_POST['clear'])) {
                 </form>
             </div>
 
+            <?php // 1.1.44 - "Son Guncellenenler" varsayilan sekmesi. recent.php
+                  // hangi sekmeyle acilsin: bolum guncellenenler (yayinlanan
+                  // bolum sayisi en son degisenler) ya da icerik guncellenenler
+                  // (en son eklenen / duzenlenenler). Kisi bazli tercih
+                  // (user_pref 'recent_default_tab'); sayfadaki sekmeler bu
+                  // varsayilani ezmeden gecici degistirir. set_recent_tab_pref.php'ye
+                  // POST eder. On tanimli: bolum. ?>
+            <?php $recentTabDefault = recent_default_tab($pdo); ?>
+            <div class="settings-section">
+                <h3><?php echo htmlspecialchars(t('list_settings.section.recent_tab'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                <p><?php echo htmlspecialchars(t('list_settings.section.recent_tab.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
+                <form method="post" action="set_recent_tab_pref.php">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                    <select name="tab" onchange="this.form.submit()" aria-label="<?php echo htmlspecialchars(t('list_settings.section.recent_tab'), ENT_QUOTES, 'UTF-8'); ?>">
+                        <option value="episodes"<?php echo $recentTabDefault === 'episodes' ? ' selected' : ''; ?>><?php echo htmlspecialchars(t('recent.tab.episodes'), ENT_QUOTES, 'UTF-8'); ?></option>
+                        <option value="content"<?php echo $recentTabDefault === 'content' ? ' selected' : ''; ?>><?php echo htmlspecialchars(t('recent.tab.content'), ENT_QUOTES, 'UTF-8'); ?></option>
+                    </select>
+                    <noscript>
+                        <button type="submit" class="settings-button"><?php echo htmlspecialchars(t('list_settings.recent_tab.save'), ENT_QUOTES, 'UTF-8'); ?></button>
+                    </noscript>
+                </form>
+            </div>
+
             <?php // 1.1.33 - konu spoiler kapisi. Varsayilan ACIK; acikken bir
                   // serinin devam halkasinin konusu, ondan onceki halkalar
                   // izlenmedikce dogrudan basilmaz ("okumak istiyorum"
