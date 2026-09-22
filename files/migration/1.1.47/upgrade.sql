@@ -1,0 +1,84 @@
+-- Anime Tracker - Migration 1.1.47
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- =====================================================================
+-- 1.1.47 - IKI ILISKI TURU DAHA: `same_setting` (ayni evren) + `character`
+--          (ortak karakter)
+-- =====================================================================
+--
+-- SORUN
+--
+-- anime_relations sozlugu 1.1.38'de bes, 1.1.40'ta alti turdu; AniDB'nin
+-- iliski sozlugu on bir. Eksiklerden ikisi, iki isin HIKAYE PAYLASMADAN
+-- birbirine degebilecegi iki yoldu ve ikisi de `other`a dusuyordu -
+-- yardim metni "Diger Iliski"yi anlatirken ornek olarak tam da bunlari
+-- veriyordu ("ortak evren, konuk karakter"). Yani kurator dogru cevabi
+-- biliyordu ama secemiyordu; "en yakin" turu secmek de sozlugu bozardi.
+--
+-- Tetikleyen vaka (15 Eyl 2026): Hana no Ko Lunlun (1979, AniDB 1919 /
+-- MAL 2230) <-> Hua Xianzi: Mofa Xiang Dui Lun (2026 CN ONA, MAL 56234 /
+-- AniList 168134). Toei "sequel" diyor (nesil devami: yeni kahraman
+-- "atasinin" anahtarini tasiyor); icerik yeni kahraman, ayni cicek
+-- perileri dunyasi = AYNI EVREN. Sira bagi degil - dizi 1980'de bitmis,
+-- yeni is onun devami olarak izlenmez. Gecici cozum `alternative_setting`
+-- + ayri zincir adi ("Hua Xianzi") olmustu; bu surumle dogru tur var,
+-- satir elle cevrilir (asagida).
+--
+-- COZUM: ENUM'A IKI DEGER
+--
+--   same_setting  - ayni dunya, BAMBASKA karakterler (Lunlun / Hua Xianzi)
+--   character     - bir-iki karakter ortak, hikaye ilgisiz (konuk
+--                   karakter, crossover kamesi)
+--
+-- Ikisi de SIMETRIK: "A, B ile ayni evrendedir" iki uctan ayni cumledir.
+-- alternative_version / alternative_setting / other gibi kucuk id one
+-- kanonikleserek yazilir, ters etiketi yoktur. SIRAYA ETKISI YOK: zincir
+-- yuruyusu ve spoiler kapisi yalniz `sequel` okur (1.1.40 kurali);
+-- bu iki tur onlarin gozunde yok.
+--
+-- KARISTIRMA UYARISI. `alternative_setting` (1.1.38) = AYNI karakterler,
+-- FARKLI evren ("ya oyle olsaydi", okul hayati yeniden kurgusu).
+-- `same_setting` bunun aynadaki goruntusudur: FARKLI karakterler, AYNI
+-- evren. Yardim metni iki turu yan yana anlatir.
+--
+-- Sozlugun tek yeri functions/relation_helpers.php'dir (anime_relation_types
+-- + anime_relation_symmetric); detay gruplamasi, form secenekleri, yedek
+-- geri yukleme dogrulamasi (list_settings.php) hepsi oradan okur. Iki
+-- turun eklenmesi o iki listeye iki satir + dil dosyalarina dort anahtar
+-- oldu; baska hicbir dosya tur adi tasimaz.
+--
+-- VERI: bu surum satir CEVIRMEZ. Hangi `other` (ya da gecici
+-- `alternative_setting`) satirinin aslinda same_setting / character
+-- oldugunu PROGRAM bilemez; kurator bilir ve panelden sil-yeniden-kur
+-- ile ya da dogrudan SQL ile cevirir. Canli veri icin bilinen tek
+-- vaka Lunlun <-> Hua Xianzi:
+--
+--   UPDATE anime_relations SET relation_type = 'same_setting'
+--    WHERE relation_type = 'alternative_setting'
+--      AND <iki ucun id'si Lunlun ve Hua Xianzi>;
+--
+-- Migration'a yazilmadi: kurulumdan kuruluma id degisir, isim eslestirme
+-- de baska bir kullanicinin verisine dokunmak olurdu.
+--
+-- YENIDEN CALISTIRILABILIRLIK: tek ifade, MODIFY. Ayni enum'a ikinci kez
+-- MODIFY ayni sonucu verir; runner (migration_manager.php) yorumlari
+-- temizler, calistirir, settings.version 1.1.47'ye tasinir. Enum
+-- GENISLETME'dir: var olan degerler yerinde kalir, var olan satirlar
+-- dokunulmaz. schema.sql'de de ayni enum var (taze kurulum zinciri).
+--
+-- MERKEZ KATALOG: ALTER GEREKMEZ. anime_relations kurulum-yereldir
+-- (1.1.38 gerekcesi: yerel satir id ciftleri tele girmez); catalog.php /
+-- admin_push.php tabloyu bilmez, wire formatta alan yok. Yedek JSON
+-- turu adiyla tasir; 1.1.47 oncesi bir kuruluma 1.1.47 yedegi yuklenirse
+-- bilinmeyen tur "atlandi" sayilir (list_settings.php beyaz listesi) -
+-- cokmez.
+--
+-- YARIM YUKLEME: eski relation_helpers.php sunucuda kalirsa yeni tur
+-- satirlari "Diger Iliski" diye etiketlenir ve formda secilemez; cokmez.
+-- Dosyalar birlikte gitmeli.
+-- =====================================================================
+
+ALTER TABLE `anime_relations`
+  MODIFY `relation_type` enum('alternative_version','alternative_setting','side_story','summary','other','sequel','same_setting','character') NOT NULL DEFAULT 'other';

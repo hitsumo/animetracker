@@ -66,12 +66,31 @@
  * Those three are the asymmetric types, and the asymmetry is real: if A
  * is B's sequel, B is NOT A's sequel - it is A's PREQUEL. So the same row
  * renders with two different labels depending on which end is being
- * viewed (anime_relation_type_label(..., $inverse)). The remaining three
- * (alternative_version, alternative_setting, other) mean the same thing
- * read either way; for them the direction carries no information, so it
- * is CANONICALISED at write time (smaller id first). Without that, the
- * same statement could be stored twice - once per direction - and the
- * UNIQUE key would not catch it.
+ * viewed (anime_relation_type_label(..., $inverse)). The remaining five
+ * (alternative_version, alternative_setting, same_setting, character,
+ * other) mean the same thing read either way; for them the direction
+ * carries no information, so it is CANONICALISED at write time (smaller
+ * id first). Without that, the same statement could be stored twice -
+ * once per direction - and the UNIQUE key would not catch it.
+ *
+ * `same_setting` AND `character` (1.1.47)
+ *
+ * The two gaps left against AniDB's eleven-type vocabulary. Both describe
+ * works that touch WITHOUT sharing a story, and until 1.1.47 both fell
+ * into `other` - the help text even used them as `other`'s examples.
+ *
+ *   same_setting : the same world, wholly different characters. Hana no
+ *                  Ko Lunlun (1979) <-> Hua Xianzi (2026): the same
+ *                  flower-fairy world, a new heroine generations later.
+ *                  Toei calls it a sequel; the content says same setting,
+ *                  and it is NOT a watch-order link.
+ *   character    : one or two characters in common, the stories otherwise
+ *                  unrelated - a crossover cameo, a guest appearance.
+ *
+ * Do not confuse same_setting with alternative_setting (1.1.38), which is
+ * its mirror image: the SAME characters in a DIFFERENT world. Both new
+ * types are symmetric and orderless; the chain walk and the spoiler gate
+ * still read `sequel` alone.
  *
  * The `sequel` direction mirrors the old column: a.next_in_series = b
  * ("after a comes b") became the row (from = b, to = a, sequel) - "b is
@@ -102,7 +121,9 @@
  * The order is also the grouping order on the detail page: the ordered
  * type first (1.1.40 - it is the one a viewer acts on: "what do I watch
  * next"), then the two "another telling of the same thing" types, then
- * the two "smaller piece / shorter cut" types, then the catch-all.
+ * the two "smaller piece / shorter cut" types, then the two "touches
+ * without sharing a story" types (1.1.47 - the loosest real links, so
+ * they sit just above the catch-all), then the catch-all.
  *
  * @return string[] enum values of anime_relations.relation_type
  */
@@ -113,6 +134,8 @@ function anime_relation_types() {
         'alternative_setting',
         'side_story',
         'summary',
+        'same_setting',
+        'character',
         'other',
     ];
 }
@@ -128,7 +151,13 @@ function anime_relation_types() {
  * @return bool
  */
 function anime_relation_symmetric($type) {
-    return in_array($type, ['alternative_version', 'alternative_setting', 'other'], true);
+    return in_array($type, [
+        'alternative_version',
+        'alternative_setting',
+        'same_setting',  // 1.1.47
+        'character',     // 1.1.47
+        'other',
+    ], true);
 }
 
 /**
@@ -181,6 +210,8 @@ function anime_relation_choices() {
         'side_story|inv'      => t('relation.opt.parent_story'),
         'summary'             => t('relation.opt.summary'),
         'summary|inv'         => t('relation.opt.full_story'),
+        'same_setting'        => t('relation.opt.same_setting'),
+        'character'           => t('relation.opt.character'),
         'other'               => t('relation.opt.other'),
     ];
 }

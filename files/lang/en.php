@@ -247,8 +247,8 @@ return [
     //                    heading). The same row gives two different
     //                    labels at its two ends: if A is B's side story,
     //                    then B is A's PARENT story. Symmetric types
-    //                    (alternative version/setting, other) read the
-    //                    same either way.
+    //                    (alternative version/setting, same setting,
+    //                    shared character, other) read the same either way.
     //   relation.opt.*   the form's options. The form asks one question -
     //                    "the anime you picked is this anime's ___".
     //                    The two asymmetric types appear twice, once per
@@ -264,6 +264,12 @@ return [
     'relation.type.parent_story'        => 'Parent Story',
     'relation.type.summary'             => 'Summary',
     'relation.type.full_story'          => 'Full Story',
+    // 1.1.47 - two more symmetric types. Same Setting = the same world,
+    // wholly DIFFERENT characters (the mirror image of Alternative Setting:
+    // SAME characters, another world). Shared Character = a character or
+    // two in common, the stories otherwise unrelated.
+    'relation.type.same_setting'        => 'Same Setting',
+    'relation.type.character'           => 'Shared Character',
     'relation.type.other'               => 'Other Relation',
 
     'relation.opt.sequel'               => 'Sequel (watched after this one)',
@@ -274,6 +280,8 @@ return [
     'relation.opt.parent_story'         => 'Parent story',
     'relation.opt.summary'              => 'Summary',
     'relation.opt.full_story'           => 'Full story',
+    'relation.opt.same_setting'         => 'Same setting (same world, different characters)',
+    'relation.opt.character'            => 'Shared character (a character or two in common, separate story)',
     'relation.opt.other'                => 'Related (other)',
 
     'relation.panel.title'   => 'Relations',
@@ -1114,9 +1122,11 @@ return [
         <li><strong>Alternative Setting</strong> — the same characters in another world or under a completely different premise: "what if" stories, school-life re-imaginings.</li>
         <li><strong>Side Story / Parent Story</strong> — a smaller work at the edge of the main line: an OVA, one character\'s own mini-series. A side story makes no sense without the parent story, yet it does not change the order.</li>
         <li><strong>Summary / Full Story</strong> — a recap film or digest OVA of a series. Watching the summary does not count as having watched the full story (nor the other way round); that is why it stays out of the order.</li>
-        <li><strong>Other Relation</strong> — links that fit none of the above but are clearly related: a shared universe, a guest character, a connected work by the same creator.</li>',
+        <li><strong>Same Setting</strong> — the same world, <strong>wholly different characters</strong>: a work set in the same universe whose hero and story are both new (Hana no Ko Lunlun 1979 ↔ Hua Xianzi 2026: the same flower-fairy world, a new heroine two generations on). It is the mirror image of Alternative Setting: there the characters stay and the world changes; here the world stays and the characters change. It states no order — a generation jump the producer calls a "sequel" but that is not watched as one belongs here.</li>
+        <li><strong>Shared Character</strong> — a character or two in common, the stories otherwise independent: a guest character, a crossover scene, a familiar face turning up in another series. That character is the only thing linking the two works.</li>
+        <li><strong>Other Relation</strong> — links that fit none of the above but are clearly related: a connected work by the same creator, two productions drawn from one source work that fit none of the patterns above.</li>',
     'help.rel.direction.h3'                  => 'Direction: the Form Asks One Question',
-    'help.rel.direction.text'                => 'In the panel you first pick the other record, then the type. The form\'s question is always the same: <strong>"The anime you picked is the ___ of the anime you are editing."</strong> Editing Sailor Moon, picking Sailor Moon R and choosing "Sequel" is right; editing Sailor Moon R, picking Sailor Moon and choosing "Prequel" creates the same link from the other end. You never need both — the record is one and it shows on the two pages with two different labels ("Sequel: Sailor Moon R" / "Prequel: Sailor Moon"). That is why the three directional types appear twice in the list: Sequel / Prequel, Side Story / Parent Story, Summary / Full Story. The other three (Alternative Version, Alternative Setting, Other) read the same from either end; for them it does not matter which side you start from. The ★ in the list marks records sharing the series name; a relation does <strong>not</strong> require the same series name.',
+    'help.rel.direction.text'                => 'In the panel you first pick the other record, then the type. The form\'s question is always the same: <strong>"The anime you picked is the ___ of the anime you are editing."</strong> Editing Sailor Moon, picking Sailor Moon R and choosing "Sequel" is right; editing Sailor Moon R, picking Sailor Moon and choosing "Prequel" creates the same link from the other end. You never need both — the record is one and it shows on the two pages with two different labels ("Sequel: Sailor Moon R" / "Prequel: Sailor Moon"). That is why the three directional types appear twice in the list: Sequel / Prequel, Side Story / Parent Story, Summary / Full Story. The other five (Alternative Version, Alternative Setting, Same Setting, Shared Character, Other) read the same from either end; for them it does not matter which side you start from. The ★ in the list marks records sharing the series name; a relation does <strong>not</strong> require the same series name.',
     'help.rel.rules.h3'                      => 'Rules',
     'help.rel.rules.list' => '<li>Two records carry <strong>at most one</strong> relation. To change the type, delete the existing one with × first, then add the new one — the form does not stack them, it warns you.</li>
         <li>A record cannot be related to itself.</li>

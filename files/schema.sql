@@ -457,9 +457,11 @@ CREATE TABLE IF NOT EXISTS `chronology_markers` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
--- Table: anime_relations  (1.1.38, `sequel` added 1.1.40)
+-- Table: anime_relations  (1.1.38, `sequel` added 1.1.40,
+--                         `same_setting` + `character` added 1.1.47)
 -- Typed links between two animes: the ordered "sequel" and the orderless
--- "another telling of the same story", "a side story", "a summary".
+-- "another telling of the same story", "a side story", "a summary",
+-- "the same world with other characters", "a character in common".
 -- Introduced as the second of the three steps in KARARLAR_4 sec.94 -
 -- chain_name (1.1.36) -> anime_relations (1.1.38) -> sequel/prequel move
 -- here and animes.next_in_series retires (1.1.40).
@@ -494,7 +496,7 @@ CREATE TABLE IF NOT EXISTS `chronology_markers` (
 -- B's sequel then B is A's PREQUEL, not its sequel. The
 -- detail page renders the same row with the flipped label at the other
 -- end (functions/relation_helpers.php, anime_relation_type_label()).
--- The other three types read identically from both ends, so their
+-- The other five types read identically from both ends, so their
 -- direction carries no information and is CANONICALISED on write
 -- (smaller id first) - otherwise the same statement could be stored once
 -- per direction and uniq_relation_pair would not catch it.
@@ -506,6 +508,21 @@ CREATE TABLE IF NOT EXISTS `chronology_markers` (
 -- contradiction - and, since 1.1.40, because that is what keeps a pair
 -- from being ordered (`sequel`) and orderless at once, which was the
 -- Sailor Moon Crystal bug.
+--
+-- `same_setting` / `character` (1.1.47) close the two gaps left against
+-- AniDB's relation vocabulary. Until then both fell into `other`, and
+-- the help text even listed them as its examples ("a shared universe, a
+-- guest character"). They are the two ways two works can touch WITHOUT
+-- sharing a story: same_setting = the same world, wholly different
+-- characters (Hana no Ko Lunlun 1979 <-> Hua Xianzi 2026: the same
+-- flower-fairy world, a new heroine two generations on - Toei calls it
+-- a sequel, the content says same setting); character = one or two
+-- characters in common, the stories otherwise unrelated (a crossover
+-- cameo). Both are symmetric - no inverse label, canonicalised like
+-- alternative_*. Neither states an order: the chain walk and the spoiler
+-- gate still read `sequel` alone. Do not confuse same_setting with
+-- alternative_setting, which is its mirror image: SAME characters in a
+-- DIFFERENT world.
 --
 -- Used by:
 --   - add_anime_relation.php / delete_anime_relation.php (write)
@@ -532,7 +549,7 @@ CREATE TABLE IF NOT EXISTS `anime_relations` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `from_anime_id` int(11) NOT NULL,
   `to_anime_id` int(11) NOT NULL,
-  `relation_type` enum('alternative_version','alternative_setting','side_story','summary','other','sequel') NOT NULL DEFAULT 'other',
+  `relation_type` enum('alternative_version','alternative_setting','side_story','summary','other','sequel','same_setting','character') NOT NULL DEFAULT 'other',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_relation_pair` (`from_anime_id`, `to_anime_id`, `relation_type`),

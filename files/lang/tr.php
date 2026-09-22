@@ -279,7 +279,8 @@ return [
     //                    Ayni satir iki ucta iki farkli etiket verir:
     //                    A, B'nin yan hikayesiyse B, A'nin ANA hikayesidir.
     //                    Simetrik turlerde (alternatif versiyon/kurgu,
-    //                    diger) iki uc de ayni etiketi kullanir.
+    //                    ayni evren, ortak karakter, diger) iki uc de
+    //                    ayni etiketi kullanir.
     //   relation.opt.*   formdaki secenekler. Form tek soru sorar -
     //                    "sectigin anime, BU animenin ___'idir" - o yuzden
     //                    bunlar iyelik ekiyle yazilir ve iki yonlu turler
@@ -295,6 +296,11 @@ return [
     'relation.type.parent_story'        => 'Ana Hikâye',
     'relation.type.summary'             => 'Özet',
     'relation.type.full_story'          => 'Tam Hikâye',
+    // 1.1.47 - iki simetrik tur daha. Ayni Evren = ayni dunya, BAMBASKA
+    // karakterler (Alternatif Kurgu'nun aynadaki hali: o, AYNI karakterler
+    // baska dunya). Ortak Karakter = bir-iki karakter ortak, hikaye ayri.
+    'relation.type.same_setting'        => 'Aynı Evren',
+    'relation.type.character'           => 'Ortak Karakter',
     'relation.type.other'               => 'Diğer İlişki',
 
     'relation.opt.sequel'               => 'Devamı (bundan sonra izlenir)',
@@ -305,6 +311,8 @@ return [
     'relation.opt.parent_story'         => 'Ana hikâyesi',
     'relation.opt.summary'              => 'Özeti',
     'relation.opt.full_story'           => 'Tam hikâyesi',
+    'relation.opt.same_setting'         => 'Aynı evrendeki işi (aynı dünya, farklı karakterler)',
+    'relation.opt.character'            => 'Ortak karakterli işi (bir-iki karakter ortak, hikâye ayrı)',
     'relation.opt.other'                => 'İlişkilisi (diğer)',
 
     'relation.panel.title'   => 'İlişkiler',
@@ -1146,9 +1154,11 @@ return [
         <li><strong>Alternatif Kurgu</strong> — aynı karakterler, başka bir evren ya da bambaşka bir öncül: "ya öyle olsaydı" hikâyeleri, okul hayatı yeniden kurguları.</li>
         <li><strong>Yan Hikâye / Ana Hikâye</strong> — ana hattın kenarında geçen daha küçük bir iş: bir OVA, bir karakterin kendi mini dizisi. Yan hikâye ana hikâyeyi bilmeden anlaşılmaz ama sırayı değiştirmez.</li>
         <li><strong>Özet / Tam Hikâye</strong> — bir dizinin toplama filmi ya da özet OVA\'sı. Özeti izlemek tam hikâyeyi izlemiş saymaz (tersi de öyle); bu yüzden sıraya girmez.</li>
-        <li><strong>Diğer İlişki</strong> — yukarıdakilere sığmayan ama ilgili olduğu belli bağlar: ortak evren, konuk karakter, aynı yaratıcının bağlantılı işi.</li>',
+        <li><strong>Aynı Evren</strong> — aynı dünya, <strong>bambaşka karakterler</strong>: aynı evrende geçen ama kahramanı da hikâyesi de yeni olan bir iş (Hana no Ko Lunlun 1979 ↔ Hua Xianzi 2026: aynı çiçek perileri dünyası, iki nesil sonra yeni bir kahraman). Alternatif Kurgu\'nun aynadaki hâlidir: orada karakterler aynı, dünya başkadır; burada dünya aynı, karakterler başkadır. Sıra belirtmez — bir yapımcının "devamı" dediği ama izleme sırasına girmeyen nesil atlamaları buraya yazılır.</li>
+        <li><strong>Ortak Karakter</strong> — bir-iki karakter ortak, hikâyeler birbirinden bağımsız: konuk karakter, bir crossover sahnesi, başka bir seride yeniden görünen bir yüz. İki işi birbirine bağlayan tek şey o karakterdir.</li>
+        <li><strong>Diğer İlişki</strong> — yukarıdakilere sığmayan ama ilgili olduğu belli bağlar: aynı yaratıcının bağlantılı işi, ortak bir kaynak eserden türeyen ama yukarıdaki hiçbir kalıba oturmayan iki yapım.</li>',
     'help.rel.direction.h3'                  => 'Yön: Form Tek Soru Sorar',
-    'help.rel.direction.text'                => 'Panelde önce karşı kaydı seçer, sonra türü işaretlersiniz. Formun sorusu hep aynıdır: <strong>"Seçtiğiniz anime, düzenlediğiniz animenin ___\'idir."</strong> Sailor Moon\'u düzenlerken Sailor Moon R\'yi seçip "Devamı" demek doğrudur; Sailor Moon R\'yi düzenlerken Sailor Moon\'u seçip "Öncesi" demek de aynı bağı öteki uçtan kurar. İkisini birden yapmanız gerekmez — kayıt tektir ve iki sayfada iki ayrı etiketle görünür ("Devamı: Sailor Moon R" / "Öncesi: Sailor Moon"). Bu yüzden yönü olan üç tür listede iki kez geçer: Devamı / Öncesi, Yan Hikâye / Ana Hikâye, Özet / Tam Hikâye. Öteki üç tür (Alternatif Versiyon, Alternatif Kurgu, Diğer) iki uçtan da aynı cümledir; onlarda hangi uçtan kurduğunuzun önemi yoktur. Listede ★ işareti aynı seri adını taşıyan kayıtları gösterir; ilişki için seri adının aynı olması <strong>gerekmez</strong>.',
+    'help.rel.direction.text'                => 'Panelde önce karşı kaydı seçer, sonra türü işaretlersiniz. Formun sorusu hep aynıdır: <strong>"Seçtiğiniz anime, düzenlediğiniz animenin ___\'idir."</strong> Sailor Moon\'u düzenlerken Sailor Moon R\'yi seçip "Devamı" demek doğrudur; Sailor Moon R\'yi düzenlerken Sailor Moon\'u seçip "Öncesi" demek de aynı bağı öteki uçtan kurar. İkisini birden yapmanız gerekmez — kayıt tektir ve iki sayfada iki ayrı etiketle görünür ("Devamı: Sailor Moon R" / "Öncesi: Sailor Moon"). Bu yüzden yönü olan üç tür listede iki kez geçer: Devamı / Öncesi, Yan Hikâye / Ana Hikâye, Özet / Tam Hikâye. Öteki beş tür (Alternatif Versiyon, Alternatif Kurgu, Aynı Evren, Ortak Karakter, Diğer) iki uçtan da aynı cümledir; onlarda hangi uçtan kurduğunuzun önemi yoktur. Listede ★ işareti aynı seri adını taşıyan kayıtları gösterir; ilişki için seri adının aynı olması <strong>gerekmez</strong>.',
     'help.rel.rules.h3'                      => 'Kurallar',
     'help.rel.rules.list' => '<li>İki kayıt arasında <strong>en çok bir</strong> ilişki olur. Türü değiştirmek için önce mevcut olanı × ile silin, sonra yenisini ekleyin — form üst üste yazmaz, sizi uyarır.</li>
         <li>Bir kayıt kendisiyle ilişkilendirilemez.</li>
