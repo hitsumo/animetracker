@@ -711,6 +711,47 @@ CREATE TABLE IF NOT EXISTS `user_anime` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
+-- Table: user_watch_log (1.1.46)
+-- The personal WATCH LOG: one row per change of a user's watched
+-- episode count for an anime. user_anime.updated_at is a single "last
+-- touch" stamp (a note edit or an import moves it too), so it cannot
+-- answer "what did I watch last week"; this table can.
+--
+--   - episode_from / episode_to: the count before and after the change.
+--     A "-" is logged as well (from > to); readers sum the deltas per
+--     anime, so an undone "+1" nets to zero.
+--   - logged_at: written from PHP (UTC, db.php), not NOW(), so the
+--     period bounds computed in PHP share the clock.
+--   - Written from ONE place, ua_set_state() (user_anime_helpers.php),
+--     which every writer of watched_episodes goes through. An import
+--     leaves one row per anime spanning the whole jump.
+--   - idx_uwl_user_time: the week / month / range views on recent.php
+--     ("WHERE user_id = ? AND logged_at >= ?").
+--   - idx_uwl_user_anime: per-anime history (JSON export, "all" view's
+--     latest-entry-per-anime join).
+--   - FKs ON DELETE CASCADE: an anime or user going away takes its log.
+--   - NO SEED on upgrade (migration/1.1.46): rows that predate the table
+--     get no fabricated history; the "all" view still lists them by
+--     user_anime.updated_at with a "pre-log" label.
+--   - Local-only: never synced to the central catalog. Carried in the
+--     JSON backup under each anime as 'watch_log'.
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `user_watch_log` (
+  `id`           int(11) NOT NULL AUTO_INCREMENT,
+  `user_id`      int(11) NOT NULL,
+  `anime_id`     int(11) NOT NULL,
+  `episode_from` int(11) NOT NULL,
+  `episode_to`   int(11) NOT NULL,
+  `logged_at`    datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_uwl_user_time`  (`user_id`, `logged_at`),
+  KEY `idx_uwl_user_anime` (`user_id`, `anime_id`),
+  CONSTRAINT `fk_uwl_user`  FOREIGN KEY (`user_id`)  REFERENCES `users` (`id`)  ON DELETE CASCADE,
+  CONSTRAINT `fk_uwl_anime` FOREIGN KEY (`anime_id`) REFERENCES `animes` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
 -- Table: user_pref (1.0.1 - Faz 2, Milestone 1)
 -- Per-user preferences: the user-scope twin of the global settings table,
 -- same key-value shape so the code stays familiar (no new pattern).

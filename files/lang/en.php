@@ -976,6 +976,9 @@ return [
 
     'help.list.recent.h2'                    => 'Recently Updated',
     'help.list.recent.text'                  => 'The <strong>"Recently Updated"</strong> page in the menu has two tabs. <strong>Episode Updates</strong> shows the five anime whose aired episode count changed most recently: an anime lands here when the daily broadcast sync counts one more episode, when you change the episode count in the edit form, or when a catalog import brings a new number. <strong>Content Updates</strong> shows the five anime most recently added to the catalog or whose details (synopsis, dates, links, poster...) were edited; an episode count increase does not move this tab. The third tab, <strong>Recently Watched</strong>, is personal: the ten anime whose watch progress you changed most recently, newest at the top — for checking "where was I". Which tab the page opens in is chosen in List Settings (default: episodes).',
+    // 1.1.46: watch log paragraph
+    'help.list.recent.log.h3'                => 'Watch log and period filters',
+    'help.list.recent.log.text'              => 'Under the Recently Watched tab there is a strip: <strong>Last week</strong>, <strong>Last month</strong>, <strong>All</strong> and a two-date <strong>range</strong> form. The week, month and range views read the <strong>watch log</strong>: whenever your watched episode count changes (+/− on the list or the detail page, the edit form, a MAL/AniList/JSON import) the log gets one line saying "from what to what, when". These views show, per anime, the net episodes watched in that period as a badge and print an "N anime, M episodes" summary above the list; an episode you added and then took back does not count. The log started with 1.1.46 and is <strong>not backfilled</strong> — no invented dates on old rows. Watching from before that shows only in the <strong>All</strong> view, by last-touch time and labelled "pre-log". The chosen period lives in the address and is not saved; your default-tab preference in List Settings stays as it is. The log goes into your backup (under each anime as <code>watch_log</code>) and comes back on restore.',
     'help.list.recent.box_title'             => '<i class="fas fa-info-circle"></i> Do not confuse the catalog tabs with the personal one:',
     'help.list.recent.box_body'              => '<strong>Episode</strong> and <strong>Content Updates</strong> show the latest changes to the <strong>catalog</strong>; marking an episode does not move those two lists. <strong>Recently Watched</strong> shows only <strong>your</strong> activity; other members do not see it, and catalog edits do not move it.',
 
@@ -1014,6 +1017,7 @@ return [
     'help.transfer.export.h2'                => 'Export Your List (backup)',
     'help.transfer.export.text'              => 'The <strong>"Export List"</strong> button downloads a single JSON file named <code>anime_list_YYYY-MM-DD.json</code>. It contains the anime records of this installation together with <strong>your</strong> data attached to them:',
     'help.transfer.export.list' => '<li>Watch status, watched episode count, start and finish dates</li>
+        <li>Watch log (every change of the episode count, with its time — 1.1.46)</li>
         <li>Notes and Personal Synopsis</li>
         <li>Your emotion marks</li>
         <li>Genres and sentences (by name, not by id)</li>
@@ -1186,9 +1190,24 @@ return [
     'recent.empty_state.episodes'            => 'No episode update recorded yet. This list fills after the first broadcast sync.',
     // 1.1.45: third tab - personal "Recently Watched" (moved from statistics)
     'recent.tab.watched'                     => 'Recently Watched',
-    'recent.tab.watched.hint'                => 'The ten anime whose watch progress you changed most recently — the "where was I" list. Your own activity only; it does not move the catalog.',
+    'recent.tab.watched.hint'                => 'The anime whose watched episode count you changed most recently — the "where was I" list. Your own activity only; it does not move the catalog. Narrow it to a week, a month or a date range with the strip below.',
     'recent.empty_state.watched'             => 'No watch activity yet. Once you mark an episode of an anime as watched it shows up here.',
     'recent.empty_state.watched_guest'       => 'This tab is personal; sign in to see your own watch activity.',
+    // 1.1.46: watch log - period strip on Recently Watched
+    'recent.period.week'                     => 'Last week',
+    'recent.period.month'                    => 'Last month',
+    'recent.period.all'                      => 'All',
+    'recent.period.from'                     => 'From',
+    'recent.period.to'                       => 'To',
+    'recent.period.show'                     => 'Show',
+    'recent.period.week_label'               => 'Last 7 days',
+    'recent.period.month_label'              => 'Last 30 days',
+    'recent.period.range_label'              => '%s – %s',
+    'recent.period.summary'                  => '%s anime, %s episodes watched',
+    'recent.period.net_episodes'             => '%d episodes',
+    'recent.period.empty'                    => 'Nothing logged in this period. The log started with 1.1.46; earlier watching shows only in the "All" view, labelled "pre-log".',
+    'recent.period.pre_log'                  => 'pre-log',
+    'recent.period.pre_log.title'            => 'This anime\'s progress was recorded before the watch log (1.1.46); the time is the row\'s last touch.',
 
     // -----------------------------------------------------------------
     // recommendations.php - 'Ne Izlesem?' oneri sayfasi

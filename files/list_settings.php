@@ -281,6 +281,10 @@ if (isset($_POST['export'])) {
         $a['watch_finish_date'] = $ua['watch_finish_date'];
         $exportEmoStmt->execute([current_user_id(), $a['id']]);
         $a['emotions']         = $exportEmoStmt->fetchAll(PDO::FETCH_COLUMN);
+        // 1.1.46 - izleme gunlugu (user_watch_log), bu kullanicinin satirlari,
+        // eskiden yeniye. Geri yukleme bu diziyi oldugu gibi geri yazar ve o
+        // kayit icin otomatik gunluk satirini kapatir (asagida $logWatch).
+        $a['watch_log']        = watch_log_export($pdo, current_user_id(), $a['id']);
         $exportMarkerStmt->execute([$a['id']]);
         $a['markers']          = $exportMarkerStmt->fetchAll(PDO::FETCH_ASSOC);
         $exportRelationStmt->execute([$a['id']]);
@@ -375,6 +379,10 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                     // Katalogda VAR: kisisel izleme durumunu yaz
                     $status = $anime['watch_status'] ?? 'PlanToWatch';
                     if (!in_array($status, $validStatus, true)) { $status = 'PlanToWatch'; }
+                    // 1.1.46 - dosya kendi gunlugunu tasiyorsa (1.1.46+ yedek)
+                    // otomatik satir yazilmaz, dizi geri yuklenir; tasimiyorsa
+                    // (eski yedek) sicrama tek satir olarak gunluge girer.
+                    $hasLog = array_key_exists('watch_log', $anime) && is_array($anime['watch_log']);
                     ua_set_state($pdo, $uid, (int)$aid, [
                         'watch_status'     => $status,
                         'watched_episodes' => max(0, (int)($anime['watched_episodes'] ?? 0)),
@@ -383,7 +391,10 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                         'user_synopsis_en' => $anime['user_synopsis_en'] ?? null,
                         'watch_start_date'  => $anime['watch_start_date']  ?? null,
                         'watch_finish_date' => $anime['watch_finish_date'] ?? null,
-                    ]);
+                    ], !$hasLog);
+                    if ($hasLog) {
+                        watch_log_import_set($pdo, $uid, (int)$aid, $anime['watch_log']);
+                    }
                     emotion_import_set($pdo, $uid, (int)$aid, $anime['emotions'] ?? []);
                     $applied++;
                     continue;
@@ -589,6 +600,8 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                     }
 
                     if ($animeId > 0) {
+                        // 1.1.46 - gunluk: cevrimici daldaki kuralin aynisi.
+                        $hasLog = array_key_exists('watch_log', $anime) && is_array($anime['watch_log']);
                         ua_set_state($pdo, current_user_id(), $animeId, [
                             'watch_status'     => $anime['watch_status']     ?? 'PlanToWatch',
                             'watched_episodes' => $anime['watched_episodes']  ?? 0,
@@ -597,7 +610,10 @@ if (isset($_POST['import']) && isset($_FILES['import_file'])) {
                             'user_synopsis_en' => $anime['user_synopsis_en']  ?? null,
                             'watch_start_date'  => $anime['watch_start_date']  ?? null,
                             'watch_finish_date' => $anime['watch_finish_date'] ?? null,
-                        ]);
+                        ], !$hasLog);
+                        if ($hasLog) {
+                            watch_log_import_set($pdo, current_user_id(), $animeId, $anime['watch_log']);
+                        }
 
                         setAnimeGenresByNames($pdo, $animeId, $anime['genres'] ?? []);
 

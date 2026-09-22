@@ -39,6 +39,25 @@
  * a guest has no user_anime rows, so the watched tab shows its empty
  * state with a sign-in hint instead of a list.
  *
+ * 1.1.46 - the watched tab reads the WATCH LOG (user_watch_log, see
+ * functions/watch_log_helpers.php) and grows a period strip:
+ *
+ *   ?period=all    (default) one row per anime, newest movement first,
+ *                  ten rows. An anime with log rows is placed by its
+ *                  latest log entry; an anime whose progress predates
+ *                  the log (no rows - there is NO SEED) is placed by
+ *                  user_anime.updated_at as before and wears a
+ *                  "pre-log" label so the two kinds are told apart.
+ *   ?period=week   rolling 7 days, log only.
+ *   ?period=month  rolling 30 days, log only.
+ *   ?period=range  &from=YYYY-MM-DD&to=YYYY-MM-DD, log only.
+ *
+ * The three log-only views group the log per anime, keep the anime whose
+ * net delta in the window is positive (an undone "+1" nets to zero), and
+ * print "N anime, M episodes" above the list plus a "+M" badge per row.
+ * The filter lives in the URL and is never saved; the per-user default
+ * TAB setting is untouched.
+ *
  * Which tab opens first: ?tab= in the URL wins; otherwise the per-user
  * default from list settings (user_pref 'recent_default_tab', shipped
  * default 'episodes', saved by set_recent_tab_pref.php).
@@ -76,20 +95,92 @@ if (!in_array($tab, recent_tabs(), true)) {
 // is not a watch event. Ten rows, as the statistics page showed.
 // current_user_id() is NULL for a guest in online mode; the query then
 // matches nothing and the empty state explains.
+//
+// 1.1.46: the watched tab has a period filter (see the header). 'all'
+// merges the log with the pre-log rows; the other three read the log
+// only and carry a per-anime net delta. $period holds the resolved
+// bounds; $summary the "N anime, M episodes" line for log-only views.
+$period  = ['period' => 'all', 'since' => null, 'until' => null, 'from' => null, 'to' => null];
+$summary = null;
+$extraParams = [];
 if ($tab === 'watched') {
+    $period = watch_log_period_bounds(
+        (string)($_GET['period'] ?? 'all'),
+        $_GET['from'] ?? null,
+        $_GET['to'] ?? null
+    );
+}
+if ($tab === 'watched' && $period['period'] !== 'all') {
+    // Log-only window. One row per anime: the sum of its deltas in the
+    // window and the time of its latest entry. HAVING keeps the anime
+    // that were actually watched (net > 0). user_anime is LEFT-joined
+    // for the badge and the current count; the log is the driver.
+    // Fifty rows: a window is bounded by time, not by count, but a bulk
+    // import can drop hundreds of rows into one minute.
+    // The aggregation sits in a derived table so the outer SELECT has no
+    // GROUP BY (no ONLY_FULL_GROUP_BY exposure on MySQL 8).
+    $untilSql = ($period['until'] !== null) ? " AND logged_at < :until" : "";
+    $stmt = $pdo->prepare("
+        SELECT a.id, a.title, a.alternative_titles, a.image_path,
+               ua.watch_status,
+               a.status,
+               COALESCE(ua.watched_episodes, 0) AS watched_episodes,
+               a.total_episodes, a.aired_episodes,
+               wl.last_at AS updated_at,
+               wl.net_delta,
+               0 AS pre_log
+        FROM (
+            SELECT anime_id,
+                   MAX(logged_at) AS last_at,
+                   SUM(episode_to - episode_from) AS net_delta
+              FROM user_watch_log
+             WHERE user_id = :uid AND logged_at >= :since" . $untilSql . "
+             GROUP BY anime_id
+            HAVING net_delta > 0
+        ) wl
+        JOIN animes a ON a.id = wl.anime_id
+        LEFT JOIN user_anime ua
+               ON ua.anime_id = wl.anime_id AND ua.user_id = :uid2
+        ORDER BY wl.last_at DESC
+        LIMIT 50
+    ");
+    // Native prepares refuse a reused named parameter (1.1.44 lesson).
+    $extraParams[':uid2']  = current_user_id();
+    $extraParams[':since'] = $period['since'];
+    if ($period['until'] !== null) {
+        $extraParams[':until'] = $period['until'];
+    }
+    $summary = watch_log_summary($pdo, current_user_id(), $period['since'], $period['until']);
+} elseif ($tab === 'watched') {
+    // 'all': every anime with progress, placed by its latest log entry
+    // when it has one, else by user_anime.updated_at (the 1.1.45 order)
+    // - those are the pre-log rows and pre_log = 1 labels them. An anime
+    // whose log exists but whose count is back at 0 still shows (it was
+    // watched, then reset); a status-only row with no log never does.
     $stmt = $pdo->prepare("
         SELECT a.id, a.title, a.alternative_titles, a.image_path,
                ua.watch_status,
                a.status,
                ua.watched_episodes,
                a.total_episodes, a.aired_episodes,
-               ua.updated_at AS updated_at
+               COALESCE(wl.last_at, ua.updated_at) AS updated_at,
+               NULL AS net_delta,
+               (wl.last_at IS NULL) AS pre_log
         FROM user_anime ua
         JOIN animes a ON a.id = ua.anime_id
-        WHERE ua.user_id = :uid AND ua.watched_episodes > 0
-        ORDER BY ua.updated_at DESC
+        LEFT JOIN (
+            SELECT anime_id, MAX(logged_at) AS last_at
+              FROM user_watch_log
+             WHERE user_id = :uid
+             GROUP BY anime_id
+        ) wl ON wl.anime_id = ua.anime_id
+        WHERE ua.user_id = :uid2
+          AND (ua.watched_episodes > 0 OR wl.last_at IS NOT NULL)
+        ORDER BY updated_at DESC
         LIMIT 10
     ");
+    // Native prepares refuse a reused named parameter (1.1.44 lesson).
+    $extraParams[':uid2'] = current_user_id();
 } elseif ($tab === 'episodes') {
     $stmt = $pdo->prepare("
         SELECT a.id, a.title, a.alternative_titles, a.image_path,
@@ -122,8 +213,23 @@ if ($tab === 'watched') {
 }
 // Guest in online mode: current_user_id() is NULL. PDO binds NULL fine
 // (matches no row on the watched tab, no badge on the others).
-$stmt->execute([':uid' => current_user_id()]);
+$stmt->execute(array_merge([':uid' => current_user_id()], $extraParams));
 $recent = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// 1.1.46 - a log-only window that caught nothing gets its own empty
+// text ("nothing in this period"), not the tab's "no activity yet".
+$emptyKey = null;
+if ($tab === 'watched' && $period['period'] !== 'all' && empty($recent)) {
+    $emptyKey = (MULTI_USER_MODE && !is_logged_in())
+        ? 'recent.empty_state.watched_guest'
+        : 'recent.period.empty';
+}
+
+// Query-string helper for the period pills: keeps tab, drops from/to
+// unless the range form re-sends them.
+function recent_period_url($p) {
+    return 'recent.php?tab=watched&period=' . rawurlencode($p);
+}
 
 // Per-tab texts (hint under the tabs, empty-state message). One map so
 // adding a tab is one line here plus the lang keys.
@@ -301,6 +407,84 @@ $tabText = [
             color: #999;
             margin: 0 0 16px 4px;
         }
+        /* 1.1.46 - period strip under the watched tab: smaller pills in
+           the .recent-tabs family, an inline date-range form, a summary
+           line, and two row badges (net delta / pre-log). */
+        .recent-period {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            margin: -6px 0 12px 0;
+        }
+        .recent-period a {
+            padding: 5px 13px;
+            border-radius: 14px;
+            background: #fff;
+            color: #666;
+            text-decoration: none;
+            font-size: 0.8em;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        .recent-period a.active {
+            background: #2c3e50;
+            color: #fff;
+        }
+        .recent-period a:hover:not(.active) {
+            box-shadow: 0 3px 12px rgba(0,0,0,0.12);
+        }
+        .recent-period form {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            margin-left: 6px;
+            font-size: 0.8em;
+            color: #666;
+        }
+        .recent-period form input[type="date"] {
+            font-family: inherit;
+            font-size: 0.95em;
+            padding: 3px 6px;
+            border: 1px solid #d0d5db;
+            border-radius: 8px;
+            background: #fff;
+            color: #2c3e50;
+        }
+        .recent-period form button {
+            font-family: inherit;
+            font-size: 0.95em;
+            padding: 4px 12px;
+            border: none;
+            border-radius: 14px;
+            background: #3498db;
+            color: #fff;
+            cursor: pointer;
+        }
+        .recent-period form button:hover { background: #2980b9; }
+        .recent-period-summary {
+            font-size: 0.88em;
+            color: #2c3e50;
+            margin: 0 0 14px 4px;
+        }
+        .recent-period-summary strong { color: #1e40af; }
+        .badge-net-eps {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8em;
+            font-weight: 500;
+            background: #dcfce7;
+            color: #166534;
+        }
+        .badge-pre-log {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.78em;
+            background: #f3f4f6;
+            color: #6b7280;
+        }
         /* Episode tab: the number that changed, in front. */
         .badge-latest-ep {
             display: inline-block;
@@ -330,10 +514,42 @@ $tabText = [
     </div>
     <p class="recent-tabs-hint"><?php echo htmlspecialchars(t($tabText[$tab]['hint']), ENT_QUOTES, 'UTF-8'); ?></p>
 
+    <?php if ($tab === 'watched'): ?>
+        <?php // 1.1.46 - donem seridi. Duz GET; secim adreste yasar, kaydedilmez.
+              // Aralik formu iki tarih ister; eksik/bozuk tarih 'hepsi'ye duser
+              // (watch_log_period_bounds). ?>
+        <div class="recent-period">
+            <a href="<?php echo recent_period_url('week'); ?>"  class="<?php echo $period['period'] === 'week'  ? 'active' : ''; ?>"><?php echo htmlspecialchars(t('recent.period.week'),  ENT_QUOTES, 'UTF-8'); ?></a>
+            <a href="<?php echo recent_period_url('month'); ?>" class="<?php echo $period['period'] === 'month' ? 'active' : ''; ?>"><?php echo htmlspecialchars(t('recent.period.month'), ENT_QUOTES, 'UTF-8'); ?></a>
+            <a href="<?php echo recent_period_url('all'); ?>"   class="<?php echo $period['period'] === 'all'   ? 'active' : ''; ?>"><?php echo htmlspecialchars(t('recent.period.all'),   ENT_QUOTES, 'UTF-8'); ?></a>
+            <form method="get" action="recent.php">
+                <input type="hidden" name="tab" value="watched">
+                <input type="hidden" name="period" value="range">
+                <label><?php echo htmlspecialchars(t('recent.period.from'), ENT_QUOTES, 'UTF-8'); ?>
+                    <input type="date" name="from" value="<?php echo htmlspecialchars((string)($period['from'] ?? ($_GET['from'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>" required></label>
+                <label><?php echo htmlspecialchars(t('recent.period.to'), ENT_QUOTES, 'UTF-8'); ?>
+                    <input type="date" name="to" value="<?php echo htmlspecialchars((string)($period['to'] ?? ($_GET['to'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>" required></label>
+                <button type="submit"><?php echo htmlspecialchars(t('recent.period.show'), ENT_QUOTES, 'UTF-8'); ?></button>
+            </form>
+        </div>
+        <?php if ($summary !== null && $summary['animes'] > 0): ?>
+            <p class="recent-period-summary"><?php
+                // "N animede M bolum" - donem basligi (hafta / ay / aralik) + ozet.
+                $label = ($period['period'] === 'range')
+                    ? sprintf(t('recent.period.range_label'), $period['from'], $period['to'])
+                    : t('recent.period.' . $period['period'] . '_label');
+                echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . ': ';
+                echo sprintf(t('recent.period.summary'),
+                    '<strong>' . (int)$summary['animes'] . '</strong>',
+                    '<strong>' . (int)$summary['episodes'] . '</strong>');
+            ?></p>
+        <?php endif; ?>
+    <?php endif; ?>
+
     <?php if (empty($recent)): ?>
         <div class="empty-state">
             <i class="fas fa-inbox" style="font-size: 2em; margin-bottom: 10px;"></i>
-            <p><?php echo htmlspecialchars(t($tabText[$tab]['empty']), ENT_QUOTES, 'UTF-8'); ?></p>
+            <p><?php echo htmlspecialchars(t($emptyKey ?? $tabText[$tab]['empty']), ENT_QUOTES, 'UTF-8'); ?></p>
         </div>
     <?php else: ?>
         <?php foreach ($recent as $anime): ?>
@@ -386,6 +602,12 @@ $tabText = [
                                 echo htmlspecialchars(sprintf(t('recent.latest_episode'), (int)$anime['aired_episodes']), ENT_QUOTES, 'UTF-8');
                             ?></span>
                         <?php endif; ?>
+                        <?php if ($tab === 'watched' && isset($anime['net_delta']) && $anime['net_delta'] !== null): ?>
+                            <?php // 1.1.46 - donem gorunumunde bu pencerede izlenen net bolum. ?>
+                            <span class="badge-net-eps"><i class="fas fa-plus"></i> <?php
+                                echo htmlspecialchars(sprintf(t('recent.period.net_episodes'), (int)$anime['net_delta']), ENT_QUOTES, 'UTF-8');
+                            ?></span>
+                        <?php endif; ?>
                         <span class="badge-status <?php echo $badgeClass; ?>">
                             <?php echo htmlspecialchars(watch_status_label($ws)); ?>
                         </span>
@@ -398,6 +620,10 @@ $tabText = [
 
                 <div class="recent-time">
                     <i class="far fa-clock"></i> <?php echo $timeAgo; ?>
+                    <?php if ($tab === 'watched' && !empty($anime['pre_log'])): ?>
+                        <?php // 1.1.46 - gunlugu olmayan eski satir: zaman user_anime.updated_at'ten. ?>
+                        <br><span class="badge-pre-log" title="<?php echo htmlspecialchars(t('recent.period.pre_log.title'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(t('recent.period.pre_log'), ENT_QUOTES, 'UTF-8'); ?></span>
+                    <?php endif; ?>
                 </div>
             </div>
         <?php endforeach; ?>

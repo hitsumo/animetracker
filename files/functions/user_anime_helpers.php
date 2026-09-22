@@ -107,9 +107,19 @@ function ua_get_state($pdo, $userId, $animeId)
  * turn an empty form value into null (an empty string is an invalid DATE
  * and would fail the whole upsert).
  *
+ * 1.1.46 - WATCH LOG. When 'watched_episodes' is among the fields and
+ * the value written differs from the one stored (a missing row counts
+ * as 0), one user_watch_log row (from -> to, now) is appended AFTER the
+ * upsert succeeds. This is the single hook: the +/- endpoint, the edit
+ * form, add_anime and the MAL / AniList / JSON imports all pass through
+ * here, so none of them logs on its own. $logWatch = false turns the
+ * hook off for ONE call - the JSON restore uses it when the file carries
+ * the anime's own log rows (watch_log_import_set restores those instead;
+ * logging the restore jump as well would double-count the history).
+ *
  * Returns true on success, false on a logged DB error.
  */
-function ua_set_state($pdo, $userId, $animeId, array $fields)
+function ua_set_state($pdo, $userId, $animeId, array $fields, $logWatch = true)
 {
     $allowed = [
         'watch_status', 'watched_episodes', 'notes',
@@ -140,12 +150,38 @@ function ua_set_state($pdo, $userId, $animeId, array $fields)
 
     $values = array_merge([$userId, $animeId], array_values($set));
 
+    // 1.1.46 - read the stored count BEFORE the upsert so the log line
+    // can say where the user came from. Only when the caller writes the
+    // column; a notes-only write costs nothing extra.
+    $oldWatched = null;
+    if ($logWatch && array_key_exists('watched_episodes', $set)) {
+        try {
+            $q = $pdo->prepare(
+                "SELECT watched_episodes FROM user_anime
+                  WHERE user_id = ? AND anime_id = ? LIMIT 1"
+            );
+            $q->execute([$userId, $animeId]);
+            $v = $q->fetchColumn();
+            $oldWatched = ($v === false) ? 0 : (int)$v;
+        } catch (PDOException $e) {
+            // Logged below if the upsert fails too; a lost log line must
+            // not block the write itself.
+            $oldWatched = null;
+        }
+    }
+
     try {
         $stmt = $pdo->prepare(
             "INSERT INTO user_anime ($colList) VALUES ($placeholders)
              ON DUPLICATE KEY UPDATE $updateClause"
         );
         $stmt->execute($values);
+        if ($oldWatched !== null) {
+            $newWatched = (int)$set['watched_episodes'];
+            if ($newWatched !== $oldWatched) {
+                watch_log_record($pdo, $userId, $animeId, $oldWatched, $newWatched);
+            }
+        }
         return true;
     } catch (PDOException $e) {
         error_log('[anime_tracker] ua_set_state(' . $userId . ',' . $animeId . '): '

@@ -130,6 +130,12 @@ lang_init($pdo);
         <?php echo t('help.list.recent.box_body'); ?>
     </div>
 
+    <?php // 1.1.46 - izleme gunlugu + donem seridi ?>
+    <h3><?php echo htmlspecialchars(t('help.list.recent.log.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
+    <p>
+        <?php echo t('help.list.recent.log.text'); ?>
+    </p>
+
     <p style="margin-top: 40px; color: #888; font-size: 0.9em;">
         <?php echo t('help.footer'); ?>
     </p>

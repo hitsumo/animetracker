@@ -17,8 +17,9 @@
  *
  * Required POST fields:
  *   csrf_token  - CSRF protection token
- *   tab         - 'content' for the content tab; anything else (incl.
- *                 'episodes' or missing/tampered) means the episode tab,
+ *   tab         - one of recent_tabs() ('episodes' / 'content' /
+ *                 'watched' since 1.1.45); anything else (missing/tampered)
+ *                 means the episode tab,
  *                 which is the shipped default.
  *
  * Written to user_pref under 'recent_default_tab' (created on first use,
@@ -42,7 +43,13 @@ if (!csrf_verify($_POST['csrf_token'] ?? '')) {
 
 // Normalize to a strict 'content' / 'episodes'. Any value other than
 // 'content' falls back to the episode tab, so a tampered field is safe.
-$tab = (($_POST['tab'] ?? '') === 'content') ? 'content' : 'episodes';
+// 1.1.46 - whitelist from recent_tabs(), not a hard-coded pair: 1.1.45 added
+// the 'watched' option to the list-settings select but this line still knew
+// only 'content', so choosing "Son Izlenenler" silently saved 'episodes'.
+$tab = (string)($_POST['tab'] ?? '');
+if (!in_array($tab, recent_tabs(), true)) {
+    $tab = 'episodes';
+}
 set_user_pref($pdo, current_user_id(), 'recent_default_tab', $tab);
 
 // Redirect back to the page that triggered the change (same-host only).

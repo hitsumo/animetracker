@@ -1008,6 +1008,9 @@ return [
 
     'help.list.recent.h2'                    => 'Son Güncellenenler',
     'help.list.recent.text'                  => 'Menüdeki <strong>"Son Güncellenenler"</strong> sayfasının iki sekmesi vardır. <strong>Bölüm Güncellenenler</strong>, yayınlanan bölüm sayısı en son değişen beş animeyi gösterir: günlük yayın senkronu bir bölüm daha saydığında, düzenleme formunda bölüm sayısını değiştirdiğinizde ya da katalog içe aktarımı yeni sayı getirdiğinde anime buraya çıkar. <strong>İçerik Güncellenenler</strong> ise kataloğa en son eklenen ya da bilgisi (konu, tarih, bağlantı, poster...) düzenlenen beş animeyi gösterir; bölüm sayısı artışı bu sekmeyi oynatmaz. Üçüncü sekme <strong>Son İzlenenler</strong> kişiseldir: izleme ilerlemenizi en son değiştirdiğiniz on animeyi, en yenisi üstte listeler — "neredeydim" diye bakmak için. Sayfanın hangi sekmeyle açılacağı Liste Ayarları bölümünden seçilir (ön tanımlı: bölüm).',
+    // 1.1.46: izleme gunlugu paragrafi
+    'help.list.recent.log.h3'                => 'İzleme günlüğü ve dönem filtreleri',
+    'help.list.recent.log.text'              => 'Son İzlenenler sekmesinin altında bir şerit vardır: <strong>Son 1 hafta</strong>, <strong>Son 1 ay</strong>, <strong>Hepsi</strong> ve iki tarihli bir <strong>aralık</strong> formu. Hafta, ay ve aralık görünümleri <strong>izleme günlüğünden</strong> okur: izlenen bölüm sayınız her değiştiğinde (listede ya da detayda +/−, düzenleme formu, MAL/AniList/JSON içe aktarımı) günlüğe "kaçtan kaça, ne zaman" diye bir satır düşer. Bu görünümler her anime için o dönemde izlenen net bölüm sayısını rozetle gösterir ve üstte "N animede M bölüm" özetini verir; +1 basıp geri aldığınız bir bölüm sayılmaz. Günlük 1.1.46 ile başladı ve <strong>geriye dönük doldurulmaz</strong> — eski satırlara uydurma tarih yazılmaz. Ondan önceki izlemeleriniz yalnız <strong>Hepsi</strong> görünümünde, son dokunuş zamanıyla ve "günlük öncesi" etiketiyle listelenir. Seçtiğiniz dönem adreste yaşar, kaydedilmez; Liste Ayarları\'ndaki varsayılan sekme tercihi aynen durur. Günlük yedeğinize girer (her animenin altında <code>watch_log</code>), geri yüklemede geri gelir.',
     'help.list.recent.box_title'             => '<i class="fas fa-info-circle"></i> Katalog sekmeleri ile kişisel sekmeyi karıştırmayın:',
     'help.list.recent.box_body'              => '<strong>Bölüm</strong> ve <strong>İçerik Güncellenenler</strong> <strong>kataloğun</strong> son değişikliklerini gösterir; siz bir bölüm işaretlediğinizde o iki liste değişmez. <strong>Son İzlenenler</strong> ise yalnız <strong>sizin</strong> hareketlerinizi gösterir; başka üyeler onu görmez, katalog düzenlemeleri de onu oynatmaz.',
 
@@ -1046,6 +1049,7 @@ return [
     'help.transfer.export.h2'                => 'Listeyi Dışa Aktar (yedek)',
     'help.transfer.export.text'              => '<strong>"Listeyi Dışa Aktar"</strong> düğmesi <code>anime_list_YYYY-AA-GG.json</code> adında tek bir JSON dosyası indirir. Dosyanın içinde bu kurulumdaki anime kayıtları ve onlara bağlı <strong>sizin</strong> verileriniz bulunur:',
     'help.transfer.export.list' => '<li>İzleme durumu, izlenen bölüm sayısı, izlemeye başlama ve bitirme tarihleri</li>
+        <li>İzleme günlüğü (bölüm sayısının her değişimi, zamanıyla — 1.1.46)</li>
         <li>Notlar ve Kişisel Konu</li>
         <li>Duygu işaretleriniz</li>
         <li>Türler ve cümleler (isimleriyle, kimlik numaralarıyla değil)</li>
@@ -1218,9 +1222,24 @@ return [
     'recent.empty_state.episodes'            => 'Henüz kayıtlı bölüm güncellemesi yok. Bu liste ilk yayın senkronundan sonra dolar.',
     // 1.1.45: ucuncu sekme - kisisel "Son Izlenenler" (istatistiklerden tasindi)
     'recent.tab.watched'                     => 'Son İzlenenler',
-    'recent.tab.watched.hint'                => 'İzleme ilerlemenizi en son değiştirdiğiniz on anime — "neredeydim" listesi. Yalnız sizin hareketleriniz; kataloğu oynatmaz.',
+    'recent.tab.watched.hint'                => 'İzlenen bölüm sayısını en son değiştirdiğiniz animeler — "neredeydim" listesi. Yalnız sizin hareketleriniz; kataloğu oynatmaz. Alttaki şeritle bir haftaya, bir aya ya da bir tarih aralığına daraltın.',
     'recent.empty_state.watched'             => 'Henüz izleme aktiviteniz yok. Bir animenin bölümünü izlendi olarak işaretlediğinizde burada görünür.',
     'recent.empty_state.watched_guest'       => 'Bu sekme kişiseldir; kendi izleme hareketlerinizi görmek için giriş yapın.',
+    // 1.1.46: izleme gunlugu - Son Izlenenler'de donem seridi
+    'recent.period.week'                     => 'Son 1 hafta',
+    'recent.period.month'                    => 'Son 1 ay',
+    'recent.period.all'                      => 'Hepsi',
+    'recent.period.from'                     => 'Başlangıç',
+    'recent.period.to'                       => 'Bitiş',
+    'recent.period.show'                     => 'Göster',
+    'recent.period.week_label'               => 'Son 7 gün',
+    'recent.period.month_label'              => 'Son 30 gün',
+    'recent.period.range_label'              => '%s – %s',
+    'recent.period.summary'                  => '%s animede %s bölüm izlendi',
+    'recent.period.net_episodes'             => '%d bölüm',
+    'recent.period.empty'                    => 'Bu dönemde günlüğe giren bir izleme yok. Günlük 1.1.46 ile başladı; ondan önceki izlemeler yalnız "Hepsi" görünümünde, "günlük öncesi" etiketiyle listelenir.',
+    'recent.period.pre_log'                  => 'günlük öncesi',
+    'recent.period.pre_log.title'            => 'Bu animenin ilerlemesi izleme günlüğünden (1.1.46) önce kaydedildi; zaman, satıra son dokunuş zamanıdır.',
 
     // -----------------------------------------------------------------
     // recommendations.php - 'Ne Izlesem?' oneri sayfasi
