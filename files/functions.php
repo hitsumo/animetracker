@@ -46,6 +46,7 @@ require_once __DIR__ . '/functions/security_helpers.php';
 require_once __DIR__ . '/functions/auth_helpers.php';
 require_once __DIR__ . '/functions/series_helpers.php';
 require_once __DIR__ . '/functions/relation_helpers.php';
+require_once __DIR__ . '/functions/series_graph_helpers.php';
 require_once __DIR__ . '/functions/taxonomy_helpers.php';
 require_once __DIR__ . '/functions/animeschedule_helpers.php';
 require_once __DIR__ . '/functions/synopsis_helpers.php';

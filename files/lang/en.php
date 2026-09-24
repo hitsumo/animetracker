@@ -1106,10 +1106,14 @@ return [
     // help/help_series.php - three sections added in 1.1.33
     // -----------------------------------------------------------------
     'help.st.h2'                             => 'The Series Chronology Page',
-    'help.st.intro'                          => 'The <strong>"Series Chronology"</strong> button on the detail page of any anime in a series shows that whole series on a single timeline. The page opens with two tabs:',
+    'help.st.intro'                          => 'The <strong>"Series Chronology"</strong> button on the detail page of any anime in a series shows that whole series on a single timeline. The page opens with three tabs:',
     'help.st.tabs.list' => '<li><strong>Chain Order</strong> — the watch order built from the "Sequel" / "Prequel" links: first season, second season, sequel film... The chain is built by hand, so it is the order the curator recommends; how it is built is in <a href="#iliskiler">Relations</a>.</li>
-        <li><strong>Air Date</strong> — <strong>every</strong> record sharing the same series name, by first air date. Entries never linked into a chain (stand-alone films, specials) show up here too.</li>',
-    'help.st.tabs.text'                      => 'The two tabs read the same series with two different questions: "in what order should I watch this" and "when did it come out". Which tab the page opens on is set by List Settings → General Settings → <strong>"Series Chronology View"</strong>; clicking a tab does not change that default.',
+        <li><strong>Air Date</strong> — <strong>every</strong> record sharing the same series name, by first air date. Entries never linked into a chain (stand-alone films, specials) show up here too.</li>
+        <li><strong>Diagram</strong> — shows the series as a <strong>drawing</strong> rather than a list: every record a box, every relation a line. Details below.</li>',
+    'help.st.tabs.text'                      => 'The three tabs read the same series with three different questions: "in what order should I watch this", "when did it come out" and "how are these records linked". Which tab the page opens on is set by List Settings → General Settings → <strong>"Series Chronology View"</strong>; clicking a tab does not change that default.',
+    // 1.1.48 - diagram
+    'help.st.graph.h3'                       => 'Diagram',
+    'help.st.graph.text'                     => 'The Diagram tab draws the series in two dimensions. <strong>Rows are chains</strong>: every chain name is a row; unnamed chains are numbered "Chain 1, 2…", and records that belong to no chain gather in the "Unlinked" row. <strong>Columns are release years</strong>: boxes run left to right by first air date; two records released in the same year share a column when they sit on different rows (a TV season and that year\'s film stack vertically), and records with no known date stay in the rightmost "?" column.<br><br>The lines between boxes are <a href="#iliskiler">relations</a>, and the diagram draws them <strong>by itself</strong> — there is nothing extra to enter, every link that has been set up appears. The <strong>solid purple arrow</strong> is the watch order (Sequel / Prequel) and flows left to right along a chain; <strong>dashed lines</strong> are the other types (alternative version, side story, summary, same setting, shared character…) and run between rows. For directed types the arrow points at the <em>derived</em> work: predecessor → sequel, parent story → side story, full story → summary. The legend under the diagram lists only the types that occur in it; hovering a line shows the two records and the type of the link.<br><br>The colour stripe on the left edge of a box is your watch status (the same colours as the dot in the list); the box with the blue frame is the anime you came from. A <strong>faded box with a dashed frame</strong> is a record from outside the series: it belongs to another series (or to none) yet has a direct relation to a record in this one. Clicking it takes you to the diagram of its own series; the rest of that series is not pulled in here.<br><br>The diagram scrolls: a wide series extends to the right. A record flagged 18+ keeps its box, but its title stays hidden unless the preference is on.',
     'help.st.chains.h3'                      => 'Other Chains',
     'help.st.chains.text'                    => 'One series name can hold more than one independent chain — the films may follow one order while the TV series follow a completely different one, or the same story may have been told twice (the 1990s Sailor Moon and the 2014 Crystal run). You can give each track a <strong>chain name</strong> (the “Chain name” field on the edit screen); entries sharing a name count as one chain and the tab carries that name. Without a name the tab keeps the old <strong>"Other Chain 1..N"</strong> label, numbered from the oldest chain.<br><br>A named track gets its own tab even when it holds <strong>a single record</strong> — naming it is a deliberate statement: “this entry is its own track”. An unnamed record linked to nothing does not count as a chain; those live on the "Air Date" tab.<br><br>The chain name also bounds the <strong>synopsis spoiler gate</strong>: it only looks at earlier entries on the same track, and never treats a record from another track as something you should have watched first.',
 
@@ -1290,6 +1294,16 @@ return [
     'series_timeline.tab.airdate'            => 'Air Date',
     'series_timeline.tab.other_chain'        => 'Other Chain %d',
     'series_timeline.no_date'                => 'no date',
+    // 1.1.48 - diagram tab (functions/series_graph_helpers.php)
+    'series_timeline.tab.graph'              => 'Diagram',
+    'series_graph.row.chain'                 => 'Chain %d',
+    'series_graph.row.unassigned'            => 'Unlinked',
+    'series_graph.row.outside'               => 'Outside the series',
+    'series_graph.aria'                      => 'Series relation diagram',
+    'series_graph.empty'                     => 'Nothing to draw for this series.',
+    'series_graph.no_relations'              => 'No relation has been set up in this series yet; the boxes are only laid out in release order.',
+    'series_graph.legend.arrow'              => 'The arrow points at the derived work: predecessor → sequel, parent story → side story, full story → summary. Undirected types have no arrow.',
+    'series_graph.hint'                      => 'Rows are chains, columns are release years; records released in the same year stack vertically. Click a box for its detail page. A faded box is a record outside the series that is linked to it.',
 
     // -----------------------------------------------------------------
     // list_settings.php - import/export/clear/sync/update
@@ -1409,7 +1423,7 @@ return [
     'list_settings.chrono_mode.save'         => 'Save',
     // 1.1.23 - series timeline default view
     'list_settings.section.st_mode'          => 'Series Chronology View',
-    'list_settings.section.st_mode.desc'     => 'Chooses which tab the series chronology page opens in: chain order (follows the Sequel / Prequel links) or air date (lists every anime sharing the series name by first air/release date). You can switch temporarily with the tabs on the page. This preference affects only you.',
+    'list_settings.section.st_mode.desc'     => 'Chooses which tab the series chronology page opens in: chain order (follows the Sequel / Prequel links), air date (lists every anime sharing the series name by first air/release date) or diagram (draws the chains and relations). You can switch temporarily with the tabs on the page. This preference affects only you.',
     'list_settings.st_mode.save'             => 'Save',
     // 1.1.44 - Recently Updated default tab
     'list_settings.section.recent_tab'       => 'Recently Updated Tab',

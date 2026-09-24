@@ -39,6 +39,16 @@
  * "Diger Zincir 1..N" sekmesi ciziliyor. Secim ?chain=<baslangic_id> ile
  * tasinir ve oturuma YAZILMAZ: kalici sekme tercihi (chain/airdate)
  * bozulmadan kalir, baska bir animeye gidildiginde secim sifirlanir.
+ *
+ * 1.1.48: ucuncu sekme "Sema" (mode=graph). Iki liste sekmesi seriyi
+ * TEK boyutta okur; sema iki boyutta cizer: satir = hat (chain_name),
+ * sutun = yayin sirasi, her anime_relations satiri bir cizgi (`sequel`
+ * duz ok, oteki turler kesikli egri). Kurator ek veri girmez - sema
+ * kurulmus iliskilerden ve zincir adlarindan turetilir. Kapsam seri adi
+ * grubu + gruba dogrudan bagli dis kayitlar (soluk "hayalet" kutu).
+ * Cizim ve yerlesim functions/series_graph_helpers.php'de; bu sayfa
+ * yalnizca sekmeyi ve CSS'i tasir. Sema da yayin-tarihi gibi seri adi
+ * ister; "Diger Zincir" gorunumu her zamanki gibi zincir modudur.
  */
 
 require_once __DIR__ . '/db.php';
@@ -123,7 +133,9 @@ if ($viewingOtherChain) {
 
 // 1.1.23: aktif sekmeye gore listeyi kur. Iki mod da ayni $chain
 // degiskenini doldurur; asagidaki kart dongusu tek sablondur.
-if ($stMode === 'airdate') {
+if ($stMode === 'airdate' || $stMode === 'graph') {
+    // 1.1.48: sema da seri adi grubunu kullanir - $chain burada yalnizca
+    // sayac ve bos-seri korumasi icin; cizim series_graph_build()'den.
     $chain = getSeriesAnimesByAirDate($pdo, $reqAnime['series_name']);
     $seriesName = $reqAnime['series_name'];
 } else {
@@ -135,6 +147,11 @@ if ($stMode === 'airdate') {
 if (empty($chain)) {
     header('Location: anime_details.php?id=' . $id);
     exit;
+}
+
+$seriesGraph = null;
+if ($stMode === 'graph') {
+    $seriesGraph = series_graph_build($pdo, $reqAnime['series_name'], $id);
 }
 
 // 1.1.2 politikasi: +18 uye kartini korur ama basligi sizdirmaz (opt-in
@@ -205,6 +222,8 @@ function seriesMediaIcon($type) {
             margin: 30px auto;
             padding: 20px;
         }
+        /* 1.1.48: sema genis; liste sekmeleri 700px'te kalir. */
+        .st-container.st-container--wide { max-width: 1100px; }
         .st-header {
             text-align: center;
             margin-bottom: 30px;
@@ -423,10 +442,76 @@ function seriesMediaIcon($type) {
             .st-card img, .st-card .no-img { display: none; }
             .st-order { display: none; }
         }
+
+        /* ==============================================================
+           1.1.48 - Sema (mode=graph). SVG functions/series_graph_helpers.php
+           tarafindan uretilir; burasi yalnizca gorunum. Cizgi DESENI tur
+           basina buradadir (sg-edge-<type>); bilinmeyen tur .sg-edge'in
+           varsayilanina (gri kesikli) duser - yeni tur icin satir eklemek
+           istege baglidir. Renkler helper'daki ok ucu renkleriyle aynidir.
+           ============================================================== */
+        .sg-wrap {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            padding: 10px 10px 6px;
+        }
+        .sg-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .sg-svg { display: block; font-family: 'Poppins', sans-serif; }
+        .sg-band { fill: #fff; }
+        .sg-band-alt { fill: #f8f9fb; }
+        .sg-band-ghost { fill: #f3f4f6; }
+        .sg-rowlabel { font-size: 12px; font-weight: 600; fill: #2c3e50; }
+        .sg-rowlabel-loose, .sg-rowlabel-ghost { fill: #888; font-weight: 500; font-style: italic; }
+        .sg-yearline { stroke: #e6e8ec; stroke-width: 1; }
+        .sg-year { font-size: 11px; fill: #888; }
+
+        .sg-edge { fill: none; stroke: #95a5a6; stroke-width: 1.8; stroke-dasharray: 4 4; }
+        .sg-edge-sequel { stroke: #8e44ad; stroke-width: 2.4; stroke-dasharray: none; }
+        .sg-edge-alternative_version { stroke: #16a085; stroke-dasharray: 7 4; }
+        .sg-edge-alternative_setting { stroke: #16a085; stroke-dasharray: 2 4; }
+        .sg-edge-side_story { stroke: #e67e22; stroke-dasharray: 7 4; }
+        .sg-edge-summary { stroke: #e67e22; stroke-dasharray: 2 4; }
+        .sg-edge-same_setting { stroke: #2980b9; stroke-dasharray: 8 4 2 4; }
+        .sg-edge-character { stroke: #2980b9; stroke-dasharray: 2 4; }
+        .sg-edge-other { stroke: #95a5a6; stroke-dasharray: 4 4; }
+        .sg-svg .sg-edge:hover { stroke-width: 3.2; }
+
+        .sg-node { cursor: pointer; }
+        .sg-box { fill: #fff; stroke: #dfe3e8; stroke-width: 1.2; }
+        .sg-node:hover .sg-box { stroke: #b8bfc9; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.12)); }
+        .sg-node.is-current .sg-box { stroke: #3498db; stroke-width: 2.5; }
+        .sg-node.is-ghost { opacity: 0.6; }
+        .sg-node.is-ghost .sg-box { stroke-dasharray: 4 3; }
+        .sg-title { font-size: 12px; font-weight: 600; fill: #2c3e50; }
+        .sg-meta { font-size: 10px; fill: #888; }
+        /* Durum seridi: liste noktasiyla ayni renkler. */
+        .sg-stripe { fill: #ddd; }
+        .is-watched .sg-stripe { fill: #27ae60; }
+        .is-watching .sg-stripe { fill: #3498db; }
+        .is-plantowatch .sg-stripe { fill: #bbb; }
+        .is-onhold .sg-stripe { fill: #e0a000; }
+        .is-dropped .sg-stripe { fill: #e74c3c; }
+        .is-unselected .sg-stripe { fill: #e5e7eb; }
+
+        .sg-legend { display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: flex-start; padding: 10px 8px 4px; border-top: 1px solid #f0f0f0; margin-top: 8px; }
+        .sg-legend ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 16px; }
+        .sg-legend li { display: flex; align-items: center; gap: 6px; font-size: 0.8em; color: #666; }
+        .sg-legend-swatch { flex-shrink: 0; overflow: visible; }
+        .sg-legend-hint { flex-basis: 100%; margin: 0; font-size: 0.75em; color: #999; }
+        .sg-dot { width: 10px; height: 10px; border-radius: 50%; background: #ddd; display: inline-block; flex-shrink: 0; }
+        .sg-dot.is-watched { background: #27ae60; }
+        .sg-dot.is-watching { background: #3498db; }
+        .sg-dot.is-plantowatch { background: #bbb; }
+        .sg-dot.is-onhold { background: #e0a000; }
+        .sg-dot.is-dropped { background: #e74c3c; }
+        .sg-dot.is-unselected { background: #e5e7eb; }
+        .sg-dot.is-ghost { background: #fff; border: 1.5px dashed #aaa; }
+        .sg-note, .sg-empty { text-align: center; color: #999; font-size: 0.85em; margin: 10px 0 4px; }
     </style>
 </head>
 <body>
-<div class="st-container">
+<div class="st-container<?php echo $stMode === 'graph' ? ' st-container--wide' : ''; ?>">
     <div class="st-header">
         <h1><?php echo htmlspecialchars($seriesName); ?></h1>
         <div class="subtitle"><?php echo htmlspecialchars(t('series_timeline.subtitle'), ENT_QUOTES, 'UTF-8'); ?></div>
@@ -478,9 +563,17 @@ function seriesMediaIcon($type) {
         <?php endforeach; ?>
         <a href="series_timeline.php?id=<?php echo (int)$id; ?>&amp;mode=airdate"
            class="<?php echo ($stMode === 'airdate' && !$viewingOtherChain) ? 'active' : ''; ?>"><?php echo htmlspecialchars(t('series_timeline.tab.airdate'), ENT_QUOTES, 'UTF-8'); ?></a>
+        <?php // 1.1.48: sema sekmesi. Liste sekmeleri gibi mode= tasir. ?>
+        <a href="series_timeline.php?id=<?php echo (int)$id; ?>&amp;mode=graph"
+           class="<?php echo ($stMode === 'graph' && !$viewingOtherChain) ? 'active' : ''; ?>"><?php echo htmlspecialchars(t('series_timeline.tab.graph'), ENT_QUOTES, 'UTF-8'); ?></a>
     </div>
     <?php endif; ?>
 
+    <?php if ($stMode === 'graph'): ?>
+    <?php // 1.1.48: sema. Kart dongusu atlanir; SVG + lejant helper'dan gelir. ?>
+    <?php echo series_graph_render($seriesGraph); ?>
+    <p class="sg-note"><?php echo htmlspecialchars(t('series_graph.hint'), ENT_QUOTES, 'UTF-8'); ?></p>
+    <?php else: ?>
     <div class="st-timeline">
         <?php foreach ($chain as $i => $item): ?>
             <?php
@@ -555,6 +648,7 @@ function seriesMediaIcon($type) {
             </div>
         <?php endforeach; ?>
     </div>
+    <?php endif; ?>
 
     <div class="st-back">
         <a href="anime_details.php?id=<?php echo $currentAnimeId; ?>">

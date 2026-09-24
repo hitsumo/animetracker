@@ -295,10 +295,19 @@ function getAllSeriesNames($pdo) {
 // Secim 1.1.15'teki chrono-mode kalibini izler: oturumdaki gecici sekme
 // secimi > kayitli kisisel varsayilan (user_pref 'series_timeline_mode',
 // liste ayarlarindan) > geriye uyumlu 'chain'.
+//   'graph'   - 1.1.48: iliski SEMASI. Satir = hat (chain_name), sutun =
+//               yayin sirasi; her anime_relations satiri bir cizgi. Seri
+//               adi grubu + dogrudan bagli dis kayitlar. Cizim
+//               functions/series_graph_helpers.php'de.
+//
+// Bu liste TEK KAYNAKTIR: series_timeline.php sekmeleri, set_series_
+// timeline_mode.php beyaz listesi ve list_settings.php'nin <select>'i
+// hepsi buradan okur (1.1.46 dersi: sabit kopya liste, secenek eklenince
+// sessizce geride kalir).
 
 /** Valid series-timeline view modes. */
 function series_timeline_modes() {
-    return ['chain', 'airdate'];
+    return ['chain', 'airdate', 'graph'];
 }
 
 /**

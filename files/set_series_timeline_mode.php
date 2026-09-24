@@ -7,8 +7,9 @@
  *
  * POST endpoint behind the list-settings <select> that saves which tab
  * the series timeline (series_timeline.php) opens in: 'chain' (the
- * `sequel` walk) or 'airdate' (every anime sharing the series
- * name, by first air/release date).
+ * `sequel` walk), 'airdate' (every anime sharing the series
+ * name, by first air/release date) or, since 1.1.48, 'graph' (the
+ * relation diagram). The list itself is series_timeline_modes().
  *
  * The tabs on series_timeline.php itself do NOT post here - they are
  * plain GET links; the page writes the EPHEMERAL session override
@@ -18,8 +19,8 @@
  *
  * Required POST fields:
  *   csrf_token  - CSRF protection token
- *   mode        - Target mode ('chain' | 'airdate'). Anything else
- *                 falls back to 'chain'.
+ *   mode        - Target mode (one of series_timeline_modes()). Anything
+ *                 else falls back to 'chain'.
  *
  * Optional POST fields:
  *   persist     - '1' writes the PERSISTENT per-user default (user_pref

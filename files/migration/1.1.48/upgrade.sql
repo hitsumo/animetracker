@@ -1,0 +1,54 @@
+-- Anime Tracker - Migration 1.1.48
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- =====================================================================
+-- 1.1.48 - SEMA DEGISIKLIGI YOKTUR
+-- =====================================================================
+--
+-- Bu dosya bilerek BOSTUR. Runner yorumlari temizler, calistiracak ifade
+-- bulamaz ve yalnizca settings.version'i 1.1.48'e tasir. Klasorun var
+-- olmasi gerekiyor: surum atlanirsa MigrationManager sirayi kaybeder.
+-- (Ayni kalip 1.1.25 / 1.1.30 / 1.1.33 / 1.1.34 / 1.1.37 / 1.1.39 /
+-- 1.1.42'de kullanildi.)
+--
+-- ---------------------------------------------------------------------
+-- Bu surumde ne var: TEK IS - iliski SEMASI (series_timeline.php'ye
+-- ucuncu sekme, mode=graph)
+-- ---------------------------------------------------------------------
+--
+-- Seri Kronolojisi'nin iki sekmesi seriyi LISTE olarak okur (zincir
+-- sirasi, yayin tarihi). 1.1.38'den beri bagin TURU (anime_relations),
+-- 1.1.36'dan beri HAT (chain_name) veride var ama listede gorunmez: iki
+-- hat arasindaki "alternatif versiyon" bagi cizilmez, yalnizca detay
+-- sayfasinda bir satir olarak durur. Kullanici 22 Eyl 2026: "iliskileri
+-- olusturuyoruz ya, otomatik sema olusturacak bir sistem yapilabilir mi".
+--
+-- Cevap: sema veriden TURETILIR, ek girdi yok. Satir = hat (chain_name;
+-- adsiz zincirler "Zincir N", zincirsiz kayitlar "Bagimsiz"), sutun =
+-- yayin sirasi (ayni yil + farkli satir = ayni sutun), her
+-- anime_relations satiri bir cizgi: `sequel` duz mor ok (soldan saga
+-- izleme sirasi), oteki turler kesikli egri. Ok, turetilmis ise bakar
+-- (oncul -> devam, ana -> yan, tam -> ozet); simetrik turde ok yok.
+-- Kapsam seri adi grubu + gruba dogrudan bagli dis kayitlar (soluk
+-- "hayalet" kutu, kendi serisinin semasina baglanir).
+--
+-- Saf SVG, PHP uretir; JS kutuphanesi yok (Mermaid ~3 MB reddedildi:
+-- agir + yerlesimi kendisi secer). Ture gore kod yok: tur adi yalniz CSS
+-- sinifina ve lejant etiketine gider; sozluge yeni tur gelince (1.1.47
+-- ikisi, ileride `special`) sema kendiliginden cizer.
+--
+-- Dosyalar: functions/series_graph_helpers.php (YENI - veri + yerlesim +
+-- SVG + lejant), series_timeline.php (sekme, CSS, cizim cagrisi),
+-- functions/series_helpers.php (series_timeline_modes: 'graph'),
+-- list_settings.php (<select> ve beyaz liste artik modes()'tan - 1.1.46
+-- dersi), set_series_timeline_mode.php (yorum), functions.php (yukleyici),
+-- help/help_series.php (+ "Sema" basligi), lang tr/en (+11 anahtar,
+-- 4 metin degisti).
+--
+-- MERKEZ KATALOG: is YOK. Yeni tablo/kolon yok; sema yalniz okur.
+--
+-- YARIM YUKLEME: functions.php yeni yardimciyi yukler; functions/
+-- klasoru butun gitmeli, yoksa her sayfa olumcul hata verir (require).
+-- =====================================================================

@@ -1138,10 +1138,14 @@ return [
     // help/help_series.php - 1.1.33'te eklenen uc bolum
     // -----------------------------------------------------------------
     'help.st.h2'                             => 'Seri Kronolojisi Sayfası',
-    'help.st.intro'                          => 'Bir seriye ait animelerden birinin detay sayfasındaki <strong>"Seri Kronolojisi"</strong> düğmesi, o serinin tamamını tek bir zaman çizgisinde gösterir. Sayfa iki sekmeyle açılır:',
+    'help.st.intro'                          => 'Bir seriye ait animelerden birinin detay sayfasındaki <strong>"Seri Kronolojisi"</strong> düğmesi, o serinin tamamını tek bir zaman çizgisinde gösterir. Sayfa üç sekmeyle açılır:',
     'help.st.tabs.list' => '<li><strong>Zincir Sırası</strong> — "Devamı" / "Öncesi" bağlarıyla kurulmuş izleme sırası: birinci sezon, ikinci sezon, devam filmi... Sıra elle kurulur, yani küratörün önerdiği yoldur; nasıl kurulduğu <a href="#iliskiler">İlişkili Animeler</a> bölümünde.</li>
-        <li><strong>Yayın Tarihi</strong> — aynı seri adını taşıyan <strong>her</strong> kayıt, ilk gösterim tarihine göre. Zincire hiç bağlanmamış kayıtlar (bağımsız filmler, özel bölümler) da burada görünür.</li>',
-    'help.st.tabs.text'                      => 'İki sekme aynı seriyi iki farklı soruyla okur: "hangi sırayla izlemeliyim" ve "ne zaman çıktı". Sayfanın hangi sekmeyle açılacağını Liste Ayarları → Genel Ayarlar → <strong>"Seri Kronolojisi Görünümü"</strong> belirler; sekmeye tıklamak bu varsayılanı bozmaz.',
+        <li><strong>Yayın Tarihi</strong> — aynı seri adını taşıyan <strong>her</strong> kayıt, ilk gösterim tarihine göre. Zincire hiç bağlanmamış kayıtlar (bağımsız filmler, özel bölümler) da burada görünür.</li>
+        <li><strong>Şema</strong> — seriyi liste değil <strong>çizim</strong> olarak gösterir: her kayıt bir kutu, her ilişki bir çizgi. Ayrıntısı aşağıda.</li>',
+    'help.st.tabs.text'                      => 'Üç sekme aynı seriyi üç farklı soruyla okur: "hangi sırayla izlemeliyim", "ne zaman çıktı" ve "bu kayıtlar birbirine nasıl bağlı". Sayfanın hangi sekmeyle açılacağını Liste Ayarları → Genel Ayarlar → <strong>"Seri Kronolojisi Görünümü"</strong> belirler; sekmeye tıklamak bu varsayılanı bozmaz.',
+    // 1.1.48 - sema
+    'help.st.graph.h3'                       => 'Şema',
+    'help.st.graph.text'                     => 'Şema sekmesi, seriyi iki boyutta çizer. <strong>Satırlar zincirlerdir</strong>: her zincir adı bir satır; ad verilmemiş zincirler "Zincir 1, 2…" diye numaralanır, hiçbir zincire girmeyen kayıtlar "Bağımsız" satırında toplanır. <strong>Sütunlar yayın yılıdır</strong>: kutular soldan sağa ilk gösterim tarihine göre dizilir; aynı yılda çıkan iki kayıt farklı satırlardaysa aynı sütunu paylaşır (bir TV sezonu ile aynı yılın filmi alt alta durur), tarihi bilinmeyen kayıtlar en sağda "?" sütununda kalır.<br><br>Kutular arasındaki çizgiler <a href="#iliskiler">ilişkilerdir</a> ve şema bunları <strong>kendiliğinden</strong> çizer — ayrıca bir şey girmeniz gerekmez, kurulmuş her bağ görünür. <strong>Düz mor ok</strong> izleme sırasıdır (Devamı / Öncesi) ve zincir boyunca soldan sağa akar; <strong>kesikli çizgiler</strong> öteki türlerdir (alternatif versiyon, yan hikâye, özet, aynı evren, ortak karakter…) ve satırlar arasında gider. Yönü olan türlerde ok <em>türetilmiş</em> işe bakar: önceki → devamı, ana hikâye → yan hikâye, tam hikâye → özet. Şemanın altındaki açıklama yalnız o şemada geçen türleri listeler; çizginin üzerine gelince iki kaydın adı ve bağın türü görünür.<br><br>Kutunun sol kenarındaki renk şeridi sizin izleme durumunuzdur (listedeki noktayla aynı renkler); mavi çerçeveli kutu, sayfaya geldiğiniz animedir. <strong>Soluk, kesik çerçeveli kutu</strong> seri dışından bir kayıttır: başka bir seriye (ya da hiçbir seriye) ait olduğu hâlde bu serideki bir kayıtla doğrudan ilişkisi vardır. O kutuya tıklamak sizi kendi serisinin şemasına götürür; onun serisinin geri kalanı buraya taşınmaz.<br><br>Şema kaydırılabilir: geniş bir seri sağa doğru uzar. 18+ olarak işaretlenmiş bir kaydın kutusu durur ama adı, tercih açık değilse gizlenir.',
     'help.st.chains.h3'                      => 'Diğer Zincirler',
     'help.st.chains.text'                    => 'Bir seri adı altında birden çok bağımsız zincir olabilir — örneğin sinema filmleri bir sıra, televizyon dizileri bambaşka bir sıra izleyebilir; ya da aynı hikâye iki kez anlatılmış olabilir (1990’ların Sailor Moon’u ile 2014 Crystal gibi). Her hatta bir <strong>zincir adı</strong> verebilirsiniz (düzenleme ekranındaki “Zincir Adı” alanı); adı paylaşan kayıtlar tek zincir sayılır ve sekme o adla görünür. Ad vermezseniz sekme eskisi gibi <strong>"Diğer Zincir 1..N"</strong> diye adlandırılır; numaralandırma en eski tarihli zincirden başlar.<br><br>Adı olan bir hat, içinde <strong>tek bir kayıt</strong> olsa bile kendi sekmesini alır — çünkü ad vermek bilinçli bir beyandır: “bu kayıt kendi hattıdır”. Adı olmayan ve hiçbir yere bağlanmamış tek kayıtlar ise zincir sayılmaz, onlar "Yayın Tarihi" sekmesinde durur.<br><br>Zincir adı aynı zamanda <strong>konu spoiler kapısını</strong> da sınırlar: kapı yalnızca aynı hattaki önceki halkalara bakar, başka bir hattaki kayıtları “önce izlenmesi gereken” saymaz.',
 
@@ -1322,6 +1326,16 @@ return [
     'series_timeline.tab.airdate'            => 'Yayın Tarihi',
     'series_timeline.tab.other_chain'        => 'Diğer Zincir %d',
     'series_timeline.no_date'                => 'tarih yok',
+    // 1.1.48 - sema sekmesi (functions/series_graph_helpers.php)
+    'series_timeline.tab.graph'              => 'Şema',
+    'series_graph.row.chain'                 => 'Zincir %d',
+    'series_graph.row.unassigned'            => 'Bağımsız',
+    'series_graph.row.outside'               => 'Seri dışı',
+    'series_graph.aria'                      => 'Seri ilişki şeması',
+    'series_graph.empty'                     => 'Bu seri için çizilecek kayıt yok.',
+    'series_graph.no_relations'              => 'Bu seride henüz kurulmuş bir ilişki yok; kutular yalnız yayın sırasıyla dizildi.',
+    'series_graph.legend.arrow'              => 'Ok, türetilmiş işe bakar: önceki → devamı, ana hikâye → yan hikâye, tam hikâye → özet. Yönsüz türlerde ok yoktur.',
+    'series_graph.hint'                      => 'Satırlar zincirler, sütunlar yayın yılı; aynı yılda çıkan kayıtlar alt alta durur. Kutuya tıklayınca detay sayfası açılır. Soluk kutu, seri dışından bağlı bir kaydı gösterir.',
 
     // -----------------------------------------------------------------
     // list_settings.php - import/export/clear/sync/update
@@ -1442,7 +1456,7 @@ return [
     'list_settings.chrono_mode.save'         => 'Kaydet',
     // 1.1.23 - seri kronolojisi görünüm varsayılanı
     'list_settings.section.st_mode'          => 'Seri Kronolojisi Görünümü',
-    'list_settings.section.st_mode.desc'     => 'Seri kronolojisi sayfası hangi sekmeyle açılsın: zincir sırası (Devamı / Öncesi bağlarını takip eder) ya da yayın tarihi (aynı seri adını taşıyan tüm animeleri ilk gösterim tarihine göre dizer). Sayfadaki sekmelerle geçici olarak değiştirebilirsiniz. Bu tercih yalnızca sizi etkiler.',
+    'list_settings.section.st_mode.desc'     => 'Seri kronolojisi sayfası hangi sekmeyle açılsın: zincir sırası (Devamı / Öncesi bağlarını takip eder), yayın tarihi (aynı seri adını taşıyan tüm animeleri ilk gösterim tarihine göre dizer) ya da şema (zincirleri ve ilişkileri çizim olarak gösterir). Sayfadaki sekmelerle geçici olarak değiştirebilirsiniz. Bu tercih yalnızca sizi etkiler.',
     'list_settings.st_mode.save'             => 'Kaydet',
     // 1.1.44 - Son Güncellenenler varsayılan sekmesi
     'list_settings.section.recent_tab'       => 'Son Güncellenenler Sekmesi',

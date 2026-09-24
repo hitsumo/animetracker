@@ -163,6 +163,13 @@ lang_init($pdo);
     <p>
         <?php echo t('help.st.chains.text'); ?>
     </p>
+
+    <?php /* 1.1.48: sema sekmesi - satir/sutun kurali, cizgi turleri, ok
+       yonu, hayalet kutu. Iliski turlerinin kendisi #iliskiler'de. */ ?>
+    <h3><?php echo htmlspecialchars(t('help.st.graph.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
+    <p>
+        <?php echo t('help.st.graph.text'); ?>
+    </p>
     <!-- =============================================================== -->
     <?php /* 1.1.33: konu spoiler kapisi. Kural zincire (`sequel` yuruyusu)
        dayandigi icin burada, seri bolumunun icinde anlatilir; Kisisel
