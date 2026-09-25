@@ -10,7 +10,8 @@
  * liste. Satirlarin cogu index.php'deki silme islemi tarafindan
  * kendiliginden yazilir ('deleted'); bu sayfa onlari GORUNUR kilar, elle
  * ekleme ('manual') yapmaya ve fikir degistirildiginde LISTEDEN CIKARMAYA
- * yarar.
+ * yarar. 1.1.49: listenin kendi yedek dosyasi (disa aktar / ice aktar) -
+ * liste yalnizca veritabaninda yasiyordu, JSON yedege girmiyordu.
  *
  * Kural functions/blacklist_helpers.php'de tek yerde durur; bu sayfa
  * yalnizca onun yuzudur.
@@ -44,7 +45,7 @@ $messageType = null;
 // acilir - "neden bos" sorusunu bos bir tablo degil, bu bayrak cevaplar.
 $active = blacklist_active();
 
-// --- POST: listeden cikar / elle ekle ----------------------------------
+// --- POST: listeden cikar / elle ekle / yedek al / yedekten yukle ------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? '')) {
         http_response_code(400);
@@ -101,6 +102,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 throw new Exception(t('admin_blacklist.error.add_failed'));
             }
+
+        } elseif ($action === 'export') {
+            // 1.1.49 - listenin kendi yedek dosyasi. Neden liste JSON
+            // yedeginin icinde degil: blacklist_export_rows() basligi.
+            $entries = blacklist_export_rows($pdo);
+            if ($entries === null) {
+                throw new Exception(t('admin_blacklist.error.table_missing'));
+            }
+            $payload = [
+                'format'         => BLACKLIST_BACKUP_FORMAT,
+                'format_version' => 1,
+                'exported_at'    => gmdate('Y-m-d\TH:i:s\Z'),
+                'count'          => count($entries),
+                'entries'        => $entries,
+            ];
+            header('Content-Type: application/json; charset=utf-8');
+            header('Content-Disposition: attachment; filename="import_blacklist_' . date('Y-m-d') . '.json"');
+            echo json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            exit;
+
+        } elseif ($action === 'import') {
+            // 1.1.49 - yalnizca EKLER; listede olan hicbir sey silinmez ya
+            // da degismez, ayni dosya iki kez yuklenebilir.
+            $file = $_FILES['import_file'] ?? null;
+            if (!$file || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+                throw new Exception(t('admin_blacklist.error.upload'));
+            }
+            $content = @file_get_contents($file['tmp_name']);
+            $data    = ($content !== false) ? json_decode($content, true) : null;
+            // Yanlis dosyaya karsi tek koruma bu isaret: liste yedegi
+            // (list_settings.php) duz bir anime dizisidir ve format alani
+            // tasimaz - onu buraya yuklemek reddedilir.
+            if (!is_array($data)
+                || ($data['format'] ?? null) !== BLACKLIST_BACKUP_FORMAT
+                || !isset($data['entries']) || !is_array($data['entries'])) {
+                throw new Exception(t('admin_blacklist.error.bad_file'));
+            }
+            $res = blacklist_import_rows($pdo, $data['entries']);
+            if ($res === null) {
+                throw new Exception(t('admin_blacklist.error.import_failed'));
+            }
+            $message = sprintf(t('admin_blacklist.success.imported'), $res['added'], $res['already']);
+            if ($res['invalid'] > 0) {
+                $message .= ' ' . sprintf(t('admin_blacklist.info.invalid_rows'), $res['invalid']);
+            }
+            $messageType = 'success';
 
         } else {
             throw new Exception(t('admin_blacklist.error.unknown_action'));
@@ -416,6 +463,28 @@ function blacklist_page_url($page, $q)
                     <i class="fas fa-plus"></i> <?php echo htmlspecialchars(t('admin_blacklist.btn.add'), ENT_QUOTES, 'UTF-8'); ?>
                 </button>
             </form>
+        </div>
+
+        <div class="add-box">
+            <h2><?php echo htmlspecialchars(t('admin_blacklist.backup.heading'), ENT_QUOTES, 'UTF-8'); ?></h2>
+            <p class="small"><?php echo htmlspecialchars(t('admin_blacklist.backup.hint'), ENT_QUOTES, 'UTF-8'); ?></p>
+            <div class="bulk-actions">
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="action" value="export">
+                    <button type="submit" class="btn-secondary">
+                        <i class="fas fa-download"></i> <?php echo htmlspecialchars(t('admin_blacklist.btn.export'), ENT_QUOTES, 'UTF-8'); ?>
+                    </button>
+                </form>
+                <form method="post" enctype="multipart/form-data" class="bulk-actions" style="margin: 0;">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="action" value="import">
+                    <input type="file" name="import_file" accept=".json,application/json" required>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-upload"></i> <?php echo htmlspecialchars(t('admin_blacklist.btn.import'), ENT_QUOTES, 'UTF-8'); ?>
+                    </button>
+                </form>
+            </div>
         </div>
 
     <?php endif; ?>

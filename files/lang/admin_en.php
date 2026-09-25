@@ -354,6 +354,16 @@ return [
     'admin_blacklist.info.already'          => 'That identity is already on the blacklist.',
     'admin_blacklist.success.removed'       => '%d entries removed from the blacklist.',
     'admin_blacklist.success.added'         => '"%s" added to the blacklist.',
+    // 1.1.49 - the list's own backup file
+    'admin_blacklist.backup.heading'        => 'Backup',
+    'admin_blacklist.backup.hint'           => 'The blacklist lives only in this site\'s database: it is not part of the list JSON backup and does not travel to the central catalog. "Export" downloads the list as a separate file (ids, title, entry type, note, date). "Import" only adds: entries already on the list are skipped and nothing is removed, so loading the same file twice is harmless.',
+    'admin_blacklist.btn.export'            => 'Export',
+    'admin_blacklist.btn.import'            => 'Import',
+    'admin_blacklist.error.upload'          => 'The file could not be uploaded. Choose a file and try again.',
+    'admin_blacklist.error.bad_file'        => 'This is not a blacklist backup. Only a file taken with "Export" on this page can be loaded here (the list JSON backup cannot be used).',
+    'admin_blacklist.error.import_failed'   => 'The backup could not be loaded; no entry was written. Check the server log.',
+    'admin_blacklist.success.imported'      => 'Backup loaded: %d entries added, %d were already on the list.',
+    'admin_blacklist.info.invalid_rows'     => '%d rows could not be read and were skipped.',
     'admin_blacklist.back_to_dashboard'     => 'Back to admin panel',
 
     // --- admin.php card: Import Blacklist ---

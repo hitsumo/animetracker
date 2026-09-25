@@ -1,0 +1,35 @@
+-- Anime Tracker - Migration 1.1.49
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- =====================================================================
+-- 1.1.49 - SEMA DEGISIKLIGI YOKTUR
+-- =====================================================================
+--
+-- Bu dosya bilerek BOSTUR. Runner yorumlari temizler, calistiracak ifade
+-- bulamaz ve yalnizca settings.version'i 1.1.49'a tasir. Klasorun var
+-- olmasi gerekiyor: surum atlanirsa MigrationManager sirayi kaybeder.
+-- (Ayni kalip 1.1.25 / 1.1.30 / 1.1.33 / 1.1.34 / 1.1.37 / 1.1.39 /
+-- 1.1.42 / 1.1.48'de kullanildi.)
+--
+-- ---------------------------------------------------------------------
+-- Bu surumde ne var: TEK IS - ice aktarma kara listesinin YEDEK DOSYASI
+-- ---------------------------------------------------------------------
+--
+-- import_blacklist (1.1.35) yalnizca uygulama veritabaninda yasiyordu:
+-- merkeze gitmez (tasarim), liste JSON yedegine girmez. JSON yedekten
+-- temiz kuruluma donulunce liste bosaliyor, ilk MAL/AniList ice aktarimi
+-- bilerek silinmis animeleri yeniden oneriyordu - 1.1.35'in kapattigi
+-- sorunun ta kendisi.
+--
+-- Cozum: admin/admin_blacklist.php'ye "Disa aktar" / "Ice aktar"
+-- (moderator+). Ayri dosya (format = anime_tracker_import_blacklist),
+-- liste JSON yedeginin icinde DEGIL: o yedek duz bir anime dizisi;
+-- sarmalamak 1.1.48 ve oncesinin yeni yedekleri "gecersiz bicim" diye
+-- reddetmesi demekti. Ustelik liste yedegi uyenin kisisel dosyasi, kara
+-- liste katalog politikasi. Ice aktarma yalniz EKLER (INSERT IGNORE;
+-- kimliksiz satirlar baslik + tarihle tekillesir), tek transaction.
+--
+-- MERKEZ KATALOG: is YOK. Tablo zaten var (1.1.35), kolon eklenmedi.
+-- =====================================================================

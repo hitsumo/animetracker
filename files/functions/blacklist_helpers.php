@@ -6,7 +6,7 @@
  * Copyright (C) 2025-2026 Okan Sumer
  * Licensed under GNU General Public License v2
  *
- * Introduced in 1.1.35.
+ * Introduced in 1.1.35. Backup file (export / import) added in 1.1.49.
  *
  * WHY THIS FILE EXISTS
  *
@@ -240,6 +240,169 @@ function blacklist_remove($pdo, array $ids)
         error_log('[anime_tracker] blacklist remove failed: ' . $e->getMessage());
         return 0;
     }
+}
+
+/**
+ * Marker the backup file carries in its `format` field (1.1.49).
+ *
+ * The import refuses any file without it. The one mistake worth guarding
+ * against is uploading the WRONG backup - the list JSON from List Settings
+ * is a bare array of animes, and "importing" that here would at best do
+ * nothing and at worst blacklist a member's whole list.
+ */
+const BLACKLIST_BACKUP_FORMAT = 'anime_tracker_import_blacklist';
+
+/**
+ * The whole list, ready to be written into a backup file (1.1.49).
+ *
+ * WHY A FILE OF ITS OWN
+ *
+ * The list lives only in the application database: it is not pushed to the
+ * central catalog (by design) and the list JSON backup does not carry it.
+ * Returning to a clean install from JSON therefore emptied it, and the first
+ * import afterwards re-suggested every anime the curator had deliberately
+ * deleted - the very problem 1.1.35 closed. It gets its own file on the
+ * admin page instead of a key in the list backup because (a) the list
+ * backup is a bare array, and wrapping it would make every older install
+ * reject new backups as "invalid format"; (b) the list backup is a MEMBER's
+ * personal file, the blacklist is catalog policy (moderator+).
+ *
+ * Carried: the identities, title, reason, note and the original date (the
+ * list is also the deletion ledger, and "when did I delete this" is part of
+ * that record). NOT carried: `created_by` - a user id is install-specific,
+ * the same rule the list backup applies to every local id.
+ *
+ * @param PDO $pdo
+ * @return array|null Rows, oldest first; null when the table is unreadable.
+ */
+function blacklist_export_rows($pdo)
+{
+    if (!blacklist_active()) {
+        return null;
+    }
+    try {
+        return $pdo->query(
+            "SELECT mal_id, anidb_id, title, reason, note, created_at
+               FROM import_blacklist
+              ORDER BY created_at, id"
+        )->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log('[anime_tracker] blacklist export failed: ' . $e->getMessage());
+        return null;
+    }
+}
+
+/**
+ * Write backup entries back into the list (1.1.49).
+ *
+ * ADDS ONLY. Nothing already on the list is removed or changed, so running
+ * the same file twice - or a file taken before some entries were removed on
+ * purpose - is safe to repeat: whatever is already there is counted as
+ * "already on the list" and left alone.
+ *
+ * Duplicates: an entry with an id rides on the UNIQUE keys (INSERT IGNORE).
+ * If the file row and an existing row share only ONE of the two ids, the
+ * file row is skipped as a duplicate; the existing row keeps blocking that
+ * id, which is what matters. An id-less entry has no key to collide on, so
+ * it is matched on title + date instead - otherwise every re-import would
+ * double the deletion ledger.
+ *
+ * All or nothing: the rows go in one transaction, so a failure half way does
+ * not leave a half-restored list that looks complete.
+ *
+ * @param PDO   $pdo
+ * @param array $entries The file's `entries` array.
+ * @return array|null ['added' => int, 'already' => int, 'invalid' => int],
+ *                    or null when the write failed (nothing was written).
+ */
+function blacklist_import_rows($pdo, array $entries)
+{
+    if (!blacklist_active()) {
+        return null;
+    }
+
+    $counts = ['added' => 0, 'already' => 0, 'invalid' => 0];
+    $uid    = current_user_id() ?: null;
+
+    try {
+        $ins = $pdo->prepare(
+            "INSERT IGNORE INTO import_blacklist
+                 (mal_id, anidb_id, title, reason, note, created_by, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))"
+        );
+        $idlessExists = $pdo->prepare(
+            "SELECT 1 FROM import_blacklist
+              WHERE mal_id IS NULL AND anidb_id IS NULL
+                AND title = ? AND (? IS NULL OR created_at = ?)
+              LIMIT 1"
+        );
+
+        $pdo->beginTransaction();
+
+        foreach ($entries as $e) {
+            if (!is_array($e)) {
+                $counts['invalid']++;
+                continue;
+            }
+
+            $mal   = (isset($e['mal_id'])   && is_numeric($e['mal_id'])   && (int)$e['mal_id']   > 0) ? (int)$e['mal_id']   : null;
+            $anidb = (isset($e['anidb_id']) && is_numeric($e['anidb_id']) && (int)$e['anidb_id'] > 0) ? (int)$e['anidb_id'] : null;
+            $title = trim((string)($e['title'] ?? ''));
+
+            // Neither an id nor a title: nothing to block and nothing to
+            // show in the ledger. Not a real entry.
+            if ($mal === null && $anidb === null && $title === '') {
+                $counts['invalid']++;
+                continue;
+            }
+            if ($title === '') {
+                $title = '(isimsiz)'; // same stand-in blacklist_add() uses
+            }
+            $title = mb_substr($title, 0, 255);
+
+            $reason = (($e['reason'] ?? '') === 'deleted') ? 'deleted' : 'manual';
+            $note   = trim((string)($e['note'] ?? ''));
+            $note   = ($note !== '') ? mb_substr($note, 0, 255) : null;
+
+            // The original date is kept when it is a well-formed timestamp;
+            // anything else becomes "now" rather than failing the row. "Now"
+            // is the DATABASE's clock (NULL -> CURRENT_TIMESTAMP in the
+            // INSERT), the same clock every other row on the list was
+            // stamped with - PHP's date() may run in another time zone.
+            $when = (string)($e['created_at'] ?? '');
+            $dt   = DateTime::createFromFormat('Y-m-d H:i:s', $when);
+            if (!$dt || $dt->format('Y-m-d H:i:s') !== $when) {
+                $when = null;
+            }
+
+            if ($mal === null && $anidb === null) {
+                // Without a usable date the title alone decides.
+                $idlessExists->execute([$title, $when, $when]);
+                if ($idlessExists->fetchColumn()) {
+                    $counts['already']++;
+                    continue;
+                }
+            }
+
+            $ins->execute([$mal, $anidb, $title, $reason, $note, $uid, $when]);
+            if ($ins->rowCount() > 0) {
+                $counts['added']++;
+            } else {
+                $counts['already']++;
+            }
+        }
+
+        $pdo->commit();
+    } catch (PDOException $ex) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log('[anime_tracker] blacklist import failed: ' . $ex->getMessage());
+        return null;
+    }
+
+    blacklist_ids($pdo, true);
+    return $counts;
 }
 
 /**

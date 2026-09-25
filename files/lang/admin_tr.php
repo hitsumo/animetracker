@@ -366,6 +366,16 @@ return [
     'admin_blacklist.info.already'          => 'Bu kimlik zaten kara listede.',
     'admin_blacklist.success.removed'       => '%d kayıt kara listeden çıkarıldı.',
     'admin_blacklist.success.added'         => '"%s" kara listeye eklendi.',
+    // 1.1.49 - listenin kendi yedek dosyasi
+    'admin_blacklist.backup.heading'        => 'Yedek',
+    'admin_blacklist.backup.hint'           => 'Kara liste yalnızca bu sitenin veritabanında durur: liste JSON yedeğine girmez, merkez kataloğa da gitmez. "Dışa aktar" listeyi ayrı bir dosyaya indirir (kimlikler, ad, kayıt türü, not, tarih). "İçe aktar" yalnızca ekler: listede zaten olan kayıtlar atlanır, hiçbir şey silinmez; aynı dosyayı iki kez yüklemek zararsızdır.',
+    'admin_blacklist.btn.export'            => 'Dışa aktar',
+    'admin_blacklist.btn.import'            => 'İçe aktar',
+    'admin_blacklist.error.upload'          => 'Dosya yüklenemedi. Bir dosya seçip tekrar deneyin.',
+    'admin_blacklist.error.bad_file'        => 'Bu bir kara liste yedeği değil. Yalnızca bu sayfadaki "Dışa aktar" ile alınan dosya yüklenebilir (liste JSON yedeği burada kullanılamaz).',
+    'admin_blacklist.error.import_failed'   => 'Yedek yüklenemedi, hiçbir kayıt yazılmadı. Sunucu günlüğüne bakın.',
+    'admin_blacklist.success.imported'      => 'Yedek yüklendi: %d kayıt eklendi, %d kayıt zaten listedeydi.',
+    'admin_blacklist.info.invalid_rows'     => '%d satır okunamadığı için atlandı.',
     'admin_blacklist.back_to_dashboard'     => 'Yönetici paneline dön',
 
     // --- admin.php karti: Ice Aktarma Kara Listesi ---
