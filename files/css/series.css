@@ -872,3 +872,26 @@
     font-size: 12px;
     color: #6c757d;
 }
+
+/* ======================================================================
+   1.1.50 — Ek Icerikler (`special` iliskisi)
+   anime_details.php'de ana kaydin ek icerikleri. Iliskili Animeler
+   gorunumu; ayirici altin rengi sol serit (bir ek, bir sira degil).
+   Satir: S-numarasi · baslik · tarih/bolum · izleme durumu.
+   ====================================================================== */
+.relation-section.specials-section {
+    border-left-color: #d4a017;
+}
+
+.special-number {
+    font-weight: 600;
+    color: #6c757d;
+    min-width: 2.2em;
+    font-variant-numeric: tabular-nums;
+}
+
+.special-meta {
+    font-size: 12px;
+    color: #6c757d;
+    white-space: nowrap;
+}

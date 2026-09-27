@@ -428,6 +428,7 @@ function series_graph_edge_color($type) {
         'alternative_setting' => '#16a085',
         'side_story'          => '#e67e22',
         'summary'             => '#e67e22',
+        'special'             => '#d4a017',   // 1.1.50
         'same_setting'        => '#2980b9',
         'character'           => '#2980b9',
         'other'               => '#95a5a6',

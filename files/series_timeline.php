@@ -472,6 +472,7 @@ function seriesMediaIcon($type) {
         .sg-edge-alternative_setting { stroke: #16a085; stroke-dasharray: 2 4; }
         .sg-edge-side_story { stroke: #e67e22; stroke-dasharray: 7 4; }
         .sg-edge-summary { stroke: #e67e22; stroke-dasharray: 2 4; }
+        .sg-edge-special { stroke: #d4a017; stroke-dasharray: 10 3; }
         .sg-edge-same_setting { stroke: #2980b9; stroke-dasharray: 8 4 2 4; }
         .sg-edge-character { stroke: #2980b9; stroke-dasharray: 2 4; }
         .sg-edge-other { stroke: #95a5a6; stroke-dasharray: 4 4; }

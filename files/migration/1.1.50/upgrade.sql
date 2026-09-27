@@ -1,0 +1,73 @@
+-- Anime Tracker - Migration 1.1.50
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- =====================================================================
+-- 1.1.50 - ILISKI TURU `special` (EK ICERIK) + detayda "Ek Icerikler"
+-- =====================================================================
+--
+-- SORUN
+--
+-- Katalogda bir animeye bagli kucuk ekler ayri kayit olarak duruyor:
+-- filmin yaninda verilen kisa bolum, Blu-ray bonusu, "manner movie",
+-- tanitim kisasi. MAL ve AniList boyle kurar (special = ayri kayit),
+-- katalog da oradan beslendigi icin boyle kalacak. Ama iki kayit
+-- arasindaki bag icin dogru tur yoktu: kurator "Yan Hikaye" ya da
+-- "Diger" seciyordu. Ikisi de yanlis cumle - yan hikaye kendi basina bir
+-- is, special ise bir isin EKI - ve detay sayfasinda bu kucuk kayitlar
+-- ana yapimlarla ayni listede, ayni agirlikta gorunuyordu.
+--
+-- Tetikleyen vaka (21 Eyl 2026): Boku no Hero Academia the Movie: You're
+-- Next (film, id 2846) ve ona bagli special'lar - "A Piece of Cake" (id
+-- 6825, MAL 60645), Manner Movie vb. - her biri ayri kayit.
+--
+-- COZUM: ENUM'A BIR DEGER (21 Eyl 2026 karari: AniDB'nin GORUNUMU, MAL'in
+-- VERI MODELI)
+--
+--   special - `from` ek icerik, `to` ana kayit. "A Piece of Cake, You're
+--             Next'in ek icerigidir."
+--
+-- YONLUDUR (side_story gibi): ana kaydin sayfasindan bakinca karsi uc
+-- "Ek Icerik", ek icerigin sayfasindan bakinca karsi uc "Ana Kayit".
+-- Kanoniklesme yok; kurator hangi uctan kurarsa kursun satir tek ve
+-- yonu dogru yazilir (relation_helpers.php, anime_relation_endpoints).
+--
+-- GORUNUM: ana kaydin detay sayfasinda ek icerikler "Iliskili Animeler"
+-- bolumune DEGIL, kendi "Ek Icerikler" bolumune girer - AniDB'nin bolum
+-- listesindeki S1, S2 gibi, yayin tarihine gore numaralanmis, tarih ve
+-- bolum sayisiyla. Ek icerigin kendi sayfasinda "Ana Kayit" baglantisi
+-- Iliskili Animeler'de kalir.
+--
+-- SIRAYA ETKISI YOK: zincir yuruyusu ve spoiler kapisi yalniz `sequel`
+-- okur (1.1.40 kurali). Ek icerik izleme sirasina girmez.
+--
+-- ILERIYE ACIK KAPI. Gercek AniDB modeli (anime_episodes tablosu,
+-- special = S-tipi bolum) 1.2.x capinda ve SIMDI SECILMEDI. Bu tur o
+-- kapiyi kapatmaz, tersine gecis migration'inin esleme anahtari olur.
+-- Kapiyi acik tutan uc kural: special'a ayri tablo YOK (siradan animes
+-- satiri + iliski); iliski YONLU kalir; sure (duration) eklenirse animes
+-- sutunu olur. Sure bu surumde YOK (24 Eyl 2026 karari) - merkez ALTER
+-- gerektirmesin diye ayri surume birakildi.
+--
+-- VERI: bu surum satir CEVIRMEZ. Hangi "Yan Hikaye" / "Diger" satirinin
+-- aslinda ek icerik oldugunu PROGRAM bilemez; kurator panelden
+-- sil-yeniden-kur ile cevirir.
+--
+-- YENIDEN CALISTIRILABILIRLIK: tek ifade, MODIFY. Ayni enum'a ikinci kez
+-- MODIFY ayni sonucu verir. Enum GENISLETME'dir: var olan degerler yerinde
+-- kalir, var olan satirlar dokunulmaz. schema.sql'de de ayni enum var.
+--
+-- MERKEZ KATALOG: ALTER GEREKMEZ. anime_relations kurulum-yereldir
+-- (1.1.38 gerekcesi); catalog.php / admin_push.php tabloyu bilmez. Yedek
+-- JSON turu adiyla tasir; 1.1.50 oncesi bir kuruluma 1.1.50 yedegi
+-- yuklenirse `special` satiri "atlandi" sayilir (list_settings.php beyaz
+-- listesi) - cokmez.
+--
+-- YARIM YUKLEME: eski relation_helpers.php sunucuda kalirsa `special`
+-- satirlari "Diger Iliski" diye etiketlenir, formda secilemez ve detayda
+-- Ek Icerikler bolumu cikmaz; cokmez. Dosyalar birlikte gitmeli.
+-- =====================================================================
+
+ALTER TABLE `anime_relations`
+  MODIFY `relation_type` enum('alternative_version','alternative_setting','side_story','summary','other','sequel','same_setting','character','special') NOT NULL DEFAULT 'other';

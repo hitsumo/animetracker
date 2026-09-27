@@ -492,6 +492,8 @@ CREATE TABLE IF NOT EXISTS `chronology_markers` (
 --   sequel     - `from` is the sequel,     `to` comes BEFORE it.
 --   side_story - `from` is the side story, `to` is the parent story.
 --   summary    - `from` is the summary,    `to` is the full story.
+--   special    - `from` is the special,    `to` is the main entry
+--                (1.1.50).
 -- Those are the asymmetric types and the asymmetry is real: if A is
 -- B's sequel then B is A's PREQUEL, not its sequel. The
 -- detail page renders the same row with the flipped label at the other
@@ -524,6 +526,16 @@ CREATE TABLE IF NOT EXISTS `chronology_markers` (
 -- alternative_setting, which is its mirror image: SAME characters in a
 -- DIFFERENT world.
 --
+-- `special` (1.1.50) links a small extra - a bonus short, a Blu-ray
+-- special, a "manner movie" - to the work it belongs to. MAL and AniList
+-- keep such extras as separate records, and so does the catalog; the
+-- relation only says whose extra it is. Directional like side_story
+-- (inverse label "Main Entry"). The main entry's detail page lists its
+-- specials in their own "Specials" section (S1, S2, ... by air date)
+-- instead of among the relations. No order: the chain walk ignores it.
+-- No separate table on purpose - a later per-episode model (1.2.x) can
+-- use these edges as its mapping key.
+--
 -- Used by:
 --   - add_anime_relation.php / delete_anime_relation.php (write)
 --   - edit_anime.php (the curator's panel below the main form)
@@ -549,7 +561,7 @@ CREATE TABLE IF NOT EXISTS `anime_relations` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `from_anime_id` int(11) NOT NULL,
   `to_anime_id` int(11) NOT NULL,
-  `relation_type` enum('alternative_version','alternative_setting','side_story','summary','other','sequel','same_setting','character') NOT NULL DEFAULT 'other',
+  `relation_type` enum('alternative_version','alternative_setting','side_story','summary','other','sequel','same_setting','character','special') NOT NULL DEFAULT 'other',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_relation_pair` (`from_anime_id`, `to_anime_id`, `relation_type`),

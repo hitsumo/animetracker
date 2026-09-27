@@ -120,7 +120,12 @@ $relatedAnimes = getRelatedAnimes($pdo, $anime['series_name'] ?? null, $anime['i
 // tabloda - "Devami" / "Oncesi" basliklariyla asagidaki bolume girer VE
 // asagidaki "Siradaki" karti ile "Seri Kronolojisi" dugmesini besler.
 $animeRelationRows = getAnimeRelations($pdo, $anime['id']);
-$animeRelations    = anime_relations_grouped($animeRelationRows);
+// 1.1.50 - bu animenin KENDI ek icerikleri (`special`, karsi uc ek icerik)
+// iliski listesinden cikar, asagidaki "Ek Icerikler" bolumune gider (S1,
+// S2... yayin tarihine gore). Bu anime bir ek icerikse "Ana Kayit" bagi
+// iliskilerde kalir.
+[$animeRelationList, $animeSpecials] = anime_relations_split_specials($animeRelationRows);
+$animeRelations    = anime_relations_grouped($animeRelationList);
 
 // 1.1.41 - paylasimli MAL / AniDB kimligi. Ayni kaynak kaydini tasiyan
 // oteki kayitlar ("kardesler") VERIDEN turer, iliski satiri gerekmez;
@@ -869,6 +874,51 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
                             </span>
                         </div>
                         <?php endforeach; ?>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <?php // ============================================================
+                  // SECTION: Ek Icerikler (1.1.50)
+                  // Bu yapima `special` iliskisiyle bagli kucuk ekler: bonus
+                  // bolum, filmle verilen kisa, "manner movie". AniDB'nin
+                  // bolum listesindeki S1, S2 gibi yayin tarihine gore
+                  // numaralanir (numara gosterim sirasidir, saklanmaz);
+                  // tarih + bolum sayisi + izleme durumu. Iliskili Animeler
+                  // gorunumunu alir, sol serit altin rengi.
+                  // ============================================================
+            ?>
+            <?php if (!empty($animeSpecials)): ?>
+            <div class="relation-section specials-section">
+                <h3><i class="fas fa-gift"></i> <?php echo htmlspecialchars(t('anime_details.section.specials'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                <p class="identity-section-hint"><?php echo htmlspecialchars(t('anime_details.specials.hint'), ENT_QUOTES, 'UTF-8'); ?></p>
+                <div class="relation-section-list">
+                    <?php foreach ($animeSpecials as $sp): ?>
+                    <?php
+                        $spMeta = [];
+                        if (has_partial_date($sp['release_date'] ?? null, $sp['release_date_precision'] ?? 'full')) {
+                            $spMeta[] = format_partial_date($sp['release_date'] ?? null, $sp['release_date_precision'] ?? 'full');
+                        }
+                        if (!empty($sp['total_episodes'])) {
+                            $spMeta[] = sprintf(t('anime_details.specials.episodes_fmt'), (int)$sp['total_episodes']);
+                        }
+                    ?>
+                    <div class="relation-row">
+                        <span class="special-number"><?php echo htmlspecialchars(sprintf(t('anime_details.specials.number_fmt'), (int)$sp['number']), ENT_QUOTES, 'UTF-8'); ?></span>
+                        <a href="anime_details.php?id=<?php echo (int)$sp['other_id']; ?>" class="relation-row-link">
+                            <?php echo htmlspecialchars(display_title($sp), ENT_QUOTES, 'UTF-8'); ?>
+                            <?php if (!empty($sp['media_type'])): ?>
+                                (<?php echo htmlspecialchars($sp['media_type'], ENT_QUOTES, 'UTF-8'); ?>)
+                            <?php endif; ?>
+                        </a>
+                        <?php if (!empty($spMeta)): ?>
+                        <span class="special-meta"><?php echo htmlspecialchars(implode(' · ', $spMeta), ENT_QUOTES, 'UTF-8'); ?></span>
+                        <?php endif; ?>
+                        <span class="relation-row-status ws-<?php echo watch_status_css_class($sp['watch_status']); ?>">
+                            <?php echo htmlspecialchars(watch_status_label($sp['watch_status']), ENT_QUOTES, 'UTF-8'); ?>
+                        </span>
                     </div>
                     <?php endforeach; ?>
                 </div>

@@ -62,8 +62,9 @@
  *   sequel     : `from` is the sequel,     `to` is what comes BEFORE it.
  *   side_story : `from` is the side story, `to` is the parent story.
  *   summary    : `from` is the summary,    `to` is the full story.
+ *   special    : `from` is the special,    `to` is the main entry (1.1.50).
  *
- * Those three are the asymmetric types, and the asymmetry is real: if A
+ * Those four are the asymmetric types, and the asymmetry is real: if A
  * is B's sequel, B is NOT A's sequel - it is A's PREQUEL. So the same row
  * renders with two different labels depending on which end is being
  * viewed (anime_relation_type_label(..., $inverse)). The remaining five
@@ -91,6 +92,30 @@
  * its mirror image: the SAME characters in a DIFFERENT world. Both new
  * types are symmetric and orderless; the chain walk and the spoiler gate
  * still read `sequel` alone.
+ *
+ * `special` (1.1.50)
+ *
+ * A small extra that belongs to ONE work: the short shown with a film, a
+ * Blu-ray bonus episode, a "manner movie". MAL and AniList keep these as
+ * separate records and so does the catalog; the relation only says whose
+ * extra it is (21 Sep 2026 decision: AniDB's VIEW, MAL's DATA MODEL).
+ * Trigger case: Boku no Hero Academia the Movie: You're Next and its
+ * specials ("A Piece of Cake" and others), each its own record, which the
+ * curator could only file under "side story" or "other" - both wrong
+ * sentences: a side story is a work of its own, a special is an ADD-ON.
+ *
+ * Directional like side_story: `from` is the special, `to` the main
+ * entry; from the special's page the other end reads "Main Entry". The
+ * main entry's detail page does NOT list its specials among the
+ * relations: anime_relations_split_specials() lifts them into their own
+ * "Specials" section, numbered S1, S2, ... by air date the way AniDB
+ * numbers special episodes. Orderless - the chain walk ignores it.
+ *
+ * The door to a real per-episode model (anime_episodes, special = an
+ * S-type episode; 1.2.x scale, NOT chosen) stays open on three rules:
+ * no separate table for specials (an ordinary animes row + this edge),
+ * the edge stays directional, and a duration - if it ever comes - is an
+ * animes column. The edges are then the migration's mapping key.
  *
  * The `sequel` direction mirrors the old column: a.next_in_series = b
  * ("after a comes b") became the row (from = b, to = a, sequel) - "b is
@@ -121,7 +146,8 @@
  * The order is also the grouping order on the detail page: the ordered
  * type first (1.1.40 - it is the one a viewer acts on: "what do I watch
  * next"), then the two "another telling of the same thing" types, then
- * the two "smaller piece / shorter cut" types, then the two "touches
+ * the two "smaller piece / shorter cut" types and the add-on (1.1.50 -
+ * it sits with them: a special is the smallest piece), then the two "touches
  * without sharing a story" types (1.1.47 - the loosest real links, so
  * they sit just above the catch-all), then the catch-all.
  *
@@ -134,6 +160,7 @@ function anime_relation_types() {
         'alternative_setting',
         'side_story',
         'summary',
+        'special',       // 1.1.50
         'same_setting',
         'character',
         'other',
@@ -165,7 +192,8 @@ function anime_relation_symmetric($type) {
  *
  * $inverse = "I am looking at this row from its `from` end", i.e. the
  * OTHER anime is what `to` is. For the two asymmetric types that flips the
- * word: side story -> parent story, summary -> full story. For the
+ * word: side story -> parent story, summary -> full story, special ->
+ * main entry. For the
  * symmetric ones both ends read the same, so the flag is ignored.
  *
  * @param string $type
@@ -177,6 +205,7 @@ function anime_relation_type_label($type, $inverse = false) {
         if ($type === 'sequel')     { return t('relation.type.prequel'); }
         if ($type === 'side_story') { return t('relation.type.parent_story'); }
         if ($type === 'summary')    { return t('relation.type.full_story'); }
+        if ($type === 'special')    { return t('relation.type.main_entry'); } // 1.1.50
     }
     if (!in_array($type, anime_relation_types(), true)) {
         $type = 'other';
@@ -210,6 +239,8 @@ function anime_relation_choices() {
         'side_story|inv'      => t('relation.opt.parent_story'),
         'summary'             => t('relation.opt.summary'),
         'summary|inv'         => t('relation.opt.full_story'),
+        'special'             => t('relation.opt.special'),     // 1.1.50
+        'special|inv'         => t('relation.opt.main_entry'),
         'same_setting'        => t('relation.opt.same_setting'),
         'character'           => t('relation.opt.character'),
         'other'               => t('relation.opt.other'),
@@ -310,7 +341,8 @@ function getAnimeRelations($pdo, $anime_id) {
         SELECT r.id, r.relation_type,
                CASE WHEN r.from_anime_id = :id1 THEN 1 ELSE 0 END AS is_from,
                o.id AS other_id, o.title, o.alternative_titles, o.media_type,
-               o.total_episodes, o.release_date, o.image_path, o.is_adult,
+               o.total_episodes, o.release_date, o.release_date_precision,
+               o.image_path, o.is_adult,
                ua.watch_status,
                COALESCE(ua.watched_episodes, 0) AS watched_episodes
           FROM anime_relations r
@@ -338,6 +370,55 @@ function getAnimeRelations($pdo, $anime_id) {
     unset($row);
 
     return $rows;
+}
+
+/**
+ * Take this anime's OWN specials out of the relation rows (1.1.50).
+ *
+ * A `special` row where the other end is the special - i.e. this anime is
+ * the `to` end, the main entry - belongs to the "Specials" section, not
+ * to the relation list: listing a bonus short next to the sequels gives
+ * it a weight it does not have. The opposite reading (this anime IS the
+ * special, the other end is its main entry) stays in the relations as
+ * "Main Entry", the link back.
+ *
+ * The specials come back sorted by air date, undated ones last (MySQL
+ * sorts NULL first under ASC, so the query order cannot be reused), ties
+ * by title; each carries its position as `number` - 1, 2, 3 - which the
+ * page prints as S1, S2, S3. The number is a display position, NOT
+ * stored: adding a special with an earlier date renumbers the rest, the
+ * same way AniDB's list reads.
+ *
+ * @param array $rows getAnimeRelations() output
+ * @return array{0:array,1:array} [relations without own specials, specials]
+ */
+function anime_relations_split_specials(array $rows) {
+    $rest     = [];
+    $specials = [];
+    foreach ($rows as $row) {
+        if ($row['relation_type'] === 'special' && empty($row['inverse'])) {
+            $specials[] = $row;
+        } else {
+            $rest[] = $row;
+        }
+    }
+
+    usort($specials, function ($a, $b) {
+        $da = substr((string)($a['release_date'] ?? ''), 0, 10);
+        $db = substr((string)($b['release_date'] ?? ''), 0, 10);
+        if ($da !== $db) {
+            if ($da === '') { return 1; }
+            if ($db === '') { return -1; }
+            return strcmp($da, $db);
+        }
+        return strcmp((string)$a['title'], (string)$b['title']);
+    });
+    foreach ($specials as $i => &$sp) {
+        $sp['number'] = $i + 1;
+    }
+    unset($sp);
+
+    return [$rest, $specials];
 }
 
 /**
