@@ -79,6 +79,13 @@ lang_init($pdo);
         <?php echo t('help.recom.scoop.box_body'); ?>
     </div>
 
+    <?php /* 1.1.51 - duygu kepcesi: cevrimicide tum uyelerin isaretleri +
+       "yalniz baslamadiklarim" kutusu (bu bolum 0.6.5'ten beri eksikti). */ ?>
+    <h3><?php echo htmlspecialchars(t('help.recom.emotion.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
+    <p>
+        <?php echo t('help.recom.emotion.text'); ?>
+    </p>
+
     <h3><?php echo htmlspecialchars(t('help.recom.surprise.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
     <p>
         <?php echo t('help.recom.surprise.text'); ?>

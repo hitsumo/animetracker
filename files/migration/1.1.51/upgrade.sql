@@ -1,0 +1,33 @@
+-- Anime Tracker - Migration 1.1.51
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- =====================================================================
+-- 1.1.51 - SEMA DEGISIKLIGI YOKTUR
+-- =====================================================================
+--
+-- Bu dosya bilerek BOSTUR. Runner yorumlari temizler, calistiracak ifade
+-- bulamaz ve yalnizca settings.version'i 1.1.51'e tasir. Klasorun var
+-- olmasi gerekiyor: surum atlanirsa MigrationManager sirayi kaybeder.
+-- (Ayni kalip 1.1.25 / 1.1.30 / 1.1.33 / 1.1.34 / 1.1.37 / 1.1.39 /
+-- 1.1.42 / 1.1.48 / 1.1.49'da kullanildi.)
+--
+-- ---------------------------------------------------------------------
+-- Bu surumde ne var: "Ne Izlesem?" duygu kepcesi cevrimicide herkesin
+-- ---------------------------------------------------------------------
+--
+-- recommendations.php duygu eslesmesini yalniz izleyenin KENDI
+-- isaretlerinden ariyordu (user_anime_emotion.user_id = oturum). Sonuc:
+-- duygu aramasi yalniz zaten izlenip isaretlenmis animeleri getiriyordu.
+-- Cevrimici (MULTI_USER_MODE) kurulumda artik tum uyelerin isaretleri
+-- sayilir; puan = eslesen duygu sayisi (cumle ile ayni birim), esitlikte
+-- toplam isaret sayisi. "Yalniz baslamadiklarim" kutusu (giris yapmis
+-- uye, varsayilan acik) listede baslanmis animeleri sonuctan cikarir.
+-- Tek kullanicili kurulum degismez.
+--
+-- Yeni tablo / kolon / indeks YOK: user_anime_emotion (0.6.1) ve
+-- idx_emotion yeterli.
+--
+-- MERKEZ KATALOG: is YOK.
+-- =====================================================================

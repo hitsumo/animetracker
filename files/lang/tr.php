@@ -870,6 +870,8 @@ return [
     'help.recom.scoop.text'                  => 'Her seçilen cümle bir kepçe gibi düşünün. Kepçe kendi eşleşmesini listeden çeker. Birden fazla kepçe seçerseniz, en çok kepçeye uyan anime üst sırada gözükür.',
     'help.recom.scoop.box_title'             => '<i class="fas fa-check"></i> Önemli:',
     'help.recom.scoop.box_body'              => 'Çok cümle seçerseniz sonuçlar azalmaz, aksine sıralama netleşir. Sistem AND yerine OR + puan mantığı kullanır.',
+    'help.recom.emotion.h3'                  => 'Duygularla Öneri',
+    'help.recom.emotion.text'                => 'Cümle panelinin altındaki <strong>Duyguları Göster</strong> düğmesi dokuz duyguyu açar. Seçtiğiniz her duygu da bir kepçedir ve cümlelerle birlikte puanlanır. Çevrimiçi (çok kullanıcılı) kurulumda <strong>tüm üyelerin</strong> işaretleri sayılır: "Güldürdü"yü seçerseniz herhangi bir üyenin "Güldürdü" dediği animeler gelir. Rozetteki sayı o duyguyu kaç üyenin işaretlediğidir; kimin işaretlediği görünmez. Aynı puandaki animelerden daha çok işaret alan üstte durur. Aynı kurulumda giriş yapmışsanız <strong>Yalnız başlamadıklarım</strong> kutusu varsayılan olarak işaretlidir: izlediğiniz, izlemekte olduğunuz, beklettiğiniz ya da bıraktığınız animeler ve bölüm saydığınız her anime sonuçlardan çıkar. Kaç tanesinin gizlendiği sonuçların üstünde yazar, tek tıkla onları da görebilirsiniz. Kendi bilgisayarınızdaki tek kullanıcılı kurulumda yalnızca sizin işaretleriniz vardır; duygu araması orada "bu duyguyu işaretlediğim animeler" demektir.',
     'help.recom.surprise.h3'                 => 'Sürpriz Seç',
     'help.recom.surprise.text'               => 'Hiç cümle seçmeden "Sürpriz Seç" derseniz, sistem size izlememiş olduğunuz bir anime rastgele seçer. Kararsız kaldığınızda hızlı bir çözüm.',
     'help.recom.search.h3'                   => 'Arama Kutusu',
@@ -1302,6 +1304,14 @@ return [
     'recommendations.no_match_combined'             => 'Seçtiğin cümle ve duygularla eşleşen anime bulunamadı. Daha az kriter seçip tekrar dene.',
     'recommendations.result.count_combined'         => '<strong>%d</strong> anime bulundu (%d cümle, %d duygu seçildi).',
     'recommendations.group.matched_combined'        => '%d kriter eşleşti',
+    // 1.1.51 - cevrimici modda duygu havuzu tum uyelerin isaretleri + "yalniz baslamadiklarim" kutusu
+    'recommendations.emotion.empty_marks_community' => 'Henüz hiçbir üye bir animeye duygu işareti koymamış. Anime detay sayfasındaki duygu butonlarıyla ilk işareti sen koyabilirsin.',
+    'recommendations.emotion.community_note'        => 'Tüm üyelerin işaretleri sayılır; kimin ne işaretlediği görünmez.',
+    'recommendations.matched.emotion_marks'         => '%d üye işaretledi',
+    'recommendations.unseen.label'                  => 'Yalnız başlamadıklarım (izlediğim, izlemekte olduğum, beklettiğim ve bıraktığım animeler çıkmasın)',
+    'recommendations.unseen.hidden_count'           => '%d anime listende olduğu için gizlendi.',
+    'recommendations.unseen.all_hidden'             => 'Eşleşen %d animenin hepsi listende; başlamadığın bir anime kalmadı.',
+    'recommendations.unseen.show_link'              => 'Onları da göster',
 
     // -----------------------------------------------------------------
     // about.php

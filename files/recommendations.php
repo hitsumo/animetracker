@@ -33,6 +33,12 @@
  *     AND - so the result is never empty).
  *   - Within the same score band, anime the user has not finished are
  *     surfaced first (discovery > rewatching).
+ *   - 1.1.51: in online (multi-user) mode the emotion bucket dips into
+ *     EVERY member's marks, not just the viewer's own - otherwise an
+ *     emotion search could only return anime the viewer has already
+ *     watched and marked. Anime the viewer has started are hidden by
+ *     default ("only not started" box). Self-host is unchanged: there
+ *     the only marks are the owner's own.
  *
  * Tag and emotion buckets are run as two SEPARATE SQL queries and
  * merged in PHP. Cross-JOINing tags and emotions in a single query
@@ -105,6 +111,21 @@ if (!empty($_GET['emotions']) && is_array($_GET['emotions'])) {
 }
 
 $mode = $_GET['mode'] ?? 'pick';   // 'pick' (criterion-driven) or 'surprise'
+
+// 1.1.51 - community emotion pool. Online mode counts every member's marks
+// (anonymous: only per-emotion totals ever leave the query, the same data
+// the detail page's distribution line already shows). Self-host keeps the
+// owner's own marks - there are no others.
+$communityEmotions = MULTI_USER_MODE;
+
+// 1.1.51 - "only anime I have not started" filter. Online + logged in only
+// (a guest has no list, self-host keeps today's behaviour). Default ON. The
+// form sends a hidden unseen=0 before the checkbox (value 1): an unticked
+// box still arrives as 0, while a missing parameter (first visit, an old
+// bookmark) means the default.
+$unseenAvailable = MULTI_USER_MODE && is_logged_in();
+$unseenOnly      = $unseenAvailable && (($_GET['unseen'] ?? '1') !== '0');
+$hiddenStarted   = 0;   // results removed by the filter, reported on the page
 
 // --------------------------------------------------------
 // Compute the result set.
@@ -187,48 +208,83 @@ if ($mode === 'surprise') {
                 }
             }
             $byAnimeId[$animeId] = [
-                'anime'                 => $row,
-                'tag_score'             => (int)$row['tag_score'],
-                'emo_score'             => 0,
-                'matched_tag_names'     => $matchedTags,
-                'matched_emotion_names' => [],
+                'anime'                  => $row,
+                'tag_score'              => (int)$row['tag_score'],
+                'emo_score'              => 0,
+                'emo_marks'              => 0,
+                'matched_tag_names'      => $matchedTags,
+                'matched_emotion_names'  => [],
+                'matched_emotion_counts' => [],
             ];
         }
     }
 
     // ---- Pass 2: emotion bucket ----
-    // Scoped to current_user_id() (1.0.x data model). The user id is bound
-    // as the first positional placeholder, before the emotion list, so the
-    // bind order matches the WHERE clause. Single-user mode returns 1
-    // (behaviour unchanged); multi-user mode returns the session user.
+    // The inner query counts marks per (anime, emotion); the outer one
+    // folds them per anime. emo_score = how many of the selected emotions
+    // matched (same unit as tag_score: one criterion = one point), so an
+    // anime marked "Guldurdu" by five members does not outrank one that
+    // matched two criteria. emo_marks (total marks) only breaks ties.
+    // matched_emos packs "emotion:count" pairs separated by '|'.
+    // 1.1.51: online mode reads every member's marks; self-host adds the
+    // user scope (current_user_id() is 1 there), which is the pre-1.1.51
+    // query. Bind order: emotion list first, then the user id.
     if (!empty($selectedEmotions)) {
         $eph = implode(',', array_fill(0, count($selectedEmotions), '?'));
+        $userScope = $communityEmotions ? '' : ' AND user_id = ?';
         $sql = "
             SELECT a.*,
-                   COUNT(DISTINCT uae.emotion) AS emo_score,
-                   GROUP_CONCAT(DISTINCT uae.emotion ORDER BY uae.emotion SEPARATOR '|') AS matched_emos
+                   em.emo_score,
+                   em.emo_marks,
+                   em.matched_emos
             FROM animes a
-            INNER JOIN user_anime_emotion uae ON uae.anime_id = a.id
-            WHERE uae.user_id = ? AND uae.emotion IN ($eph)" . adult_filter_where('a') . "
-            GROUP BY a.id
-        ";
+            INNER JOIN (
+                SELECT anime_id,
+                       COUNT(*) AS emo_score,
+                       SUM(cnt) AS emo_marks,
+                       GROUP_CONCAT(CONCAT(emotion, ':', cnt) ORDER BY emotion SEPARATOR '|') AS matched_emos
+                FROM (
+                    SELECT anime_id, emotion, COUNT(*) AS cnt
+                    FROM user_anime_emotion
+                    WHERE emotion IN ($eph)$userScope
+                    GROUP BY anime_id, emotion
+                ) per_emotion
+                GROUP BY anime_id
+            ) em ON em.anime_id = a.id
+            WHERE 1=1" . adult_filter_where('a');
+        $params = $selectedEmotions;
+        if (!$communityEmotions) {
+            $params[] = current_user_id();
+        }
         $stmt = $pdo->prepare($sql);
-        $stmt->execute(array_merge([current_user_id()], $selectedEmotions));
+        $stmt->execute($params);
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $animeId = (int)$row['id'];
-            $matchedEmos = !empty($row['matched_emos']) ? explode('|', $row['matched_emos']) : [];
+            $matchedEmos   = [];
+            $matchedCounts = [];
+            if (!empty($row['matched_emos'])) {
+                foreach (explode('|', $row['matched_emos']) as $packed) {
+                    $parts = explode(':', $packed, 2);
+                    $matchedEmos[] = $parts[0];
+                    $matchedCounts[$parts[0]] = (int)($parts[1] ?? 1);
+                }
+            }
             if (isset($byAnimeId[$animeId])) {
                 // Already in result set from tag pass - augment with emotion data
-                $byAnimeId[$animeId]['emo_score']             = (int)$row['emo_score'];
-                $byAnimeId[$animeId]['matched_emotion_names'] = $matchedEmos;
+                $byAnimeId[$animeId]['emo_score']              = (int)$row['emo_score'];
+                $byAnimeId[$animeId]['emo_marks']              = (int)$row['emo_marks'];
+                $byAnimeId[$animeId]['matched_emotion_names']  = $matchedEmos;
+                $byAnimeId[$animeId]['matched_emotion_counts'] = $matchedCounts;
             } else {
                 // Emotion-only match (no tag bucket touched this anime)
                 $byAnimeId[$animeId] = [
-                    'anime'                 => $row,
-                    'tag_score'             => 0,
-                    'emo_score'             => (int)$row['emo_score'],
-                    'matched_tag_names'     => [],
-                    'matched_emotion_names' => $matchedEmos,
+                    'anime'                  => $row,
+                    'tag_score'              => 0,
+                    'emo_score'              => (int)$row['emo_score'],
+                    'emo_marks'              => (int)$row['emo_marks'],
+                    'matched_tag_names'      => [],
+                    'matched_emotion_names'  => $matchedEmos,
+                    'matched_emotion_counts' => $matchedCounts,
                 ];
             }
         }
@@ -246,6 +302,24 @@ if ($mode === 'surprise') {
         $entry['anime']['watched_episodes'] = $ua['watched_episodes'];
     }
     unset($entry);
+
+    // 1.1.51 - "only not started": drop anything the viewer has touched.
+    // Started = a status other than Plan to Watch (Watching / Watched /
+    // On Hold / Dropped) or any counted episode. NULL status ("not
+    // selected", 1.0.10) with zero episodes counts as not started. Applied
+    // to both buckets: the box answers "what should I watch next", not
+    // "which emotions matched".
+    if ($unseenOnly) {
+        foreach ($byAnimeId as $aid => $entry) {
+            $status  = $entry['anime']['watch_status'];
+            $started = ($status !== null && $status !== '' && $status !== 'PlanToWatch')
+                    || (int)$entry['anime']['watched_episodes'] > 0;
+            if ($started) {
+                unset($byAnimeId[$aid]);
+                $hiddenStarted++;
+            }
+        }
+    }
 
     // ---- Build $results with combined score + sort ----
     // Tie-break with a stable random integer attached up front so the
@@ -269,7 +343,12 @@ if ($mode === 'surprise') {
         if ($aw !== $bw) {
             return $aw - $bw;
         }
-        // 3. Random tie-break (precomputed for stable comparator)
+        // 3. More emotion marks first (1.1.51: online, several members
+        //    agreeing beats one; self-host this equals emo_score, no-op)
+        if ($a['emo_marks'] !== $b['emo_marks']) {
+            return $b['emo_marks'] - $a['emo_marks'];
+        }
+        // 4. Random tie-break (precomputed for stable comparator)
         return $a['_random'] - $b['_random'];
     });
 }
@@ -303,11 +382,28 @@ function watch_status_badge($status) {
 // If not, the emotion filter section would be useless (zero results),
 // so we render a hint instead of the panel. Done with a cheap COUNT
 // query rather than fetching rows.
-$hasAnyEmotionMarksStmt = $pdo->prepare(
-    "SELECT COUNT(*) FROM user_anime_emotion WHERE user_id = :uid"
-);
-$hasAnyEmotionMarksStmt->execute([':uid' => current_user_id()]);
-$hasAnyEmotionMarks = (int)$hasAnyEmotionMarksStmt->fetchColumn() > 0;
+// 1.1.51 - online mode asks "has ANY member marked anything": the pool is
+// everyone's now, so a new member (or a guest) with no marks of their own
+// still gets the panel.
+if ($communityEmotions) {
+    $hasAnyEmotionMarks = (bool)$pdo->query(
+        "SELECT 1 FROM user_anime_emotion LIMIT 1"
+    )->fetchColumn();
+} else {
+    $hasAnyEmotionMarksStmt = $pdo->prepare(
+        "SELECT COUNT(*) FROM user_anime_emotion WHERE user_id = :uid"
+    );
+    $hasAnyEmotionMarksStmt->execute([':uid' => current_user_id()]);
+    $hasAnyEmotionMarks = (int)$hasAnyEmotionMarksStmt->fetchColumn() > 0;
+}
+
+// 1.1.51 - link that re-runs the same search with the "only not started"
+// box off. Built from the validated inputs, not from raw $_GET.
+$showStartedUrl = 'recommendations.php?' . http_build_query([
+    'tags'     => $selectedTagIds,
+    'emotions' => $selectedEmotions,
+    'unseen'   => '0',
+]);
 
 // Pre-compute selection counts for the result/header templates.
 $totalTagsSelected     = count($selectedTagIds);
@@ -402,6 +498,25 @@ $useCombinedTemplates  = ($totalEmotionsSelected > 0);
             border-radius: 6px;
             color: #666;
             font-size: 0.92em;
+        }
+
+        /* 1.1.51 - community note under the emotion badges, the "only not
+           started" box and the "N hidden" line above the results. */
+        .rec-emotion-note {
+            flex-basis: 100%;
+            text-align: center;
+            margin: 4px 0 0;
+            color: #777;
+            font-size: 0.85em;
+        }
+        .rec-unseen {
+            text-align: center;
+            margin: 0 auto 8px;
+        }
+        .rec-unseen label { cursor: pointer; }
+        .rec-hidden-note {
+            color: #777;
+            font-size: 0.9em;
         }
 
         .rec-actions {
@@ -668,7 +783,7 @@ $useCombinedTemplates  = ($totalEmotionsSelected > 0);
                 <?php if (!$hasAnyEmotionMarks): ?>
                     <div class="rec-emotion-empty-hint">
                         <i class="fas fa-info-circle"></i>
-                        <?php echo htmlspecialchars(t('recommendations.emotion.empty_marks'), ENT_QUOTES, 'UTF-8'); ?>
+                        <?php echo htmlspecialchars(t($communityEmotions ? 'recommendations.emotion.empty_marks_community' : 'recommendations.emotion.empty_marks'), ENT_QUOTES, 'UTF-8'); ?>
                     </div>
                 <?php else: ?>
                     <?php $emotionPanelOpen = !empty($selectedEmotions); ?>
@@ -703,6 +818,24 @@ $useCombinedTemplates  = ($totalEmotionsSelected > 0);
                                 </span>
                             </label>
                         <?php endforeach; ?>
+                        <?php if ($communityEmotions): ?>
+                            <p class="rec-emotion-note">
+                                <?php echo htmlspecialchars(t('recommendations.emotion.community_note'), ENT_QUOTES, 'UTF-8'); ?>
+                            </p>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($unseenAvailable): ?>
+                    <!-- 1.1.51 - hidden 0 first, checkbox 1 second: PHP keeps
+                         the last value, so an unticked box still sends 0. -->
+                    <div class="rec-unseen">
+                        <input type="hidden" name="unseen" value="0">
+                        <label>
+                            <input type="checkbox" name="unseen" value="1"
+                                   <?php echo $unseenOnly ? 'checked' : ''; ?>>
+                            <?php echo htmlspecialchars(t('recommendations.unseen.label'), ENT_QUOTES, 'UTF-8'); ?>
+                        </label>
                     </div>
                 <?php endif; ?>
 
@@ -858,7 +991,10 @@ $useCombinedTemplates  = ($totalEmotionsSelected > 0);
 
         <?php if ((!empty($selectedTagIds) || !empty($selectedEmotions)) && empty($results)): ?>
             <div class="rec-empty">
-                <?php if ($useCombinedTemplates): ?>
+                <?php if ($hiddenStarted > 0): ?>
+                    <?php echo htmlspecialchars(sprintf(t('recommendations.unseen.all_hidden'), $hiddenStarted), ENT_QUOTES, 'UTF-8'); ?>
+                    <a href="<?php echo htmlspecialchars($showStartedUrl, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(t('recommendations.unseen.show_link'), ENT_QUOTES, 'UTF-8'); ?></a>
+                <?php elseif ($useCombinedTemplates): ?>
                     <?php echo t('recommendations.no_match_combined'); ?>
                 <?php else: ?>
                     <?php echo t('recommendations.no_match'); ?>
@@ -881,6 +1017,12 @@ $useCombinedTemplates  = ($totalEmotionsSelected > 0);
                     <?php echo sprintf(t('recommendations.result.count_combined'), count($results), $totalTagsSelected, $totalEmotionsSelected); ?>
                 <?php else: ?>
                     <?php echo sprintf(t('recommendations.result.count'), count($results), $totalTagsSelected); ?>
+                <?php endif; ?>
+                <?php if ($hiddenStarted > 0): ?>
+                    <br><span class="rec-hidden-note">
+                        <?php echo htmlspecialchars(sprintf(t('recommendations.unseen.hidden_count'), $hiddenStarted), ENT_QUOTES, 'UTF-8'); ?>
+                        <a href="<?php echo htmlspecialchars($showStartedUrl, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(t('recommendations.unseen.show_link'), ENT_QUOTES, 'UTF-8'); ?></a>
+                    </span>
                 <?php endif; ?>
             </p>
 
@@ -937,9 +1079,12 @@ $useCombinedTemplates  = ($totalEmotionsSelected > 0);
                                         <span class="rec-matched-label">
                                             <?php echo htmlspecialchars(t('recommendations.matched.emotion_prefix'), ENT_QUOTES, 'UTF-8'); ?>
                                         </span>
-                                        <?php foreach ($r['matched_emotion_names'] as $em): ?>
-                                            <span class="emotion-badge emotion-badge-<?php echo emotion_css_class($em); ?>">
-                                                <?php echo htmlspecialchars(emotion_label($em)); ?>
+                                        <?php foreach ($r['matched_emotion_names'] as $em):
+                                            // 1.1.51 - online: how many members marked it
+                                            $emCount = (int)($r['matched_emotion_counts'][$em] ?? 0);
+                                        ?>
+                                            <span class="emotion-badge emotion-badge-<?php echo emotion_css_class($em); ?>"<?php if ($communityEmotions): ?> title="<?php echo htmlspecialchars(sprintf(t('recommendations.matched.emotion_marks'), $emCount), ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>>
+                                                <?php echo htmlspecialchars(emotion_label($em)); ?><?php if ($communityEmotions): ?> · <?php echo $emCount; ?><?php endif; ?>
                                             </span>
                                         <?php endforeach; ?>
                                     </div>

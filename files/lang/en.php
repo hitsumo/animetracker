@@ -839,6 +839,8 @@ return [
     'help.recom.scoop.text'                  => 'Think of each selected sentence as a scoop. Each scoop pulls its matches from the list. If you pick multiple scoops, the anime that match the most scoops bubble to the top.',
     'help.recom.scoop.box_title'             => '<i class="fas fa-check"></i> Important:',
     'help.recom.scoop.box_body'              => 'Picking many sentences does not narrow the results — it sharpens the ranking. The system uses OR + scoring rather than AND.',
+    'help.recom.emotion.h3'                  => 'Recommending by Emotion',
+    'help.recom.emotion.text'                => 'The <strong>Show Emotions</strong> button under the sentence panel opens the nine emotions. Every emotion you pick is a scoop too and is scored together with the sentences. On an online (multi-user) installation the marks of <strong>every member</strong> are counted: pick "Made Me Laugh" and you get the anime any member marked "Made Me Laugh". The number on the badge is how many members marked that emotion; who marked it is never shown. Among anime with the same score, the one with more marks comes first. On the same installation, when you are logged in, the <strong>Only ones I have not started</strong> box is ticked by default: anime you watched, are watching, put on hold or dropped, and any anime you have counted episodes for, are left out of the results. The number hidden is shown above the results, and one click shows them too. On a single-user installation on your own computer the only marks are yours, so an emotion search there means "the anime I marked with this emotion".',
     'help.recom.surprise.h3'                 => 'Surprise Me',
     'help.recom.surprise.text'               => 'If you press "Surprise Me" without picking any sentence, the system picks a random anime you have not watched yet. A quick fix when you can\'t decide.',
     'help.recom.search.h3'                   => 'Search Box',
@@ -1271,6 +1273,14 @@ return [
     'recommendations.no_match_combined'             => 'No anime matched the selected sentences and emotions. Try fewer criteria and submit again.',
     'recommendations.result.count_combined'         => '<strong>%d</strong> anime found (%d sentence(s), %d emotion(s) selected).',
     'recommendations.group.matched_combined'        => '%d criteria matched',
+    // 1.1.51 - online emotion pool = every member's marks + "only not started" box
+    'recommendations.emotion.empty_marks_community' => 'No member has marked any anime with an emotion yet. You can place the first mark with the emotion buttons on an anime detail page.',
+    'recommendations.emotion.community_note'        => 'Every member\'s marks are counted; who marked what is never shown.',
+    'recommendations.matched.emotion_marks'         => '%d member(s) marked this',
+    'recommendations.unseen.label'                  => 'Only ones I have not started (leave out anime I watched, am watching, put on hold or dropped)',
+    'recommendations.unseen.hidden_count'           => '%d anime hidden because they are already in your list.',
+    'recommendations.unseen.all_hidden'             => 'All %d matching anime are already in your list; nothing you have not started is left.',
+    'recommendations.unseen.show_link'              => 'Show them too',
 
     // -----------------------------------------------------------------
     // about.php
