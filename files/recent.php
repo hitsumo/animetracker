@@ -499,6 +499,7 @@ $tabText = [
 </head>
 <body>
 <div class="recent-container">
+    <?php echo guest_lang_links(); ?>
     <div class="recent-header">
         <h1><i class="fas fa-clock"></i> <?php echo htmlspecialchars(t('recent.heading'), ENT_QUOTES, 'UTF-8'); ?></h1>
         <a href="index.php" class="back-btn"><i class="fas fa-arrow-left"></i> <?php echo htmlspecialchars(t('recent.back_to_list'), ENT_QUOTES, 'UTF-8'); ?></a>

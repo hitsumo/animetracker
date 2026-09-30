@@ -178,14 +178,16 @@ function getMediaTypeIcon($type) {
 <html lang="<?php echo current_lang(); ?>">
 <head>
     <meta charset="UTF-8">
-    <title><?php echo htmlspecialchars(display_title($anime)); ?> - <?php echo htmlspecialchars(t('chronology.title_suffix'), ENT_QUOTES, 'UTF-8'); ?></title>
+    <?php // 1.2.0: Ingilizce surumde [en] etiketli ad da basliga girer. ?>
+    <?php $seoTitle = seo_title_with_en(display_title($anime), $anime['alternative_titles'] ?? ''); ?>
+    <title><?php echo htmlspecialchars($seoTitle); ?> - <?php echo htmlspecialchars(t('chronology.title_suffix'), ENT_QUOTES, 'UTF-8'); ?></title>
     <?php
     // 1.1.30 - SEO meta. This page is one of the three things the project
     // does that nobody else does in Turkish (watch order), so it is
     // indexed rather than hidden. The canonical drops ?mode=: the two
     // modes reorder the SAME list and must not compete as two pages.
     echo seo_head([
-        'title'       => display_title($anime) . ' - ' . t('chronology.title_suffix'),
+        'title'       => $seoTitle . ' - ' . t('chronology.title_suffix'),
         'description' => sprintf(t('seo.chronology.description_fmt'), display_title($anime)),
         'canonical'   => 'chronology.php?id=' . (int)$anime['id'],
         'image'       => $anime['image_path'] ?? '',
@@ -199,6 +201,7 @@ function getMediaTypeIcon($type) {
 </head>
 <body>
     <div class="chronology-container">
+        <?php echo guest_lang_links(); ?>
         <h1 class="chronology-title">
             <?php echo htmlspecialchars(display_title($anime)); ?>
             <small><?php echo htmlspecialchars(t('chronology.subtitle'), ENT_QUOTES, 'UTF-8'); ?></small>

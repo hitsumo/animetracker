@@ -182,7 +182,25 @@ function seriesMediaIcon($type) {
     <?php /* 1.1.43: baslik "X Izleme Sirasi - Seri Kronolojisi". Search Console
        "tensei shitara slime izleme sirasi" sorgusunda bu sayfayi degil filmin
        detayini gosterdi; baslikta aranan kelime yoktu. Arayuzdeki ad ayni. */ ?>
-    <title><?php echo htmlspecialchars(sprintf(t('seo.series.title_fmt'), $seriesName), ENT_QUOTES, 'UTF-8'); ?></title>
+    <?php
+    $seoCanonicalId = seo_series_head_id($pdo, $reqAnime['series_name'] ?? '', $id);
+    // 1.2.0: Ingilizce surumde serinin Ingilizce adi da basliga girer
+    // ("... (That Time I Got Reincarnated as a Slime) Watch Order").
+    // Ad, seriyi TEMSIL EDEN kaydin [en] etiketli alternatif basligidir -
+    // canonical ile ayni satir. Turkcede sorgu hic atilmaz.
+    $seoSeriesTitle = $seriesName;
+    if (current_lang() === 'en') {
+        try {
+            $altStmt = $pdo->prepare("SELECT alternative_titles FROM animes WHERE id = ? AND is_adult = 0");
+            $altStmt->execute([(int)$seoCanonicalId]);
+            $seoSeriesTitle = seo_title_with_en($seriesName, (string)$altStmt->fetchColumn());
+            $altStmt->closeCursor();
+        } catch (PDOException $e) {
+            error_log('[anime_tracker] series_timeline en title: ' . $e->getMessage());
+        }
+    }
+    ?>
+    <title><?php echo htmlspecialchars(sprintf(t('seo.series.title_fmt'), $seoSeriesTitle), ENT_QUOTES, 'UTF-8'); ?></title>
     <?php
     // 1.1.30 - SEO meta. This page draws the SAME timeline for every
     // member of a series: ?id=12 and ?id=13 of one series are one page at
@@ -198,12 +216,11 @@ function seriesMediaIcon($type) {
     // canonical'in kendisi DEGILSE 'noindex, follow': dizinde tek bir
     // adres kalir, baglantilar izlenmeye devam eder. Canonical adresin
     // kendisi - sitemap'in listeledigi id - eskisi gibi indekslenir.
-    $seoCanonicalId = seo_series_head_id($pdo, $reqAnime['series_name'] ?? '', $id);
     $seoIsCanonicalUrl = ((int)$seoCanonicalId === (int)$id)
         && trim((string)($_GET['mode']  ?? '')) === ''
         && trim((string)($_GET['chain'] ?? '')) === '';
     echo seo_head([
-        'title'       => sprintf(t('seo.series.title_fmt'), $seriesName),
+        'title'       => sprintf(t('seo.series.title_fmt'), $seoSeriesTitle),
         'description' => sprintf(t('seo.series.description_fmt'), $seriesName),
         'canonical'   => 'series_timeline.php?id=' . (int)$seoCanonicalId,
         'type'        => 'article',
@@ -513,6 +530,7 @@ function seriesMediaIcon($type) {
 </head>
 <body>
 <div class="st-container<?php echo $stMode === 'graph' ? ' st-container--wide' : ''; ?>">
+    <?php echo guest_lang_links(); ?>
     <div class="st-header">
         <h1><?php echo htmlspecialchars($seriesName); ?></h1>
         <div class="subtitle"><?php echo htmlspecialchars(t('series_timeline.subtitle'), ENT_QUOTES, 'UTF-8'); ?></div>

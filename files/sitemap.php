@@ -66,16 +66,51 @@ if ($page < 0 || $page > $chunks) {
 }
 
 /**
- * Print one <url> block.
+ * Print the <url> blocks of one entry - one per language it is published
+ * in (1.2.0).
  *
  * The loc is escaped: it carries a query string, and a bare '&' would
  * make the document invalid XML.
+ *
+ * 'langs' lists the languages of the entry; absent means every language
+ * (static pages, chronology, series). When there is more than one, each
+ * block carries the full set of xhtml:link alternates plus x-default -
+ * the same set the page itself prints in its <head> (seo_head()), since
+ * search engines ignore alternates that do not point back at each other.
+ * A detail page published in Turkish only gets a single plain block.
  */
 function sitemap_url_node(array $entry) {
-    $loc = htmlspecialchars(seo_url($entry['loc']), ENT_QUOTES, 'UTF-8');
+    $langs = isset($entry['langs']) ? $entry['langs'] : seo_langs();
+    if (!$langs) {
+        return;
+    }
+
+    $alternates = [];
+    if (count($langs) > 1) {
+        foreach (seo_alternate_locs($entry['loc']) as $hl => $path) {
+            if ($hl === 'x-default' || in_array($hl, $langs, true)) {
+                $alternates[$hl] = htmlspecialchars(seo_url($path), ENT_QUOTES, 'UTF-8');
+            }
+        }
+    }
+
+    foreach ($langs as $lang) {
+        sitemap_url_block($entry, seo_lang_path($entry['loc'], $lang), $alternates);
+    }
+}
+
+/**
+ * Print a single <url> block.
+ */
+function sitemap_url_block(array $entry, $path, array $alternates) {
+    $loc = htmlspecialchars(seo_url($path), ENT_QUOTES, 'UTF-8');
 
     echo "  <url>\n";
     echo "    <loc>" . $loc . "</loc>\n";
+    foreach ($alternates as $hl => $href) {
+        echo '    <xhtml:link rel="alternate" hreflang="' . htmlspecialchars($hl, ENT_QUOTES, 'UTF-8')
+            . '" href="' . $href . '"/>' . "\n";
+    }
     if (!empty($entry['lastmod'])) {
         echo "    <lastmod>" . htmlspecialchars($entry['lastmod'], ENT_QUOTES, 'UTF-8') . "</lastmod>\n";
     }
@@ -108,7 +143,8 @@ if ($page === 0 && $chunks > 1) {
 // ---------------------------------------------------------------------
 // A urlset: either the whole site (small catalog) or one chunk
 // ---------------------------------------------------------------------
-echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"'
+    . ' xmlns:xhtml="http://www.w3.org/1999/xhtml">' . "\n";
 
 // The static pages ride along with the first chunk (and with the single
 // urlset of a small catalog) so they appear exactly once.

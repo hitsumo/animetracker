@@ -1,0 +1,33 @@
+-- Anime Tracker - Migration 1.2.0
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- =====================================================================
+-- 1.2.0 - SEMA DEGISIKLIGI YOKTUR
+-- =====================================================================
+--
+-- Bu dosya bilerek BOSTUR. Runner yorumlari temizler, calistiracak ifade
+-- bulamaz ve yalnizca settings.version'i 1.2.0'a tasir. Klasorun var
+-- olmasi gerekiyor: surum atlanirsa MigrationManager sirayi kaybeder.
+-- (Ayni kalip 1.1.25 / 1.1.30 / 1.1.33 / 1.1.34 / 1.1.37 / 1.1.39 /
+-- 1.1.42 / 1.1.48 / 1.1.49 / 1.1.51'de kullanildi.)
+--
+-- Siralama: 1.1.51'den sonra 1.2.0 gelir; MigrationManager klasorleri
+-- version_compare ile siralar (1.1.51 < 1.2.0), yani atlama yok.
+--
+-- ---------------------------------------------------------------------
+-- Bu surumde ne var: dil adreste (?lang=en) + hreflang
+-- ---------------------------------------------------------------------
+--
+-- Arayuz dili yalniz oturumda / kullanici tercihinde yasiyordu; arama
+-- motoru cerez tasimadigi icin her sayfanin yalniz Turkcesini goruyordu.
+-- Artik ?lang=en o istegi Ingilizce basar (misafirde oturuma da yazilir,
+-- uyenin tercihine yazilmaz), cevrimici kurulumda indekslenebilir her
+-- sayfa hreflang (tr / en / x-default) tasir, sitemap ve IndexNow iki
+-- dilin adreslerini verir. Hepsi kod; veri yazilmaz.
+--
+-- Yeni tablo / kolon / indeks YOK.
+--
+-- MERKEZ KATALOG: is YOK.
+-- =====================================================================

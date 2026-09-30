@@ -54,6 +54,7 @@ lang_init($pdo);
 </head>
 <body>
 <div class="help-container">
+    <?php echo guest_lang_links(); ?>
     <a href="index.php" class="back-link"><?php echo t('help.back_to_home'); ?></a>
 
     <h1><i class="fas fa-question-circle icon-inline"></i> <?php echo htmlspecialchars(t('help.heading'), ENT_QUOTES, 'UTF-8'); ?></h1>

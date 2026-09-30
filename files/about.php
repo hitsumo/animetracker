@@ -96,6 +96,7 @@ lang_init($pdo);
 </head>
 <body>
     <div class="container">
+        <?php echo guest_lang_links(); ?>
         <div class="about-container">
             <img src="img/anime-tracker-logo.jpg" alt="Anime Tracker Logo" class="about-logo">
             <h1 class="about-title">Anime Tracker</h1>

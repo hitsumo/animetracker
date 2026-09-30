@@ -926,6 +926,7 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
                 <?php echo htmlspecialchars(t('index.warn.catalog_push_failed'), ENT_QUOTES, 'UTF-8'); ?>
             </div>
         <?php endif; ?>
+        <?php echo guest_lang_links(); ?>
         <div class="header-section">
             <a href="recommendations.php" class="about-link"><?php echo htmlspecialchars(t('nav.what_to_watch'), ENT_QUOTES, 'UTF-8'); ?></a>
             <a href="recent.php" class="about-link"><?php echo htmlspecialchars(t('nav.recent_edits'), ENT_QUOTES, 'UTF-8'); ?></a>

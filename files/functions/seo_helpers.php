@@ -163,6 +163,182 @@ function seo_url($path, $base = '') {
 }
 
 // =====================================================================
+// SECTION: language versions (1.2.0)
+// =====================================================================
+//
+// Until 1.2.0 the interface language lived only in the session / user
+// preference. A crawler carries no cookie, so it saw every page in the
+// default language only: Search Console (27 Sep 2026, 3 months) showed
+// 1.105 impressions / 39 clicks from Turkey and 217 / 2 from the other 43
+// countries, at positions 44-72 - English queries were answered with a
+// Turkish page. The address now carries the language (?lang=en, see
+// lang_path() in i18n_helpers.php) and every indexable page announces its
+// versions to search engines.
+//
+// DECISIONS (all 27 Sep 2026):
+//   - The bare address stays Turkish: existing Turkish rankings are not
+//     touched at all.
+//   - x-default points at ENGLISH - the version for a visitor whose
+//     language is neither of ours.
+//   - A detail page whose synopsis exists ONLY in Turkish is not indexed
+//     in English (the English page would show the Turkish text - a mixed
+//     language page). One rule, one place: seo_row_indexable_in_lang().
+
+/**
+ * Languages the site is published in. Wraps lang_supported() so pages
+ * that never load the i18n layer still get a sane answer.
+ *
+ * @return string[]
+ */
+function seo_langs() {
+    return function_exists('lang_supported') ? lang_supported() : ['tr'];
+}
+
+/**
+ * Application-relative path of $path in language $lang.
+ *
+ * @param string $path
+ * @param string $lang
+ * @return string
+ */
+function seo_lang_path($path, $lang) {
+    return function_exists('lang_path') ? lang_path($path, $lang) : (string)$path;
+}
+
+/**
+ * Every language version of one page, keyed by hreflang value, x-default
+ * last. Relative paths - the caller makes them absolute.
+ *
+ * @param string $path Canonical path without a language, e.g. 'about.php'.
+ * @return array<string,string>
+ */
+function seo_alternate_locs($path) {
+    $langs = seo_langs();
+    if (count($langs) < 2) {
+        return [];
+    }
+    $locs = [];
+    foreach ($langs as $code) {
+        $locs[$code] = seo_lang_path($path, $code);
+    }
+    $xDefault = in_array('en', $langs, true) ? 'en' : $langs[0];
+    $locs['x-default'] = $locs[$xDefault];
+    return $locs;
+}
+
+/**
+ * Does the request carry a ?lang= that adds nothing to the address?
+ *
+ * True for the default language spelled out ('?lang=tr') and for any
+ * value that is not a supported language: both render the bare page.
+ * A supported non-default language ('?lang=en') is a real version.
+ *
+ * @return bool
+ */
+function seo_lang_param_is_redundant() {
+    if (!isset($_GET['lang']) || !function_exists('lang_url_param')) {
+        return false;
+    }
+    $lang = lang_url_param();
+    return $lang === null || $lang === lang_default();
+}
+
+/**
+ * Open Graph locale for a language code.
+ *
+ * @param string $lang
+ * @return string
+ */
+function seo_og_locale($lang) {
+    $map = ['tr' => 'tr_TR', 'en' => 'en_US'];
+    return $map[$lang] ?? $lang;
+}
+
+/**
+ * Is this catalog row worth indexing IN THIS LANGUAGE?
+ *
+ * First the 1.1.37 rule (seo_row_has_content: synopsis, poster or a
+ * chronology note). On top of it, for a non-default language: when the
+ * row has a Turkish synopsis but no English one, the English page falls
+ * back to the Turkish text, so that version is not indexed. A row with
+ * no synopsis at all (poster / notes only) is indexable in every
+ * language - nothing on it is in the wrong language.
+ *
+ * The legacy single-language `synopsis` column counts as Turkish, which
+ * is what it held before the 0.7.1 split.
+ *
+ * @param array  $row  Needs synopsis_tr, synopsis_en, synopsis, image_path
+ *                     and (optionally) has_markers.
+ * @param string $lang
+ * @return bool
+ */
+function seo_row_indexable_in_lang(array $row, $lang) {
+    if (!seo_row_has_content($row)) {
+        return false;
+    }
+    if ($lang !== 'en') {
+        return true;
+    }
+    $filled = function ($field) use ($row) {
+        return isset($row[$field]) && trim((string)$row[$field]) !== '';
+    };
+    if (($filled('synopsis_tr') || $filled('synopsis')) && !$filled('synopsis_en')) {
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Languages a catalog row's DETAIL page is published in (sitemap,
+ * IndexNow, and the page's own hreflang decision all ask this).
+ *
+ * @param array $row See seo_row_indexable_in_lang().
+ * @return string[] May be empty (a thin stub).
+ */
+function seo_row_langs(array $row) {
+    $langs = [];
+    foreach (seo_langs() as $code) {
+        if (seo_row_indexable_in_lang($row, $code)) {
+            $langs[] = $code;
+        }
+    }
+    return $langs;
+}
+
+/**
+ * Page title with the English name appended on the English version.
+ *
+ * English searches mostly use the English title ("that time i got
+ * reincarnated as a slime in order"), which the Romaji page title does
+ * not contain. When the row carries an [en]-tagged alternative title and
+ * the English page is rendering, it is added in parentheses. Skipped when
+ * the title already contains it (a viewer whose title preference is
+ * English already sees it as the main title).
+ *
+ * @param string      $title          The title as the page shows it.
+ * @param string|null $altTitlesRaw   animes.alternative_titles.
+ * @return string Plain text - the caller escapes it.
+ */
+function seo_title_with_en($title, $altTitlesRaw) {
+    $title = (string)$title;
+    if (!function_exists('current_lang') || current_lang() !== 'en'
+        || !function_exists('alt_title_for_lang')) {
+        return $title;
+    }
+    $en = trim((string)alt_title_for_lang((string)$altTitlesRaw, 'en'));
+    if ($en === '') {
+        return $title;
+    }
+    $found = function_exists('mb_stripos')
+        ? mb_stripos($title, $en, 0, 'UTF-8')
+        : stripos($title, $en);
+    if ($found !== false) {
+        return $title;
+    }
+    return $title . ' (' . $en . ')';
+}
+
+// =====================================================================
 // SECTION: <head> output
 // =====================================================================
 
@@ -249,7 +425,19 @@ function seo_excerpt($text, $limit = 160) {
  *   type        string  og:type, defaults to 'website'.
  *   noindex     bool    Force noindex on a page that IS reachable in
  *                       online mode but has no search value.
+ *   hreflang    bool    1.2.0. Default true. False when ANOTHER language
+ *                       version of this page is not indexable (e.g. a
+ *                       detail page whose synopsis exists only in
+ *                       Turkish) - an alternate must never point at a
+ *                       noindex page.
  *   base        string  '' or '../' - see seo_base_url().
+ *
+ * 1.2.0 - language in the address. The canonical is written in the
+ * ACTIVE language (lang_path(): bare address for the default language,
+ * '?lang=en' otherwise), and an indexable page lists every language
+ * version as <link rel="alternate" hreflang>, plus x-default. The set is
+ * identical on every version of the page - search engines drop hreflang
+ * entirely when the versions do not point at each other.
  *
  * Self-host mode overrides everything: every page gets noindex, nofollow.
  * A page-level noindex uses "noindex, follow" instead, so the crawler
@@ -272,9 +460,11 @@ function seo_head(array $opts = []) {
     $description = isset($opts['description']) ? seo_excerpt($opts['description']) : '';
     $type        = isset($opts['type']) && $opts['type'] !== '' ? (string)$opts['type'] : 'website';
 
+    $curLang = function_exists('current_lang') ? current_lang() : 'tr';
+
     $canonical = '';
     if (!empty($opts['canonical'])) {
-        $canonical = seo_url($opts['canonical'], $base);
+        $canonical = seo_url(seo_lang_path($opts['canonical'], $curLang), $base);
     }
 
     // An image_path is normally a local path ('uploads/x.jpg'), but a
@@ -300,17 +490,42 @@ function seo_head(array $opts = []) {
         $tags[] = '<link rel="canonical" href="' . $esc($canonical) . '">';
     }
 
+    // 1.2.0: '?lang=tr' (the default language spelled out - the guest TR
+    // link produces it so it can reset a session left on English) and an
+    // unknown '?lang=xx' render the SAME page as the bare address. 1.1.39
+    // measured that Google indexes such copies despite the canonical, so
+    // they get the same answer as the list copies: noindex, follow.
+    if (seo_lang_param_is_redundant()) {
+        $opts['noindex'] = true;
+    }
+
     if (!seo_indexing_allowed()) {
         $tags[] = '<meta name="robots" content="noindex, nofollow">';
     } elseif (!empty($opts['noindex'])) {
         $tags[] = '<meta name="robots" content="noindex, follow">';
     }
 
+    // 1.2.0 - hreflang. Only on a page that is itself indexable and has a
+    // canonical: an alternate set on a noindex page is ignored anyway, and
+    // on a self-host install nothing is indexable at all.
+    if ($canonical !== ''
+        && seo_indexing_allowed()
+        && empty($opts['noindex'])
+        && (!array_key_exists('hreflang', $opts) || $opts['hreflang'])) {
+        foreach (seo_alternate_locs($opts['canonical']) as $hl => $loc) {
+            $tags[] = '<link rel="alternate" hreflang="' . $esc($hl) . '" href="'
+                . $esc(seo_url($loc, $base)) . '">';
+        }
+    }
+
     $tags[] = '<meta property="og:type" content="' . $esc($type) . '">';
     $tags[] = '<meta property="og:site_name" content="' . $esc($siteName) . '">';
-    $tags[] = '<meta property="og:locale" content="'
-        . $esc((function_exists('current_lang') && current_lang() === 'en') ? 'en_US' : 'tr_TR')
-        . '">';
+    $tags[] = '<meta property="og:locale" content="' . $esc(seo_og_locale($curLang)) . '">';
+    foreach (seo_langs() as $code) {
+        if ($code !== $curLang) {
+            $tags[] = '<meta property="og:locale:alternate" content="' . $esc(seo_og_locale($code)) . '">';
+        }
+    }
     $tags[] = '<meta property="og:title" content="' . $esc($title) . '">';
     if ($description !== '') {
         $tags[] = '<meta property="og:description" content="' . $esc($description) . '">';
@@ -339,7 +554,8 @@ function seo_head(array $opts = []) {
  * The protocol caps a single sitemap file at 50 000 URLs / 50 MB. One
  * anime contributes up to three URLs (detail + chronology + the series
  * timeline it heads), so 2 000 rows stays far inside the limit while
- * keeping the file small enough to be fetched comfortably.
+ * keeping the file small enough to be fetched comfortably. 1.2.0: every
+ * URL now appears once per language (two), i.e. at most 12 000 per chunk.
  */
 define('SEO_SITEMAP_CHUNK', 2000);
 
@@ -646,6 +862,7 @@ function seo_sitemap_anime_entries($pdo, $offset = 0, $limit = SEO_SITEMAP_CHUNK
             SELECT a.id,
                    GREATEST(a.updated_at, COALESCE(a.episodes_updated_at, a.updated_at)) AS updated_at,
                    a.series_name,
+                   a.synopsis_tr, a.synopsis_en, a.synopsis, a.image_path,
                    EXISTS(SELECT 1 FROM chronology_markers m
                            WHERE m.anime_id = a.id) AS has_markers,
                    (SELECT MIN(a2.id) FROM animes a2
@@ -673,6 +890,7 @@ function seo_sitemap_anime_entries($pdo, $offset = 0, $limit = SEO_SITEMAP_CHUNK
             'lastmod'    => $lastmod,
             'changefreq' => 'weekly',
             'priority'   => '0.8',
+            'langs'      => seo_row_langs($row),
         ];
 
         if (!empty($row['has_markers'])) {
@@ -681,6 +899,7 @@ function seo_sitemap_anime_entries($pdo, $offset = 0, $limit = SEO_SITEMAP_CHUNK
                 'lastmod'    => $lastmod,
                 'changefreq' => 'monthly',
                 'priority'   => '0.7',
+                'langs'      => seo_langs(),
             ];
         }
 
@@ -690,6 +909,7 @@ function seo_sitemap_anime_entries($pdo, $offset = 0, $limit = SEO_SITEMAP_CHUNK
                 'lastmod'    => $lastmod,
                 'changefreq' => 'monthly',
                 'priority'   => '0.6',
+                'langs'      => seo_langs(),
             ];
         }
     }
@@ -792,15 +1012,25 @@ function seo_anime_locs($pdo, $animeId, $forceChronology = false) {
         return [];
     }
 
-    $locs = ['anime_details.php?id=' . $animeId];
+    // 1.2.0: every published language version is announced - the detail
+    // page only in the languages seo_row_langs() allows, the other two in
+    // all of them (the same split as the sitemap).
+    $locs = [];
+    foreach (seo_row_langs($row) as $code) {
+        $locs[] = seo_lang_path('anime_details.php?id=' . $animeId, $code);
+    }
 
     if ($forceChronology || !empty($row['has_markers'])) {
-        $locs[] = 'chronology.php?id=' . $animeId;
+        foreach (seo_langs() as $code) {
+            $locs[] = seo_lang_path('chronology.php?id=' . $animeId, $code);
+        }
     }
 
     if (!empty($row['series_name'])
         && seo_series_head_id($pdo, $row['series_name'], $animeId) === $animeId) {
-        $locs[] = 'series_timeline.php?id=' . $animeId;
+        foreach (seo_langs() as $code) {
+            $locs[] = seo_lang_path('series_timeline.php?id=' . $animeId, $code);
+        }
     }
 
     return $locs;

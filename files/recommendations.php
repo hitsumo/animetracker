@@ -628,6 +628,7 @@ $useCombinedTemplates  = ($totalEmotionsSelected > 0);
 </head>
 <body>
 <div class="container">
+    <?php echo guest_lang_links(); ?>
     <div class="header-section">
         <a href="about.php" class="about-link"><?php echo htmlspecialchars(t('nav.about'), ENT_QUOTES, 'UTF-8'); ?></a>
 

@@ -151,7 +151,7 @@ function lang_init($pdo) {
         return; // already initialised this request
     }
 
-    $allowed = ['tr', 'en'];
+    $allowed = lang_supported();
     // display_language is a per-user preference (user_pref, 1.0.1), read for
     // the current user (id 1 when MULTI_USER_MODE is off).
     //
@@ -170,6 +170,25 @@ function lang_init($pdo) {
     }
     if (!in_array($lang, $allowed, true)) {
         $lang = 'tr';
+    }
+
+    // 1.2.0 - DIL ADRESTE. ?lang=en o istegi o dilde basar, kayitli
+    // tercihten once gelir. Neden: arama motoru cerez tasimaz; dil yalniz
+    // oturumda/tercihte yasarken Google her sayfanin yalniz varsayilan
+    // dilini (TR) goruyordu - Ingilizce surum onun icin YOKTU.
+    //
+    // Misafir: secim oturuma da yazilir, boylece Ingilizce aramadan gelen
+    // ziyaretci parametresiz baglantilara tikladikca Ingilizce devam eder.
+    // Uye (ve self-host'un sahibi): YALNIZ bu istek; user_pref'e yazilmaz.
+    // set_language.php'nin "GET olmasin" gerekcesi (dis bir baglanti
+    // birinin KAYITLI tercihini degistirmesin) boylece korunur - misafirin
+    // oturum degeri zaten kalici bir tercih degildir.
+    $urlLang = lang_url_param();
+    if ($urlLang !== null) {
+        $lang = $urlLang;
+        if ($uid === null && session_status() === PHP_SESSION_ACTIVE) {
+            $_SESSION['guest_display_language'] = $urlLang;
+        }
     }
 
     // 1.1.37 - YEDEK DIL INGILIZCE (onceden Turkce idi).
@@ -225,6 +244,138 @@ function _lang_load($lang) {
 function current_lang() {
     $cache = _lang_cache();
     return $cache['lang'];
+}
+
+// =====================================================================
+// 1.2.0 - DIL ADRESTE (?lang=en)
+// ---------------------------------------------------------------------
+// Ciplak adres varsayilan dildir (TR); oteki dil ayni adrese ?lang=<kod>
+// eklenerek istenir. /en/ oneki bilincli olarak SECILMEDI: sunucuda
+// yonlendirme kurali ister, alt klasor kurulumlarini (localhost/
+// animetracker/files/) ve goreli baglantilari ('../style.css') bozar.
+// Kanonik adres, hreflang ve sitemap bu dort fonksiyondan uretilir.
+// =====================================================================
+
+/**
+ * Arayuz dilleri. Yeni dil: lang/<kod>.php + bu listeye bir satir.
+ *
+ * @return string[]
+ */
+function lang_supported() {
+    return ['tr', 'en'];
+}
+
+/**
+ * Parametresiz (ciplak) adresin dili.
+ *
+ * @return string
+ */
+function lang_default() {
+    return 'tr';
+}
+
+/**
+ * Adreste gecerli bir ?lang= var mi?
+ *
+ * @return string|null Desteklenen dil kodu, yoksa null.
+ */
+function lang_url_param() {
+    $raw = $_GET['lang'] ?? null;
+    if (!is_string($raw)) {
+        return null;
+    }
+    $raw = strtolower(trim($raw));
+    return in_array($raw, lang_supported(), true) ? $raw : null;
+}
+
+/**
+ * Uygulamaya gore goreli bir yolu verilen dilin adresine cevirir.
+ *
+ * Varsayilan dilde yol oldugu gibi doner (ciplak adres); oteki dilde
+ * 'lang=<kod>' eklenir. Yolda zaten bir lang varsa once o atilir, yani
+ * sonuc her zaman tek ve tutarli bir adrestir.
+ *
+ * @param string $path Ornek: 'anime_details.php?id=5', 'help/help_sync.php'.
+ * @param string $lang
+ * @return string
+ */
+function lang_path($path, $lang) {
+    $path = (string)$path;
+    $hash = '';
+    $pos  = strpos($path, '#');
+    if ($pos !== false) {
+        $hash = substr($path, $pos);
+        $path = substr($path, 0, $pos);
+    }
+
+    $query = '';
+    $pos   = strpos($path, '?');
+    if ($pos !== false) {
+        $query = substr($path, $pos + 1);
+        $path  = substr($path, 0, $pos);
+    }
+
+    $params = [];
+    if ($query !== '') {
+        foreach (explode('&', $query) as $pair) {
+            if ($pair === '') {
+                continue;
+            }
+            $name = strtolower(urldecode(explode('=', $pair, 2)[0]));
+            if ($name !== 'lang') {
+                $params[] = $pair;
+            }
+        }
+    }
+    if ($lang !== lang_default()) {
+        $params[] = 'lang=' . rawurlencode($lang);
+    }
+
+    return $path . ($params ? '?' . implode('&', $params) : '') . $hash;
+}
+
+/**
+ * Misafire gorunen duz TR | EN baglantilari (1.2.0).
+ *
+ * guest_lang_switcher()'in (form, yalniz giris sayfalari) kamuya acik
+ * sayfalardaki karsiligi. Form degil BAGLANTI, cunku iki isi birden
+ * gorur: ziyaretci dili degistirir, arama motoru da oteki dilin adresini
+ * bir baglanti olarak bulur. Her baglanti bulunulan sayfanin kendisine
+ * gider (mevcut sorgu korunur, yalniz lang degisir); secim lang_init()
+ * uzerinden misafirin oturumuna yazilir.
+ *
+ * Uyelerde ve self-host'ta bos doner: onlar dili Liste Ayarlari'ndan
+ * secer (1.1.4), bir de burada gostermek iki kapi olur.
+ *
+ * @return string HTML, ya da ''.
+ */
+function guest_lang_links() {
+    if (!MULTI_USER_MODE || is_logged_in()) {
+        return '';
+    }
+
+    $script = basename(str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? 'index.php')));
+    $query  = $_GET;
+    unset($query['lang']);
+
+    $cur   = current_lang();
+    $aria  = htmlspecialchars(t('list_settings.section.language'), ENT_QUOTES, 'UTF-8');
+    $links = [];
+    foreach (lang_supported() as $code) {
+        $q     = $query;
+        // Ciplak adres degil acik ?lang=tr: oturumdaki EN'i sifirlamasi
+        // gerekir. Kanonik adres yine ciplak olandir (seo_head).
+        $q['lang'] = $code;
+        $href  = htmlspecialchars($script . '?' . http_build_query($q), ENT_QUOTES, 'UTF-8');
+        $label = htmlspecialchars(strtoupper($code), ENT_QUOTES, 'UTF-8');
+        $links[] = ($code === $cur)
+            ? '<span class="guest-lang-current" aria-current="true">' . $label . '</span>'
+            : '<a href="' . $href . '" hreflang="' . $code . '" lang="' . $code . '">' . $label . '</a>';
+    }
+
+    return '<nav class="guest-lang-links" aria-label="' . $aria . '">'
+        . implode(' <span class="guest-lang-sep">|</span> ', $links)
+        . '</nav>';
 }
 
 /**

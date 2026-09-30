@@ -266,7 +266,12 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?php echo htmlspecialchars(display_title($anime)); ?> - <?php echo htmlspecialchars(t('anime_details.title_suffix'), ENT_QUOTES, 'UTF-8'); ?></title>
+    <?php
+    // 1.2.0: the English version appends the [en]-tagged name, which is
+    // what English searches type (seo_title_with_en, seo_helpers.php).
+    $seoTitle = seo_title_with_en(display_title($anime), $anime['alternative_titles'] ?? '');
+    ?>
+    <title><?php echo htmlspecialchars($seoTitle); ?> - <?php echo htmlspecialchars(t('anime_details.title_suffix'), ENT_QUOTES, 'UTF-8'); ?></title>
     <?php
     // 1.1.30 - SEO meta. The description prefers the CATALOG synopsis of
     // the active language (EN falls back to TR, exactly as the visible
@@ -287,13 +292,23 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
     // "noindex, follow": sayfa indekslenmez ama BAGLANTILARI izlenir, yani
     // ayni serideki dolu kayitlar buradan kesfedilmeye devam eder.
     // Kural sitemap ve IndexNow ile AYNI yerden gelir (seo_helpers.php).
+    //
+    // 1.2.0 - DIL SURUMLERI. Konusu yalniz Turkce olan kaydin Ingilizce
+    // surumu indekslenmez (Ingilizce sayfa Turkce metni gosterir - karisik
+    // dilli sayfa). Bir surum indekslenmiyorsa oteki surum de ona hreflang
+    // ile isaret etmez. Icerik zaten kanitlandiysa has_markers=true
+    // eklemek dogrudur: seo_row_langs yalniz dil kosulunu ekler.
+    $seoRowLangs = seo_anime_has_content($pdo, $anime)
+        ? seo_row_langs($anime + ['has_markers' => true])
+        : [];
     echo seo_head([
-        'title'       => display_title($anime),
+        'title'       => $seoTitle,
         'description' => $metaDesc,
         'canonical'   => 'anime_details.php?id=' . (int)$anime['id'],
         'image'       => $anime['image_path'] ?? '',
         'type'        => 'article',
-        'noindex'     => !seo_anime_has_content($pdo, $anime),
+        'noindex'     => !in_array(current_lang(), $seoRowLangs, true),
+        'hreflang'    => count($seoRowLangs) === count(seo_langs()),
     ]);
     ?>
     <?php echo asset_styles(); ?>
@@ -305,8 +320,8 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
 </head>
 <body>
     <div class="container">
+        <?php echo guest_lang_links(); ?>
         <div class="header-section">
-            <?php // SECTION: Language switcher (snippet copy - see _lang_switcher_reference.php) ?>
             <?php echo auth_nav_links(); ?>
         </div>
         <h1>

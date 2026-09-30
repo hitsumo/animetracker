@@ -1049,7 +1049,7 @@ return [
         <li><strong>Yetişkin İçerik</strong> — +18 işaretli kayıtlar gösterilsin mi.</li>',
 
     'help.prefs.ui_lang.h2'                  => 'Arayüz Dili',
-    'help.prefs.ui_lang.text'                => 'Site Türkçe ve İngilizce çalışır. Dili sayfaların sağ üstündeki dil seçicisinden ya da Liste Ayarları\'ndan değiştirebilirsiniz; seçim hesabınıza kaydedilir. Arayüz dili <strong>anime başlıklarının dilini değiştirmez</strong> — o ayrı bir tercihtir. Konu metinleri seçtiğiniz dilde yoksa Türkçe aslı gösterilir.',
+    'help.prefs.ui_lang.text'                => 'Site Türkçe ve İngilizce çalışır. Üyeyseniz dili Liste Ayarları\'ndan seçersiniz; seçim hesabınıza kaydedilir. Giriş yapmadan gezerken sayfaların sağ üstündeki <strong>TR | EN</strong> bağlantısını kullanın. Her sayfanın İngilizce adresi, sonuna <code>?lang=en</code> eklenmiş hâlidir: böyle bir bağlantıyı paylaşırsanız karşı taraf sayfayı İngilizce açar, sizin kayıtlı dil tercihiniz değişmez. Arayüz dili <strong>anime başlıklarının dilini değiştirmez</strong> — o ayrı bir tercihtir. Konu metinleri seçtiğiniz dilde yoksa Türkçe aslı gösterilir.',
 
     'help.prefs.adult.h2'                    => 'Yetişkin İçerik (+18)',
     'help.prefs.adult.intro'                 => 'Katalogdaki bazı kayıtlar ve bazı tür/cümle etiketleri <strong>+18</strong> olarak işaretlenir. Bu tercih <strong>varsayılan olarak kapalıdır</strong> ve kapalıyken:',

@@ -13,6 +13,9 @@
  * The old rules are deleted because nothing references those classes
  * anymore.
  *
+ * 1.2.0: a second rule set - the guest TR / EN links on the public pages
+ * (guest_lang_links()), see the bottom of this file.
+ *
  * 1.1.16: this file holds one rule again - the anonymous-visitor language
  * switcher (guest_lang_switcher(), i18n_helpers.php) shown on the auth
  * pages (login / register / request_invite). Logged-in users still choose
@@ -55,4 +58,35 @@
     color: #333;
     font-size: 13px;
     cursor: pointer;
+}
+
+/* 1.2.0: the anonymous visitor's plain TR | EN links on the public pages
+   (guest_lang_links(), i18n_helpers.php). Links rather than the form above
+   on purpose: a search engine follows a link to the other language's
+   address, it never submits a form. Sits at the top of the page container,
+   right-aligned and small so it reads as a utility control, not navigation.
+   Only guests in online mode see it; members pick a language in
+   list_settings.php and self-host never renders it. */
+.guest-lang-links {
+    text-align: right;
+    margin: 4px 0 8px;
+    font-family: 'Poppins', 'Quicksand', sans-serif;
+    font-size: 13px;
+    color: #888;
+}
+
+.guest-lang-links a {
+    color: #555;
+    text-decoration: none;
+    padding: 2px 4px;
+}
+
+.guest-lang-links a:hover {
+    text-decoration: underline;
+}
+
+.guest-lang-links .guest-lang-current {
+    font-weight: 600;
+    color: #333;
+    padding: 2px 4px;
 }

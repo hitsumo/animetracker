@@ -1018,7 +1018,7 @@ return [
         <li><strong>Adult Content</strong> — whether entries marked 18+ are shown.</li>',
 
     'help.prefs.ui_lang.h2'                  => 'Interface Language',
-    'help.prefs.ui_lang.text'                => 'The site runs in Turkish and English. Change the language from the picker at the top right of any page, or from List Settings; the choice is saved to your account. The interface language <strong>does not change anime titles</strong> — that is a separate preference. If a synopsis does not exist in your language, the Turkish original is shown.',
+    'help.prefs.ui_lang.text'                => 'The site runs in Turkish and English. Members pick the language in List Settings; the choice is saved to your account. When browsing without signing in, use the <strong>TR | EN</strong> links at the top right of the page. Every page has an English address - the same address with <code>?lang=en</code> added: share such a link and the other person opens the page in English, while your own saved language stays as it is. The interface language <strong>does not change anime titles</strong> — that is a separate preference. If a synopsis does not exist in your language, the Turkish original is shown.',
 
     'help.prefs.adult.h2'                    => 'Adult Content (18+)',
     'help.prefs.adult.intro'                 => 'Some catalog entries, and some genre/sentence labels, are marked <strong>18+</strong>. This preference is <strong>off by default</strong>, and while it is off:',
