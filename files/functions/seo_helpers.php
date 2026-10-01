@@ -954,6 +954,37 @@ function seo_series_head_id($pdo, $seriesName, $fallbackId) {
 }
 
 /**
+ * 1.2.2 - Would the sitemap list this series head's series_timeline.php?
+ *
+ * The sitemap emits the series address while iterating the head's OWN row,
+ * which it only visits when the row is not adult and has content (1.1.37).
+ * seo_anime_locs() asks the same question from another member's side.
+ *
+ * @param PDO $pdo
+ * @param int $headId
+ * @return bool
+ */
+function seo_series_head_listed($pdo, $headId) {
+    try {
+        $stmt = $pdo->prepare("
+            SELECT a.id, a.is_adult,
+                   a.synopsis_tr, a.synopsis_en, a.synopsis, a.image_path,
+                   EXISTS(SELECT 1 FROM chronology_markers m
+                           WHERE m.anime_id = a.id) AS has_markers
+              FROM animes a
+             WHERE a.id = ?
+        ");
+        $stmt->execute([(int)$headId]);
+        $head = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
+    } catch (PDOException $e) {
+        error_log('[anime_tracker] seo_series_head_listed: ' . $e->getMessage());
+        return false;
+    }
+    return $head && (int)$head['is_adult'] === 0 && seo_row_has_content($head);
+}
+
+/**
  * Every public URL ONE anime contributes, as application-relative paths.
  *
  * The single-row twin of seo_sitemap_anime_entries(), and it lives here
@@ -968,6 +999,14 @@ function seo_series_head_id($pdo, $seriesName, $fallbackId) {
  *     page redirects back to the detail page)
  *   - series_timeline.php only for the id that HEADS the series, since
  *     every member renders the same timeline
+ *
+ * 1.2.2: the series address is announced for a change on ANY member, not
+ * only on the head. series_timeline.php now draws every line of the series
+ * on one page (in-page tabs), so a relation, a chain name or a new record
+ * on the fourth member changes what the head's address shows. The address
+ * itself is still the sitemap's: the head's, and only while the head
+ * would be listed there (not adult, not a thin stub). A member that is a
+ * stub itself still announces nothing of its OWN - only the series page.
  *
  * @param PDO  $pdo
  * @param int  $animeId
@@ -1005,31 +1044,40 @@ function seo_anime_locs($pdo, $animeId, $forceChronology = false) {
         return [];
     }
 
+    $locs = [];
+
     // 1.1.37: ince stub duyurulmaz. $forceChronology bunu DELMEZ - o
     // bayrak "son marker silindi, adresi yeniden taratalim" demek, ve
     // marker'i kalmamis bir stub zaten indekslenmemeli.
-    if (!seo_row_has_content($row)) {
-        return [];
-    }
+    // 1.2.2: stub'in KENDI adresleri atlanir, seri adresi asagida yine
+    // sorulur (uyesi degisince seri sayfasi da degisir).
+    if (seo_row_has_content($row)) {
+        // 1.2.0: every published language version is announced - the detail
+        // page only in the languages seo_row_langs() allows, the other two in
+        // all of them (the same split as the sitemap).
+        foreach (seo_row_langs($row) as $code) {
+            $locs[] = seo_lang_path('anime_details.php?id=' . $animeId, $code);
+        }
 
-    // 1.2.0: every published language version is announced - the detail
-    // page only in the languages seo_row_langs() allows, the other two in
-    // all of them (the same split as the sitemap).
-    $locs = [];
-    foreach (seo_row_langs($row) as $code) {
-        $locs[] = seo_lang_path('anime_details.php?id=' . $animeId, $code);
-    }
-
-    if ($forceChronology || !empty($row['has_markers'])) {
-        foreach (seo_langs() as $code) {
-            $locs[] = seo_lang_path('chronology.php?id=' . $animeId, $code);
+        if ($forceChronology || !empty($row['has_markers'])) {
+            foreach (seo_langs() as $code) {
+                $locs[] = seo_lang_path('chronology.php?id=' . $animeId, $code);
+            }
         }
     }
 
-    if (!empty($row['series_name'])
-        && seo_series_head_id($pdo, $row['series_name'], $animeId) === $animeId) {
-        foreach (seo_langs() as $code) {
-            $locs[] = seo_lang_path('series_timeline.php?id=' . $animeId, $code);
+    if (!empty($row['series_name'])) {
+        $headId = seo_series_head_id($pdo, $row['series_name'], $animeId);
+        // Sitemap kurali: seri adresi basin satiri listelenebiliyorsa
+        // (+18 degil - seo_series_head_id zaten yetiskini atlar - ve ince
+        // stub degil) yayinlanir. Bas bu satirsa cevap elde.
+        $headListed = ($headId === $animeId)
+            ? seo_row_has_content($row)
+            : seo_series_head_listed($pdo, $headId);
+        if ($headListed) {
+            foreach (seo_langs() as $code) {
+                $locs[] = seo_lang_path('series_timeline.php?id=' . $headId, $code);
+            }
         }
     }
 

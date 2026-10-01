@@ -49,6 +49,11 @@
  * Cizim ve yerlesim functions/series_graph_helpers.php'de; bu sayfa
  * yalnizca sekmeyi ve CSS'i tasir. Sema da yayin-tarihi gibi seri adi
  * ister; "Diger Zincir" gorunumu her zamanki gibi zincir modudur.
+ *
+ * 1.2.2: liste sekmeleri (kendi hatti, diger hatlar, Yayin Tarihi) SAYFA
+ * ICI paneller: hepsi ayni HTML'de, js/series_tabs.js yeniden yuklemeden
+ * degistirir. Arama motoru seri basina tek adres dizinledigi icin butun
+ * hatlar o adreste okunur. Sema ayri adreste kalir.
  */
 
 require_once __DIR__ . '/db.php';
@@ -93,6 +98,10 @@ if (isset($_GET['mode']) && in_array($_GET['mode'], series_timeline_modes(), tru
     $_SESSION['series_timeline_mode'] = $_GET['mode'];
 }
 $stMode = series_timeline_current_mode($pdo);
+// 1.2.2: sayfa ici sekmeler icin OTURUM/TERCIH modu - asagidaki ?chain= ve
+// seri-adi-yok zorlamalarindan ONCE. Betik zincir <-> Yayin Tarihi
+// tiklamasinda yalniz bu degisecekse set_series_timeline_mode.php'ye yazar.
+$stSavedMode = $stMode;
 if (!$hasSeriesName) {
     $stMode = 'chain';
 }
@@ -131,17 +140,98 @@ if ($viewingOtherChain) {
     $stMode = 'chain';
 }
 
-// 1.1.23: aktif sekmeye gore listeyi kur. Iki mod da ayni $chain
-// degiskenini doldurur; asagidaki kart dongusu tek sablondur.
-if ($stMode === 'airdate' || $stMode === 'graph') {
+// 1.1.23: aktif sekmeye gore listeyi kur.
+//
+// 1.2.2: LISTE SEKMELERI SAYFA ICI. Kendi hatti, diger hatlar ve Yayin
+// Tarihi her istekte AYNI HTML'e cizilir; ziyaretci bugunku gibi tek panel
+// gorur (js/series_tabs.js paneli yeniden yuklemeden degistirir), arama
+// motoru ise butun hatlari okur. Neden: seri basina tek adres dizinleniyor
+// (canonical = en kucuk id) ve o adres 1.2.1'e kadar yalniz kendi hattini
+// ciziyordu - Filmler / OVA / "Diger Zincir" / Yayin Tarihi ayri adreslerde
+// ve noindex idi (1.1.39). Eski adresler (?chain=, ?mode=airdate) calismaya
+// devam eder; yalniz ILK gorunen paneli secer. Sema (mode=graph) agir
+// oldugu icin ayri adreste kalir.
+//
+// Ilk panel kurali degismedi (PLAN_1_2_2 Karar 3, 30 Eyl 2026 kullanici
+// secimi "a"): ?chain= > oturum/tercih modu > kendi hatti. En uzun hatti
+// one almak Heidi / Death Note / One Piece'te ozeti ya da filmleri one
+// cikarirdi.
+$stTabs   = [];   // sekme cubugu: key, label, href, mode, title
+$stPanels = [];   // yalniz liste modunda: key => satirlar
+$activePanelKey = 'chain';
+
+$stTabs[] = [
+    'key'   => 'chain',
+    'label' => $ownChainName !== null ? $ownChainName : t('series_timeline.tab.chain'),
+    'href'  => 'series_timeline.php?id=' . (int)$id . '&mode=chain',
+    'mode'  => 'chain',
+    'title' => '',
+];
+if ($hasSeriesName) {
+    // Adsiz zincirler eski "Diger Zincir N" etiketini korur. Sayac YALNIZCA
+    // adsizlar uzerinde ilerler: adlandirilmis bir hat araya girdiginde
+    // numaralar atlamasin, "Diger Zincir 1" hep adsizlarin ilki olsun.
+    $ocUnnamed = 0;
+    foreach ($otherChains as $otherChain) {
+        $ocName = $otherChain['name'] ?? null;
+        if ($ocName === null) {
+            $ocUnnamed++;
+        }
+        // Ipucu metni zincirin kac anime tasidigini soyler. Baslik yazilmaz -
+        // +18 maskesi sekmeden sizmasin. Zincir ADI ise kuratorun kendi
+        // yazdigi etikettir, baslik degildir.
+        $stTabs[] = [
+            'key'   => 'chain-' . (int)$otherChain['start_id'],
+            'label' => $ocName !== null ? $ocName : sprintf(t('series_timeline.tab.other_chain'), $ocUnnamed),
+            'href'  => 'series_timeline.php?id=' . (int)$id . '&chain=' . (int)$otherChain['start_id'],
+            'mode'  => '',   // 1.1.25: diger hat secimi oturuma yazilmaz
+            'title' => sprintf(t('series_timeline.count'), (int)$otherChain['count']),
+            'start' => (int)$otherChain['start_id'],
+        ];
+    }
+    $stTabs[] = [
+        'key'   => 'airdate',
+        'label' => t('series_timeline.tab.airdate'),
+        'href'  => 'series_timeline.php?id=' . (int)$id . '&mode=airdate',
+        'mode'  => 'airdate',
+        'title' => '',
+    ];
+}
+
+if ($stMode === 'graph') {
     // 1.1.48: sema da seri adi grubunu kullanir - $chain burada yalnizca
     // sayac ve bos-seri korumasi icin; cizim series_graph_build()'den.
     $chain = getSeriesAnimesByAirDate($pdo, $reqAnime['series_name']);
     $seriesName = $reqAnime['series_name'];
 } else {
-    $chain = getSeriesChainRows($pdo, $activeChainStart);
-    // Series name from first item in chain
-    $seriesName = !empty($chain) ? ($chain[0]['series_name'] ?? $chain[0]['title']) : '';
+    foreach ($stTabs as $stTab) {
+        if ($stTab['key'] === 'chain') {
+            $stPanels['chain'] = getSeriesChainRows($pdo, $ownStartId);
+        } elseif ($stTab['key'] === 'airdate') {
+            $stPanels['airdate'] = getSeriesAnimesByAirDate($pdo, $reqAnime['series_name']);
+        } else {
+            $stPanels[$stTab['key']] = getSeriesChainRows($pdo, $stTab['start']);
+        }
+    }
+
+    if ($viewingOtherChain) {
+        $activePanelKey = 'chain-' . (int)$activeChainStart;
+    } elseif ($stMode === 'airdate' && isset($stPanels['airdate'])) {
+        $activePanelKey = 'airdate';
+    }
+
+    // Baslik (h1) artik secili panelden degil seri adindan gelir: hangi
+    // sekme acik olursa olsun ayni sayfa, ayni baslik. Seri adi yoksa
+    // eskisi gibi kendi hattinin ilk kaydinin adi.
+    $ownRows = $stPanels['chain'];
+    if ($hasSeriesName) {
+        $seriesName = $reqAnime['series_name'];
+    } elseif (!empty($ownRows)) {
+        $seriesName = !empty($ownRows[0]['series_name']) ? $ownRows[0]['series_name'] : $ownRows[0]['title'];
+    } else {
+        $seriesName = '';
+    }
+    $chain = $stPanels[$activePanelKey] ?? [];
 }
 
 if (empty($chain)) {
@@ -156,6 +246,12 @@ if ($stMode === 'graph') {
 
 // 1.1.2 politikasi: +18 uye kartini korur ama basligi sizdirmaz (opt-in
 // eden kullanici adult_pref_init sonrasi gercek basligi gorur).
+// 1.2.2: her panelde ayri ayri.
+foreach ($stPanels as $stKey => $stRows) {
+    foreach ($stRows as $stIdx => $stRow) {
+        $stPanels[$stKey][$stIdx] = adult_mask_related($stRow, 'is_adult', 'title', 'alternative_titles');
+    }
+}
 foreach ($chain as &$stRow) {
     $stRow = adult_mask_related($stRow, 'is_adult', 'title', 'alternative_titles');
 }
@@ -174,11 +270,100 @@ function seriesMediaIcon($type) {
         default:     return '<i class="fas fa-tv"></i>';
     }
 }
+
+/**
+ * 1.2.2 - Tek kart. 1.2.1'e kadar sayfanin kart dongusunun govdesiydi;
+ * artik her panel ayni sablonu cagirir. $mode: 'chain' | 'airdate' (tarih
+ * gosterimi). $lazy: kapali paneldeki poster tembel yuklenir - ayni anime
+ * iki panelde (hat + Yayin Tarihi) gorunebilir, acilista yalniz gorunen
+ * panelin posterleri iner.
+ */
+function st_render_card(array $item, $i, $mode, $currentAnimeId, $lazy) {
+    ?>
+            <?php
+                $ws = $item['watch_status'] ?? '';
+                // 0.6: ASCII enum -> stable CSS suffix via central helper.
+                // style.css (0.6 adim 8) targets is-watched / badge-watched
+                // and the corresponding watching / plantowatch / onhold
+                // variants. Label text comes from watch_status_label.
+                $wsKey = watch_status_css_class($ws);
+                $statusClass = 'is-' . $wsKey;
+                $badgeClass = 'badge-' . $wsKey;
+                $badgeText = watch_status_label($ws);
+
+                $isCurrent = ((int)$item['id'] === $currentAnimeId);
+
+                // Episode display
+                $ep = (int)($item['watched_episodes'] ?? 0);
+                $total = $item['total_episodes'] ?? $item['aired_episodes'] ?? null;
+                $epText = $total ? ($ep . '/' . $total) : ($ep . '/?');
+
+                // Media type
+                $mediaType = $item['media_type'] ?? 'TV';
+                $mediaIcon = seriesMediaIcon($mediaType);
+
+                // 1.1.23: yayin tarihi gorunumunde tarih onemli veridir -
+                // gun.ay.yil (araligiyla) gosterilir; zincir gorunumu eski
+                // davranisiyla yalnizca yili gosterir.
+                // 1.1.31: tarih parcali olabilir (??.04.2005 / ??.??.2005 /
+                // ??.??.????). format_partial_date() 'full' hassasiyette eski
+                // date('d.m.Y', strtotime(...)) ciktisinin aynisini uretir.
+                $stDateText = '';
+                if ($mode === 'airdate') {
+                    $stRelPrec = $item['release_date_precision'] ?? 'full';
+                    $stEndPrec = $item['end_date_precision'] ?? 'full';
+                    if (has_partial_date($item['release_date'] ?? null, $stRelPrec)) {
+                        $stDateText = format_partial_date($item['release_date'] ?? null, $stRelPrec);
+                        // Bitis tarihi yalniz baslangictan FARKLIYSA yazilir.
+                        // Karsilastirma artik hassasiyeti de kapsar: ayni gune
+                        // isaret eden iki kayittan biri "??.??.2005" digeri
+                        // "08.04.2005" ise bunlar ayni sey degildir.
+                        $stEndText = format_partial_date($item['end_date'] ?? null, $stEndPrec);
+                        if ($stEndText !== '' && $stEndText !== $stDateText) {
+                            $stDateText .= ' – ' . $stEndText;
+                        }
+                    } else {
+                        $stDateText = t('series_timeline.no_date');
+                    }
+                }
+            ?>
+            <div class="st-item <?php echo $statusClass; ?> <?php echo $isCurrent ? 'is-current' : ''; ?>">
+                <a href="anime_details.php?id=<?php echo (int)$item['id']; ?>" class="st-card">
+                    <div class="st-order"><?php echo $i + 1; ?></div>
+
+                    <img src="<?php echo htmlspecialchars(poster_src($item['image_path'] ?? '')); ?>"<?php echo $lazy ? ' loading="lazy"' : ''; ?>
+                         alt="<?php echo htmlspecialchars(display_title($item)); ?>">
+
+                    <div class="st-info">
+                        <div class="title"><?php echo htmlspecialchars(display_title($item)); ?></div>
+                        <div class="meta">
+                            <span><?php echo $mediaIcon; ?> <?php echo htmlspecialchars($mediaType); ?></span>
+                            <span><i class="fas fa-play-circle"></i> <?php echo $epText; ?></span>
+                            <?php if ($mode === 'airdate'): ?>
+                                <span><i class="far fa-calendar"></i> <?php echo htmlspecialchars($stDateText, ENT_QUOTES, 'UTF-8'); ?></span>
+                            <?php elseif (!empty($item['release_date'])): ?>
+                                <span><i class="far fa-calendar"></i> <?php echo date('Y', strtotime($item['release_date'])); ?></span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <span class="st-badge <?php echo $badgeClass; ?>"><?php echo $badgeText; ?></span>
+                </a>
+            </div>
+    <?php
+}
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo current_lang(); ?>">
 <head>
     <meta charset="UTF-8">
+    <?php // 1.2.2: birden cok liste paneli varsa html'e st-js sinifi - CSS kapali
+          // panelleri YALNIZ bu sinifla gizler. Stillerden once calisir, yani
+          // acilista butun panellerin bir an gorunup kaybolmasi olmaz. JS
+          // kapaliysa sinif hic eklenmez ve paneller alt alta gorunur. ?>
+    <?php if ($stMode !== 'graph' && count($stPanels) > 1): ?>
+    <script>document.documentElement.className += ' st-js';</script>
+    <?php endif; ?>
     <?php /* 1.1.43: baslik "X Izleme Sirasi - Seri Kronolojisi". Search Console
        "tensei shitara slime izleme sirasi" sorgusunda bu sayfayi degil filmin
        detayini gosterdi; baslikta aranan kelime yoktu. Arayuzdeki ad ayni. */ ?>
@@ -455,6 +640,20 @@ function seriesMediaIcon($type) {
         }
         .st-back a:hover { background: #5a6268; }
 
+        /* 1.2.2 - sayfa ici paneller. JS'siz: hepsi alt alta, baslikli.
+           html.st-js: yalniz .is-active panel gorunur, basliklar gizli
+           (sekme cubugu adi zaten gosteriyor). */
+        .st-panel-title {
+            font-size: 1em;
+            font-weight: 600;
+            color: #2c3e50;
+            margin: 28px 0 12px;
+        }
+        .st-panel:first-of-type .st-panel-title { margin-top: 0; }
+        .st-panel-count { color: #999; font-weight: 400; font-size: 0.85em; }
+        .st-js .st-panel-title { display: none; }
+        .st-js .st-panel:not(.is-active) { display: none; }
+
         @media (max-width: 600px) {
             .st-card img, .st-card .no-img { display: none; }
             .st-order { display: none; }
@@ -534,7 +733,7 @@ function seriesMediaIcon($type) {
     <div class="st-header">
         <h1><?php echo htmlspecialchars($seriesName); ?></h1>
         <div class="subtitle"><?php echo htmlspecialchars(t('series_timeline.subtitle'), ENT_QUOTES, 'UTF-8'); ?></div>
-        <div class="count"><?php echo htmlspecialchars(sprintf(t('series_timeline.count'), count($chain)), ENT_QUOTES, 'UTF-8'); ?></div>
+        <div class="count" id="st-count"><?php echo htmlspecialchars(sprintf(t('series_timeline.count'), count($chain)), ENT_QUOTES, 'UTF-8'); ?></div>
     </div>
 
     <?php // 1.1.23: sekmeler yalniz seri adi dolu animede cikar - yayin
@@ -544,47 +743,24 @@ function seriesMediaIcon($type) {
           // 1.1.36: (a) sekme etiketi, zincirin ADI varsa o addir;
           // (b) ZINCIR SEKMELERI ARTIK BIR ARADA durur ve "Yayin Tarihi"
           // sona gecti - adlar gelince araya giren bir sekme okumayi
-          // boluyordu. Adres ve davranis degismedi, yalnizca sira. ?>
+          // boluyordu.
+          // 1.2.2: liste sekmeleri hala <a href> (orta tik, JS'siz tarayici
+          // ve eski adresler bugunku gibi calisir); liste modunda betik
+          // tiklamayi yakalar ve sayfa ici paneli degistirir. Sema sekmesi
+          // her zaman ayri adrestir. ?>
     <?php if ($hasSeriesName): ?>
-    <div class="st-tabs">
-        <a href="series_timeline.php?id=<?php echo (int)$id; ?>&amp;mode=chain"
-           class="<?php echo ($stMode === 'chain' && !$viewingOtherChain) ? 'active' : ''; ?>"><?php
-            echo htmlspecialchars(
-                $ownChainName !== null ? $ownChainName : t('series_timeline.tab.chain'),
-                ENT_QUOTES, 'UTF-8'
-            );
-        ?></a>
-        <?php
-            // Adsiz zincirler eski "Diger Zincir N" etiketini korur. Sayac
-            // YALNIZCA adsizlar uzerinde ilerler: adlandirilmis bir hat
-            // araya girdiginde numaralar atlamasin, "Diger Zincir 1" hep
-            // adsizlarin ilki olsun.
-            $ocUnnamed = 0;
-        ?>
-        <?php foreach ($otherChains as $otherChain): ?>
-            <?php
-                $ocName = $otherChain['name'] ?? null;
-                if ($ocName !== null) {
-                    $ocLabel = $ocName;
-                } else {
-                    $ocUnnamed++;
-                    $ocLabel = sprintf(t('series_timeline.tab.other_chain'), $ocUnnamed);
-                }
-            ?>
-            <?php // Ipucu metni zincirin kac anime tasidigini soyler. Baslik
-                  // yazilmaz - +18 maskesi sekmeden sizmasin. Zincir ADI ise
-                  // kuratorun kendi yazdigi etikettir, baslik degildir. ?>
-            <a href="series_timeline.php?id=<?php echo (int)$id; ?>&amp;chain=<?php echo (int)$otherChain['start_id']; ?>"
-               title="<?php echo htmlspecialchars(sprintf(t('series_timeline.count'), (int)$otherChain['count']), ENT_QUOTES, 'UTF-8'); ?>"
-               class="<?php echo ($viewingOtherChain && $activeChainStart === $otherChain['start_id']) ? 'active' : ''; ?>"><?php
-                echo htmlspecialchars($ocLabel, ENT_QUOTES, 'UTF-8');
-            ?></a>
+    <?php $stInPage = ($stMode !== 'graph'); ?>
+    <div class="st-tabs"<?php if ($stInPage): ?> role="tablist" data-saved-mode="<?php echo htmlspecialchars($stSavedMode, ENT_QUOTES, 'UTF-8'); ?>" data-csrf="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>>
+        <?php foreach ($stTabs as $stTab): ?>
+            <?php $stTabOn = $stInPage && $stTab['key'] === $activePanelKey; ?>
+            <a href="<?php echo htmlspecialchars($stTab['href'], ENT_QUOTES, 'UTF-8'); ?>"
+               <?php if ($stTab['title'] !== ''): ?>title="<?php echo htmlspecialchars($stTab['title'], ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>
+               <?php if ($stInPage): ?>id="st-tab-<?php echo htmlspecialchars($stTab['key'], ENT_QUOTES, 'UTF-8'); ?>" role="tab" aria-selected="<?php echo $stTabOn ? 'true' : 'false'; ?>" aria-controls="st-panel-<?php echo htmlspecialchars($stTab['key'], ENT_QUOTES, 'UTF-8'); ?>" data-panel="<?php echo htmlspecialchars($stTab['key'], ENT_QUOTES, 'UTF-8'); ?>" data-mode="<?php echo htmlspecialchars($stTab['mode'], ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>
+               class="<?php echo $stTabOn ? 'active' : ''; ?>"><?php echo htmlspecialchars($stTab['label'], ENT_QUOTES, 'UTF-8'); ?></a>
         <?php endforeach; ?>
-        <a href="series_timeline.php?id=<?php echo (int)$id; ?>&amp;mode=airdate"
-           class="<?php echo ($stMode === 'airdate' && !$viewingOtherChain) ? 'active' : ''; ?>"><?php echo htmlspecialchars(t('series_timeline.tab.airdate'), ENT_QUOTES, 'UTF-8'); ?></a>
         <?php // 1.1.48: sema sekmesi. Liste sekmeleri gibi mode= tasir. ?>
         <a href="series_timeline.php?id=<?php echo (int)$id; ?>&amp;mode=graph"
-           class="<?php echo ($stMode === 'graph' && !$viewingOtherChain) ? 'active' : ''; ?>"><?php echo htmlspecialchars(t('series_timeline.tab.graph'), ENT_QUOTES, 'UTF-8'); ?></a>
+           class="<?php echo $stMode === 'graph' ? 'active' : ''; ?>"><?php echo htmlspecialchars(t('series_timeline.tab.graph'), ENT_QUOTES, 'UTF-8'); ?></a>
     </div>
     <?php endif; ?>
 
@@ -593,80 +769,33 @@ function seriesMediaIcon($type) {
     <?php echo series_graph_render($seriesGraph); ?>
     <p class="sg-note"><?php echo htmlspecialchars(t('series_graph.hint'), ENT_QUOTES, 'UTF-8'); ?></p>
     <?php else: ?>
-    <div class="st-timeline">
-        <?php foreach ($chain as $i => $item): ?>
-            <?php
-                $ws = $item['watch_status'] ?? '';
-                // 0.6: ASCII enum -> stable CSS suffix via central helper.
-                // style.css (0.6 adim 8) targets is-watched / badge-watched
-                // and the corresponding watching / plantowatch / onhold
-                // variants. Label text comes from watch_status_label.
-                $wsKey = watch_status_css_class($ws);
-                $statusClass = 'is-' . $wsKey;
-                $badgeClass = 'badge-' . $wsKey;
-                $badgeText = watch_status_label($ws);
-
-                $isCurrent = ((int)$item['id'] === $currentAnimeId);
-
-                // Episode display
-                $ep = (int)($item['watched_episodes'] ?? 0);
-                $total = $item['total_episodes'] ?? $item['aired_episodes'] ?? null;
-                $epText = $total ? ($ep . '/' . $total) : ($ep . '/?');
-
-                // Media type
-                $mediaType = $item['media_type'] ?? 'TV';
-                $mediaIcon = seriesMediaIcon($mediaType);
-
-                // 1.1.23: yayin tarihi gorunumunde tarih onemli veridir -
-                // gun.ay.yil (araligiyla) gosterilir; zincir gorunumu eski
-                // davranisiyla yalnizca yili gosterir.
-                // 1.1.31: tarih parcali olabilir (??.04.2005 / ??.??.2005 /
-                // ??.??.????). format_partial_date() 'full' hassasiyette eski
-                // date('d.m.Y', strtotime(...)) ciktisinin aynisini uretir.
-                $stDateText = '';
-                if ($stMode === 'airdate') {
-                    $stRelPrec = $item['release_date_precision'] ?? 'full';
-                    $stEndPrec = $item['end_date_precision'] ?? 'full';
-                    if (has_partial_date($item['release_date'] ?? null, $stRelPrec)) {
-                        $stDateText = format_partial_date($item['release_date'] ?? null, $stRelPrec);
-                        // Bitis tarihi yalniz baslangictan FARKLIYSA yazilir.
-                        // Karsilastirma artik hassasiyeti de kapsar: ayni gune
-                        // isaret eden iki kayittan biri "??.??.2005" digeri
-                        // "08.04.2005" ise bunlar ayni sey degildir.
-                        $stEndText = format_partial_date($item['end_date'] ?? null, $stEndPrec);
-                        if ($stEndText !== '' && $stEndText !== $stDateText) {
-                            $stDateText .= ' – ' . $stEndText;
-                        }
-                    } else {
-                        $stDateText = t('series_timeline.no_date');
-                    }
-                }
-            ?>
-            <div class="st-item <?php echo $statusClass; ?> <?php echo $isCurrent ? 'is-current' : ''; ?>">
-                <a href="anime_details.php?id=<?php echo (int)$item['id']; ?>" class="st-card">
-                    <div class="st-order"><?php echo $i + 1; ?></div>
-
-                    <img src="<?php echo htmlspecialchars(poster_src($item['image_path'] ?? '')); ?>"
-                         alt="<?php echo htmlspecialchars(display_title($item)); ?>">
-
-                    <div class="st-info">
-                        <div class="title"><?php echo htmlspecialchars(display_title($item)); ?></div>
-                        <div class="meta">
-                            <span><?php echo $mediaIcon; ?> <?php echo htmlspecialchars($mediaType); ?></span>
-                            <span><i class="fas fa-play-circle"></i> <?php echo $epText; ?></span>
-                            <?php if ($stMode === 'airdate'): ?>
-                                <span><i class="far fa-calendar"></i> <?php echo htmlspecialchars($stDateText, ENT_QUOTES, 'UTF-8'); ?></span>
-                            <?php elseif (!empty($item['release_date'])): ?>
-                                <span><i class="far fa-calendar"></i> <?php echo date('Y', strtotime($item['release_date'])); ?></span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-
-                    <span class="st-badge <?php echo $badgeClass; ?>"><?php echo $badgeText; ?></span>
-                </a>
-            </div>
-        <?php endforeach; ?>
-    </div>
+    <?php // 1.2.2: her liste sekmesi bir panel. Sira sabit (kendi hatti,
+          // diger hatlar, Yayin Tarihi) - acik olan panel sirayi degistirmez.
+          // Birden cok panel varsa her panelin bir basligi olur: JS'siz
+          // tarayicida paneller alt alta baslikla gorunur, betik calisinca
+          // basliklar ve kapali paneller gizlenir (html.st-js). ?>
+    <?php $stMulti = count($stPanels) > 1; ?>
+    <?php foreach ($stTabs as $stTab): ?>
+        <?php if (!isset($stPanels[$stTab['key']])) { continue; } ?>
+        <?php
+            $stKey   = $stTab['key'];
+            $stRows  = $stPanels[$stKey];
+            $stOn    = ($stKey === $activePanelKey);
+            $stCount = sprintf(t('series_timeline.count'), count($stRows));
+        ?>
+    <section class="st-panel<?php echo $stOn ? ' is-active' : ''; ?>" id="st-panel-<?php echo htmlspecialchars($stKey, ENT_QUOTES, 'UTF-8'); ?>"
+             data-count-text="<?php echo htmlspecialchars($stCount, ENT_QUOTES, 'UTF-8'); ?>"
+             <?php if ($stMulti): ?>role="tabpanel" aria-labelledby="st-tab-<?php echo htmlspecialchars($stKey, ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>>
+        <?php if ($stMulti): ?>
+        <h2 class="st-panel-title"><?php echo htmlspecialchars($stTab['label'], ENT_QUOTES, 'UTF-8'); ?> <span class="st-panel-count"><?php echo htmlspecialchars($stCount, ENT_QUOTES, 'UTF-8'); ?></span></h2>
+        <?php endif; ?>
+        <div class="st-timeline">
+            <?php foreach ($stRows as $i => $item): ?>
+                <?php st_render_card($item, $i, $stTab['mode'] === 'airdate' ? 'airdate' : 'chain', $currentAnimeId, !$stOn); ?>
+            <?php endforeach; ?>
+        </div>
+    </section>
+    <?php endforeach; ?>
     <?php endif; ?>
 
     <div class="st-back">
@@ -675,5 +804,8 @@ function seriesMediaIcon($type) {
         </a>
     </div>
 </div>
+<?php if ($stMode !== 'graph' && count($stPanels) > 1): ?>
+<script src="<?php echo asset_url('js/series_tabs.js'); ?>" defer></script>
+<?php endif; ?>
 </body>
 </html>
