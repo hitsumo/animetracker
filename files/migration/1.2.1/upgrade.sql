@@ -1,0 +1,27 @@
+-- Anime Tracker - Migration 1.2.1
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- =====================================================================
+-- 1.2.1 - SEMA DEGISIKLIGI YOKTUR
+-- =====================================================================
+--
+-- Bu dosya bilerek BOSTUR. Runner yorumlari temizler, calistiracak ifade
+-- bulamaz ve yalnizca settings.version'i 1.2.1'e tasir. Klasorun var
+-- olmasi gerekiyor: surum atlanirsa MigrationManager sirayi kaybeder.
+-- (Ayni kalip 1.1.49 / 1.1.51 / 1.2.0'da kullanildi.)
+--
+-- ---------------------------------------------------------------------
+-- Bu surumde ne var: iliski duzenleme
+-- ---------------------------------------------------------------------
+--
+-- Duzenleme formunun Iliskiler panelinde her satira bir kalem dugmesi
+-- geldi: iliskinin TURU ve YONU silip yeniden eklemeden degistirilir
+-- (update_anime_relation.php). Mevcut anime_relations satiri UPDATE
+-- edilir; karsi kayit degismez. Tablo 1.1.38'den beri var.
+--
+-- Yeni tablo / kolon / indeks YOK.
+--
+-- MERKEZ KATALOG: is YOK (iliskiler merkeze gitmez).
+-- =====================================================================

@@ -301,11 +301,14 @@ return [
     'relation.form.submit'   => 'Add',
     'relation.delete_confirm' => 'Are you sure you want to delete this relation?',
     'relation.delete_tooltip' => 'Delete relation',
+    'relation.edit_tooltip'   => 'Fix the type or direction',   // 1.2.1
+    'relation.edit.prompt'    => '%s is this anime\'s:',       // 1.2.1
+    'relation.edit.submit'    => 'Save',                        // 1.2.1
 
     'relation.error.input'   => 'The relation was not added: no anime or no type was selected.',
     'relation.error.self'    => 'An anime cannot be related to itself.',
     'relation.error.missing' => 'One end of the relation could not be found.',
-    'relation.error.exists'  => 'These two animes already have a relation. Delete the existing one first if you want a different type.',
+    'relation.error.exists'  => 'These two animes already have a relation. To change its type or direction, use the pencil button on its row in the list.',
     'relation.error.failed'  => 'Something went wrong while saving the relation.',
 
     // -----------------------------------------------------------------
@@ -1147,7 +1150,8 @@ return [
     'help.rel.direction.h3'                  => 'Direction: the Form Asks One Question',
     'help.rel.direction.text'                => 'In the panel you first pick the other record, then the type. The form\'s question is always the same: <strong>"The anime you picked is the ___ of the anime you are editing."</strong> Editing Sailor Moon, picking Sailor Moon R and choosing "Sequel" is right; editing Sailor Moon R, picking Sailor Moon and choosing "Prequel" creates the same link from the other end. You never need both — the record is one and it shows on the two pages with two different labels ("Sequel: Sailor Moon R" / "Prequel: Sailor Moon"). That is why the four directional types appear twice in the list: Sequel / Prequel, Side Story / Parent Story, Summary / Full Story, Special / Main Entry. The other five (Alternative Version, Alternative Setting, Same Setting, Shared Character, Other) read the same from either end; for them it does not matter which side you start from. The ★ in the list marks records sharing the series name; a relation does <strong>not</strong> require the same series name.',
     'help.rel.rules.h3'                      => 'Rules',
-    'help.rel.rules.list' => '<li>Two records carry <strong>at most one</strong> relation. To change the type, delete the existing one with × first, then add the new one — the form does not stack them, it warns you.</li>
+    'help.rel.rules.list' => '<li>Two records carry <strong>at most one</strong> relation. Try to add a second one and the form does not stack them, it warns you.</li>
+        <li><strong>Wrong type or direction?</strong> No need to delete: press the <strong>pencil</strong> button on the row, pick the right type and Save. The question is the one the add form asks ("the other record is this anime\'s ___") and the row\'s current reading comes preselected. To fix a link entered the wrong way round, pick its mirror: Sequel ↔ Prequel, Side Story ↔ Parent Story, Summary ↔ Full Story, Special ↔ Main Entry. Pointing the relation at a different record is still delete + add.</li>
         <li>A record cannot be related to itself.</li>
         <li>Order (Sequel / Prequel) is followed on the chain tab only when both ends carry the same <strong>chain name</strong> (or neither has one). The chain name picks which track you are showing; the link builds the track.</li>
         <li>Relations stay on the installation that holds the records: they do not travel to the central catalog server and "Import from Catalog" leaves them alone. They go into the JSON backup and come back on restore.</li>',

@@ -273,6 +273,27 @@ function anime_relation_parse_choice($raw) {
 }
 
 /**
+ * 1.2.1 - The form choice that reproduces a STORED row, read from one end.
+ *
+ * The inverse of anime_relation_parse_choice() + anime_relation_endpoints():
+ * the edit control on each relation opens with this key selected, so
+ * saving it untouched writes the same row back. $inverse is the flag
+ * getAnimeRelations() sets - "this anime is the `from` end" - which is
+ * exactly when the form's sentence ("the picked one is THIS one's ___")
+ * needs the mirrored word.
+ *
+ * @param string $type
+ * @param bool   $inverse
+ * @return string A key of anime_relation_choices().
+ */
+function anime_relation_choice_key($type, $inverse) {
+    if (!in_array($type, anime_relation_types(), true)) {
+        $type = 'other';
+    }
+    return ($inverse && !anime_relation_symmetric($type)) ? $type . '|inv' : $type;
+}
+
+/**
  * Which id goes in from_anime_id and which in to_anime_id.
  *
  * $anime_id is the anime being edited, $other_id the one just picked, and

@@ -103,6 +103,7 @@ $disallow = [
     '/update_chronology_marker.php',
     '/delete_chronology_marker.php',
     '/add_anime_relation.php',
+    '/update_anime_relation.php',
     '/delete_anime_relation.php',
     '/set_language.php',
     '/set_title_pref.php',

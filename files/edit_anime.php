@@ -1447,6 +1447,26 @@ $selected_tag_names = array_map(function($t) { return $t['name']; }, $current_ta
                     <?php if (!empty($rel['media_type'])): ?>
                     <span class="relation-media">(<?php echo htmlspecialchars($rel['media_type'], ENT_QUOTES, 'UTF-8'); ?>)</span>
                     <?php endif; ?>
+                    <?php // 1.2.1 - tur / yon duzeltme. Kalem <details>'i acar (JS yok);
+                          // secim ekleme formunun AYNI sorusudur ("karsi kayit, bu
+                          // animenin ___'idir") ve kaydin su anki hali secili gelir.
+                          // Karsi kayit degismez - o hala sil + ekle. ?>
+                    <?php $relCurrentChoice = anime_relation_choice_key($rel['relation_type'], $rel['inverse']); ?>
+                    <details class="relation-edit">
+                        <summary class="relation-edit-btn" title="<?php echo htmlspecialchars(t('relation.edit_tooltip'), ENT_QUOTES, 'UTF-8'); ?>"><i class="fas fa-pen"></i></summary>
+                        <form method="POST" action="update_anime_relation.php" class="relation-edit-form">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+                            <input type="hidden" name="relation_id" value="<?php echo (int)$rel['id']; ?>">
+                            <input type="hidden" name="anime_id" value="<?php echo (int)$id; ?>">
+                            <span class="relation-edit-prompt"><?php echo htmlspecialchars(sprintf(t('relation.edit.prompt'), display_title($rel)), ENT_QUOTES, 'UTF-8'); ?></span>
+                            <select name="relation_choice" aria-label="<?php echo htmlspecialchars(t('relation.form.type'), ENT_QUOTES, 'UTF-8'); ?>">
+                                <?php foreach (anime_relation_choices() as $choiceKey => $choiceLabel): ?>
+                                <option value="<?php echo htmlspecialchars($choiceKey, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $choiceKey === $relCurrentChoice ? ' selected' : ''; ?>><?php echo htmlspecialchars($choiceLabel, ENT_QUOTES, 'UTF-8'); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <button type="submit" class="relation-add-btn"><i class="fas fa-check"></i> <?php echo htmlspecialchars(t('relation.edit.submit'), ENT_QUOTES, 'UTF-8'); ?></button>
+                        </form>
+                    </details>
                     <form method="POST" action="delete_anime_relation.php" class="relation-delete-form"
                           onsubmit="return confirm(<?php echo htmlspecialchars(json_encode(t('relation.delete_confirm'), JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8'); ?>);">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">

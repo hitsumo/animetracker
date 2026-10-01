@@ -331,11 +331,14 @@ return [
     'relation.form.submit'   => 'Ekle',
     'relation.delete_confirm' => 'Bu ilişkiyi silmek istediğinize emin misiniz?',
     'relation.delete_tooltip' => 'İlişkiyi sil',
+    'relation.edit_tooltip'   => 'Türü ya da yönü düzelt',   // 1.2.1
+    'relation.edit.prompt'    => '%s, bu animenin:',          // 1.2.1
+    'relation.edit.submit'    => 'Kaydet',                    // 1.2.1
 
     'relation.error.input'   => 'İlişki eklenemedi: anime ya da tür seçilmedi.',
     'relation.error.self'    => 'Bir anime kendisiyle ilişkilendirilemez.',
     'relation.error.missing' => 'İlişkinin uçlarından biri bulunamadı.',
-    'relation.error.exists'  => 'Bu iki anime arasında zaten bir ilişki var. Yerine başkasını kurmak için önce mevcut olanı silin.',
+    'relation.error.exists'  => 'Bu iki anime arasında zaten bir ilişki var. Türünü ya da yönünü değiştirmek için listedeki satırın kalem düğmesini kullanın.',
     'relation.error.failed'  => 'İlişki kaydedilirken bir hata oluştu.',
 
     // -----------------------------------------------------------------
@@ -1178,7 +1181,8 @@ return [
     'help.rel.direction.h3'                  => 'Yön: Form Tek Soru Sorar',
     'help.rel.direction.text'                => 'Panelde önce karşı kaydı seçer, sonra türü işaretlersiniz. Formun sorusu hep aynıdır: <strong>"Seçtiğiniz anime, düzenlediğiniz animenin ___\'idir."</strong> Sailor Moon\'u düzenlerken Sailor Moon R\'yi seçip "Devamı" demek doğrudur; Sailor Moon R\'yi düzenlerken Sailor Moon\'u seçip "Öncesi" demek de aynı bağı öteki uçtan kurar. İkisini birden yapmanız gerekmez — kayıt tektir ve iki sayfada iki ayrı etiketle görünür ("Devamı: Sailor Moon R" / "Öncesi: Sailor Moon"). Bu yüzden yönü olan dört tür listede iki kez geçer: Devamı / Öncesi, Yan Hikâye / Ana Hikâye, Özet / Tam Hikâye, Ek İçerik / Ana Kayıt. Öteki beş tür (Alternatif Versiyon, Alternatif Kurgu, Aynı Evren, Ortak Karakter, Diğer) iki uçtan da aynı cümledir; onlarda hangi uçtan kurduğunuzun önemi yoktur. Listede ★ işareti aynı seri adını taşıyan kayıtları gösterir; ilişki için seri adının aynı olması <strong>gerekmez</strong>.',
     'help.rel.rules.h3'                      => 'Kurallar',
-    'help.rel.rules.list' => '<li>İki kayıt arasında <strong>en çok bir</strong> ilişki olur. Türü değiştirmek için önce mevcut olanı × ile silin, sonra yenisini ekleyin — form üst üste yazmaz, sizi uyarır.</li>
+    'help.rel.rules.list' => '<li>İki kayıt arasında <strong>en çok bir</strong> ilişki olur. İkincisini eklemeye çalışırsanız form üst üste yazmaz, sizi uyarır.</li>
+        <li><strong>Tür ya da yön yanlış girildiyse</strong> silmenize gerek yok: listedeki satırın <strong>kalem</strong> düğmesine basın, doğru türü seçip Kaydet\'e basın. Soru ekleme formundakiyle aynıdır ("karşı kayıt, bu animenin ___\'idir") ve kaydın şu anki hali seçili gelir. Yönü ters girilmiş bir bağı düzeltmek için karşılığını seçmeniz yeter: Devamı ↔ Öncesi, Yan Hikâye ↔ Ana Hikâye, Özet ↔ Tam Hikâye, Ek İçerik ↔ Ana Kayıt. Karşı kaydı değiştirmek ise hâlâ sil + ekle ile olur.</li>
         <li>Bir kayıt kendisiyle ilişkilendirilemez.</li>
         <li>Sıra (Devamı / Öncesi) zincir sekmesinde ancak iki uç aynı <strong>zincir adını</strong> taşıyorsa (ya da ikisi de adsızsa) izlenir. Zincir adı hangi hattı gösterdiğinizi seçer, bağ ise hattı kurar.</li>
         <li>İlişkiler kayıtların bulunduğu kurulumda durur: merkez katalog sunucusuna gitmez, "Katalogdan İçe Aktar" onlara dokunmaz. JSON yedeğe girer ve geri yüklemede geri gelir.</li>',
