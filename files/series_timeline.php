@@ -420,12 +420,21 @@ function st_render_card(array $item, $i, $mode, $currentAnimeId, $lazy) {
         body { font-family: 'Poppins', sans-serif; background: #f5f7fa; margin: 0; padding: 0; }
 
         .st-container {
-            max-width: 700px;
+            /* 1.2.3: border-box ile ic bosluk genisligin icinde; masaustu
+               gorunumu degismesin diye 700 + 2x20. */
+            max-width: 740px;
             margin: 30px auto;
             padding: 20px;
+            /* 1.2.3: body bir flex kutusu (base.css); flex ogesi varsayilan
+               olarak icerigi kadar genisler ve satir kirmayan uzun baslik
+               (.st-info .title nowrap) sayfayi telefonda 700 px'e itiyordu.
+               Genislik ekrana baglanir, min-width:0 kucultmeye izin verir. */
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
         }
         /* 1.1.48: sema genis; liste sekmeleri 700px'te kalir. */
-        .st-container.st-container--wide { max-width: 1100px; }
+        .st-container.st-container--wide { max-width: 1140px; }
         .st-header {
             text-align: center;
             margin-bottom: 30px;
@@ -537,6 +546,9 @@ function st_render_card(array $item, $i, $mode, $currentAnimeId, $lazy) {
         /* Card */
         .st-card {
             flex: 1;
+            /* 1.2.3: flex ogesi - min-width:0 olmadan nowrap baslik karti
+               (ve sayfayi) telefonda genisletiyordu; artik ... ile kisalir. */
+            min-width: 0;
             display: flex;
             align-items: center;
             gap: 12px;
@@ -657,6 +669,9 @@ function st_render_card(array $item, $i, $mode, $currentAnimeId, $lazy) {
         @media (max-width: 600px) {
             .st-card img, .st-card .no-img { display: none; }
             .st-order { display: none; }
+            /* 1.2.3: telefonda dis bosluk ve kart ic boslugu daralir. */
+            .st-container { margin: 10px auto; padding: 14px 12px; }
+            .st-card { padding: 10px 12px; }
         }
 
         /* ==============================================================

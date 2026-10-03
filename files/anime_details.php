@@ -265,7 +265,7 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
 <html lang="<?php echo htmlspecialchars(current_lang(), ENT_QUOTES, 'UTF-8'); ?>">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <?php // 1.2.3: viewport artik seo_head()'den gelir. ?>
     <?php
     // 1.2.0: the English version appends the [en]-tagged name, which is
     // what English searches type (seo_title_with_en, seo_helpers.php).
@@ -422,41 +422,6 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
                 <div class="detail-row">
                     <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.country'), ENT_QUOTES, 'UTF-8'); ?></span>
                     <span class="detail-value"><?php echo htmlspecialchars($country_name, ENT_QUOTES, 'UTF-8'); ?></span>
-                </div>
-                <?php endif; ?>
-
-                <?php
-                // 1.1.28 - Yayin bilgileri (gun/saat) DEVAM EDEN ve BASLAMAMIS
-                // anime icin basilir. Haftalik yayin yuvasi bir dizi baslamadan
-                // ONCE bellidir (sezon oncesi duyurulur), form da 1.1.28'den beri
-                // o alanlari baslamamis animede gosterip kaydediyor; girilen
-                // bilginin hicbir yerde GORUNMEMESI tutarsizdi. Bayrak burada,
-                // ilk kullanildigi yerde hesaplanir ve asagida yayin bilgileri
-                // blogunda TEKRAR kullanilir - iki ayri liste tutulmaz.
-                $showBroadcastInfo = in_array($anime['status'],
-                                        ['Yayın Devam Ediyor', 'Yayın Başlamadı'], true);
-                ?>
-                <?php // Kaynak notu ("Saat bilgisi ...'den alinmistir") saat
-                      // GOSTERILEN her durumda basilir - yoksa baslamamis animede
-                      // kaynaksiz saat gorunurdu. ?>
-                <?php if ($showBroadcastInfo): ?>
-                <div class="detail-row" style="margin-top: -8px;">
-                    <span class="detail-label"></span>
-                    <span class="detail-value" style="font-size: 11px; color: #6c757d; font-style: italic;">
-                        <?php
-                        // Etiketin icinde AnimeSchedule baglantisi icin bir "%s"
-                        // yer tutucusu var: once baglanti HTML'i kurulur, sonra
-                        // yerine konur - sonuc, kullanicinin sectigi cevirinin
-                        // guvenli HTML'i sarmasidir.
-                        //
-                        // Adres yoksa servisin ANA SAYFASINA duser ve bu dogrudur:
-                        // burasi bir KAYNAK BELIRTMEDIR (saat nereden geldi), dis
-                        // baglantilar bolumundeki "bu animenin sayfasi" dugmesi
-                        // degil. Oradaki genel adrese dusme 1.1.28'de kaldirildi.
-                        $schedule_link_html = '<a href="' . ($schedule_safe ?: 'https://animeschedule.net') . '" target="_blank" rel="noopener noreferrer" style="color: #6c757d; text-decoration: underline;">AnimeSchedule</a>';
-                        echo sprintf(t('anime_details.label.broadcast_attribution'), $schedule_link_html);
-                        ?>
-                    </span>
                 </div>
                 <?php endif; ?>
 
@@ -643,10 +608,20 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
                 </div>
                 <?php endif; ?>
 
-                <?php // 1.1.28 - $showBroadcastInfo yukarida (kaynak notunun
-                      // yaninda) hesaplandi: devam eden + baslamamis anime.
-                      //
-                      // 1.1.29 - baslamamis animeye de geri sayim geldi.
+                <?php
+                // 1.1.28 - Yayin bilgileri (gun/saat) DEVAM EDEN ve BASLAMAMIS
+                // anime icin basilir. Haftalik yayin yuvasi bir dizi baslamadan
+                // ONCE bellidir (sezon oncesi duyurulur), form da 1.1.28'den beri
+                // o alanlari baslamamis animede gosterip kaydediyor; girilen
+                // bilginin hicbir yerde GORUNMEMESI tutarsizdi.
+                //
+                // 1.2.3 - bayrak eskiden yukarida, Yayin Tarihi satirinin altindaki
+                // kaynak notuyla birlikte hesaplaniyordu. Not artik bu blogun
+                // icinde (asagida), bayrak da tek kullanildigi yerde.
+                $showBroadcastInfo = in_array($anime['status'],
+                                        ['Yayın Devam Ediyor', 'Yayın Başlamadı'], true);
+                ?>
+                <?php // 1.1.29 - baslamamis animeye de geri sayim geldi.
                       // 1.1.28'de "Sonraki Bolum" satiri bu blogun disinda
                       // birakilmisti; gerekce "baslamamis animenin sonraki
                       // bolumu ilk bolumudur ve onu Yayin Tarihi satiri zaten
@@ -690,6 +665,34 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
                         <span class="detail-label"><?php echo htmlspecialchars(t('anime_details.label.premiere'), ENT_QUOTES, 'UTF-8'); ?></span>
                         <span class="detail-value next-episode">
                             <?php echo getTimeUntilNextEpisode($premiereUtc, 0, 0, 0, null, true); ?>
+                        </span>
+                    </div>
+                    <?php endif; ?>
+
+                    <?php // Kaynak notu ("Saat bilgisi ...'den alinmistir").
+                          // 1.2.3: eskiden blogun disinda, Yayin Tarihi satirinin
+                          // altinda basiliyordu; 1.1.17'de Ulke satiri araya
+                          // girince saatten kopup sayfanin ortasinda yalniz
+                          // kaldi. Artik saatin ve geri sayimin hemen altinda -
+                          // ve yalniz saat GERCEKTEN doluyken: "Belirtilmemis"
+                          // yazan bir saate kaynak gostermek anlamsizdi. ?>
+                    <?php if (!empty($anime['broadcast_time'])): ?>
+                    <div class="detail-row" style="margin-top: -8px;">
+                        <span class="detail-label"></span>
+                        <span class="detail-value" style="font-size: 11px; color: #6c757d; font-style: italic;">
+                            <?php
+                            // Etiketin icinde AnimeSchedule baglantisi icin bir "%s"
+                            // yer tutucusu var: once baglanti HTML'i kurulur, sonra
+                            // yerine konur - sonuc, kullanicinin sectigi cevirinin
+                            // guvenli HTML'i sarmasidir.
+                            //
+                            // Adres yoksa servisin ANA SAYFASINA duser ve bu dogrudur:
+                            // burasi bir KAYNAK BELIRTMEDIR (saat nereden geldi), dis
+                            // baglantilar bolumundeki "bu animenin sayfasi" dugmesi
+                            // degil. Oradaki genel adrese dusme 1.1.28'de kaldirildi.
+                            $schedule_link_html = '<a href="' . ($schedule_safe ?: 'https://animeschedule.net') . '" target="_blank" rel="noopener noreferrer" style="color: #6c757d; text-decoration: underline;">AnimeSchedule</a>';
+                            echo sprintf(t('anime_details.label.broadcast_attribution'), $schedule_link_html);
+                            ?>
                         </span>
                     </div>
                     <?php endif; ?>

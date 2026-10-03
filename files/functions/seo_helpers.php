@@ -446,6 +446,13 @@ function seo_excerpt($text, $limit = 160) {
  * Tags are joined with the four-space indent used across the page heads
  * and the return value ends with a newline, exactly like asset_styles().
  *
+ * 1.2.3: the viewport meta is emitted here, first. Until 1.2.2 only
+ * anime_details.php and index.php carried it by hand; the other public
+ * pages (series_timeline, chronology, help, about, statistics, recent,
+ * recommendations) rendered on a phone as a shrunken 980 px desktop page -
+ * and Search Console showed two thirds of the clicks coming from phones.
+ * Every public page calls seo_head(), so this is the one place to keep it.
+ *
  * @param array $opts
  * @return string HTML.
  */
@@ -477,7 +484,8 @@ function seo_head(array $opts = []) {
             : seo_url($opts['image'], $base);
     }
 
-    $tags = [];
+    // 1.2.3: telefon sayfayi kendi genisliginde cizsin (bkz. docblock).
+    $tags = ['<meta name="viewport" content="width=device-width, initial-scale=1">'];
 
     $esc = function ($value) {
         return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');

@@ -11,9 +11,15 @@
  */
 
 .help-container {
-    max-width: 850px;
+    max-width: 930px; /* 1.2.3: border-box - 850 + 2x40, masaustu ayni */
     margin: 40px auto;
     padding: 30px 40px;
+    /* 1.2.3: body flex kutusu - flex ogesi icerigi kadar genislemesin,
+       telefonda ekrana otursun (bkz. @media asagida). */
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow-wrap: break-word;
     background: #fff;
     border-radius: 10px;
     box-shadow: 0 2px 12px rgba(0,0,0,0.08);
@@ -140,3 +146,17 @@
     transition: all 0.15s;
 }
 .back-link:hover { background: #eaf2fb; border-color: #357abd; color: #357abd; text-decoration: none; }
+
+/* 1.2.3 - telefon: yan bosluklar ve dis kenar daralir. */
+@media (max-width: 600px) {
+    .help-container {
+        margin: 12px auto;
+        padding: 20px 16px;
+        border-radius: 0;
+    }
+    /* Genis tablolar sayfayi degil kendi kutusunu kaydirir. */
+    .help-container table {
+        display: block;
+        overflow-x: auto;
+    }
+}

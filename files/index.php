@@ -684,7 +684,7 @@ function getSortLink($column, $order, $genre_filter, $watch_status_filter) {
 <html lang="<?php echo htmlspecialchars(current_lang(), ENT_QUOTES, 'UTF-8'); ?>">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <?php // 1.2.3: viewport artik seo_head()'den gelir. ?>
     <title><?php echo htmlspecialchars(t('index.page_title'), ENT_QUOTES, 'UTF-8'); ?></title>
     <?php
     // 1.1.30 - SEO meta. The canonical points at the BARE list page on

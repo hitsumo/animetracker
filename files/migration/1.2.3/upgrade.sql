@@ -1,0 +1,26 @@
+-- Anime Tracker - Migration 1.2.3
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- =====================================================================
+-- 1.2.3 - SEMA DEGISIKLIGI YOKTUR
+-- =====================================================================
+--
+-- Bu dosya bilerek BOSTUR. Runner yorumlari temizler, calistiracak ifade
+-- bulamaz ve yalnizca settings.version'i 1.2.3'e tasir. Klasorun var
+-- olmasi gerekiyor: surum atlanirsa MigrationManager sirayi kaybeder.
+-- (Ayni kalip 1.2.0 / 1.2.1 / 1.2.2'de kullanildi.)
+--
+-- ---------------------------------------------------------------------
+-- Bu surumde ne var: telefon gorunumu (viewport)
+-- ---------------------------------------------------------------------
+--
+-- <meta name="viewport"> artik seo_head()'den gelir; herkese acik her
+-- sayfa telefonda kendi genisliginde cizilir. Dar ekran CSS duzeltmeleri.
+-- Hepsi kod; veri yazilmaz.
+--
+-- Yeni tablo / kolon / indeks YOK.
+--
+-- MERKEZ KATALOG: is YOK.
+-- =====================================================================
