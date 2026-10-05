@@ -92,6 +92,16 @@ lang_init($pdo);
         .button-container {
             margin-top: 30px;
         }
+
+        .about-data {
+            font-size: 0.9em;
+            line-height: 1.6;
+            color: #777;
+            max-width: 640px;
+            margin: 0 auto 25px;
+        }
+
+        .about-data a { color: #4a90e2; }
     </style>
 </head>
 <body>
@@ -111,6 +121,14 @@ lang_init($pdo);
         <i class="fas fa-user-shield"></i> <?php echo htmlspecialchars(t('about.privacy_link'), ENT_QUOTES, 'UTF-8'); ?>
     </a>
 </p>
+                <?php
+                /* 1.2.5: veri kaynaklari + AniDB atfi. AniDB'nin politikasi, verisini
+                   baska bir hizmette kullanmayi CC BY-NC-SA'ya baglar: atif, ticari
+                   olmayan kullanim, ayni lisans. Katalog merkezden her kuruluma
+                   gittigi icin not her kurulumun Hakkinda sayfasinda durur. Metin dil
+                   dosyasindan HTML olarak gelir (yardim sayfalariyla ayni kural). */
+                ?>
+                <p class="about-data"><?php echo t('about.data_sources'); ?></p>
 
                 <a href="https://www.sicakcikolata.com" class="about-link">sicakcikolata.com</a>
                 <h5><center class="about-description">Anime Tracker 2025 </center></h5>

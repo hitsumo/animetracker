@@ -1102,7 +1102,7 @@ return [
     'help.account.invite.h3'                 => 'Requesting an Invite',
     'help.account.invite.text'               => 'Without a code you can use the <strong>"Request an invite"</strong> link on the registration page and leave your e-mail with a short reason. If the request is accepted, a code is sent to you. When the quota is full, new requests may not be accepted.',
     'help.account.account.h3'                => 'The Account Page',
-    'help.account.account.text'              => 'Once signed in, the <strong>"Account"</strong> link at the top right shows your username, e-mail and role; the same page is where you change your password (current password + the new one twice).',
+    'help.account.account.text'              => 'Once signed in, the <strong>"Account"</strong> link at the top right shows your username, e-mail and role; the same page is where you change your password (current password + the new one twice). The <strong>"Delete My Account"</strong> section at the bottom deletes your account: you type your password and, to confirm, your username; there is no undo. Your list, notes and watch log are deleted; your emotion marks and correction suggestions stay without a name.',
 
     'help.account.roles.h2'                  => 'Roles — Who Can Do What?',
     'help.account.roles.intro'               => 'There are four levels. Each level can also do everything the one before it can:',
@@ -1295,6 +1295,8 @@ return [
     'about.back_to_list'                     => 'Back to Anime List',
     'about.version_fmt'                      => 'Version %s',
     'about.privacy_link'                     => 'Privacy and Terms',
+    // 1.2.5 - data sources + AniDB attribution (AniDB policy: CC BY-NC-SA)
+    'about.data_sources'                     => '<strong>Data sources:</strong> Anime information in the catalog is compiled from several public sources and from members\' contributions. Part of it, including the relations between anime, comes from <a href="https://anidb.net/" rel="noopener">AniDB</a>. Information compiled from AniDB is shared under the <strong>CC BY-NC-SA</strong> license, as required by AniDB\'s <a href="https://anidb.net/policy" rel="noopener">terms of use</a>: it may be used with attribution, for non-commercial purposes and under the same license. The application\'s code is separately licensed under GPL-2.0.',
 
     // -----------------------------------------------------------------
     // privacy.php (1.2.4) - privacy + short terms of use
@@ -1328,7 +1330,7 @@ return [
     'privacy.retention.h3'                   => 'How long it is kept',
     'privacy.retention.text_fmt'             => 'Your account details and your list are kept for as long as your account exists. IP addresses on invite requests and suggestions are deleted after %d days; the text of the request or suggestion remains. The hosting company the site runs on may keep access logs (IP address, requested address, time) for a while under its own rules.',
     'privacy.rights.h3'                      => 'Your rights',
-    'privacy.rights.text'                    => 'You can download your list as a JSON file at any time under <em>List Settings → Export List</em>. To learn what is kept about you, to have something corrected, or to have your account and list deleted, contact the site administrator as described at the top of this page. When your account is deleted, your list, notes, emotion marks and watch log go with it; corrections you made to anime information in the catalog stay in the catalog.',
+    'privacy.rights.text'                    => 'You can download your list as a JSON file at any time under <em>List Settings → Export List</em>. You can delete your account yourself under <em>Account → Delete My Account</em> (your password is required). To learn what is kept about you or to have something corrected, contact the site administrator as described at the top of this page. When your account is deleted, your account, list, notes, watch log and list settings are deleted; the e-mail address on your invite record and your invite request are deleted too. Your emotion marks, correction suggestions and the catalog requests created when you imported a list stay without a name, tied to no account. Corrections you made to anime information in the catalog stay in the catalog.',
     'privacy.single.intro'                   => 'This installation runs in single-user mode (on your own server). No account, email or IP address is kept; your list, notes and settings exist only in this server\'s database.',
     'privacy.single.outbound.h3'             => 'Where the application connects to',
     'privacy.single.outbound.list'           => '<li><strong>Catalog sync:</strong> anime information is downloaded from the central catalog. Your list and notes are not sent.</li>'
@@ -1670,6 +1672,7 @@ Update now?',
     'auth.login.submit'     => 'Sign in',
     'auth.login.error'      => 'Invalid username or password.',
     'auth.login.empty'      => 'Username and password are required.',
+    'auth.login.deleted'    => 'Your account has been deleted.',
 
     'auth.logout.page_title' => 'Sign Out',
     'auth.logout.heading'    => 'Sign Out',
@@ -1692,6 +1695,16 @@ Update now?',
     'auth.account.err_current'          => 'Current password is incorrect.',
     'auth.account.err_short'            => 'New password must be at least 8 characters.',
     'auth.account.err_mismatch'         => 'New passwords do not match.',
+    // 1.2.5 - Delete my account
+    'auth.account.delete.h2'            => 'Delete My Account',
+    'auth.account.delete.text'          => 'Your account, your list, notes, watch log, list settings and AniList import records are deleted for good; the e-mail address on your invite record and any invite request of yours are deleted too. Your emotion marks and correction suggestions stay in the anonymous counts on anime pages but are no longer tied to any account. <strong>There is no undo.</strong> If you like, first download your list with <em>List Settings → Export List</em>.',
+    'auth.account.delete.password'      => 'Your password',
+    'auth.account.delete.confirm_label' => 'Type your username to confirm',
+    'auth.account.delete.submit'        => 'Delete my account permanently',
+    'auth.account.delete.err_confirm'   => 'The username did not match; your account was not deleted.',
+    'auth.account.delete.err_owner'     => 'This is the installation owner\'s account (id 1); it cannot be deleted.',
+    'auth.account.delete.err_last_admin' => 'You are the last administrator of this site; make someone else an administrator before deleting your account.',
+    'auth.account.delete.err_failed'    => 'Something went wrong while deleting; your account was not deleted. Refresh the page and try again.',
 
     'auth.register.page_title'          => 'Register',
     'auth.register.heading'             => 'Create Account',

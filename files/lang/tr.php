@@ -1133,7 +1133,7 @@ return [
     'help.account.invite.h3'                 => 'Davetiye Talebi',
     'help.account.invite.text'               => 'Davet kodunuz yoksa kayıt sayfasındaki <strong>"Davetiye talep et"</strong> bağlantısından e-postanızı ve kısa bir gerekçe yazarak talep bırakabilirsiniz. Talep uygun görülürse size bir kod iletilir. Kontenjan dolduğunda yeni talep alınmayabilir.',
     'help.account.account.h3'                => 'Hesap Sayfası',
-    'help.account.account.text'              => 'Giriş yaptıktan sonra sağ üstteki <strong>"Hesap"</strong> bağlantısı kullanıcı adınızı, e-postanızı ve rolünüzü gösterir; aynı sayfadan şifrenizi değiştirebilirsiniz (mevcut şifre + yeni şifre iki kez).',
+    'help.account.account.text'              => 'Giriş yaptıktan sonra sağ üstteki <strong>"Hesap"</strong> bağlantısı kullanıcı adınızı, e-postanızı ve rolünüzü gösterir; aynı sayfadan şifrenizi değiştirebilirsiniz (mevcut şifre + yeni şifre iki kez). Sayfanın altındaki <strong>"Hesabımı Sil"</strong> bölümünden hesabınızı da silebilirsiniz: şifrenizi ve onay için kullanıcı adınızı yazarsınız, geri dönüşü yoktur. Listeniz, notlarınız ve izleme günlüğünüz silinir; duygu işaretleriniz ve düzeltme önerileriniz isimsiz olarak kalır.',
 
     'help.account.roles.h2'                  => 'Roller — Kim Ne Yapabilir?',
     'help.account.roles.intro'               => 'Sitede dört yetki seviyesi vardır. Her seviye bir öncekinin yapabildiklerini de yapar:',
@@ -1326,6 +1326,8 @@ return [
     'about.back_to_list'                     => 'Anime Listesine Dön',
     'about.version_fmt'                      => 'Sürüm %s',
     'about.privacy_link'                     => 'Gizlilik ve Kullanım Koşulları',
+    // 1.2.5 - veri kaynaklari + AniDB atfi (AniDB politikasi: CC BY-NC-SA)
+    'about.data_sources'                     => '<strong>Veri kaynakları:</strong> Katalogdaki anime bilgileri birden çok açık kaynaktan ve üyelerin katkılarından derlenir. Bunların bir kısmı, anime ilişkileri de dahil, <a href="https://anidb.net/" rel="noopener">AniDB</a>\'den derlenmiştir. AniDB\'den derlenen bilgiler, AniDB\'nin <a href="https://anidb.net/policy" rel="noopener">kullanım koşulları</a> gereği <strong>CC BY-NC-SA</strong> lisansıyla paylaşılır: kaynak belirtilerek, ticari olmayan amaçla ve aynı lisansla kullanılabilir. Uygulamanın kodu ayrıca GPL-2.0 lisanslıdır.',
 
     // -----------------------------------------------------------------
     // privacy.php (1.2.4) - gizlilik + kisa kullanim kosullari
@@ -1359,7 +1361,7 @@ return [
     'privacy.retention.h3'                   => 'Ne kadar tutulur',
     'privacy.retention.text_fmt'             => 'Hesap bilgilerin ve listen, hesabın açık olduğu sürece tutulur. Davetiye talebi ve önerilerdeki IP adresleri %d gün sonra silinir; talebin ve önerinin metni kalır. Sitenin barındırıldığı sunucu firması, erişim kayıtlarını (IP adresi, ziyaret edilen adres, zaman) kendi kurallarına göre bir süre tutabilir.',
     'privacy.rights.h3'                      => 'Hakların',
-    'privacy.rights.text'                    => 'Listeni istediğin zaman <em>Liste Ayarları → Listeyi Dışa Aktar</em> ile JSON dosyası olarak indirebilirsin. Hakkında ne tutulduğunu öğrenmek, bir bilgiyi düzelttirmek ya da hesabını ve listeni sildirmek için sayfanın başındaki iletişim yoluyla site yöneticisine yaz. Hesabın silindiğinde listen, notların, duygu işaretlerin ve izleme günlüğün de silinir; katalogdaki anime bilgilerine yaptığın düzeltmeler katalogda kalır.',
+    'privacy.rights.text'                    => 'Listeni istediğin zaman <em>Liste Ayarları → Listeyi Dışa Aktar</em> ile JSON dosyası olarak indirebilirsin. Hesabını <em>Hesap → Hesabımı Sil</em> bölümünden kendin silebilirsin (şifren gerekir). Hakkında ne tutulduğunu öğrenmek ya da bir bilgiyi düzelttirmek için sayfanın başındaki iletişim yoluyla site yöneticisine yaz. Hesabın silindiğinde hesabın, listen, notların, izleme günlüğün ve liste ayarların silinir; davetiye kaydındaki e-posta adresin ve davetiye talebin de silinir. Duygu işaretlerin, düzeltme önerilerin ve liste içe aktarırken oluşan katalog istekleri isimsiz olarak kalır, hiçbir hesaba bağlı olmaz. Katalogdaki anime bilgilerine yaptığın düzeltmeler katalogda kalır.',
     'privacy.single.intro'                   => 'Bu kurulum tek kullanıcılı çalışıyor (kendi sunucunda). Hesap, e-posta ya da IP adresi tutulmaz; listen, notların ve ayarların yalnız bu sunucunun veritabanındadır.',
     'privacy.single.outbound.h3'             => 'Uygulamanın dışarıya bağlandığı yerler',
     'privacy.single.outbound.list'           => '<li><strong>Katalog senkronu:</strong> merkez katalogdan anime bilgisi indirilir. Listen ve notların gönderilmez.</li>'
@@ -1704,6 +1706,7 @@ Hemen guncellemek ister misiniz?',
     'auth.login.submit'     => 'Giriş yap',
     'auth.login.error'      => 'Kullanıcı adı veya şifre hatalı.',
     'auth.login.empty'      => 'Kullanıcı adı ve şifre gerekli.',
+    'auth.login.deleted'    => 'Hesabın silindi.',
 
     'auth.logout.page_title' => 'Çıkış',
     'auth.logout.heading'    => 'Çıkış Yap',
@@ -1726,6 +1729,16 @@ Hemen guncellemek ister misiniz?',
     'auth.account.err_current'          => 'Mevcut şifre hatalı.',
     'auth.account.err_short'            => 'Yeni şifre en az 8 karakter olmalı.',
     'auth.account.err_mismatch'         => 'Yeni şifreler eşleşmiyor.',
+    // 1.2.5 - Hesabimi sil
+    'auth.account.delete.h2'            => 'Hesabımı Sil',
+    'auth.account.delete.text'          => 'Hesabın, listen, notların, izleme günlüğün, liste ayarların ve AniList içe aktarma kayıtların kalıcı olarak silinir; davetiye kaydındaki e-posta adresin ve varsa davetiye talebin de silinir. Duygu işaretlerin ve düzeltme önerilerin anime sayfalarındaki isimsiz sayımlarda kalır ama artık hiçbir hesaba bağlı değildir. <strong>Geri dönüşü yoktur.</strong> İstersen önce <em>Liste Ayarları → Listeyi Dışa Aktar</em> ile listeni indir.',
+    'auth.account.delete.password'      => 'Şifren',
+    'auth.account.delete.confirm_label' => 'Onaylamak için kullanıcı adını yaz',
+    'auth.account.delete.submit'        => 'Hesabımı kalıcı olarak sil',
+    'auth.account.delete.err_confirm'   => 'Kullanıcı adı eşleşmedi; hesabın silinmedi.',
+    'auth.account.delete.err_owner'     => 'Bu hesap kurulumun sahibi hesabıdır (kimlik 1); silinemez.',
+    'auth.account.delete.err_last_admin' => 'Sitedeki son yöneticisin; hesabını silmeden önce başka birini yönetici yap.',
+    'auth.account.delete.err_failed'    => 'Silme sırasında bir sorun çıktı; hesabın silinmedi. Sayfayı yenileyip yeniden dene.',
 
     'auth.register.page_title'          => 'Kayıt',
     'auth.register.heading'             => 'Hesap Oluştur',

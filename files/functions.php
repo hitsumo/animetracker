@@ -57,3 +57,11 @@ require_once __DIR__ . '/functions/blacklist_helpers.php';
 require_once __DIR__ . '/functions/identity_helpers.php';
 require_once __DIR__ . '/functions/install_ping_helpers.php';
 require_once __DIR__ . '/functions/privacy_helpers.php';
+require_once __DIR__ . '/functions/account_helpers.php';
+
+// 1.2.5: online mode - a session whose account was deleted or suspended ends
+// here, on the next request (auth_enforce_active_session()). Skipped when
+// this file is loaded without the db.php connection in scope.
+if (isset($pdo) && $pdo instanceof PDO) {
+    auth_enforce_active_session($pdo);
+}

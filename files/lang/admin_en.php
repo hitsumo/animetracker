@@ -248,6 +248,15 @@ return [
     'admin_users.anilist_reset.button'       => 'Reset',
     'admin_users.anilist_reset.confirm'      => 'Reset the AniList import limit for this user? Their recorded sources will be cleared.',
     'admin_users.anilist_reset.done'         => 'AniList import limit reset (%d sources cleared).',
+    // 1.2.5 - account deletion
+    'admin_users.delete.summary'             => 'Delete',
+    'admin_users.delete.hint'                => 'There is no undo. Type the username to confirm:',
+    'admin_users.delete.button'              => 'Delete account',
+    'admin_users.delete.done'                => 'The account was deleted.',
+    'admin_users.delete.err_confirm'         => 'The username did not match; nothing was deleted.',
+    'admin_users.delete.err_owner'           => 'Id 1 is the installation owner\'s account; it cannot be deleted.',
+    'admin_users.delete.err_not_found'       => 'User not found.',
+    'admin_users.delete.err_failed'          => 'Something went wrong while deleting; nothing was deleted.',
     'admin_users.back_to_admin'              => 'Back to admin panel',
 
     // --- admin_suggestions.php ---

@@ -260,6 +260,15 @@ return [
     'admin_users.anilist_reset.button'       => 'Sıfırla',
     'admin_users.anilist_reset.confirm'      => 'Bu kullanıcının AniList içe aktarma limiti sıfırlansın mı? Kullandığı kaynak kayıtları silinir.',
     'admin_users.anilist_reset.done'         => 'AniList içe aktarma limiti sıfırlandı (%d kaynak silindi).',
+    // 1.2.5 - hesap silme
+    'admin_users.delete.summary'             => 'Sil',
+    'admin_users.delete.hint'                => 'Geri dönüşü yok. Onaylamak için kullanıcı adını yaz:',
+    'admin_users.delete.button'              => 'Hesabı sil',
+    'admin_users.delete.done'                => 'Hesap silindi.',
+    'admin_users.delete.err_confirm'         => 'Kullanıcı adı eşleşmedi; hiçbir şey silinmedi.',
+    'admin_users.delete.err_owner'           => 'Kimlik 1 kurulumun sahibi hesabıdır; silinemez.',
+    'admin_users.delete.err_not_found'       => 'Kullanıcı bulunamadı.',
+    'admin_users.delete.err_failed'          => 'Silme sırasında bir sorun çıktı; hiçbir şey silinmedi.',
     'admin_users.back_to_admin'              => 'Yönetici paneline dön',
 
     // --- admin_suggestions.php ---

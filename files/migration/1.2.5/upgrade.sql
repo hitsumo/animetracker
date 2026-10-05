@@ -1,0 +1,35 @@
+-- Anime Tracker - Migration 1.2.5
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- =====================================================================
+-- 1.2.5 - SEMA DEGISIKLIGI YOKTUR
+-- =====================================================================
+--
+-- Bu dosya bilerek BOSTUR. Runner yorumlari temizler, calistiracak ifade
+-- bulamaz ve yalnizca settings.version'i 1.2.5'e tasir. Klasorun var
+-- olmasi gerekiyor: surum atlanirsa MigrationManager sirayi kaybeder.
+-- (Ayni kalip 1.2.0 - 1.2.4'te kullanildi.)
+--
+-- ---------------------------------------------------------------------
+-- Bu surumde ne var: hesap silme
+-- ---------------------------------------------------------------------
+--
+-- functions/account_helpers.php: account_delete_check() + account_delete()
+-- (tek transaction). Yonetici Uyeler sayfasindan, uye Hesap sayfasindan
+-- siler. Her istekte silinmis / askiya alinmis hesabin oturumu kapanir
+-- (auth_enforce_active_session).
+--
+-- Bilincli olarak EKLENMEYEN: user_anime_emotion -> users yabanci
+-- anahtari. Kullanici karari: duygu isaretleri hesap silinince KALIR
+-- (isimsiz sayimlar). Bir CASCADE onlari silerdi; satirlar bunun yerine
+-- user_id'nin EKSIsine cevrilerek hesaptan koparilir (kod yapar).
+-- invites.used_by da eksiye cevrilir (NULL olsa kod yeniden gecerli olurdu).
+-- Ayrica: Hakkinda sayfasina veri kaynaklari + AniDB atfi (CC BY-NC-SA;
+-- yalniz dil dosyasi + about.php, veritabani islemi yok).
+--
+-- Yeni tablo / kolon / indeks YOK.
+--
+-- MERKEZ KATALOG: is YOK.
+-- =====================================================================

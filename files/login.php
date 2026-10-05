@@ -109,6 +109,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-radius: 4px;
             margin-bottom: 20px;
         }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            padding: 12px 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
@@ -117,6 +125,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <?php if ($error !== ''): ?>
             <div class="errors"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></div>
+        <?php elseif (isset($_GET['deleted'])): ?>
+            <?php // 1.2.5: account.php lands here after "Delete my account". ?>
+            <div class="success"><?php echo htmlspecialchars(t('auth.login.deleted'), ENT_QUOTES, 'UTF-8'); ?></div>
         <?php endif; ?>
 
         <form method="post">

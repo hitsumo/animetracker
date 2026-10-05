@@ -145,6 +145,43 @@ function is_logged_in()
 }
 
 /**
+ * 1.2.5 - End a session whose account is gone or no longer active.
+ *
+ * Login is the only place that checked users.status (auth_login), so a
+ * member who was suspended - or, since 1.2.5, deleted - kept browsing on
+ * the session they already had, and a deleted member's open session could
+ * still write emotion marks (that table has no foreign key to users).
+ * functions.php calls this once per request after the helpers load: in
+ * online mode, a session user id whose row is missing or not 'active' is
+ * dropped, and the request continues as a guest (pages that need a login
+ * then redirect as usual). current_user() caches the row, so pages that
+ * read it again pay nothing extra.
+ *
+ * A database error here never breaks the page: the check is skipped.
+ *
+ * @param PDO $pdo
+ * @return void
+ */
+function auth_enforce_active_session($pdo)
+{
+    if (!MULTI_USER_MODE || !isset($_SESSION['user_id'])) {
+        return;
+    }
+    try {
+        $u = current_user($pdo);
+    } catch (PDOException $e) {
+        error_log('[anime_tracker] auth_enforce_active_session: ' . $e->getMessage());
+        return;
+    }
+    if (!$u || ($u['status'] ?? '') !== 'active') {
+        unset($_SESSION['user_id']);
+        if (!headers_sent()) {
+            session_regenerate_id(true);
+        }
+    }
+}
+
+/**
  * The current user's role string.
  *   - self-host: 'admin' (owner has full authority), no DB hit.
  *   - online: the role from the users row, or null when anonymous.

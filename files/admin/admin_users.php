@@ -26,9 +26,14 @@
  *      keeps the invariant even if self-action is ever enabled later.
  *
  * Status: only active <-> suspended are offered as changes. 'pending'
- * (email-verification, a later milestone) and 'deleted' (the GDPR soft-delete
- * routine, also later) are system states - they are displayed if present but
- * not set from here, so this page never half-implements soft-delete.
+ * (email-verification, a later milestone) and 'deleted' are system states -
+ * displayed if present but never set from here. 1.2.5 chose real deletion
+ * over a 'deleted' status: the row goes (see functions/account_helpers.php).
+ *
+ * 1.2.5 - DELETE (per row, never on the actor's own row): the admin types
+ * the username to confirm - there is no undo. The same two guards apply
+ * through account_delete_check() (last active admin; id 1, the self-host
+ * owner row). A member deletes their own account on account.php.
  */
 
 require_once __DIR__ . '/../db.php';
@@ -105,6 +110,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $upd = $pdo->prepare("UPDATE users SET role = ?, status = ? WHERE id = ?");
             $upd->execute([$newRole, $newStatus, $id]);
         }
+    }
+
+    // 1.2.5: delete an account. Self-guard as above; the typed username must
+    // match the row exactly; account_delete_check() holds the other rules.
+    if (($_POST['action'] ?? '') === 'delete_user') {
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id === (int)current_user_id()) {
+            http_response_code(403);
+            die(htmlspecialchars(t('admin_users.err_self'), ENT_QUOTES, 'UTF-8'));
+        }
+        $q = $pdo->prepare("SELECT username FROM users WHERE id = ? LIMIT 1");
+        $q->execute([$id]);
+        $username = $q->fetchColumn();
+        if ($username === false) {
+            header('Location: admin_users.php?del_err=not_found');
+            exit;
+        }
+        if (trim((string)($_POST['confirm_username'] ?? '')) !== (string)$username) {
+            header('Location: admin_users.php?del_err=confirm');
+            exit;
+        }
+        $why = account_delete_check($pdo, $id);
+        if ($why !== '') {
+            header('Location: admin_users.php?del_err=' . urlencode($why));
+            exit;
+        }
+        if (!account_delete($pdo, $id)) {
+            header('Location: admin_users.php?del_err=failed');
+            exit;
+        }
+        header('Location: admin_users.php?deleted=1');
+        exit;
     }
 
     // 1.1.11: reset a user's AniList import source limit by clearing their
@@ -191,6 +228,13 @@ function status_options_for($current, array $settable)
         }
         .btn:hover { background-color: #0056b3; }
         .row-form { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .btn-danger { background-color: #dc3545; }
+        .btn-danger:hover { background-color: #b02a37; }
+        .del-box { margin-top: 6px; }
+        .del-box summary { cursor: pointer; color: #dc3545; font-size: 0.9em; }
+        .del-box form { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; max-width: 220px; }
+        .del-box label { color: #666; font-size: 0.85em; }
+        .del-box input[type="text"] { padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
         .back-link { display: inline-block; margin-top: 25px; color: #666; text-decoration: none; }
         .back-link:hover { color: #dc3545; }
     </style>
@@ -209,6 +253,29 @@ function status_options_for($current, array $settable)
             <p style="color: #666; margin-top: 0;">
                 <?php echo htmlspecialchars(t('admin_users.intro'), ENT_QUOTES, 'UTF-8'); ?>
             </p>
+
+            <?php if (isset($_GET['deleted'])): ?>
+                <div style="background:#d4edda;color:#155724;padding:10px 14px;border-radius:4px;margin-bottom:15px;font-size:0.9em;">
+                    <i class="fas fa-check"></i>
+                    <?php echo htmlspecialchars(t('admin_users.delete.done'), ENT_QUOTES, 'UTF-8'); ?>
+                </div>
+            <?php endif; ?>
+            <?php
+            $delErrKeys = [
+                'confirm'    => 'admin_users.delete.err_confirm',
+                'owner'      => 'admin_users.delete.err_owner',
+                'last_admin' => 'admin_users.err_last_admin',
+                'not_found'  => 'admin_users.delete.err_not_found',
+                'failed'     => 'admin_users.delete.err_failed',
+            ];
+            $delErr = (string)($_GET['del_err'] ?? '');
+            ?>
+            <?php if (isset($delErrKeys[$delErr])): ?>
+                <div style="background:#f8d7da;color:#721c24;padding:10px 14px;border-radius:4px;margin-bottom:15px;font-size:0.9em;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <?php echo htmlspecialchars(t($delErrKeys[$delErr]), ENT_QUOTES, 'UTF-8'); ?>
+                </div>
+            <?php endif; ?>
 
             <?php if (isset($_GET['ais_reset'])): ?>
                 <div style="background:#d4edda;color:#155724;padding:10px 14px;border-radius:4px;margin-bottom:15px;font-size:0.9em;">
@@ -273,6 +340,20 @@ function status_options_for($current, array $settable)
                                         <span title="<?php echo htmlspecialchars(t('admin_users.anilist_reset.label'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(sprintf(t('admin_users.anilist_reset.count'), $sc), ENT_QUOTES, 'UTF-8'); ?></span>
                                         <button type="submit" class="btn"><i class="fas fa-undo"></i> <?php echo htmlspecialchars(t('admin_users.anilist_reset.button'), ENT_QUOTES, 'UTF-8'); ?></button>
                                     </form>
+                                <?php endif; ?>
+                                <?php if ((int)$u['id'] !== 1): ?>
+                                    <details class="del-box">
+                                        <summary><i class="fas fa-trash-alt"></i> <?php echo htmlspecialchars(t('admin_users.delete.summary'), ENT_QUOTES, 'UTF-8'); ?></summary>
+                                        <form method="post" action="admin_users.php">
+                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                                            <input type="hidden" name="action" value="delete_user">
+                                            <input type="hidden" name="id" value="<?php echo (int)$u['id']; ?>">
+                                            <label for="del-<?php echo (int)$u['id']; ?>"><?php echo htmlspecialchars(t('admin_users.delete.hint'), ENT_QUOTES, 'UTF-8'); ?></label>
+                                            <input type="text" id="del-<?php echo (int)$u['id']; ?>" name="confirm_username" required autocomplete="off"
+                                                   placeholder="<?php echo htmlspecialchars($u['username'], ENT_QUOTES, 'UTF-8'); ?>">
+                                            <button type="submit" class="btn btn-danger"><?php echo htmlspecialchars(t('admin_users.delete.button'), ENT_QUOTES, 'UTF-8'); ?></button>
+                                        </form>
+                                    </details>
                                 <?php endif; ?>
                             </td>
                         <?php endif; ?>
