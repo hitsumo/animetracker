@@ -127,6 +127,12 @@ geri gönderilir (imzalı, sunucudan sunucuya) ve diğer kurulumlar bir sonraki
 güncellemede alır. Kişisel veriler (izleme durumu, notlar, duygular) asla katalogla
 paylaşılmaz — yalnızca liste dışa/içe aktarmayla taşınır.
 
+**Katalog verisinin lisansı:** katalogdaki bilgilerin bir kısmı, anime ilişkileri
+de dahil, [AniDB](https://anidb.net/)'den derlenir. AniDB'den derlenen bilgiler,
+AniDB'nin [kullanım koşulları](https://anidb.net/policy) gereği **CC BY-NC-SA**
+lisansıyla paylaşılır: kaynak belirtilerek, ticari olmayan amaçla ve aynı lisansla
+kullanılabilir. Bu, kodun GPL-2.0 lisansından ayrıdır.
+
 ### Kurulum sayacı
 
 Proje açık kaynak ve self-host olduğu için kaç kurulum olduğunu bilmenin başka
@@ -252,6 +258,13 @@ approves a pending anime, the record is automatically pushed back to the central
 server (signed, server-to-server) and other installs receive it on their next
 update. Personal data (watch status, notes, emotions) is never shared with the
 catalog — it only moves via list export/import.
+
+**Catalog data license:** part of the catalog, including the relations between
+anime, is compiled from [AniDB](https://anidb.net/). Information compiled from AniDB
+is shared under the **CC BY-NC-SA** license, as required by AniDB's
+[terms of use](https://anidb.net/policy): it may be used with attribution, for
+non-commercial purposes and under the same license. This is separate from the
+code's GPL-2.0 license.
 
 ### Install counter
 
