@@ -325,6 +325,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php if ($inviteMode): ?>
             <br><a href="request_invite.php"><?php echo htmlspecialchars(t('auth.register.request_invite'), ENT_QUOTES, 'UTF-8'); ?></a>
             <?php endif; ?>
+            <?php // 1.2.4: formun topladigi bilgilerin nerede anlatildigi. ?>
+            <br><a href="privacy.php"><?php echo htmlspecialchars(t('privacy.link'), ENT_QUOTES, 'UTF-8'); ?></a>
         </div>
 
         <?php // 1.1.16: anonim ziyaretci dil secici, kartin altinda. Uye

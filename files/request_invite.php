@@ -196,6 +196,8 @@ $slotOpen = invite_request_limit_state($pdo)['open'];
 
         <div class="auth-alt">
             <a href="register.php"><?php echo htmlspecialchars(t('invite_request.back_to_register'), ENT_QUOTES, 'UTF-8'); ?></a>
+            <?php // 1.2.4: e-posta + IP toplanan form; nerede anlatildigi. ?>
+            <br><a href="privacy.php"><?php echo htmlspecialchars(t('privacy.link'), ENT_QUOTES, 'UTF-8'); ?></a>
         </div>
         <?php endif; ?>
 

@@ -615,7 +615,7 @@ return [
     'help.group.timezone.heading'            => 'Timezone',
     'help.group.timezone.page_title'         => 'Timezone - Anime Tracker',
     'help.intro'                             => 'Here is how Anime Tracker works, what each field is for, and what to watch out for. If you are curious about a specific feature, jump to the relevant section.',
-    'help.contact'                           => 'Contact: <a href="mailto:at@animetracker.uzakdiyarlar.com">at@animetracker.uzakdiyarlar.com</a>',
+    'help.contact_fmt'                       => 'Contact: %s',
 
     // Table of contents
     'help.toc.heading'                       => 'Contents:',
@@ -1294,6 +1294,59 @@ return [
     'about.ai_notice_link'                   => 'AI Use Notice',
     'about.back_to_list'                     => 'Back to Anime List',
     'about.version_fmt'                      => 'Version %s',
+    'about.privacy_link'                     => 'Privacy and Terms',
+
+    // -----------------------------------------------------------------
+    // privacy.php (1.2.4) - privacy + short terms of use
+    // Bodies are HTML (like the help pages). Online and self-host texts
+    // differ: a self-host install keeps no account / email / IP.
+    // -----------------------------------------------------------------
+    'privacy.link'                           => 'Privacy and Terms',
+    'privacy.page_title'                     => 'Privacy and Terms - Anime Tracker',
+    'privacy.heading'                        => 'Privacy and Terms of Use',
+    'privacy.back_to_about'                  => '← About',
+    'privacy.intro'                          => 'This page explains which information this site keeps and why, and what is expected when you use it. It is short on purpose; this is all of it.',
+    'privacy.operator.title'                 => 'Who is responsible?',
+    'privacy.operator.text'                  => 'The person who runs this site is responsible for the information kept here.',
+    'privacy.contact_fmt'                    => 'For any request about your information: %s',
+    'privacy.contact_none'                   => 'No contact address is set for this installation; reach the site administrator by whatever means you have.',
+    'privacy.h2'                             => 'Privacy',
+    'privacy.data.h3'                        => 'What is kept',
+    'privacy.data.list'                      => '<li><strong>Account:</strong> your username, your email address and an irreversible hash of your password (the password itself is never stored).</li>'
+                                              . '<li><strong>Your list:</strong> the anime you added, the episodes you watched, your watch statuses, your notes and the synopses you wrote yourself, your emotion marks, your watch log and your list settings.</li>'
+                                              . '<li><strong>AniList import:</strong> if you used it, the AniList usernames you imported from.</li>'
+                                              . '<li><strong>Invites:</strong> which email address an invite code was created for; if you requested an invite, your email address, the reason you wrote and your IP address.</li>'
+                                              . '<li><strong>Correction suggestions:</strong> the suggestion text, your account if you were signed in, and your IP address.</li>',
+    'privacy.purpose.h3'                     => 'What it is used for',
+    'privacy.purpose.text'                   => 'To open your account and show you your list, to review invite requests and to review correction suggestions. The IP address is used only against spam: the number of requests and suggestions that can be sent from one address within an hour is limited. When an invite request arrives, your email address and reason may also be forwarded to the site administrator by email.',
+    'privacy.sharing.h3'                     => 'Who sees it',
+    'privacy.sharing.text'                   => 'Your list and notes are not shown to other members. Emotion marks are used on anime pages and in What Should I Watch only as combined, anonymous counts; nobody can see who marked what. Your information is not sold, rented or shared with anyone. The site has no ads, no visitor counter and no analytics script. The site administrator can access the database as part of running it.',
+    'privacy.cookies.h3'                     => 'Cookies',
+    'privacy.cookies.text'                   => 'The site uses a single session cookie. It carries the fact that you are signed in and, as a guest, preferences such as the language you picked; the site needs it to work. There are no advertising or tracking cookies, which is why there is no cookie consent banner either.',
+    'privacy.external.h3'                    => 'External resources',
+    'privacy.external.text'                  => 'Pages load their font from Google Fonts (Google) and their icons from cdnjs (Cloudflare). When your browser downloads these files, your IP address and browser details reach those companies; this site sends them nothing else. When you follow the MyAnimeList, AniDB or AnimeSchedule links on an anime page, that site\'s own rules apply.',
+    'privacy.retention.h3'                   => 'How long it is kept',
+    'privacy.retention.text_fmt'             => 'Your account details and your list are kept for as long as your account exists. IP addresses on invite requests and suggestions are deleted after %d days; the text of the request or suggestion remains. The hosting company the site runs on may keep access logs (IP address, requested address, time) for a while under its own rules.',
+    'privacy.rights.h3'                      => 'Your rights',
+    'privacy.rights.text'                    => 'You can download your list as a JSON file at any time under <em>List Settings → Export List</em>. To learn what is kept about you, to have something corrected, or to have your account and list deleted, contact the site administrator as described at the top of this page. When your account is deleted, your list, notes, emotion marks and watch log go with it; corrections you made to anime information in the catalog stay in the catalog.',
+    'privacy.single.intro'                   => 'This installation runs in single-user mode (on your own server). No account, email or IP address is kept; your list, notes and settings exist only in this server\'s database.',
+    'privacy.single.outbound.h3'             => 'Where the application connects to',
+    'privacy.single.outbound.list'           => '<li><strong>Catalog sync:</strong> anime information is downloaded from the central catalog. Your list and notes are not sent.</li>'
+                                              . '<li><strong>Update check:</strong> when you press "Check for Update", the latest version number is read from the distribution server.</li>'
+                                              . '<li><strong>Install counter:</strong> once, at installation, an anonymous request is sent that carries no address and no personal information (a random id, the version and the mode). It can be turned off with <code>INSTALL_PING</code> in <code>config.php</code>.</li>'
+                                              . '<li><strong>Optional features:</strong> AniList import (the AniList username you enter goes to AniList), broadcast time (AnimeSchedule) and the filler episode list (Anime Filler List) connect only when you use them.</li>'
+                                              . '<li><strong>Font and icons:</strong> Google Fonts and cdnjs (Cloudflare); when your browser downloads these files, your IP address reaches those companies.</li>',
+    'privacy.terms.h2'                       => 'Terms of use',
+    'privacy.terms.list'                     => '<li><strong>Accuracy:</strong> Anime information is compiled by members and from open sources; it is not guaranteed to be correct or complete. If you spot a mistake, use the "Suggest a Correction" box on the anime page.</li>'
+                                              . '<li><strong>Images:</strong> Posters and cover images belong to their rights holders; they are shown to identify the anime, for non-commercial purposes. If you are the rights holder and want one removed, write to the site administrator.</li>'
+                                              . '<li><strong>Use:</strong> Spam, content that infringes other people\'s rights, or use aimed at breaking the system may get an account suspended without notice.</li>'
+                                              . '<li><strong>No warranty:</strong> The site is free and provided as is; it is not guaranteed to run without interruption or to never lose data. Exporting your list now and then is recommended.</li>'
+                                              . '<li><strong>Changes:</strong> This page may be updated over time; its current version is always at this address.</li>',
+    'privacy.single.terms.list'              => '<li><strong>Accuracy:</strong> Anime information in the catalog is compiled by volunteers and from open sources; it is not guaranteed to be correct or complete.</li>'
+                                              . '<li><strong>Images:</strong> Posters and cover images belong to their rights holders; they are shown to identify the anime, for non-commercial purposes.</li>'
+                                              . '<li><strong>Backups:</strong> Your data lives on this server; backing it up is up to you. Exporting your list now and then is recommended.</li>',
+    'privacy.selfhost.h3'                    => 'Copies installed on other servers',
+    'privacy.selfhost.text'                  => 'Anime Tracker is open-source software (GNU GPL v2); anyone can download it and install it on their own server. Each installation is run by the person who operates it, and that person is responsible for the data, content and use of that installation. The software\'s developer is not responsible for installations they do not operate, or for what is done on them. Under the GPL v2 licence, the software is provided without any warranty.',
 
     // -----------------------------------------------------------------
     // chronology.php - per-anime kronoloji isaretleri timeline
@@ -1693,6 +1746,7 @@ Update now?',
     // "Series Chronology" - both go in the title (UI name unchanged).
     'seo.series.title_fmt'              => '%s Watch Order - Series Chronology',
     'seo.about.description'             => 'What Anime Tracker is, what it does and the licence it is distributed under.',
+    'seo.privacy.description'           => 'Which information Anime Tracker keeps, why and for how long; cookies, external resources and short terms of use.',
     'seo.help.description'              => 'Anime Tracker help pages: fields, watch statuses, catalog sync, series and time zones.',
     'seo.help.group.description_fmt'    => 'Anime Tracker help - %s.',
     'seo.recent.description'            => 'Recently updated anime entries in the catalog.',

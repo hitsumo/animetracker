@@ -59,9 +59,19 @@ lang_init($pdo);
 
     <h1><i class="fas fa-question-circle icon-inline"></i> <?php echo htmlspecialchars(t('help.heading'), ENT_QUOTES, 'UTF-8'); ?></h1>
 
+    <?php
+    // 1.2.4: the contact line comes from Admin Capabilities -> Contact (the
+    // same address privacy.php shows), not from the language file - the
+    // package goes to every installation, and each one has its own operator.
+    // No address set (and always on self-host) -> no line.
+    $helpContact = (defined('MULTI_USER_MODE') && MULTI_USER_MODE) ? privacy_contact_email($pdo) : '';
+    if ($helpContact !== ''):
+        $hc = htmlspecialchars($helpContact, ENT_QUOTES, 'UTF-8');
+    ?>
     <p style="margin: 0 0 16px; color: #555;">
-        <i class="fas fa-envelope icon-inline"></i> <?php echo t('help.contact'); ?>
+        <i class="fas fa-envelope icon-inline"></i> <?php echo sprintf(t('help.contact_fmt'), '<a href="mailto:' . $hc . '">' . $hc . '</a>'); ?>
     </p>
+    <?php endif; ?>
 
     <p>
         <?php echo t('help.intro'); ?>

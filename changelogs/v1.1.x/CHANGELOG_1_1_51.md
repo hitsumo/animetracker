@@ -3,8 +3,11 @@
 **Yayın tarihi:** 2026-09-25
 
 Tek iş: **"Ne İzlesem?" duygu araması çevrimiçi kurulumda tüm üyelerin
-işaretlerine bakıyor.** Başladığın animeler de artık varsayılan olarak
-sonuçlarda gizleniyor. Şema değişikliği yok (boş migration); merkez
+işaretlerine bakıyor.** Forma bir de **"Yalnız başlamadıklarım"** kutusu
+geldi: sayfa açıldığında işaretli olur ve başladığın animeleri sonuçlardan
+çıkarır; kutuyu kaldırıp ararsan hepsi görünür. Bu bir ayar değildir,
+seçim kaydedilmez; kutu yalnız çevrimiçi kurulumda giriş yapmış üyeye
+görünür (ayrıntı 3. bölümde). Şema değişikliği yok (boş migration); merkez
 katalogda yapılacak bir şey yok. Tek kullanıcılı kurulumda hiçbir şey
 değişmedi.
 

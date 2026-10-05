@@ -93,6 +93,10 @@ if ($ip !== '') {
     }
 }
 
+// 1.2.4: clear addresses older than the retention window (privacy_helpers.php)
+// - the rate limit above only looks at the trailing hour.
+privacy_purge_old_ips($pdo);
+
 // Store. submitter_user_id is the signed-in user's id, or NULL when anonymous.
 $uid = is_logged_in() ? (int)current_user_id() : null;
 $ins = $pdo->prepare(

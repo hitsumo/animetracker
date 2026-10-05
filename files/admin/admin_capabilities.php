@@ -88,7 +88,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         set_setting($pdo, 'anilist_import_source_limit', (string)$n);
     }
 
-    header('Location: admin_capabilities.php');
+    $redirect = 'admin_capabilities.php';
+
+    // Contact address (1.2.4): the address privacy.php prints for data /
+    // account requests. Online only - self-host has no members to write to
+    // anyone. Kept apart from the invite notification address on purpose:
+    // that one receives invite requests, this one is the operator's public
+    // contact. Empty clears it. An invalid address is NOT saved and the page
+    // says so (silently dropping it looked like a broken save). The key keeps
+    // its 1.2.4 name, privacy_contact_email - privacy_contact_email() reads it.
+    if (isset($_POST['cap_contact_email']) && MULTI_USER_MODE) {
+        $contact = trim($_POST['contact_email'] ?? '');
+        if ($contact === '' || filter_var($contact, FILTER_VALIDATE_EMAIL)) {
+            set_setting($pdo, 'privacy_contact_email', $contact);
+        } else {
+            $redirect .= '?err=contact_email';
+        }
+    }
+
+    header('Location: ' . $redirect);
     exit;
 }
 
@@ -96,6 +114,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $synopsisOverride = (get_setting($pdo, 'synopsis_edit_override', '0') === '1');
 $anilistLimit     = (int)get_setting($pdo, 'anilist_import_source_limit', '3');
+$contactEmail     = (string)get_setting($pdo, 'privacy_contact_email', ''); // 1.2.4
+$contactInvalid   = (($_GET['err'] ?? '') === 'contact_email');
 
 ?>
 <!DOCTYPE html>
@@ -128,6 +148,7 @@ $anilistLimit     = (int)get_setting($pdo, 'anilist_import_source_limit', '3');
         .cap-status { margin-top: 12px; padding: 8px 12px; border-radius: 4px; font-size: 0.85em; display: inline-block; }
         .status-on { background: #d4edda; color: #155724; }
         .status-off { background: #f5f5f5; color: #666; }
+        .status-error { background: #f8d7da; color: #721c24; }
         .back-link { display: inline-block; margin-top: 20px; color: #666; text-decoration: none; }
         .back-link:hover { color: #dc3545; }
     </style>
@@ -187,6 +208,38 @@ $anilistLimit     = (int)get_setting($pdo, 'anilist_import_source_limit', '3');
                     <?php echo htmlspecialchars(t('admin_cap.anilist_limit.hint'), ENT_QUOTES, 'UTF-8'); ?>
                 </div>
             </div>
+
+            <?php if (MULTI_USER_MODE): ?>
+            <!-- Capability: contact address shown on privacy.php (1.2.4) -->
+            <div class="cap-card">
+                <h3><i class="fas fa-envelope"></i> <?php echo htmlspecialchars(t('admin_cap.contact.h3'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                <p><?php echo htmlspecialchars(t('admin_cap.contact.desc'), ENT_QUOTES, 'UTF-8'); ?></p>
+                <form method="post" action="admin_capabilities.php" class="cap-toggle" style="gap: 10px; flex-wrap: wrap;">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="cap_contact_email" value="1">
+                    <label for="contact_email"><?php echo htmlspecialchars(t('admin_cap.contact.label'), ENT_QUOTES, 'UTF-8'); ?></label>
+                    <input type="email" id="contact_email" name="contact_email"
+                           value="<?php echo htmlspecialchars($contactEmail, ENT_QUOTES, 'UTF-8'); ?>"
+                           placeholder="<?php echo htmlspecialchars(t('admin_cap.contact.placeholder'), ENT_QUOTES, 'UTF-8'); ?>"
+                           style="width: 280px; max-width: 100%; padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    <button type="submit" class="tool-link"><?php echo htmlspecialchars(t('admin_cap.save'), ENT_QUOTES, 'UTF-8'); ?></button>
+                </form>
+                <?php if ($contactInvalid): ?>
+                    <div class="cap-status status-error">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <?php echo htmlspecialchars(t('admin_cap.contact.invalid'), ENT_QUOTES, 'UTF-8'); ?>
+                    </div>
+                <?php elseif ($contactEmail === ''): ?>
+                    <div class="cap-status status-off">
+                        <i class="fas fa-info-circle"></i>
+                        <?php echo htmlspecialchars(t('admin_cap.contact.none'), ENT_QUOTES, 'UTF-8'); ?>
+                    </div>
+                <?php endif; ?>
+                <div style="margin-top:10px;">
+                    <a href="../privacy.php" target="_blank" rel="noopener"><i class="fas fa-external-link-alt"></i> <?php echo htmlspecialchars(t('admin_cap.contact.view'), ENT_QUOTES, 'UTF-8'); ?></a>
+                </div>
+            </div>
+            <?php endif; ?>
 
             <a href="admin.php" class="back-link">
                 <i class="fas fa-arrow-left"></i> <?php echo htmlspecialchars(t('admin_cap.back_to_admin'), ENT_QUOTES, 'UTF-8'); ?>

@@ -3,8 +3,12 @@
 **Release date:** 2026-09-25
 
 One change: **the "What to Watch?" emotion search now looks at every
-member's marks on an online installation**, and anime you have already
-started are hidden from the results by default. No schema change (empty
+member's marks on an online installation**. The form also gets an
+**"Only ones I have not started"** box: it is ticked when the page opens
+and leaves out anime you have already started; untick it and search again
+to see them all. It is not a setting and the choice is not saved; the box
+appears only to signed-in members on an online installation (details in
+section 3). No schema change (empty
 migration); nothing to do on the central catalog. Nothing changes on a
 single-user installation.
 

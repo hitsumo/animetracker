@@ -1,0 +1,32 @@
+-- Anime Tracker - Migration 1.2.4
+-- https://www.sicakcikolata.com
+-- Copyright (C) 2025-2026 Okan Sumer
+-- Licensed under GNU General Public License v2
+--
+-- =====================================================================
+-- 1.2.4 - SEMA DEGISIKLIGI YOKTUR
+-- =====================================================================
+--
+-- Bu dosya bilerek BOSTUR. Runner yorumlari temizler, calistiracak ifade
+-- bulamaz ve yalnizca settings.version'i 1.2.4'e tasir. Klasorun var
+-- olmasi gerekiyor: surum atlanirsa MigrationManager sirayi kaybeder.
+-- (Ayni kalip 1.2.0 - 1.2.3'te kullanildi.)
+--
+-- ---------------------------------------------------------------------
+-- Bu surumde ne var: gizlilik sayfasi + IP saklama suresi
+-- ---------------------------------------------------------------------
+--
+-- privacy.php (gizlilik + kisa kullanim kosullari, moda gore metin).
+-- settings.privacy_contact_email: Yonetici Yetenekleri > Iletisim'den
+-- (admin_capabilities.php) ilk kayitta set_setting() ile yazilir; onceden
+-- satir acmaya gerek yok. Bossa gizlilik sayfasi adres gostermez (davet
+-- bildirim adresine DUSMEZ; 3 Eki duzeltmesi).
+-- invite_requests.ip / suggestions.ip: 30 gunden eskisi NULL yapilir.
+-- Bu bir migration adimi DEGIL - privacy_purge_old_ips() yeni talep /
+-- oneri eklenirken ve yonetici listeleri acilirken kosar; ilk acilista
+-- eski adreslerin hepsi tek UPDATE'le temizlenir.
+--
+-- Yeni tablo / kolon / indeks YOK.
+--
+-- MERKEZ KATALOG: is YOK.
+-- =====================================================================

@@ -825,6 +825,7 @@ function seo_sitemap_static_entries() {
     return [
         ['loc' => 'index.php',              'changefreq' => 'daily',   'priority' => '1.0'],
         ['loc' => 'about.php',              'changefreq' => 'monthly', 'priority' => '0.3'],
+        ['loc' => 'privacy.php',            'changefreq' => 'yearly',  'priority' => '0.2'], // 1.2.4
         ['loc' => 'help.php',               'changefreq' => 'monthly', 'priority' => '0.4'],
         ['loc' => 'help/help_basics.php',   'changefreq' => 'monthly', 'priority' => '0.3'],
         ['loc' => 'help/help_fields.php',   'changefreq' => 'monthly', 'priority' => '0.3'],

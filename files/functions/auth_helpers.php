@@ -355,6 +355,10 @@ function invite_request_submit($pdo, $email, $reason, $ip)
         }
     }
 
+    // 1.2.4: addresses older than the retention window are cleared first
+    // (privacy_helpers.php) - the rate limit above only looks at one hour.
+    privacy_purge_old_ips($pdo);
+
     $ins = $pdo->prepare(
         "INSERT INTO invite_requests (email, reason, ip) VALUES (?, ?, ?)"
     );

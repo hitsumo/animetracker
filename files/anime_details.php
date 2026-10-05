@@ -1212,6 +1212,8 @@ $ep_at_max   = ($ep_ceiling !== null && $ep_watched >= $ep_ceiling);
                     <button type="submit" style="margin-top:10px;background:#007bff;color:#fff;border:none;padding:9px 18px;border-radius:4px;cursor:pointer;font-size:14px;font-weight:500;">
                         <i class="fas fa-paper-plane"></i> <?php echo htmlspecialchars(t('anime_details.suggest.submit'), ENT_QUOTES, 'UTF-8'); ?>
                     </button>
+                    <?php // 1.2.4: oneri IP'si de tutulur; nerede anlatildigi. ?>
+                    <a href="privacy.php" style="margin-left:12px;font-size:0.85em;color:#888;"><?php echo htmlspecialchars(t('privacy.link'), ENT_QUOTES, 'UTF-8'); ?></a>
                 </form>
             </div>
             <?php endif; ?>

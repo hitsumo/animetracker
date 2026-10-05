@@ -78,6 +78,10 @@ if (!in_array($filter, ['pending', 'accepted', 'rejected', 'all'], true)) {
     $filter = 'pending';
 }
 
+// 1.2.4: the list shows the IP column; clear addresses past the retention
+// window first so a quiet site does not keep them until the next submission.
+privacy_purge_old_ips($pdo);
+
 // Counts per status for the tab badges.
 $counts = ['pending' => 0, 'accepted' => 0, 'rejected' => 0, 'all' => 0];
 foreach ($pdo->query("SELECT status, COUNT(*) c FROM suggestions GROUP BY status") as $row) {

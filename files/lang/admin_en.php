@@ -134,6 +134,14 @@ return [
     'admin_cap.anilist_limit.desc'           => 'In online mode, how many DIFFERENT AniList accounts a normal member may import from. The same account can be re-synced without limit. Self-host and moderator+ are exempt.',
     'admin_cap.anilist_limit.field'          => 'Number of different accounts allowed (0 = unlimited)',
     'admin_cap.anilist_limit.hint'           => 'Default is 3. Set 0 to remove the limit (unlimited).',
+    // Contact address (1.2.4) - shown on the privacy page
+    'admin_cap.contact.h3'                   => 'Contact',
+    'admin_cap.contact.desc'                 => 'The email address shown on the privacy page (privacy.php) and at the top of the Help page. You are responsible for this installation\'s data; requests come to this address. It is separate from the invite notification address. If left empty, Help shows no contact line and the privacy page says "contact the site administrator" without an address.',
+    'admin_cap.contact.label'                => 'Email address:',
+    'admin_cap.contact.placeholder'          => 'name@example.com',
+    'admin_cap.contact.none'                 => 'No contact address is set; the privacy and help pages show no address.',
+    'admin_cap.contact.invalid'              => 'Not a valid email address; nothing was saved.',
+    'admin_cap.contact.view'                 => 'Open the privacy page',
     'admin_cap.back_to_admin'                => 'Back to admin panel',
     'admin_cap.csrf_invalid'                 => 'Invalid security token (CSRF). Refresh the page and try again.',
 

@@ -146,6 +146,14 @@ return [
     'admin_cap.anilist_limit.desc'           => 'Online modda normal bir üye en fazla kaç FARKLI AniList hesabından içe aktarabilir. Aynı hesabı sınırsız yeniden senkronlayabilir. Self-host ve moderatör+ muaftır.',
     'admin_cap.anilist_limit.field'          => 'İçe aktarılabilecek farklı hesap sayısı (0 = sınırsız)',
     'admin_cap.anilist_limit.hint'           => 'Varsayılan 3. 0 yazarsan limit kalkar (sınırsız).',
+    // Iletisim adresi (1.2.4) - gizlilik sayfasinda gosterilir
+    'admin_cap.contact.h3'                   => 'İletişim',
+    'admin_cap.contact.desc'                 => 'Gizlilik sayfasında (privacy.php) ve Yardım sayfasının başında gösterilen e-posta adresi. Bu kurulumun verilerinden sen sorumlusun; talepler bu adrese gelir. Davetiye bildirim adresinden ayrıdır. Boş bırakılırsa Yardım sayfasında iletişim satırı çıkmaz, gizlilik sayfası adres vermeden "site yöneticisine başvurun" der.',
+    'admin_cap.contact.label'                => 'E-posta adresi:',
+    'admin_cap.contact.placeholder'          => 'ornek@alanadi.com',
+    'admin_cap.contact.none'                 => 'İletişim adresi tanımlı değil; gizlilik ve yardım sayfaları adres göstermiyor.',
+    'admin_cap.contact.invalid'              => 'Geçerli bir e-posta adresi değil; kaydedilmedi.',
+    'admin_cap.contact.view'                 => 'Gizlilik sayfasını aç',
     'admin_cap.back_to_admin'                => 'Yönetici paneline dön',
     'admin_cap.csrf_invalid'                 => 'Geçersiz güvenlik anahtarı (CSRF). Sayfayı yenileyip tekrar deneyin.',
 

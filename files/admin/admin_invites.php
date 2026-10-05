@@ -216,6 +216,10 @@ $registerAnnouncement   = (string)get_setting($pdo, 'register_announcement', '')
 $registerAnnouncementEn = (string)get_setting($pdo, 'register_announcement_en', '');
 $slotState            = invite_request_limit_state($pdo); // for the live status line
 
+// 1.2.4: clear request IPs past the retention window before listing
+// (privacy_helpers.php) - the same purge also runs on every new request.
+privacy_purge_old_ips($pdo);
+
 $requests = $pdo->query(
     "SELECT id, email, reason, ip, status, created_at
      FROM invite_requests

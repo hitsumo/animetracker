@@ -646,7 +646,7 @@ return [
     'help.group.timezone.heading'            => 'Saat Dilimi',
     'help.group.timezone.page_title'         => 'Saat Dilimi - Anime Tracker',
     'help.intro'                             => 'Anime Tracker\'ın nasıl çalıştığı, hangi alanların neye yaradığı ve neye dikkat etmeniz gerektiği burada. Bir özelliği merak ediyorsanız ilgili bölümü okuyun.',
-    'help.contact'                           => 'İletişim için: <a href="mailto:at@animetracker.uzakdiyarlar.com">at@animetracker.uzakdiyarlar.com</a>',
+    'help.contact_fmt'                       => 'İletişim için: %s',
 
     // Table of contents
     'help.toc.heading'                       => 'İçindekiler:',
@@ -1325,6 +1325,59 @@ return [
     'about.ai_notice_link'                   => 'AI Kullanım Beyanı / Notice',
     'about.back_to_list'                     => 'Anime Listesine Dön',
     'about.version_fmt'                      => 'Sürüm %s',
+    'about.privacy_link'                     => 'Gizlilik ve Kullanım Koşulları',
+
+    // -----------------------------------------------------------------
+    // privacy.php (1.2.4) - gizlilik + kisa kullanim kosullari
+    // Govdeler HTML'dir (yardim sayfalari gibi). Online ve self-host
+    // metinleri ayridir: self-host'ta hesap/e-posta/IP tutulmaz.
+    // -----------------------------------------------------------------
+    'privacy.link'                           => 'Gizlilik ve Kullanım Koşulları',
+    'privacy.page_title'                     => 'Gizlilik ve Kullanım Koşulları - Anime Tracker',
+    'privacy.heading'                        => 'Gizlilik ve Kullanım Koşulları',
+    'privacy.back_to_about'                  => '← Hakkında',
+    'privacy.intro'                          => 'Bu sayfa, bu sitenin hangi bilgileri neden tuttuğunu ve siteyi kullanırken nelere dikkat edildiğini anlatır. Kısa tutuldu; tamamı bu kadar.',
+    'privacy.operator.title'                 => 'Sorumlu kim?',
+    'privacy.operator.text'                  => 'Burada tutulan bilgilerden bu siteyi işleten kişi sorumludur.',
+    'privacy.contact_fmt'                    => 'Bilgilerinle ilgili her talep için: %s',
+    'privacy.contact_none'                   => 'Bu kurulum için bir iletişim adresi tanımlanmamış; site yöneticisine ulaşabildiğin yoldan başvur.',
+    'privacy.h2'                             => 'Gizlilik',
+    'privacy.data.h3'                        => 'Tutulan bilgiler',
+    'privacy.data.list'                      => '<li><strong>Hesap:</strong> kullanıcı adın, e-posta adresin ve şifrenin geri çevrilemez özeti (şifrenin kendisi saklanmaz).</li>'
+                                              . '<li><strong>Listen:</strong> eklediğin animeler, izlediğin bölümler, izleme durumların, notların ve kendi yazdığın konu metinleri, duygu işaretlerin, izleme günlüğün ve liste ayarların.</li>'
+                                              . '<li><strong>AniList içe aktarma:</strong> kullandıysan, içe aktardığın AniList kullanıcı adları.</li>'
+                                              . '<li><strong>Davetiye:</strong> davet kodunun hangi e-posta adresi için üretildiği; davetiye talep ettiysen e-posta adresin, yazdığın gerekçe ve IP adresin.</li>'
+                                              . '<li><strong>Düzeltme önerisi:</strong> öneri metni, giriş yaptıysan hesabın ve IP adresin.</li>',
+    'privacy.purpose.h3'                     => 'Ne için kullanılır',
+    'privacy.purpose.text'                   => 'Hesabını açmak ve listeni sana göstermek, davetiye taleplerini değerlendirmek ve düzeltme önerilerini incelemek için. IP adresi yalnız spam önlemek için kullanılır: aynı adresten bir saatte gönderilebilecek talep ve öneri sayısı sınırlıdır. Davetiye talebi geldiğinde e-posta adresin ve gerekçen site yöneticisine e-postayla da iletilebilir.',
+    'privacy.sharing.h3'                     => 'Kim görür',
+    'privacy.sharing.text'                   => 'Listen ve notların başka üyelere gösterilmez. Duygu işaretleri anime sayfalarında ve Ne İzlesem\'de yalnız toplu ve isimsiz sayılar olarak kullanılır; kimin neyi işaretlediği görünmez. Bilgilerin satılmaz, kiralanmaz, kimseyle paylaşılmaz. Sitede reklam, ziyaretçi sayacı ya da analitik betiği yoktur. Site yöneticisi, işi gereği veritabanına erişebilir.',
+    'privacy.cookies.h3'                     => 'Çerezler',
+    'privacy.cookies.text'                   => 'Site yalnız bir oturum çerezi kullanır. Bu çerez giriş yapmış olduğunu ve misafirsen seçtiğin dil gibi tercihleri taşır; sitenin çalışması için gereklidir. Reklam ya da izleme çerezi yoktur, bu yüzden çerez onay penceresi de yoktur.',
+    'privacy.external.h3'                    => 'Dış kaynaklar',
+    'privacy.external.text'                  => 'Sayfalar yazı tipini Google Fonts\'tan (Google), simgeleri cdnjs\'den (Cloudflare) yükler. Tarayıcın bu dosyaları indirirken IP adresin ve tarayıcı bilgin bu firmalara ulaşır; bu siteden onlara başka bir bilgi gönderilmez. Anime sayfalarındaki MyAnimeList, AniDB ve AnimeSchedule bağlantılarına tıkladığında o sitelerin kendi kuralları geçerli olur.',
+    'privacy.retention.h3'                   => 'Ne kadar tutulur',
+    'privacy.retention.text_fmt'             => 'Hesap bilgilerin ve listen, hesabın açık olduğu sürece tutulur. Davetiye talebi ve önerilerdeki IP adresleri %d gün sonra silinir; talebin ve önerinin metni kalır. Sitenin barındırıldığı sunucu firması, erişim kayıtlarını (IP adresi, ziyaret edilen adres, zaman) kendi kurallarına göre bir süre tutabilir.',
+    'privacy.rights.h3'                      => 'Hakların',
+    'privacy.rights.text'                    => 'Listeni istediğin zaman <em>Liste Ayarları → Listeyi Dışa Aktar</em> ile JSON dosyası olarak indirebilirsin. Hakkında ne tutulduğunu öğrenmek, bir bilgiyi düzelttirmek ya da hesabını ve listeni sildirmek için sayfanın başındaki iletişim yoluyla site yöneticisine yaz. Hesabın silindiğinde listen, notların, duygu işaretlerin ve izleme günlüğün de silinir; katalogdaki anime bilgilerine yaptığın düzeltmeler katalogda kalır.',
+    'privacy.single.intro'                   => 'Bu kurulum tek kullanıcılı çalışıyor (kendi sunucunda). Hesap, e-posta ya da IP adresi tutulmaz; listen, notların ve ayarların yalnız bu sunucunun veritabanındadır.',
+    'privacy.single.outbound.h3'             => 'Uygulamanın dışarıya bağlandığı yerler',
+    'privacy.single.outbound.list'           => '<li><strong>Katalog senkronu:</strong> merkez katalogdan anime bilgisi indirilir. Listen ve notların gönderilmez.</li>'
+                                              . '<li><strong>Güncelleme denetimi:</strong> "Güncelleme Kontrolü"ne bastığında dağıtım sunucusundan son sürüm numarası okunur.</li>'
+                                              . '<li><strong>Kurulum sayacı:</strong> kurulumda bir kez, adres ya da kişisel bilgi içermeyen anonim bir istek gönderilir (rastgele kimlik, sürüm, çalışma modu). <code>config.php</code> içinde <code>INSTALL_PING</code> ile kapatılabilir.</li>'
+                                              . '<li><strong>İsteğe bağlı özellikler:</strong> AniList içe aktarma (girdiğin AniList kullanıcı adı AniList\'e gider), yayın saati (AnimeSchedule) ve dolgu bölüm listesi (Anime Filler List) yalnız sen kullandığında bağlanır.</li>'
+                                              . '<li><strong>Yazı tipi ve simgeler:</strong> Google Fonts ve cdnjs (Cloudflare); tarayıcın bu dosyaları indirirken IP adresin bu firmalara ulaşır.</li>',
+    'privacy.terms.h2'                       => 'Kullanım koşulları',
+    'privacy.terms.list'                     => '<li><strong>Bilgilerin doğruluğu:</strong> Anime bilgileri üyeler tarafından ve açık kaynaklardan derlenir; doğru ve eksiksiz olduğu garanti edilmez. Hata görürsen anime sayfasındaki "Düzeltme Öner" kutusunu kullan.</li>'
+                                              . '<li><strong>Görseller:</strong> Posterler ve kapak görselleri hak sahiplerine aittir; animeyi tanıtmak için, ticari olmayan amaçla gösterilir. Hak sahibiysen ve kaldırılmasını istiyorsan site yöneticisine yaz.</li>'
+                                              . '<li><strong>Kullanım:</strong> Spam, başkalarının haklarını çiğneyen içerik ya da sistemi bozmaya yönelik kullanımda hesap uyarı yapılmadan askıya alınabilir.</li>'
+                                              . '<li><strong>Garanti yok:</strong> Site ücretsizdir ve olduğu gibi sunulur; kesintisiz çalışacağı ya da verilerin hiç kaybolmayacağı garanti edilmez. Listeni ara sıra dışa aktarman önerilir.</li>'
+                                              . '<li><strong>Değişiklikler:</strong> Bu sayfa zamanla güncellenebilir; güncel hâli her zaman bu adrestedir.</li>',
+    'privacy.single.terms.list'              => '<li><strong>Bilgilerin doğruluğu:</strong> Katalogdaki anime bilgileri gönüllüler tarafından ve açık kaynaklardan derlenir; doğru ve eksiksiz olduğu garanti edilmez.</li>'
+                                              . '<li><strong>Görseller:</strong> Posterler ve kapak görselleri hak sahiplerine aittir; animeyi tanıtmak için, ticari olmayan amaçla gösterilir.</li>'
+                                              . '<li><strong>Yedek:</strong> Verilerin bu sunucudadır; yedeğini almak senin elindedir. Listeni ara sıra dışa aktarman önerilir.</li>',
+    'privacy.selfhost.h3'                    => 'Kendi sunucusuna kurulan kopyalar',
+    'privacy.selfhost.text'                  => 'Anime Tracker açık kaynaklı bir yazılımdır (GNU GPL v2); herkes indirip kendi sunucusuna kurabilir. Her kurulumu, onu işleten kişi yönetir: o kurulumdaki veriler, içerik ve kullanımdan o kişi sorumludur. Yazılımın geliştiricisi, kendi işletmediği kurulumlardan ve oralarda yapılanlardan sorumlu değildir. Yazılım, GPL v2 lisansı gereği hiçbir garanti verilmeden sunulur.',
 
     // -----------------------------------------------------------------
     // chronology.php - per-anime kronoloji isaretleri timeline
@@ -1727,6 +1780,7 @@ Hemen guncellemek ister misiniz?',
     // adi "Seri Kronolojisi" - ikisi de baslikta olsun (arayuz adi degismedi).
     'seo.series.title_fmt'              => '%s İzleme Sırası - Seri Kronolojisi',
     'seo.about.description'             => 'Anime Tracker nedir, ne işe yarar ve hangi lisansla dağıtılır.',
+    'seo.privacy.description'           => 'Anime Tracker hangi bilgileri neden tutar, ne kadar saklar; çerezler, dış kaynaklar ve kısa kullanım koşulları.',
     'seo.help.description'              => 'Anime Tracker yardım sayfaları: alanlar, izleme durumları, katalog senkronu, seriler ve saat dilimi.',
     'seo.help.group.description_fmt'    => 'Anime Tracker yardımı - %s.',
     'seo.recent.description'            => 'Katalogda son güncellenen anime kayıtları.',

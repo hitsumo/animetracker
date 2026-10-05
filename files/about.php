@@ -106,6 +106,10 @@ lang_init($pdo);
     <a href="ai_notice.php" class="about-link">
         <i class="fas fa-robot"></i> <?php echo htmlspecialchars(t('about.ai_notice_link'), ENT_QUOTES, 'UTF-8'); ?>
     </a>
+    <?php // 1.2.4: gizlilik + kullanim kosullari (privacy.php). ?>
+    <a href="privacy.php" class="about-link">
+        <i class="fas fa-user-shield"></i> <?php echo htmlspecialchars(t('about.privacy_link'), ENT_QUOTES, 'UTF-8'); ?>
+    </a>
 </p>
 
                 <a href="https://www.sicakcikolata.com" class="about-link">sicakcikolata.com</a>
